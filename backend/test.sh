@@ -104,6 +104,7 @@ pytest tests/unit/test_clean_sweep_migrations.py -v
 pytest tests/unit/test_omi_qos_tiers.py -v
 pytest tests/unit/test_byok_security.py -v
 pytest tests/unit/test_resolve_translation_language.py -v
+pytest tests/unit/test_translation_defaults.py -v
 
 # Fair-use integration tests (require Redis; skip gracefully if unavailable)
 if redis-cli ping >/dev/null 2>&1; then
