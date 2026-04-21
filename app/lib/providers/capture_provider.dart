@@ -55,6 +55,7 @@ import 'package:omi/backend/schema/message_event.dart'
         ConversationEvent,
         LastConversationEvent,
         SpeakerLabelSuggestionEvent,
+        TranslatingStartEvent,
         TranslationEvent,
         PhotoProcessingEvent,
         PhotoDescribedEvent,
@@ -295,8 +296,15 @@ class CaptureProvider extends ChangeNotifier
   bool _translationEnabled = false;
   bool get translationEnabled => _translationEnabled;
 
+  // Segments currently being translated (loading indicator)
+  final Set<String> _translatingSegmentIds = {};
+  Set<String> get translatingSegmentIds => _translatingSegmentIds;
+
   void toggleTranslation() {
     _translationEnabled = !_translationEnabled;
+    if (!_translationEnabled) {
+      _translatingSegmentIds.clear();
+    }
     _socket?.sendText(jsonEncode(TranslateToggleEvent(enabled: _translationEnabled).toJson()));
     notifyListeners();
   }
@@ -1202,6 +1210,12 @@ class CaptureProvider extends ChangeNotifier
       return;
     }
 
+    if (event is TranslatingStartEvent) {
+      _translatingSegmentIds.addAll(event.segmentIds);
+      notifyListeners();
+      return;
+    }
+
     if (event is TranslationEvent) {
       _handleTranslationEvent(event.segments);
       return;
@@ -1446,6 +1460,11 @@ class CaptureProvider extends ChangeNotifier
       if (translatedSegments.isEmpty) return;
 
       Logger.debug("Received ${translatedSegments.length} translated segments");
+
+      // Clear translating indicator for segments that now have translations
+      for (final seg in translatedSegments) {
+        _translatingSegmentIds.remove(seg.id);
+      }
 
       // Update the segments with the translated ones
       var remainSegments = TranscriptSegment.updateSegments(segments, translatedSegments);
