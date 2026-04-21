@@ -57,6 +57,7 @@ from models.message_event import (
     PhotoProcessingEvent,
     SegmentsDeletedEvent,
     SpeakerLabelSuggestionEvent,
+    TranslatingStartEvent,
     TranslationEvent,
 )
 from models.transcript_segment import Translation
@@ -2557,56 +2558,55 @@ async def _stream_handler(
                             enabled = json_data.get('enabled', False)
                             logger.info(f"translate_toggle enabled={enabled} {uid} {session_id}")
                             if enabled and not translation_coordinator:
-                                # Lazily create coordinator on first enable
-                                lang_pref = user_db.get_user_language_preference(uid)
+                                # Use session-level language preference (already fetched at startup)
+                                lang_pref = user_language_preference
                                 if lang_pref:
                                     translation_language = lang_pref
                                     translation_language_base = lang_pref.split('-')[0]
                                     translation_enabled = True
                                     translation_enabled_mid_session = True
-                                    conversation_language_state = ConversationLanguageState(lang_pref)
+                                    if not conversation_language_state:
+                                        conversation_language_state = ConversationLanguageState(lang_pref)
                                     translation_coordinator = TranslationCoordinator(
                                         target_language=lang_pref,
                                         translation_service=translation_service,
                                         on_translation_ready=_on_translation_ready,
                                         language_state=conversation_language_state,
                                     )
-                                    # Batch-translate existing segments for the current conversation
+                                    # Translate all untranslated segments in chunks
                                     if current_conversation_id:
                                         conv = _get_cached_conversation()
                                         if conv:
                                             existing = conv.get('transcript_segments', [])
-                                            # Filter to recent segments (24h window)
-                                            conv_started = conv.get('started_at')
-                                            now = datetime.now(timezone.utc)
-                                            cutoff_secs = 24 * 3600
-                                            units = []
-                                            for s in existing:
-                                                if not s.get('text') or s.get('translations'):
-                                                    continue
-                                                # Check 24h window using conversation start + segment end
-                                                if conv_started and s.get('end'):
-                                                    seg_time = conv_started + timedelta(seconds=s['end'])
-                                                    if (now - seg_time).total_seconds() > cutoff_secs:
-                                                        continue
-                                                units.append((s['id'], s['text']))
+                                            units = [
+                                                (s['id'], s['text'])
+                                                for s in existing
+                                                if s.get('text') and not s.get('translations')
+                                            ]
                                             if units:
-                                                try:
-                                                    results = translation_service.translate_units_batch(
-                                                        lang_pref, units
-                                                    )
-                                                    for seg_id, translated_text, detected_lang in results:
-                                                        if translated_text and detected_lang:
-                                                            await _on_translation_ready(
-                                                                seg_id,
-                                                                translated_text,
-                                                                detected_lang,
-                                                                current_conversation_id,
-                                                            )
-                                                except Exception as e:
-                                                    logger.error(
-                                                        f"Batch translate on toggle error: {e} {uid} {session_id}"
-                                                    )
+                                                chunk_size = 10
+                                                all_seg_ids = [u[0] for u in units]
+                                                _send_message_event(TranslatingStartEvent(segment_ids=all_seg_ids))
+                                                for i in range(0, len(units), chunk_size):
+                                                    chunk = units[i : i + chunk_size]
+                                                    try:
+                                                        results = translation_service.translate_units_batch(
+                                                            lang_pref, chunk
+                                                        )
+                                                        for seg_id, translated_text, detected_lang in results:
+                                                            if translated_text and detected_lang:
+                                                                await _on_translation_ready(
+                                                                    seg_id,
+                                                                    translated_text,
+                                                                    detected_lang,
+                                                                    current_conversation_id,
+                                                                )
+                                                    except Exception as e:
+                                                        logger.error(
+                                                            f"Batch translate chunk error: {e} {uid} {session_id}"
+                                                        )
+                                                    if i + chunk_size < len(units):
+                                                        await asyncio.sleep(0.1)
                                 else:
                                     logger.info(f"translate_toggle: no language preference set {uid} {session_id}")
                             elif not enabled and translation_coordinator:
