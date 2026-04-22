@@ -181,6 +181,26 @@ class TestVertexGeminiProxy:
         finally:
             mod._GCP_PROJECT = orig_project
 
+    @patch('utils.llm.clients._get_vertex_access_token', side_effect=RuntimeError('ADC broken'))
+    @patch('utils.llm.clients.get_byok_key', return_value=None)
+    def test_vertex_creds_failure_falls_back_to_openrouter(self, mock_byok, mock_token):
+        """When GCP project is set but ADC/refresh fails, proxy falls back to OpenRouter."""
+        import utils.llm.clients as mod
+
+        orig_project = mod._GCP_PROJECT
+        try:
+            mod._GCP_PROJECT = 'test-project'
+            mock_default = MagicMock()
+            proxy = mod._VertexGeminiProxy(
+                default=mock_default,
+                direct_model='gemini-3-flash-preview',
+                ctor_kwargs={'callbacks': []},
+            )
+            resolved = proxy._resolve()
+            assert resolved is mock_default
+        finally:
+            mod._GCP_PROJECT = orig_project
+
     @patch('utils.llm.clients._get_vertex_access_token', return_value='vertex-tok')
     @patch('utils.llm.clients.get_byok_key', return_value=None)
     def test_vertex_client_strips_openrouter_kwargs(self, mock_byok, mock_token):
@@ -278,6 +298,19 @@ class TestGeminiEmbedRouting:
         headers = call_args[1].get('headers', {})
         assert headers.get('x-goog-api-key') == 'byok-gem-key'
         assert len(result) == 3072
+
+    @patch('utils.llm.clients.get_byok_key', return_value=None)
+    def test_embed_no_project_raises_clear_error(self, mock_byok):
+        """Without BYOK or GCP project, embedding raises RuntimeError."""
+        import utils.llm.clients as mod
+
+        orig_project = mod._GCP_PROJECT
+        try:
+            mod._GCP_PROJECT = ''
+            with pytest.raises(RuntimeError, match='BYOK key or GCP project'):
+                mod.gemini_embed_query('test query')
+        finally:
+            mod._GCP_PROJECT = orig_project
 
 
 # ---------------------------------------------------------------------------
