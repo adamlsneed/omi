@@ -75,19 +75,33 @@ class _BYOKChatWrapper:
     NOT a base class. A decorator/wrapper applied by get_llm() on top of
     provider-specific clients. The provider tag determines which BYOK key
     pool to check. The byok_factory constructs a BYOK-keyed client when needed.
+
+    For providers with expiring credentials (e.g. Vertex AI OAuth2 tokens),
+    default_factory resolves a fresh default client per-request instead of
+    returning the static _default. This keeps token refresh aligned with
+    the QoS caching pattern.
     """
 
-    __slots__ = ('_default', '_provider', '_byok_factory')
+    __slots__ = ('_default', '_provider', '_byok_factory', '_default_factory')
 
-    def __init__(self, default: ChatOpenAI, provider: str, byok_factory: Callable[[str], ChatOpenAI]):
+    def __init__(
+        self,
+        default: ChatOpenAI,
+        provider: str,
+        byok_factory: Callable[[str], ChatOpenAI],
+        default_factory: Optional[Callable[[], ChatOpenAI]] = None,
+    ):
         object.__setattr__(self, '_default', default)
         object.__setattr__(self, '_provider', provider)
         object.__setattr__(self, '_byok_factory', byok_factory)
+        object.__setattr__(self, '_default_factory', default_factory)
 
     def _resolve(self) -> ChatOpenAI:
         byok = get_byok_key(self._provider)
         if byok:
             return self._byok_factory(byok)
+        if self._default_factory is not None:
+            return self._default_factory()
         return self._default
 
     def __getattr__(self, name: str):
@@ -173,8 +187,19 @@ def _cached_anthropic(api_key: str) -> anthropic.AsyncAnthropic:
     return inst
 
 
-def _wrap_byok(default: ChatOpenAI, model: str, provider: str, ctor_kwargs: Dict[str, Any]) -> _BYOKChatWrapper:
-    """Wrap a ChatOpenAI client with BYOK resolution for the given provider."""
+def _wrap_byok(
+    default: ChatOpenAI,
+    model: str,
+    provider: str,
+    ctor_kwargs: Dict[str, Any],
+    default_factory: Optional[Callable[[], ChatOpenAI]] = None,
+) -> _BYOKChatWrapper:
+    """Wrap a ChatOpenAI client with BYOK resolution for the given provider.
+
+    Args:
+        default_factory: Optional callable that returns a fresh default client
+            per-request. Used for providers with expiring credentials (Vertex AI).
+    """
     # Strip api_key/base_url from kwargs — BYOK factory supplies its own
     clean_kwargs = {k: v for k, v in ctor_kwargs.items() if k not in ('api_key', 'base_url')}
 
@@ -202,7 +227,7 @@ def _wrap_byok(default: ChatOpenAI, model: str, provider: str, ctor_kwargs: Dict
         def _factory(byok_key: str) -> ChatOpenAI:
             return _cached_openai_chat(model, byok_key, clean_kwargs)
 
-    return _BYOKChatWrapper(default=default, provider=provider, byok_factory=_factory)
+    return _BYOKChatWrapper(default=default, provider=provider, byok_factory=_factory, default_factory=default_factory)
 
 
 # Anthropic client for chat agent (module-level, BYOK-aware)
@@ -455,6 +480,12 @@ def _get_or_create_gemini_llm(model_name: str, streaming: bool = False) -> _BYOK
     Platform calls route to Vertex AI (ADC auth, EDP/PT discounts).
     Falls back to GEMINI_API_KEY (AI Studio) when Vertex is unavailable.
     BYOK users always route to AI Studio via the _BYOKChatWrapper.
+
+    Vertex AI uses OAuth2 tokens that expire after ~1 hour. Rather than
+    baking a static token into a cached client, we use a default_factory
+    that resolves a fresh token per-request via _BYOKChatWrapper._resolve().
+    Clients are cached in _openai_cache (TTLCache, 1h) keyed by token hash
+    so the same client is reused while the token is valid.
     """
     key = (model_name, streaming, 'gemini')
     if key not in _llm_cache:
@@ -462,24 +493,28 @@ def _get_or_create_gemini_llm(model_name: str, streaming: bool = False) -> _BYOK
         if streaming:
             kwargs['streaming'] = True
             kwargs['stream_options'] = {"include_usage": True}
-        # Try Vertex AI first (ADC), fall back to AI Studio (GEMINI_API_KEY)
+
         if _GCP_PROJECT:
-            try:
-                token = _get_vertex_access_token()
-                default = ChatOpenAI(
-                    model=model_name,
-                    api_key=token,
-                    base_url=_vertex_openai_base_url(),
-                    **kwargs,
-                )
-            except Exception:
-                logger.warning('Vertex AI credentials unavailable, falling back to GEMINI_API_KEY')
-                default = ChatOpenAI(
-                    model=model_name,
-                    api_key=os.environ.get('GEMINI_API_KEY', ''),
-                    base_url=_GEMINI_AI_STUDIO_BASE_URL,
-                    **kwargs,
-                )
+            vertex_base_url = _vertex_openai_base_url()
+            vertex_kwargs = {**kwargs, 'base_url': vertex_base_url}
+
+            def _vertex_client_factory() -> ChatOpenAI:
+                """Resolve a Vertex AI client with a fresh token (cached by token hash)."""
+                try:
+                    token = _get_vertex_access_token()
+                    return _cached_openai_chat(model_name, token, vertex_kwargs)
+                except Exception:
+                    logger.warning('Vertex AI credentials unavailable, falling back to GEMINI_API_KEY')
+                    return ChatOpenAI(
+                        model=model_name,
+                        api_key=os.environ.get('GEMINI_API_KEY', ''),
+                        base_url=_GEMINI_AI_STUDIO_BASE_URL,
+                        **kwargs,
+                    )
+
+            # Eagerly resolve initial default for introspection / test compatibility
+            default = _vertex_client_factory()
+            _llm_cache[key] = _wrap_byok(default, model_name, 'gemini', kwargs, default_factory=_vertex_client_factory)
         else:
             default = ChatOpenAI(
                 model=model_name,
@@ -487,7 +522,7 @@ def _get_or_create_gemini_llm(model_name: str, streaming: bool = False) -> _BYOK
                 base_url=_GEMINI_AI_STUDIO_BASE_URL,
                 **kwargs,
             )
-        _llm_cache[key] = _wrap_byok(default, model_name, 'gemini', kwargs)
+            _llm_cache[key] = _wrap_byok(default, model_name, 'gemini', kwargs)
     return _llm_cache[key]
 
 
