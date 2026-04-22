@@ -239,14 +239,19 @@ class TestGeminiKeyNotInUrl:
     @patch('utils.llm.clients.get_byok_key', return_value=None)
     def test_gemini_embed_vertex_uses_bearer_auth(self, mock_byok, mock_vertex_token, mock_post):
         """Platform calls (no BYOK) route to Vertex AI with Bearer token."""
+        import utils.llm.clients as mod
+
         mock_response = MagicMock()
         mock_response.json.return_value = {'embedding': {'values': [0.1, 0.2]}}
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
 
-        from utils.llm.clients import gemini_embed_query
-
-        gemini_embed_query('test query')
+        orig_project = mod._GCP_PROJECT
+        try:
+            mod._GCP_PROJECT = 'test-project'
+            mod.gemini_embed_query('test query')
+        finally:
+            mod._GCP_PROJECT = orig_project
 
         call_args = mock_post.call_args
         url = call_args[0][0] if call_args[0] else call_args[1].get('url', '')
