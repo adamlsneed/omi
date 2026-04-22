@@ -372,31 +372,88 @@ class TestAIStudioUrlPreserved:
 
 class TestBoundaryBehavior:
     def test_concurrent_token_refresh_serialized(self):
-        """Concurrent calls to _get_vertex_access_token serialize through _vertex_lock."""
+        """Concurrent calls to _get_vertex_access_token serialize through _vertex_lock.
+
+        Verifies that the lock prevents redundant refreshes: after the first
+        thread refreshes (setting valid=True), subsequent threads see the
+        valid token and skip refresh.
+        """
+        import concurrent.futures
+        import threading
+
         import utils.llm.clients as mod
 
         mock_creds = MagicMock()
         mock_creds.valid = False
         refresh_count = {'n': 0}
+        barrier = threading.Barrier(4, timeout=5)
 
-        def counting_refresh(request):
+        def slow_refresh(request):
+            """Simulate refresh: mark valid after first call so others skip."""
             refresh_count['n'] += 1
+            mock_creds.valid = True
 
-        mock_creds.refresh = counting_refresh
+        mock_creds.refresh = slow_refresh
         mock_creds.token = 'refreshed-tok'
 
         orig_creds = mod._vertex_credentials
         try:
             mod._vertex_credentials = mock_creds
-            import concurrent.futures
+
+            def _get_token_after_barrier():
+                barrier.wait()
+                return mod._get_vertex_access_token()
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-                futures = [pool.submit(mod._get_vertex_access_token) for _ in range(4)]
+                futures = [pool.submit(_get_token_after_barrier) for _ in range(4)]
                 results = [f.result() for f in futures]
             assert all(r == 'refreshed-tok' for r in results)
-            assert refresh_count['n'] >= 1
+            # Lock serializes: first thread refreshes and sets valid=True,
+            # remaining threads see valid=True and skip refresh.
+            assert refresh_count['n'] == 1
         finally:
             mod._vertex_credentials = orig_creds
+
+    @patch('utils.llm.clients._get_vertex_access_token', return_value='ttl-test-token')
+    def test_ttl_cache_evicts_vertex_client_after_expiry(self, mock_token):
+        """Vertex clients cached in _openai_cache are evicted after TTL expires."""
+        from cachetools import TTLCache
+
+        import utils.llm.clients as mod
+
+        orig_project = mod._GCP_PROJECT
+        orig_cache = mod._openai_cache
+        orig_llm_cache = dict(mod._llm_cache)
+        # Use a very short TTL to test eviction without sleeping
+        short_ttl_cache = TTLCache(maxsize=256, ttl=0.1)
+        try:
+            mod._GCP_PROJECT = 'test-project'
+            mod._openai_cache = short_ttl_cache
+            mod._llm_cache.clear()
+
+            llm = mod._get_or_create_gemini_llm('gemini-2.5-flash-lite')
+            client_a = llm._default_factory()
+            assert len(short_ttl_cache) == 1
+
+            # Same token before TTL expires — cached
+            client_a2 = llm._default_factory()
+            assert client_a2 is client_a
+
+            # Wait for TTL to expire
+            import time
+
+            time.sleep(0.15)
+
+            # Cache entry evicted — new client created even with same token
+            assert len(short_ttl_cache) == 0
+            client_b = llm._default_factory()
+            assert client_b is not client_a
+            assert len(short_ttl_cache) == 1
+        finally:
+            mod._GCP_PROJECT = orig_project
+            mod._openai_cache = orig_cache
+            mod._llm_cache.clear()
+            mod._llm_cache.update(orig_llm_cache)
 
     @patch('utils.llm.clients.httpx.post')
     @patch('utils.llm.clients._get_vertex_access_token', return_value='vx-token')
