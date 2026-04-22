@@ -1,9 +1,12 @@
 import hashlib
 import logging
 import os
+import threading
 from typing import Any, Dict, List, Optional
 
 import anthropic
+import google.auth
+import google.auth.transport.requests
 import httpx
 from cachetools import TTLCache
 from langchain_core.output_parsers import PydanticOutputParser
@@ -17,6 +20,53 @@ from utils.llm.usage_tracker import get_usage_callback
 logger = logging.getLogger(__name__)
 
 _usage_callback = get_usage_callback()
+
+# ---------------------------------------------------------------------------
+# Vertex AI configuration (replaces Google AI Studio for platform-owned calls)
+#
+# Auth uses Application Default Credentials (ADC) / Workload Identity — no API
+# key needed.  BYOK users still route to AI Studio with their own key.
+#
+# Env vars:
+#   GCP_LOCATION — Vertex AI region (default: global, needed for Gemini 3)
+#   GOOGLE_CLOUD_PROJECT — GCP project ID (fallback if ADC doesn't return one)
+# ---------------------------------------------------------------------------
+
+_GCP_LOCATION = os.environ.get('GCP_LOCATION', 'global')
+
+# Resolve GCP project once at startup via ADC, with env fallback.
+# ADC may not be available in dev/test environments — fail gracefully.
+try:
+    _vertex_credentials, _vertex_project = google.auth.default(
+        scopes=['https://www.googleapis.com/auth/cloud-platform'],
+    )
+except google.auth.exceptions.DefaultCredentialsError:
+    logger.info('No ADC found — Vertex AI Gemini calls will fall back to OpenRouter')
+    _vertex_credentials = None
+    _vertex_project = None
+
+_GCP_PROJECT = _vertex_project or os.environ.get('GOOGLE_CLOUD_PROJECT', '')
+if not _GCP_PROJECT:
+    logger.info('No GCP project resolved — Vertex AI Gemini calls will fall back to OpenRouter')
+
+_vertex_lock = threading.Lock()
+
+
+def _get_vertex_access_token() -> str:
+    """Return a valid OAuth2 access token for Vertex AI, refreshing if needed."""
+    if _vertex_credentials is None:
+        raise RuntimeError('Vertex AI credentials not available — check ADC configuration')
+    with _vertex_lock:
+        if not _vertex_credentials.valid:
+            _vertex_credentials.refresh(google.auth.transport.requests.Request())
+        return _vertex_credentials.token
+
+
+def _vertex_openai_base_url(location: Optional[str] = None) -> str:
+    """Build the Vertex AI OpenAI-compatible base URL."""
+    loc = location or _GCP_LOCATION
+    return f'https://aiplatform.googleapis.com/v1/projects/{_GCP_PROJECT}/locations/{loc}/endpoints/openapi'
+
 
 # ---------------------------------------------------------------------------
 # BYOK routing proxies
@@ -78,16 +128,17 @@ class _AnthropicClientProxy:
         return getattr(self._resolve(), name)
 
 
-# Google's OpenAI-compatible endpoint lets us keep langchain_openai.ChatOpenAI
-# as the client class while routing to Gemini directly — no new langchain dep.
-_GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# Google AI Studio OpenAI-compatible endpoint — kept for BYOK Gemini users only.
+_GEMINI_AI_STUDIO_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
-class _OpenRouterGeminiProxy:
-    """For models served via OpenRouter that we want to route direct when BYOK Gemini is set.
+class _VertexGeminiProxy:
+    """Routes platform Gemini calls to Vertex AI; BYOK Gemini stays on AI Studio.
 
-    Falls back to the OpenRouter-backed default client when no BYOK gemini key
-    is present — so non-BYOK users are unaffected.
+    Resolution order:
+    1. BYOK Gemini key present → route to AI Studio (user's own key, unchanged)
+    2. No BYOK key → route to Vertex AI via ADC token (saves 34% via EDP/PT)
+    3. Vertex AI not configured → fall back to OpenRouter (graceful degradation)
     """
 
     __slots__ = ('_default', '_direct_model', '_ctor_kwargs')
@@ -100,11 +151,25 @@ class _OpenRouterGeminiProxy:
     def _resolve(self) -> ChatOpenAI:
         byok = get_byok_key('gemini')
         if byok:
+            # BYOK users keep using AI Studio with their own API key
             return _cached_openai_chat(
                 self._direct_model,
                 byok,
-                {**self._ctor_kwargs, 'base_url': _GEMINI_OPENAI_BASE_URL},
+                {**self._ctor_kwargs, 'base_url': _GEMINI_AI_STUDIO_BASE_URL},
             )
+        # Platform calls → Vertex AI (ADC auth, EDP/PT discounts)
+        if _GCP_PROJECT:
+            token = _get_vertex_access_token()
+            # Strip OpenRouter-specific kwargs before building Vertex client
+            vertex_kwargs = {
+                k: v for k, v in self._ctor_kwargs.items() if k not in ('api_key', 'base_url', 'default_headers')
+            }
+            return _cached_openai_chat(
+                self._direct_model,
+                token,
+                {**vertex_kwargs, 'base_url': _vertex_openai_base_url()},
+            )
+        # Fallback: no Vertex config, use OpenRouter default
         return self._default
 
     def __getattr__(self, name: str):
@@ -382,7 +447,7 @@ def get_model(feature: str) -> str:
 
 # ---------------------------------------------------------------------------
 # Client factories — provider-specific, cached per (model, streaming, provider)
-# QoS clients are BYOK-aware via _byok_openai / _OpenRouterGeminiProxy.
+# QoS clients are BYOK-aware via _byok_openai / _VertexGeminiProxy.
 # ---------------------------------------------------------------------------
 
 _llm_cache: Dict[tuple, Any] = {}
@@ -423,7 +488,7 @@ def _get_or_create_openrouter_llm(
         if model_name.startswith('google/gemini'):
             direct_model = model_name.split('/', 1)[1]
             default = ChatOpenAI(model=model_name, **kwargs)
-            _llm_cache[key] = _OpenRouterGeminiProxy(default=default, direct_model=direct_model, ctor_kwargs=kwargs)
+            _llm_cache[key] = _VertexGeminiProxy(default=default, direct_model=direct_model, ctor_kwargs=kwargs)
         else:
             _llm_cache[key] = ChatOpenAI(model=model_name, **kwargs)
     return _llm_cache[key]
@@ -587,7 +652,7 @@ _persona_mini_default = ChatOpenAI(
 )
 # BYOK Gemini → route direct to Google's OpenAI-compat endpoint.
 # Model name drops the `google/` prefix: gemini-flash-1.5-8b on Google direct.
-llm_persona_mini_stream = _OpenRouterGeminiProxy(
+llm_persona_mini_stream = _VertexGeminiProxy(
     default=_persona_mini_default,
     direct_model="gemini-flash-1.5-8b",
     ctor_kwargs=_persona_mini_kwargs,
@@ -656,7 +721,7 @@ _gemini_flash_default = ChatOpenAI(
     default_headers={"X-Title": "Omi Wrapped"},
     **_gemini_flash_kwargs,
 )
-llm_gemini_flash = _OpenRouterGeminiProxy(
+llm_gemini_flash = _VertexGeminiProxy(
     default=_gemini_flash_default,
     direct_model="gemini-3-flash-preview",
     ctor_kwargs=_gemini_flash_kwargs,
@@ -692,17 +757,37 @@ def gemini_embed_query(text: str) -> List[float]:
     Uses RETRIEVAL_QUERY task type to match the RETRIEVAL_DOCUMENT embeddings
     generated by the desktop app.
 
-    Prefers the per-request BYOK Gemini key; falls back to the process-wide
-    env key so non-BYOK callers behave exactly as before.
+    Routing:
+      - BYOK Gemini key present → AI Studio (user's own key, unchanged)
+      - No BYOK key → Vertex AI via ADC (EDP/PT cost savings)
     """
-    api_key = get_byok_key('gemini') or os.environ.get('GEMINI_API_KEY', '')
-    url = 'https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent'
+    byok_key = get_byok_key('gemini')
+    if byok_key:
+        # BYOK users: AI Studio endpoint with their own API key
+        url = 'https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent'
+        payload = {
+            'model': 'models/embedding-001',
+            'content': {'parts': [{'text': text}]},
+            'taskType': 'RETRIEVAL_QUERY',
+        }
+        headers = {'x-goog-api-key': byok_key, 'Content-Type': 'application/json'}
+        resp = httpx.post(url, json=payload, headers=headers, timeout=10)
+        resp.raise_for_status()
+        return resp.json()['embedding']['values']
+
+    # Platform calls: Vertex AI endpoint with ADC token
+    loc = os.environ.get('GCP_EMBEDDING_LOCATION', 'us-central1')
+    url = (
+        f'https://aiplatform.googleapis.com/v1beta1/projects/{_GCP_PROJECT}'
+        f'/locations/{loc}/publishers/google/models/gemini-embedding-001:embedContent'
+    )
     payload = {
-        'model': 'models/embedding-001',
+        'model': f'projects/{_GCP_PROJECT}/locations/{loc}/publishers/google/models/gemini-embedding-001',
         'content': {'parts': [{'text': text}]},
         'taskType': 'RETRIEVAL_QUERY',
     }
-    headers = {'x-goog-api-key': api_key, 'Content-Type': 'application/json'}
+    token = _get_vertex_access_token()
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
     resp = httpx.post(url, json=payload, headers=headers, timeout=10)
     resp.raise_for_status()
     return resp.json()['embedding']['values']
