@@ -77,6 +77,33 @@ class LLMUsageCallback(BaseCallbackHandler):
         input_tokens = token_usage.get("prompt_tokens", 0)
         output_tokens = token_usage.get("completion_tokens", 0)
 
+        # Fallback: ChatGoogleGenerativeAI puts token counts on message.usage_metadata
+        # instead of llm_output["token_usage"]. Extract from there if primary path yields 0.
+        if input_tokens == 0 and output_tokens == 0 and response.generations:
+            for gen_list in response.generations:
+                for gen in gen_list:
+                    msg = getattr(gen, "message", None)
+                    if msg is None:
+                        continue
+                    usage = getattr(msg, "usage_metadata", None)
+                    if usage:
+                        input_tokens = (
+                            getattr(usage, "input_tokens", 0) or usage.get("input_tokens", 0)
+                            if isinstance(usage, dict)
+                            else getattr(usage, "input_tokens", 0)
+                        )
+                        output_tokens = (
+                            getattr(usage, "output_tokens", 0) or usage.get("output_tokens", 0)
+                            if isinstance(usage, dict)
+                            else getattr(usage, "output_tokens", 0)
+                        )
+                        if model == "unknown":
+                            resp_meta = getattr(msg, "response_metadata", {})
+                            model = resp_meta.get("model_name", model) if isinstance(resp_meta, dict) else model
+                        break
+                if input_tokens > 0 or output_tokens > 0:
+                    break
+
         # Also try to get model from response metadata
         if model == "unknown" and response.generations:
             for gen_list in response.generations:
