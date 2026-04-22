@@ -1,9 +1,12 @@
 import hashlib
 import logging
 import os
+import threading
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import anthropic
+import google.auth
+import google.auth.transport.requests
 import httpx
 from cachetools import TTLCache
 from langchain_core.output_parsers import PydanticOutputParser
@@ -19,6 +22,41 @@ logger = logging.getLogger(__name__)
 _usage_callback = get_usage_callback()
 
 # ---------------------------------------------------------------------------
+# Vertex AI configuration — ADC auth for cost savings (EDP + Provisioned Throughput)
+# Platform Gemini calls route here; BYOK users stay on AI Studio.
+# ---------------------------------------------------------------------------
+
+try:
+    _vertex_credentials, _vertex_project = google.auth.default(
+        scopes=['https://www.googleapis.com/auth/cloud-platform'],
+    )
+except google.auth.exceptions.DefaultCredentialsError:
+    logger.info('No ADC found — Vertex AI Gemini calls will fall back to GEMINI_API_KEY')
+    _vertex_credentials = None
+    _vertex_project = None
+
+_GCP_PROJECT = os.environ.get('GOOGLE_CLOUD_PROJECT', '') or (_vertex_project or '')
+_GCP_LOCATION = os.environ.get('GCP_LOCATION', 'global')
+_vertex_lock = threading.Lock()
+
+
+def _get_vertex_access_token() -> str:
+    """Return a valid Vertex AI access token, refreshing if needed (thread-safe)."""
+    if _vertex_credentials is None:
+        raise RuntimeError('Vertex AI credentials not available — check ADC configuration')
+    with _vertex_lock:
+        if not _vertex_credentials.valid:
+            _vertex_credentials.refresh(google.auth.transport.requests.Request())
+        return _vertex_credentials.token
+
+
+def _vertex_openai_base_url(location: Optional[str] = None) -> str:
+    """Build the Vertex AI OpenAI-compatible endpoint URL."""
+    loc = location or _GCP_LOCATION
+    return f'https://aiplatform.googleapis.com/v1/projects/{_GCP_PROJECT}/locations/{loc}/endpoints/openapi'
+
+
+# ---------------------------------------------------------------------------
 # BYOK wrappers — generic, provider-agnostic
 #
 # BYOK is a per-request feature that substitutes the user's own API key.
@@ -28,7 +66,7 @@ _usage_callback = get_usage_callback()
 
 # Google's OpenAI-compatible endpoint lets us keep langchain_openai.ChatOpenAI
 # as the client class while routing to Gemini directly — no new langchain dep.
-_GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+_GEMINI_AI_STUDIO_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
 class _BYOKChatWrapper:
@@ -143,7 +181,7 @@ def _wrap_byok(default: ChatOpenAI, model: str, provider: str, ctor_kwargs: Dict
     if provider == 'gemini':
 
         def _factory(byok_key: str) -> ChatOpenAI:
-            return _cached_openai_chat(model, byok_key, {**clean_kwargs, 'base_url': _GEMINI_OPENAI_BASE_URL})
+            return _cached_openai_chat(model, byok_key, {**clean_kwargs, 'base_url': _GEMINI_AI_STUDIO_BASE_URL})
 
     elif provider == 'openrouter':
         # Only Gemini-based OpenRouter models support BYOK reroute to Gemini direct
@@ -151,7 +189,9 @@ def _wrap_byok(default: ChatOpenAI, model: str, provider: str, ctor_kwargs: Dict
         if bare_model.startswith('gemini'):
 
             def _factory(byok_key: str) -> ChatOpenAI:
-                return _cached_openai_chat(bare_model, byok_key, {**clean_kwargs, 'base_url': _GEMINI_OPENAI_BASE_URL})
+                return _cached_openai_chat(
+                    bare_model, byok_key, {**clean_kwargs, 'base_url': _GEMINI_AI_STUDIO_BASE_URL}
+                )
 
             return _BYOKChatWrapper(default=default, provider='gemini', byok_factory=_factory)
         # Non-Gemini OpenRouter: no BYOK support, always use Omi's key
@@ -410,19 +450,43 @@ def _get_or_create_openrouter_llm(
 
 
 def _get_or_create_gemini_llm(model_name: str, streaming: bool = False) -> _BYOKChatWrapper:
-    """Get or create a BYOK-wrapped ChatOpenAI for a Gemini model via Google's OpenAI-compat endpoint."""
+    """Get or create a BYOK-wrapped ChatOpenAI for a Gemini model.
+
+    Platform calls route to Vertex AI (ADC auth, EDP/PT discounts).
+    Falls back to GEMINI_API_KEY (AI Studio) when Vertex is unavailable.
+    BYOK users always route to AI Studio via the _BYOKChatWrapper.
+    """
     key = (model_name, streaming, 'gemini')
     if key not in _llm_cache:
         kwargs: Dict[str, Any] = {'callbacks': [_usage_callback]}
         if streaming:
             kwargs['streaming'] = True
             kwargs['stream_options'] = {"include_usage": True}
-        default = ChatOpenAI(
-            model=model_name,
-            api_key=os.environ.get('GEMINI_API_KEY', ''),
-            base_url=_GEMINI_OPENAI_BASE_URL,
-            **kwargs,
-        )
+        # Try Vertex AI first (ADC), fall back to AI Studio (GEMINI_API_KEY)
+        if _GCP_PROJECT:
+            try:
+                token = _get_vertex_access_token()
+                default = ChatOpenAI(
+                    model=model_name,
+                    api_key=token,
+                    base_url=_vertex_openai_base_url(),
+                    **kwargs,
+                )
+            except Exception:
+                logger.warning('Vertex AI credentials unavailable, falling back to GEMINI_API_KEY')
+                default = ChatOpenAI(
+                    model=model_name,
+                    api_key=os.environ.get('GEMINI_API_KEY', ''),
+                    base_url=_GEMINI_AI_STUDIO_BASE_URL,
+                    **kwargs,
+                )
+        else:
+            default = ChatOpenAI(
+                model=model_name,
+                api_key=os.environ.get('GEMINI_API_KEY', ''),
+                base_url=_GEMINI_AI_STUDIO_BASE_URL,
+                **kwargs,
+            )
         _llm_cache[key] = _wrap_byok(default, model_name, 'gemini', kwargs)
     return _llm_cache[key]
 
@@ -549,17 +613,38 @@ def gemini_embed_query(text: str) -> List[float]:
     Uses RETRIEVAL_QUERY task type to match the RETRIEVAL_DOCUMENT embeddings
     generated by the desktop app.
 
-    Prefers the per-request BYOK Gemini key; falls back to the process-wide
-    env key so non-BYOK callers behave exactly as before.
+    Routing:
+      - BYOK Gemini key present → AI Studio (user's own key, unchanged)
+      - No BYOK key → Vertex AI via ADC (EDP/PT cost savings)
     """
-    api_key = get_byok_key('gemini') or os.environ.get('GEMINI_API_KEY', '')
-    url = 'https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent'
+    byok_key = get_byok_key('gemini')
+    if byok_key:
+        # BYOK users: AI Studio endpoint with their own API key
+        url = 'https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent'
+        payload = {
+            'model': 'models/embedding-001',
+            'content': {'parts': [{'text': text}]},
+            'taskType': 'RETRIEVAL_QUERY',
+        }
+        headers = {'x-goog-api-key': byok_key, 'Content-Type': 'application/json'}
+        resp = httpx.post(url, json=payload, headers=headers, timeout=10)
+        resp.raise_for_status()
+        return resp.json()['embedding']['values']
+
+    # Platform calls: Vertex AI endpoint with ADC token
+    if not _GCP_PROJECT:
+        raise RuntimeError('Gemini embedding requires either a BYOK key or GCP project configuration')
+    loc = os.environ.get('GCP_EMBEDDING_LOCATION', 'us-central1')
+    url = (
+        f'https://aiplatform.googleapis.com/v1beta1/projects/{_GCP_PROJECT}'
+        f'/locations/{loc}/publishers/google/models/gemini-embedding-001:embedContent'
+    )
     payload = {
-        'model': 'models/embedding-001',
         'content': {'parts': [{'text': text}]},
         'taskType': 'RETRIEVAL_QUERY',
     }
-    headers = {'x-goog-api-key': api_key, 'Content-Type': 'application/json'}
+    token = _get_vertex_access_token()
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
     resp = httpx.post(url, json=payload, headers=headers, timeout=10)
     resp.raise_for_status()
     return resp.json()['embedding']['values']
