@@ -79,11 +79,10 @@ ingress:
   #      - chart-example.local
 
 env:
-  - name: GEMINI_API_KEY
-    valueFrom:
-      secretKeyRef:
-        name: prod-omi-backend-secrets
-        key: GEMINI_API_KEY
+  - name: GCP_LOCATION
+    value: "global"
+  - name: GCP_EMBEDDING_LOCATION
+    value: "us-central1"
   - name: BUCKET_SPEECH_PROFILES
     value: "speech-profiles"
   - name: GITHUB_TOKEN
