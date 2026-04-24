@@ -3,6 +3,7 @@ import Foundation
 import CryptoKit
 import AppKit
 import AuthenticationServices
+import Security
 import Sentry
 
 extension Notification.Name {
@@ -65,16 +66,21 @@ class AuthService {
         return "omi-computer"
     }
 
-    // UserDefaults keys for auth persistence (dev builds with ad-hoc signing)
+    // UserDefaults keys for non-token auth persistence.
     private let kAuthIsSignedIn = "auth_isSignedIn"
     private let kAuthUserEmail = "auth_userEmail"
     private let kAuthUserId = "auth_userId"
     private let kAuthGivenName = "auth_givenName"
     private let kAuthFamilyName = "auth_familyName"
+    // Legacy token keys are read once for migration to Keychain, then removed.
     private let kAuthIdToken = "auth_idToken"
     private let kAuthRefreshToken = "auth_refreshToken"
     private let kAuthTokenExpiry = "auth_tokenExpiry"
     private let kAuthTokenUserId = "auth_tokenUserId"  // User ID that owns the stored token
+
+    private var keychainService: String {
+        "\(currentBundleIdentifier).auth"
+    }
 
     // Firebase Web API key — fetched from backend via APIKeyService, set as env var.
     // No hardcoded fallback — if the key isn't available, auth operations will fail
@@ -780,8 +786,8 @@ class AuthService {
     // MARK: - Token Storage
 
     private func saveTokens(idToken: String, refreshToken: String, expiresIn: Int, userId: String) {
-        UserDefaults.standard.set(idToken, forKey: kAuthIdToken)
-        UserDefaults.standard.set(refreshToken, forKey: kAuthRefreshToken)
+        saveToken(idToken, account: kAuthIdToken, legacyKey: kAuthIdToken)
+        saveToken(refreshToken, account: kAuthRefreshToken, legacyKey: kAuthRefreshToken)
         // Store expiry time (current time + expiresIn seconds, minus 5 min buffer)
         let expiryTime = Date().addingTimeInterval(TimeInterval(expiresIn - 300))
         UserDefaults.standard.set(expiryTime.timeIntervalSince1970, forKey: kAuthTokenExpiry)
@@ -791,6 +797,8 @@ class AuthService {
     }
 
     private func clearTokens() {
+        deleteKeychainString(account: kAuthIdToken)
+        deleteKeychainString(account: kAuthRefreshToken)
         UserDefaults.standard.removeObject(forKey: kAuthIdToken)
         UserDefaults.standard.removeObject(forKey: kAuthRefreshToken)
         UserDefaults.standard.removeObject(forKey: kAuthTokenExpiry)
@@ -798,12 +806,88 @@ class AuthService {
         NSLog("OMI AUTH: Cleared all tokens")
     }
 
+    private func saveToken(_ value: String, account: String, legacyKey: String) {
+        if saveKeychainString(value, account: account) {
+            UserDefaults.standard.removeObject(forKey: legacyKey)
+        } else {
+            NSLog("OMI AUTH: Failed to persist token in Keychain for account %@", account)
+        }
+    }
+
+    private func storedToken(account: String, legacyKey: String) -> String? {
+        if let token = readKeychainString(account: account) {
+            return token
+        }
+
+        guard let legacyToken = UserDefaults.standard.string(forKey: legacyKey), !legacyToken.isEmpty else {
+            return nil
+        }
+
+        if saveKeychainString(legacyToken, account: account) {
+            UserDefaults.standard.removeObject(forKey: legacyKey)
+            NSLog("OMI AUTH: Migrated legacy token %@ to Keychain", legacyKey)
+        } else {
+            NSLog("OMI AUTH: Failed to migrate legacy token %@ to Keychain", legacyKey)
+        }
+
+        return legacyToken
+    }
+
+    private func keychainQuery(account: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+    }
+
+    private func saveKeychainString(_ value: String, account: String) -> Bool {
+        guard let data = value.data(using: .utf8) else { return false }
+
+        var query = keychainQuery(account: account)
+        SecItemDelete(query as CFDictionary)
+        query[kSecValueData as String] = data
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess {
+            NSLog("OMI AUTH: Keychain save failed for %@ with status %d", account, status)
+            return false
+        }
+        return true
+    }
+
+    private func readKeychainString(account: String) -> String? {
+        var query = keychainQuery(account: account)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound {
+            return nil
+        }
+        guard status == errSecSuccess else {
+            NSLog("OMI AUTH: Keychain read failed for %@ with status %d", account, status)
+            return nil
+        }
+        guard let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func deleteKeychainString(account: String) {
+        let status = SecItemDelete(keychainQuery(account: account) as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            NSLog("OMI AUTH: Keychain delete failed for %@ with status %d", account, status)
+        }
+    }
+
     private var storedIdToken: String? {
-        UserDefaults.standard.string(forKey: kAuthIdToken)
+        storedToken(account: kAuthIdToken, legacyKey: kAuthIdToken)
     }
 
     private var storedRefreshToken: String? {
-        UserDefaults.standard.string(forKey: kAuthRefreshToken)
+        storedToken(account: kAuthRefreshToken, legacyKey: kAuthRefreshToken)
     }
 
     private var storedTokenUserId: String? {
