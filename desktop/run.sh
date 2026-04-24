@@ -213,30 +213,6 @@ find "$HOME" -maxdepth 4 -name "$APP_NAME.app" -type d -not -path "$APP_BUNDLE" 
     rm -rf "$stale"
 done
 
-if [ "${OMI_SKIP_TUNNEL:-0}" != "1" ]; then
-    step "Starting Cloudflare quick tunnel..."
-    if command -v cloudflared >/dev/null 2>&1; then
-        TUNNEL_LOG=$(mktemp /tmp/cloudflared-XXXXXX.log)
-        cloudflared tunnel --url http://localhost:${BACKEND_PORT:-8080} > "$TUNNEL_LOG" 2>&1 &
-        TUNNEL_PID=$!
-        for i in {1..20}; do
-            TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | head -1)
-            if [ -n "$TUNNEL_URL" ]; then break; fi
-            sleep 0.5
-        done
-        if [ -n "$TUNNEL_URL" ]; then
-            rm -f "$TUNNEL_LOG"
-            substep "Tunnel URL: $TUNNEL_URL"
-        else
-            substep "Warning: Could not capture tunnel URL (see $TUNNEL_LOG for details)"
-        fi
-    else
-        substep "cloudflared not found — skipping tunnel (set OMI_API_URL in .env instead)"
-    fi
-else
-    substep "Skipping tunnel (OMI_SKIP_TUNNEL=1)"
-fi
-
 # ─── Load .env and credentials ─────────────────────────────────────────
 cd "$BACKEND_DIR"
 
@@ -320,6 +296,30 @@ fi
 substep "Firebase project: $FIREBASE_PROJECT_ID | Backend port: $BACKEND_PORT | Auth port: $AUTH_PORT"
 cd - > /dev/null
 
+if [ "${OMI_SKIP_TUNNEL:-0}" != "1" ]; then
+    step "Starting Cloudflare quick tunnel..."
+    if command -v cloudflared >/dev/null 2>&1; then
+        TUNNEL_LOG=$(mktemp /tmp/cloudflared-XXXXXX.log)
+        cloudflared tunnel --url "http://localhost:$BACKEND_PORT" > "$TUNNEL_LOG" 2>&1 &
+        TUNNEL_PID=$!
+        for i in {1..20}; do
+            TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | head -1)
+            if [ -n "$TUNNEL_URL" ]; then break; fi
+            sleep 0.5
+        done
+        if [ -n "$TUNNEL_URL" ]; then
+            rm -f "$TUNNEL_LOG"
+            substep "Tunnel URL: $TUNNEL_URL"
+        else
+            substep "Warning: Could not capture tunnel URL (see $TUNNEL_LOG for details)"
+        fi
+    else
+        substep "cloudflared not found — skipping tunnel (set OMI_API_URL in .env instead)"
+    fi
+else
+    substep "Skipping tunnel (OMI_SKIP_TUNNEL=1)"
+fi
+
 # ─── Start Rust backend ───────────────────────────────────────────────
 if [ "${OMI_SKIP_BACKEND:-0}" != "1" ]; then
     step "Starting Rust backend..."
@@ -369,8 +369,7 @@ if [ "${OMI_SKIP_AUTH:-0}" != "1" ]; then
             fi
             export GOOGLE_APPLICATION_CREDENTIALS="$CREDS_PATH"
             export BASE_API_URL="http://localhost:$AUTH_PORT"
-            .venv/bin/uvicorn main:app --host 0.0.0.0 --port "$AUTH_PORT" --log-level warning &
-            echo $!
+            exec .venv/bin/uvicorn main:app --host 0.0.0.0 --port "$AUTH_PORT" --log-level warning
         ) &
         AUTH_PID=$!
         sleep 1
@@ -714,7 +713,9 @@ $LSREGISTER -u "$APP_PATH" 2>/dev/null || true
 # These create ghost entries that can cause notification icons to show a
 # generic folder instead of the app icon
 for stale in /private/tmp/omi-dmg-staging-*/Omi\ Beta.app; do
-    [ -d "$stale" ] || $LSREGISTER -u "$stale" 2>/dev/null || true
+    if [ -d "$stale" ]; then
+        $LSREGISTER -u "$stale" 2>/dev/null || true
+    fi
 done
 # Register the /Applications/ copy as the canonical bundle for this bundle ID
 $LSREGISTER -f "$APP_PATH" 2>/dev/null || true
