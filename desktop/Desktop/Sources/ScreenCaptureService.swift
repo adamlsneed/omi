@@ -207,7 +207,7 @@ final class ScreenCaptureService: Sendable {
     // 0. Ensure this app is the authoritative version in Launch Services
     // This fixes issues where stale registrations from old builds, DMGs, or Trash
     // cause macOS to grant permissions to the wrong app
-    ensureLaunchServicesRegistration()
+    ensureLaunchServicesRegistrationSync()
 
     // 1. Request traditional Screen Recording TCC permission
     CGRequestScreenCaptureAccess()
