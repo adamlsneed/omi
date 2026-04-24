@@ -35,6 +35,31 @@ private final class URLCapture: URLProtocol, @unchecked Sendable {
         lock.unlock()
     }
 
+    private static func bodyData(from request: URLRequest) -> Data? {
+        if let body = request.httpBody {
+            return body
+        }
+
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        let bufferSize = 4096
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { buffer.deallocate() }
+
+        while stream.hasBytesAvailable {
+            let count = stream.read(buffer, maxLength: bufferSize)
+            if count > 0 {
+                data.append(buffer, count: count)
+            } else {
+                break
+            }
+        }
+        return data.isEmpty ? nil : data
+    }
+
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
@@ -44,7 +69,7 @@ private final class URLCapture: URLProtocol, @unchecked Sendable {
                 url: url,
                 method: request.httpMethod ?? "GET",
                 headers: request.allHTTPHeaderFields ?? [:],
-                body: request.httpBody
+                body: URLCapture.bodyData(from: request)
             ))
         }
         let response = HTTPURLResponse(url: request.url!, statusCode: 403, httpVersion: nil, headerFields: nil)!

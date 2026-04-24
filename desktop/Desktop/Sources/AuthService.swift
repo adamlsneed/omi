@@ -1,5 +1,6 @@
 import Foundation
 @preconcurrency import FirebaseAuth
+import FirebaseCore
 import CryptoKit
 import AppKit
 import AuthenticationServices
@@ -172,7 +173,7 @@ class AuthService {
         // with user=nil and flip isSignedIn to false before we restore it.
         if savedSignedIn {
             // Check if Firebase also has a current user (session might still be valid)
-            if let currentUser = Auth.auth().currentUser {
+            if let currentUser = FirebaseApp.app() == nil ? nil : Auth.auth().currentUser {
                 NSLog("OMI AUTH: Restored auth state from Firebase - uid: %@", currentUser.uid)
                 self.isSignedIn = true
                 AuthState.shared.userEmail = currentUser.email ?? savedEmail
@@ -206,6 +207,11 @@ class AuthService {
     // MARK: - Auth State Listener
 
     private func setupAuthStateListener() {
+        guard FirebaseApp.app() != nil else {
+            NSLog("OMI AUTH: FirebaseApp is not configured; skipping auth state listener")
+            return
+        }
+
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
                 if user != nil {
@@ -1084,7 +1090,7 @@ class AuthService {
 
         // Third try: Use Firebase SDK (only if user matches expected user)
         // This prevents returning a stale user's token during sign-out race conditions
-        if let user = Auth.auth().currentUser {
+        if FirebaseApp.app() != nil, let user = Auth.auth().currentUser {
             if expectedUserId == nil || user.uid == expectedUserId {
                 if expectedUserId == nil {
                     // Backfill the missing userId
