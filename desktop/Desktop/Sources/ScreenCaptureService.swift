@@ -4,6 +4,8 @@ import Foundation
 import ImageIO
 import ScreenCaptureKit
 
+/// Captures the active window/screen and owns Screen Recording, ScreenCaptureKit,
+/// and Accessibility recovery helpers.
 final class ScreenCaptureService: Sendable {
   private let maxSize: CGFloat = 3000
   private let jpegQuality: CGFloat = 0.8

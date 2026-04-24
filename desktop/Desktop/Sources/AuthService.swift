@@ -11,6 +11,7 @@ extension Notification.Name {
     static let userDidSignOut = Notification.Name("com.omi.desktop.userDidSignOut")
 }
 
+/// Owns desktop sign-in, Firebase REST token exchange, token persistence, and auth state.
 @MainActor
 class AuthService {
     static let shared = AuthService()

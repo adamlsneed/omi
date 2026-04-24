@@ -32,6 +32,7 @@ enum FinishConversationResult {
   case error(String)
 }
 
+/// Coordinates the app's recording lifecycle, capture services, transcription, permissions, and device state.
 @MainActor
 class AppState: ObservableObject {
   /// Weak reference to the current AppState instance, set on init.

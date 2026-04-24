@@ -525,6 +525,7 @@ mod tests {
     }
 }
 
+/// Build Sparkle appcast, latest-version, release creation, and promotion routes.
 pub fn updates_routes() -> Router<AppState> {
     Router::new()
         .route("/appcast.xml", get(get_appcast))
