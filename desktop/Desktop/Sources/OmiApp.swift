@@ -1128,7 +1128,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       return
     }
 
-    NSLog("OMI AppDelegate: Received URL event: %@", urlString)
+    NSLog(
+      "OMI AppDelegate: Received URL event: %@://%@%@",
+      url.scheme ?? "(none)", url.host ?? "(none)", url.path)
 
     Task { @MainActor in
       AuthService.shared.handleOAuthCallback(url: url)

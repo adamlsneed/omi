@@ -509,7 +509,12 @@ class AuthService {
     /// Called by AppDelegate when the app receives an OAuth callback URL
     @MainActor
     func handleOAuthCallback(url: URL) {
-        NSLog("OMI AUTH: Received OAuth callback: %@", url.absoluteString)
+        NSLog(
+            "OMI AUTH: Received OAuth callback: %@://%@%@",
+            url.scheme ?? "(none)",
+            url.host ?? "(none)",
+            url.path
+        )
 
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             NSLog("OMI AUTH: Failed to parse callback URL")
