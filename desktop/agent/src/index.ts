@@ -558,10 +558,17 @@ function buildMcpServers(mode: string, cwd?: string, sessionKey?: string): McpSe
 
   // Playwright MCP server
   const playwrightArgs = [playwrightCli];
-  if (process.env.PLAYWRIGHT_USE_EXTENSION === "true") {
-    playwrightArgs.push("--extension");
-  }
+  const usePlaywrightExtension =
+    process.env.PLAYWRIGHT_USE_EXTENSION === "true" ||
+    process.env.PLAYWRIGHT_MCP_EXTENSION === "true";
   const playwrightEnv: Array<{ name: string; value: string }> = [];
+  if (usePlaywrightExtension) {
+    playwrightArgs.push("--extension");
+    playwrightEnv.push({
+      name: "PLAYWRIGHT_MCP_EXTENSION",
+      value: "true",
+    });
+  }
   if (process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN) {
     playwrightEnv.push({
       name: "PLAYWRIGHT_MCP_EXTENSION_TOKEN",
