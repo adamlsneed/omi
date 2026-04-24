@@ -1225,10 +1225,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       log("Found old app at \(oldPath), cleaning up...")
 
       // Kill the old app if it's running
+      let oldBundlePath = URL(fileURLWithPath: oldPath).standardizedFileURL.path
       let running = NSRunningApplication.runningApplications(
         withBundleIdentifier: "com.omi.computer-macos")
       for app in running {
         guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { continue }
+        guard app.bundleURL?.standardizedFileURL.path == oldBundlePath else { continue }
         log("Terminating old Omi Computer process (PID \(app.processIdentifier))")
         app.forceTerminate()
       }
