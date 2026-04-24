@@ -376,7 +376,7 @@ struct BrowserExtensionSetup: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
 
-                Text("Make sure Chrome is open and the extension page shows \"Connected\".")
+                Text("Make sure Chrome is open, the extension is installed, and the token matches the extension page.")
                     .scaledFont(size: 12)
                     .foregroundColor(OmiColors.textQuaternary)
                     .multilineTextAlignment(.center)
@@ -443,6 +443,7 @@ struct BrowserExtensionSetup: View {
         if let eqIndex = token.firstIndex(of: "="), token.hasPrefix("PLAYWRIGHT") {
             token = String(token[token.index(after: eqIndex)...])
         }
+        token = token.components(separatedBy: .whitespacesAndNewlines).joined()
         return token
     }
 
@@ -592,6 +593,7 @@ struct BrowserExtensionSetup: View {
                 return
             }
             UserDefaults.standard.set(token, forKey: "playwrightExtensionToken")
+            UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
             log("BrowserExtensionSetup: Token saved (\(token.prefix(8))...)")
 
             if chatProvider != nil {
@@ -634,8 +636,10 @@ struct BrowserExtensionSetup: View {
                     isVerifying = false
                     if connected {
                         verifySuccess = true
+                        UserDefaults.standard.set(true, forKey: "playwrightExtensionVerified")
                         log("BrowserExtensionSetup: Connection test succeeded")
                     } else {
+                        UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
                         verifyError = "Could not connect to the Chrome extension. Make sure Chrome is open and try again."
                         log("BrowserExtensionSetup: Connection test returned false")
                     }
@@ -643,6 +647,7 @@ struct BrowserExtensionSetup: View {
             } catch {
                 await MainActor.run {
                     isVerifying = false
+                    UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
                     let msg = error.localizedDescription
                     if msg.contains("timeout") || msg.contains("Extension connection timeout") {
                         verifyError = "Connection timed out. Make sure Chrome is running and the extension is installed, then try again."

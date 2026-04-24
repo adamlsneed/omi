@@ -291,6 +291,7 @@ struct SettingsContentView: View {
 
   // Browser Extension settings
   @AppStorage("playwrightUseExtension") private var playwrightUseExtension = true
+  @AppStorage("playwrightExtensionVerified") private var playwrightExtensionVerified = false
   @State private var playwrightExtensionToken: String = ""
   @State private var showBrowserSetup = false
 
@@ -439,6 +440,29 @@ struct SettingsContentView: View {
     }
   }
 
+  private var browserExtensionStatusText: String {
+    playwrightExtensionVerified ? "Verified" : "Configured"
+  }
+
+  private var browserExtensionStatusColor: Color {
+    playwrightExtensionVerified ? Color.green : OmiColors.warning
+  }
+
+  private func refreshBrowserExtensionState() {
+    let token = UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+    playwrightExtensionToken = token
+    if token.isEmpty {
+      playwrightExtensionVerified = false
+    }
+  }
+
+  private func resetBrowserExtensionState() {
+    playwrightExtensionToken = ""
+    playwrightExtensionVerified = false
+    UserDefaults.standard.set("", forKey: "playwrightExtensionToken")
+    UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
+  }
+
   var body: some View {
     VStack(spacing: 24) {
       // Section content
@@ -484,8 +508,7 @@ struct SettingsContentView: View {
       isTranscribing = appState.isTranscribing
       // Sync floating bar state with persisted preference (not transient visibility)
       showAskOmiBar = FloatingControlBarManager.shared.isEnabled
-      playwrightExtensionToken =
-        UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+      refreshBrowserExtensionState()
       chatProvider?.checkClaudeConnectionStatus()
       // Refresh notification permission state
       appState.checkNotificationPermission()
@@ -532,13 +555,11 @@ struct SettingsContentView: View {
       BrowserExtensionSetup(
         onComplete: {
           showBrowserSetup = false
-          playwrightExtensionToken =
-            UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+          refreshBrowserExtensionState()
         },
         onDismiss: {
           showBrowserSetup = false
-          playwrightExtensionToken =
-            UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+          refreshBrowserExtensionState()
         },
         chatProvider: chatProvider
       )
@@ -2761,9 +2782,9 @@ struct SettingsContentView: View {
             if !playwrightExtensionToken.isEmpty {
               HStack(spacing: 4) {
                 Circle()
-                  .fill(Color.green)
+                  .fill(browserExtensionStatusColor)
                   .frame(width: 6, height: 6)
-                Text("Connected")
+                Text(browserExtensionStatusText)
                   .scaledFont(size: 11)
                   .foregroundColor(OmiColors.textTertiary)
               }
@@ -2824,8 +2845,7 @@ struct SettingsContentView: View {
                 .controlSize(.small)
 
                 Button(action: {
-                  playwrightExtensionToken = ""
-                  UserDefaults.standard.set("", forKey: "playwrightExtensionToken")
+                  resetBrowserExtensionState()
                 }) {
                   HStack(spacing: 4) {
                     Image(systemName: "xmark")
@@ -2894,8 +2914,7 @@ struct SettingsContentView: View {
     }
     .onAppear {
       refreshAIChatConfig()
-      playwrightExtensionToken =
-        UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+      refreshBrowserExtensionState()
     }
     .sheet(isPresented: $showFileViewer) {
       fileViewerSheet
@@ -2904,13 +2923,11 @@ struct SettingsContentView: View {
       BrowserExtensionSetup(
         onComplete: {
           showBrowserSetup = false
-          playwrightExtensionToken =
-            UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+          refreshBrowserExtensionState()
         },
         onDismiss: {
           showBrowserSetup = false
-          playwrightExtensionToken =
-            UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+          refreshBrowserExtensionState()
         },
         chatProvider: chatProvider
       )
@@ -3281,9 +3298,9 @@ struct SettingsContentView: View {
             if !playwrightExtensionToken.isEmpty {
               HStack(spacing: 4) {
                 Circle()
-                  .fill(Color.green)
+                  .fill(browserExtensionStatusColor)
                   .frame(width: 6, height: 6)
-                Text("Connected")
+                Text(browserExtensionStatusText)
                   .scaledFont(size: 11)
                   .foregroundColor(OmiColors.textTertiary)
               }
@@ -3340,8 +3357,7 @@ struct SettingsContentView: View {
                 .controlSize(.small)
 
                 Button(action: {
-                  playwrightExtensionToken = ""
-                  UserDefaults.standard.set("", forKey: "playwrightExtensionToken")
+                  resetBrowserExtensionState()
                 }) {
                   HStack(spacing: 4) {
                     Image(systemName: "xmark")
