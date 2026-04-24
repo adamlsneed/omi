@@ -409,7 +409,21 @@ if [ -d "$CSPROTOBUF_FRAMEWORK" ]; then
 fi
 
 # Copy libwebp dylibs and rewrite load paths
-WEBP_LIB="$(pkg-config --variable=libdir libwebp 2>/dev/null)/libwebp.7.dylib"
+WEBP_LIB=""
+if command -v pkg-config >/dev/null 2>&1; then
+    WEBP_LIB_DIR="$(pkg-config --variable=libdir libwebp 2>/dev/null || true)"
+    if [ -n "$WEBP_LIB_DIR" ]; then
+        WEBP_LIB="$WEBP_LIB_DIR/libwebp.7.dylib"
+    fi
+fi
+if [ ! -f "$WEBP_LIB" ]; then
+    for candidate in /opt/homebrew/lib/libwebp.7.dylib /usr/local/lib/libwebp.7.dylib; do
+        if [ -f "$candidate" ]; then
+            WEBP_LIB="$candidate"
+            break
+        fi
+    done
+fi
 if [ -f "$WEBP_LIB" ]; then
     substep "Bundling libwebp"
     cp "$WEBP_LIB" "$APP_BUNDLE/Contents/Frameworks/libwebp.7.dylib"
@@ -418,9 +432,24 @@ if [ -f "$WEBP_LIB" ]; then
     if [ -f "$SHARPYUV_LIB" ]; then
         cp "$SHARPYUV_LIB" "$APP_BUNDLE/Contents/Frameworks/libsharpyuv.0.dylib"
         install_name_tool -id "@rpath/libsharpyuv.0.dylib" "$APP_BUNDLE/Contents/Frameworks/libsharpyuv.0.dylib"
+        for sharpyuv_path in \
+            "$SHARPYUV_LIB" \
+            /opt/homebrew/opt/webp/lib/libsharpyuv.0.dylib \
+            /opt/homebrew/lib/libsharpyuv.0.dylib \
+            /usr/local/opt/webp/lib/libsharpyuv.0.dylib \
+            /usr/local/lib/libsharpyuv.0.dylib; do
+            install_name_tool -change "$sharpyuv_path" "@rpath/libsharpyuv.0.dylib" "$APP_BUNDLE/Contents/Frameworks/libwebp.7.dylib" 2>/dev/null || true
+        done
     fi
     install_name_tool -id "@rpath/libwebp.7.dylib" "$APP_BUNDLE/Contents/Frameworks/libwebp.7.dylib"
-    install_name_tool -change "$WEBP_LIB" "@rpath/libwebp.7.dylib" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
+    for webp_path in \
+        "$WEBP_LIB" \
+        /opt/homebrew/opt/webp/lib/libwebp.7.dylib \
+        /opt/homebrew/lib/libwebp.7.dylib \
+        /usr/local/opt/webp/lib/libwebp.7.dylib \
+        /usr/local/lib/libwebp.7.dylib; do
+        install_name_tool -change "$webp_path" "@rpath/libwebp.7.dylib" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME" 2>/dev/null || true
+    done
 fi
 
 substep "Copying Info.plist"
