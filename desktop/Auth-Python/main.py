@@ -2,6 +2,7 @@
 Local auth backend for OMI Computer macOS app.
 This fixes the hardcoded redirect_uri issue in the production backend.
 """
+import asyncio
 import os
 import uuid
 import json
@@ -23,6 +24,7 @@ import pathlib
 load_dotenv()
 
 app = FastAPI(title="OMI Computer Auth Backend")
+OAUTH_TOKEN_TIMEOUT_SECONDS = 10
 
 # Set up Jinja2 templates
 templates_path = pathlib.Path(__file__).parent / "templates"
@@ -304,20 +306,26 @@ async def _exchange_apple_code(code: str, session_data: dict) -> str:
 
     callback_url = f"{api_base_url}/v1/auth/callback/apple"
 
-    token_response = requests.post(
-        "https://appleid.apple.com/auth/token",
-        data={
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'code': code,
-            'grant_type': 'authorization_code',
-            'redirect_uri': callback_url,
-        },
-        headers={'Content-Type': 'application/x-www-form-urlencoded'}
-    )
+    try:
+        token_response = await asyncio.to_thread(
+            requests.post,
+            "https://appleid.apple.com/auth/token",
+            data={
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'code': code,
+                'grant_type': 'authorization_code',
+                'redirect_uri': callback_url,
+            },
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            timeout=OAUTH_TOKEN_TIMEOUT_SECONDS,
+        )
+    except requests.RequestException as exc:
+        print(f"Apple token exchange request failed: {exc}")
+        raise HTTPException(status_code=502, detail="Failed to exchange Apple code") from exc
 
     if token_response.status_code != 200:
-        print(f"Apple token exchange failed: {token_response.text}")
+        print(f"Apple token exchange failed: HTTP {token_response.status_code}")
         raise HTTPException(status_code=400, detail="Failed to exchange Apple code")
 
     token_json = token_response.json()
@@ -346,19 +354,25 @@ async def _exchange_google_code(code: str, session_data: dict) -> str:
 
     callback_url = f"{api_base_url}/v1/auth/callback/google"
 
-    token_response = requests.post(
-        "https://oauth2.googleapis.com/token",
-        data={
-            'code': code,
-            'client_id': client_id,
-            'client_secret': client_secret,
-            'redirect_uri': callback_url,
-            'grant_type': 'authorization_code',
-        },
-    )
+    try:
+        token_response = await asyncio.to_thread(
+            requests.post,
+            "https://oauth2.googleapis.com/token",
+            data={
+                'code': code,
+                'client_id': client_id,
+                'client_secret': client_secret,
+                'redirect_uri': callback_url,
+                'grant_type': 'authorization_code',
+            },
+            timeout=OAUTH_TOKEN_TIMEOUT_SECONDS,
+        )
+    except requests.RequestException as exc:
+        print(f"Google token exchange request failed: {exc}")
+        raise HTTPException(status_code=502, detail="Failed to exchange Google code") from exc
 
     if token_response.status_code != 200:
-        print(f"Google token exchange failed: {token_response.text}")
+        print(f"Google token exchange failed: HTTP {token_response.status_code}")
         raise HTTPException(status_code=400, detail="Failed to exchange Google code")
 
     token_json = token_response.json()
