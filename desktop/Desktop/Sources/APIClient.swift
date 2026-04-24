@@ -1,5 +1,7 @@
 import Foundation
 
+/// Shared HTTP client for Python cloud APIs and the Rust desktop backend.
+/// Keep endpoint paths and response models aligned with the backend contracts.
 actor APIClient {
   static let shared = APIClient()
   // Primary data backend URL — Python backend (api.omi.me) is the single source of truth for all data CRUD.
