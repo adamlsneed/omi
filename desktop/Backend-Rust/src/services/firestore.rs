@@ -292,6 +292,19 @@ impl FirestoreService {
         Ok(req)
     }
 
+    async fn ensure_success(
+        response: reqwest::Response,
+        context: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let status = response.status();
+        if status.is_success() {
+            return Ok(());
+        }
+
+        let body = response.text().await.unwrap_or_else(|_| "<unreadable body>".to_string());
+        Err(format!("{} failed with HTTP {}: {}", context, status, body).into())
+    }
+
     /// Build authenticated request for GCE Compute Engine API (public for agent routes)
     pub async fn build_compute_request(&self, method: reqwest::Method, url: &str) -> Result<reqwest::RequestBuilder, Box<dyn std::error::Error + Send + Sync>> {
         self.build_request(method, url).await
@@ -1618,12 +1631,13 @@ impl FirestoreService {
                 }
             });
 
-            let _ = self
+            let response = self
                 .build_request(reqwest::Method::PATCH, &url)
                 .await?
                 .json(&doc)
                 .send()
-                .await;
+                .await?;
+            Self::ensure_success(response, "mark memory read").await?;
         }
 
         tracing::info!("Marked {} memories as read for user {}", count, uid);
@@ -1690,12 +1704,13 @@ impl FirestoreService {
                 }
             });
 
-            let _ = self
+            let response = self
                 .build_request(reqwest::Method::PATCH, &url)
                 .await?
                 .json(&doc)
                 .send()
-                .await;
+                .await?;
+            Self::ensure_success(response, "update memory visibility").await?;
         }
 
         tracing::info!(
@@ -1759,11 +1774,12 @@ impl FirestoreService {
                 memory_id
             );
 
-            let _ = self
+            let response = self
                 .build_request(reqwest::Method::DELETE, &url)
                 .await?
                 .send()
-                .await;
+                .await?;
+            Self::ensure_success(response, "delete memory").await?;
         }
 
         tracing::info!("Deleted {} memories for user {}", count, uid);
@@ -6458,7 +6474,7 @@ impl FirestoreService {
 
         // Update each one
         for advice in unread {
-            let _ = self.update_advice(uid, &advice.id, Some(true), None).await;
+            self.update_advice(uid, &advice.id, Some(true), None).await?;
         }
 
         Ok(count)
@@ -7653,12 +7669,12 @@ impl FirestoreService {
         if let Some(target_id) = move_to_folder_id {
             let conversations = self.get_conversations(uid, 100, 0, true, &[], None, Some(folder_id), None, None).await?;
             for conv in conversations {
-                let _ = self.set_conversation_folder(uid, &conv.id, Some(target_id)).await;
+                self.set_conversation_folder(uid, &conv.id, Some(target_id)).await?;
             }
         } else {
             let conversations = self.get_conversations(uid, 100, 0, true, &[], None, Some(folder_id), None, None).await?;
             for conv in conversations {
-                let _ = self.set_conversation_folder(uid, &conv.id, None).await;
+                self.set_conversation_folder(uid, &conv.id, None).await?;
             }
         }
 
@@ -7749,7 +7765,8 @@ impl FirestoreService {
             );
 
             let doc = json!({"fields": {"order": {"integerValue": index.to_string()}}});
-            let _ = self.build_request(reqwest::Method::PATCH, &url).await?.json(&doc).send().await;
+            let response = self.build_request(reqwest::Method::PATCH, &url).await?.json(&doc).send().await?;
+            Self::ensure_success(response, "reorder folder").await?;
         }
         tracing::info!("Reordered {} folders for user {}", folder_ids.len(), uid);
         Ok(())
@@ -9456,11 +9473,12 @@ impl FirestoreService {
                 KG_NODES_SUBCOLLECTION,
                 node.id
             );
-            let _ = self
+            let response = self
                 .build_request(reqwest::Method::DELETE, &url)
                 .await?
                 .send()
-                .await;
+                .await?;
+            Self::ensure_success(response, "delete knowledge graph node").await?;
         }
 
         // Delete all edges
@@ -9474,11 +9492,12 @@ impl FirestoreService {
                 KG_EDGES_SUBCOLLECTION,
                 edge.id
             );
-            let _ = self
+            let response = self
                 .build_request(reqwest::Method::DELETE, &url)
                 .await?
                 .send()
-                .await;
+                .await?;
+            Self::ensure_success(response, "delete knowledge graph edge").await?;
         }
 
         tracing::info!("Deleted {} nodes and {} edges for user {}", nodes.len(), edges.len(), uid);
