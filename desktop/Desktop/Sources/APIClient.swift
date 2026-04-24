@@ -86,6 +86,13 @@ actor APIClient {
     return decoder
   }
 
+  private func makeURL(base: String, endpoint: String) throws -> URL {
+    guard let url = URL(string: base + endpoint) else {
+      throw APIError.invalidURL(base + endpoint)
+    }
+    return url
+  }
+
   // MARK: - Request Building
 
   func buildHeaders(requireAuth: Bool = true) async throws -> [String: String] {
@@ -122,7 +129,7 @@ actor APIClient {
     customBaseURL: String? = nil
   ) async throws -> T {
     let base = customBaseURL ?? baseURL
-    let url = URL(string: base + endpoint)!
+    let url = try makeURL(base: base, endpoint: endpoint)
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
@@ -137,7 +144,7 @@ actor APIClient {
     customBaseURL: String? = nil
   ) async throws -> T {
     let base = customBaseURL ?? baseURL
-    let url = URL(string: base + endpoint)!
+    let url = try makeURL(base: base, endpoint: endpoint)
     log("APIClient: POST \(url.absoluteString)")
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
@@ -153,7 +160,7 @@ actor APIClient {
     customBaseURL: String? = nil
   ) async throws -> T {
     let base = customBaseURL ?? baseURL
-    let url = URL(string: base + endpoint)!
+    let url = try makeURL(base: base, endpoint: endpoint)
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
@@ -167,7 +174,7 @@ actor APIClient {
     customBaseURL: String? = nil
   ) async throws {
     let base = customBaseURL ?? baseURL
-    let url = URL(string: base + endpoint)!
+    let url = try makeURL(base: base, endpoint: endpoint)
     var request = URLRequest(url: url)
     request.httpMethod = "DELETE"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
@@ -262,6 +269,7 @@ enum APIError: LocalizedError {
   case unauthorized
   case httpError(statusCode: Int)
   case decodingError(Error)
+  case invalidURL(String)
 
   var errorDescription: String? {
     switch self {
@@ -273,6 +281,8 @@ enum APIError: LocalizedError {
       return "HTTP error: \(statusCode)"
     case .decodingError(let error):
       return "Failed to decode response: \(error.localizedDescription)"
+    case .invalidURL(let url):
+      return "Invalid URL: \(url)"
     }
   }
 }
@@ -337,7 +347,7 @@ extension APIClient {
 
   /// Updates the starred status of a conversation
   func setConversationStarred(id: String, starred: Bool) async throws {
-    let url = URL(string: baseURL + "v1/conversations/\(id)/starred?starred=\(starred)")!
+    let url = try makeURL(base: baseURL, endpoint: "v1/conversations/\(id)/starred?starred=\(starred)")
     var request = URLRequest(url: url)
     request.httpMethod = "PATCH"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
@@ -355,9 +365,10 @@ extension APIClient {
   ///   - id: The conversation ID
   ///   - visibility: The visibility level ("shared", "public", or "private")
   func setConversationVisibility(id: String, visibility: String = "shared") async throws {
-    let url = URL(
-      string: baseURL
-        + "v1/conversations/\(id)/visibility?value=\(visibility)&visibility=\(visibility)")!
+    let url = try makeURL(
+      base: baseURL,
+      endpoint: "v1/conversations/\(id)/visibility?value=\(visibility)&visibility=\(visibility)"
+    )
     var request = URLRequest(url: url)
     request.httpMethod = "PATCH"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
