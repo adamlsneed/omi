@@ -224,6 +224,7 @@ static atomic_t sd_boot_ready;
 /* Deferred control requests when prio queue is temporarily saturated */
 static atomic_t pending_flush_on_ble_connect;
 static atomic_t pending_time_synced;
+static atomic_t pending_create_file;
 static uint32_t pending_time_synced_utc = 0;
 
 static bool is_mounted = false;
@@ -303,6 +304,7 @@ static void build_file_path(const char *filename, char *path, size_t path_size);
 static void invalidate_file_cache(void);
 static void update_current_file_cache_size(uint32_t delta);
 static void sort_cached_file_entries(void);
+static void queue_create_file_async(void);
 static void sd_set_io_low_power(bool enable);
 
 static void process_save_offset_req(const sd_req_t *req)
@@ -359,17 +361,24 @@ static void process_write_data_req(const sd_req_t *req)
             sd_write_blocked = true;
             goto done;
         }
+        current_file_deleted = false;
     }
 
     if (should_rotate_file()) {
         LOG_INF("[SD_WORK] Rotating file after 30 min");
-        if (!spi_woken) { sd_set_io_low_power(false); spi_woken = true; }
+        if (!spi_woken) {
+            sd_set_io_low_power(false);
+            spi_woken = true;
+        }
         flush_batch_buffer();
         create_audio_file_with_timestamp();
     }
 
     if (write_batch_offset + req->u.write.len > sizeof(write_batch_buffer)) {
-        if (!spi_woken) { sd_set_io_low_power(false); spi_woken = true; }
+        if (!spi_woken) {
+            sd_set_io_low_power(false);
+            spi_woken = true;
+        }
         flush_batch_buffer();
         if (write_batch_offset + req->u.write.len > sizeof(write_batch_buffer)) {
             LOG_ERR("[SD_WORK] batch buffer overflow guard len=%u off=%u",
@@ -387,7 +396,10 @@ static void process_write_data_req(const sd_req_t *req)
     bool queue_pressure_high = queued_writes >= (SD_REQ_QUEUE_MSGS / 3);
 
     if (write_batch_counter >= WRITE_BATCH_COUNT || queue_pressure_high) {
-        if (!spi_woken) { sd_set_io_low_power(false); spi_woken = true; }
+        if (!spi_woken) {
+            sd_set_io_low_power(false);
+            spi_woken = true;
+        }
         flush_batch_buffer();
     }
 
@@ -395,7 +407,10 @@ static void process_write_data_req(const sd_req_t *req)
         (bytes_since_sync > 0) && ((k_uptime_get() - last_file_sync_uptime_ms) >= SD_FSYNC_INTERVAL_MS);
 
     if (sync_due_to_interval) {
-        if (!spi_woken) { sd_set_io_low_power(false); spi_woken = true; }
+        if (!spi_woken) {
+            sd_set_io_low_power(false);
+            spi_woken = true;
+        }
         lfs_file_sync(&lfs_fs, &lfs_fil_data);
         data_sync_gen++;
         bytes_since_sync = 0;
@@ -1128,7 +1143,13 @@ void sd_update_filename_after_timesync(uint32_t synced_utc_time)
 
     int64_t now_ms = k_uptime_get();
     uint32_t elapsed = (uint32_t) (now_ms - current_file_created_uptime_ms);
-    uint32_t correct_ts = synced_utc_time - (elapsed / 1000U);
+    uint32_t elapsed_s = elapsed / 1000U;
+    uint32_t correct_ts = synced_utc_time;
+    if (synced_utc_time > elapsed_s) {
+        correct_ts = synced_utc_time - elapsed_s;
+    } else {
+        LOG_WRN("Time sync older than file age; using sync time without backdating");
+    }
 
     char new_filename[MAX_FILENAME_LEN];
     snprintf(new_filename, sizeof(new_filename), "%08X.txt", correct_ts);
@@ -1324,6 +1345,11 @@ void sd_worker_thread(void)
             req.u.time_synced.utc_time = pending_time_synced_utc;
             goto handle_req;
         }
+        if (atomic_cas(&pending_create_file, 1, 0)) {
+            req.type = REQ_CREATE_NEW_FILE;
+            req.u.create_file.resp = NULL;
+            goto handle_req;
+        }
 
         /* Priority queue first: reads, flush, file-list, delete, etc.
          * These never wait behind pending audio writes. */
@@ -1507,8 +1533,15 @@ void sd_worker_thread(void)
 
         /* ---- Create new file ---- */
         case REQ_CREATE_NEW_FILE:
-            flush_batch_buffer();
-            res = create_audio_file_with_timestamp();
+            if (req.u.create_file.resp || current_file_deleted || current_filename[0] == '\0') {
+                flush_batch_buffer();
+                res = create_audio_file_with_timestamp();
+                if (res == 0) {
+                    current_file_deleted = false;
+                }
+            } else {
+                res = 0;
+            }
             if (req.u.create_file.resp) {
                 req.u.create_file.resp->res = res;
                 k_sem_give(&req.u.create_file.resp->sem);
@@ -1744,6 +1777,19 @@ void sd_notify_time_synced(uint32_t utc_time)
     }
 }
 
+static void queue_create_file_async(void)
+{
+    sd_req_t req = {0};
+    req.type = REQ_CREATE_NEW_FILE;
+    req.u.create_file.resp = NULL;
+
+    int ret = k_msgq_put(&sd_prio_msgq, &req, K_NO_WAIT);
+    if (ret) {
+        atomic_set(&pending_create_file, 1);
+        LOG_WRN("Create file deferred (%d)", ret);
+    }
+}
+
 void sd_notify_ble_state(bool connected)
 {
     if (connected && !ble_connected) {
@@ -1779,11 +1825,7 @@ void sd_notify_ble_state(bool connected)
             }
         }
         if (current_file_deleted) {
-            int cr = create_new_audio_file();
-            if (cr < 0)
-                LOG_ERR("create file on BLE disconnect failed: %d", cr);
-            else
-                current_file_deleted = false;
+            queue_create_file_async();
         }
     }
     ble_connected = connected;
@@ -1810,8 +1852,7 @@ uint32_t write_to_file(uint8_t *data, uint32_t length)
     if (sd_shutdown_in_progress) {
         int64_t now = k_uptime_get();
         if (now - last_shutdown_drop_log_ms > 1000) {
-            LOG_WRN("write_to_file dropped: SD %s",
-                    sd_shutdown_in_progress ? "shutdown" : "paused");
+            LOG_WRN("write_to_file dropped: SD %s", sd_shutdown_in_progress ? "shutdown" : "paused");
             last_shutdown_drop_log_ms = now;
         }
         return 0;
