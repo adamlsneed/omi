@@ -38,6 +38,7 @@ K_MEM_SLAB_DEFINE_STATIC(mem_slab, MAX_BLOCK_SIZE, BLOCK_COUNT, 4);
 static const struct device *dmic_dev;
 static volatile mix_handler callback_func = NULL;
 static volatile bool mic_running = false;
+static bool mic_thread_started = false;
 
 #define MAX_FRAMES (MAX_SAMPLE_RATE / 10)
 static int16_t mono_buffer[MAX_FRAMES];
@@ -92,13 +93,13 @@ static void mic_thread_function(void *p1, void *p2, void *p3)
         if (mic_running) {
             void *buffer;
             uint32_t size;
-    
+
             int ret = dmic_read(dmic_dev, 0, &buffer, &size, READ_TIMEOUT);
             if (ret < 0) {
                 LOG_ERR("Read failed: %d", ret);
                 continue;
             }
-    
+
             LOG_DBG("Got buffer %p of %u bytes", buffer, size);
             process_audio_buffer(buffer, size);
         } else {
@@ -174,7 +175,10 @@ int mic_start()
     }
 
     mic_running = true;
-    k_thread_start(mic_thread_id);
+    if (!mic_thread_started) {
+        k_thread_start(mic_thread_id);
+        mic_thread_started = true;
+    }
 
     LOG_INF("Microphone started");
     return 0;
@@ -189,12 +193,12 @@ void mic_pause()
 {
     LOG_INF("Pausing microphone");
     if (mic_running) {
+        mic_running = false;
         int ret = dmic_trigger(dmic_dev, DMIC_TRIGGER_STOP);
         if (ret < 0) {
             LOG_ERR("STOP trigger failed: %d", ret);
             return;
         }
-        mic_running = false;
     }
 }
 
@@ -218,31 +222,18 @@ bool mic_is_running()
 
 void mic_off()
 {
-    if (mic_running) {
-        mic_running = false;
-        k_thread_abort(mic_thread_id);
-
-        int ret = dmic_trigger(dmic_dev, DMIC_TRIGGER_STOP);
-        if (ret < 0) {
-            LOG_ERR("STOP trigger failed: %d", ret);
-        }
-
+    bool was_running = mic_running;
+    mic_pause();
+    if (was_running) {
         LOG_INF("Microphone stopped");
     }
 }
 
 void mic_on()
 {
-    if (!mic_running) {
-        int ret = dmic_trigger(dmic_dev, DMIC_TRIGGER_START);
-        if (ret < 0) {
-            LOG_ERR("START trigger failed: %d", ret);
-            return;
-        }
-
-        mic_running = true;
-        k_thread_start(mic_thread_id);
-
+    bool was_running = mic_running;
+    mic_resume();
+    if (!was_running && mic_running) {
         LOG_INF("Microphone restarted");
     }
 }
