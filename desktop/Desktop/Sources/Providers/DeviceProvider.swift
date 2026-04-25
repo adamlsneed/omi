@@ -212,6 +212,8 @@ final class DeviceProvider: ObservableObject {
     /// Connect to a device
     /// - Parameter device: The device to connect to
     func connect(to device: BtDevice) async {
+        var pendingConnection: DeviceConnection?
+
         guard !isConnecting else {
             logger.warning("Already connecting to a device")
             return
@@ -230,6 +232,8 @@ final class DeviceProvider: ObservableObject {
             guard let connection = DeviceConnectionFactory.create(device: device) else {
                 throw DeviceConnectionError.connectionFailed("Failed to create connection")
             }
+            pendingConnection = connection
+            connection.delegate = self
 
             // Connect
             try await connection.connect()
@@ -270,6 +274,7 @@ final class DeviceProvider: ObservableObject {
         } catch {
             logger.error("Failed to connect to \(device.displayName): \(error.localizedDescription)")
             errorMessage = "Failed to connect: \(error.localizedDescription)"
+            pendingConnection?.delegate = nil
             activeConnection = nil
         }
 
@@ -308,6 +313,7 @@ final class DeviceProvider: ObservableObject {
         batterySubscription = nil
 
         // Clear state
+        activeConnection?.delegate = nil
         activeConnection = nil
         connectedDevice = nil
         isConnected = false

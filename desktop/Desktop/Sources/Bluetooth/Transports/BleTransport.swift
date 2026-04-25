@@ -30,14 +30,21 @@ final class BleTransport: NSObject, DeviceTransport {
 
     private var discoveredServices: [CBService] = []
     private var characteristicContinuations: [CBUUID: CheckedContinuation<Data, Error>] = [:]
+    private var characteristicContinuationTokens: [CBUUID: UUID] = [:]
     private var writeContinuations: [CBUUID: CheckedContinuation<Void, Error>] = [:]
+    private var writeContinuationTokens: [CBUUID: UUID] = [:]
     private var characteristicStreams: [String: CharacteristicStreamHandler] = [:]
 
     private var connectionContinuation: CheckedContinuation<Void, Error>?
     private var serviceDiscoveryContinuation: CheckedContinuation<[CBService], Error>?
+    private var rssiContinuation: CheckedContinuation<Int, Error>?
+    private var rssiOperationId: UUID?
 
     private var isDisposed = false
-    private var centralManagerObserver: NSObjectProtocol?
+    private var centralManagerObservers: [NSObjectProtocol] = []
+    private let connectionTimeout: TimeInterval = 10
+    private let characteristicTimeout: TimeInterval = 5
+    private let rssiTimeout: TimeInterval = 3
 
     // MARK: - Initialization
 
@@ -53,7 +60,7 @@ final class BleTransport: NSObject, DeviceTransport {
     private func setupConnectionObserver() {
         // Observe connection state changes via NotificationCenter
         // BluetoothManager posts these when CBCentralManagerDelegate methods fire
-        centralManagerObserver = NotificationCenter.default.addObserver(
+        let connectedObserver = NotificationCenter.default.addObserver(
             forName: .bleDeviceConnected,
             object: nil,
             queue: .main
@@ -64,8 +71,9 @@ final class BleTransport: NSObject, DeviceTransport {
 
             self.handleConnectionSuccess()
         }
+        centralManagerObservers.append(connectedObserver)
 
-        NotificationCenter.default.addObserver(
+        let disconnectedObserver = NotificationCenter.default.addObserver(
             forName: .bleDeviceDisconnected,
             object: nil,
             queue: .main
@@ -77,8 +85,9 @@ final class BleTransport: NSObject, DeviceTransport {
             let error = notification.userInfo?["error"] as? Error
             self.handleDisconnection(error: error)
         }
+        centralManagerObservers.append(disconnectedObserver)
 
-        NotificationCenter.default.addObserver(
+        let failedObserver = NotificationCenter.default.addObserver(
             forName: .bleDeviceFailedToConnect,
             object: nil,
             queue: .main
@@ -90,6 +99,7 @@ final class BleTransport: NSObject, DeviceTransport {
             let error = notification.userInfo?["error"] as? Error
             self.handleConnectionFailure(error: error)
         }
+        centralManagerObservers.append(failedObserver)
     }
 
     private func handleConnectionSuccess() {
@@ -109,14 +119,29 @@ final class BleTransport: NSObject, DeviceTransport {
             continuation.resume(throwing: DeviceTransportError.connectionFailed("Disconnected during connection"))
             connectionContinuation = nil
         }
+        serviceDiscoveryContinuation?.resume(throwing: DeviceTransportError.notConnected)
+        serviceDiscoveryContinuation = nil
+        for (_, continuation) in characteristicContinuations {
+            continuation.resume(throwing: DeviceTransportError.notConnected)
+        }
+        characteristicContinuations.removeAll()
+        characteristicContinuationTokens.removeAll()
+        for (_, continuation) in writeContinuations {
+            continuation.resume(throwing: DeviceTransportError.notConnected)
+        }
+        writeContinuations.removeAll()
+        writeContinuationTokens.removeAll()
+        rssiContinuation?.resume(throwing: DeviceTransportError.notConnected)
+        rssiContinuation = nil
+        rssiOperationId = nil
         updateState(.disconnected)
     }
 
     deinit {
-        if let observer = centralManagerObserver {
+        for observer in centralManagerObservers {
             NotificationCenter.default.removeObserver(observer)
         }
-        NotificationCenter.default.removeObserver(self)
+        centralManagerObservers.removeAll()
     }
 
     // MARK: - Connection
@@ -132,12 +157,23 @@ final class BleTransport: NSObject, DeviceTransport {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 self.connectionContinuation = continuation
                 self.centralManager.connect(self.peripheral, options: nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.connectionTimeout) { [weak self] in
+                    guard let self = self, let continuation = self.connectionContinuation else { return }
+                    self.connectionContinuation = nil
+                    self.centralManager.cancelPeripheralConnection(self.peripheral)
+                    continuation.resume(throwing: DeviceTransportError.timeout)
+                }
             }
 
             // Discover services
             discoveredServices = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[CBService], Error>) in
                 self.serviceDiscoveryContinuation = continuation
                 self.peripheral.discoverServices(nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.connectionTimeout) { [weak self] in
+                    guard let self = self, let continuation = self.serviceDiscoveryContinuation else { return }
+                    self.serviceDiscoveryContinuation = nil
+                    continuation.resume(throwing: DeviceTransportError.timeout)
+                }
             }
 
             // Discover characteristics for each service
@@ -152,6 +188,7 @@ final class BleTransport: NSObject, DeviceTransport {
             logger.info("Connected to device \(self.deviceId)")
 
         } catch {
+            centralManager.cancelPeripheralConnection(peripheral)
             updateState(.disconnected)
             throw DeviceTransportError.connectionFailed(error.localizedDescription)
         }
@@ -179,11 +216,17 @@ final class BleTransport: NSObject, DeviceTransport {
             continuation.resume(throwing: CancellationError())
         }
         characteristicContinuations.removeAll()
+        characteristicContinuationTokens.removeAll()
 
         for (_, continuation) in writeContinuations {
             continuation.resume(throwing: CancellationError())
         }
         writeContinuations.removeAll()
+        writeContinuationTokens.removeAll()
+
+        rssiContinuation?.resume(throwing: CancellationError())
+        rssiContinuation = nil
+        rssiOperationId = nil
 
         // Disconnect
         centralManager.cancelPeripheralConnection(peripheral)
@@ -199,7 +242,7 @@ final class BleTransport: NSObject, DeviceTransport {
     func ping() async -> Bool {
         guard peripheral.state == .connected else { return false }
         do {
-            _ = try await peripheral.readRSSIAsync()
+            _ = try await readRSSI()
             return true
         } catch {
             logger.debug("Ping failed: \(error.localizedDescription)")
@@ -257,9 +300,18 @@ final class BleTransport: NSObject, DeviceTransport {
             throw DeviceTransportError.characteristicNotFound(characteristicUUID)
         }
 
+        let operationId = UUID()
         return try await withCheckedThrowingContinuation { continuation in
             characteristicContinuations[characteristicUUID] = continuation
+            characteristicContinuationTokens[characteristicUUID] = operationId
             peripheral.readValue(for: characteristic)
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.characteristicTimeout) { [weak self] in
+                guard let self = self,
+                      self.characteristicContinuationTokens[characteristicUUID] == operationId,
+                      let continuation = self.characteristicContinuations.removeValue(forKey: characteristicUUID) else { return }
+                self.characteristicContinuationTokens.removeValue(forKey: characteristicUUID)
+                continuation.resume(throwing: DeviceTransportError.timeout)
+            }
         }
     }
 
@@ -282,9 +334,18 @@ final class BleTransport: NSObject, DeviceTransport {
         let writeType: CBCharacteristicWriteType = withResponse ? .withResponse : .withoutResponse
 
         if withResponse {
+            let operationId = UUID()
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 writeContinuations[characteristicUUID] = continuation
+                writeContinuationTokens[characteristicUUID] = operationId
                 peripheral.writeValue(data, for: characteristic, type: writeType)
+                DispatchQueue.main.asyncAfter(deadline: .now() + self.characteristicTimeout) { [weak self] in
+                    guard let self = self,
+                          self.writeContinuationTokens[characteristicUUID] == operationId,
+                          let continuation = self.writeContinuations.removeValue(forKey: characteristicUUID) else { return }
+                    self.writeContinuationTokens.removeValue(forKey: characteristicUUID)
+                    continuation.resume(throwing: DeviceTransportError.timeout)
+                }
             }
         } else {
             peripheral.writeValue(data, for: characteristic, type: writeType)
@@ -319,6 +380,27 @@ final class BleTransport: NSObject, DeviceTransport {
         })
     }
 
+    private func readRSSI() async throws -> Int {
+        guard rssiContinuation == nil else {
+            throw DeviceTransportError.connectionFailed("RSSI read already in progress")
+        }
+
+        let operationId = UUID()
+        return try await withCheckedThrowingContinuation { continuation in
+            rssiContinuation = continuation
+            rssiOperationId = operationId
+            peripheral.readRSSI()
+            DispatchQueue.main.asyncAfter(deadline: .now() + self.rssiTimeout) { [weak self] in
+                guard let self = self,
+                      self.rssiOperationId == operationId,
+                      let continuation = self.rssiContinuation else { return }
+                self.rssiContinuation = nil
+                self.rssiOperationId = nil
+                continuation.resume(throwing: DeviceTransportError.timeout)
+            }
+        }
+    }
+
     /// Get all discovered services
     var services: [CBService] {
         discoveredServices
@@ -351,6 +433,7 @@ extension BleTransport: CBPeripheralDelegate {
 
         // Handle pending read continuation
         if let continuation = characteristicContinuations.removeValue(forKey: uuid) {
+            characteristicContinuationTokens.removeValue(forKey: uuid)
             if let error = error {
                 continuation.resume(throwing: DeviceTransportError.readFailed(error.localizedDescription))
             } else {
@@ -370,6 +453,7 @@ extension BleTransport: CBPeripheralDelegate {
         let uuid = characteristic.uuid
 
         if let continuation = writeContinuations.removeValue(forKey: uuid) {
+            writeContinuationTokens.removeValue(forKey: uuid)
             if let error = error {
                 continuation.resume(throwing: DeviceTransportError.writeFailed(error.localizedDescription))
             } else {
@@ -387,7 +471,14 @@ extension BleTransport: CBPeripheralDelegate {
     }
 
     func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
-        // RSSI read completion - used for ping
+        guard let continuation = rssiContinuation else { return }
+        rssiContinuation = nil
+        rssiOperationId = nil
+        if let error = error {
+            continuation.resume(throwing: DeviceTransportError.readFailed(error.localizedDescription))
+        } else {
+            continuation.resume(returning: RSSI.intValue)
+        }
     }
 }
 
@@ -418,17 +509,5 @@ private final class CharacteristicStreamHandler: @unchecked Sendable {
             continuation?.finish()
         }
         continuation = nil
-    }
-}
-
-// MARK: - CBPeripheral Extension for Async RSSI
-
-extension CBPeripheral {
-    func readRSSIAsync() async throws -> Int {
-        // Simple RSSI read - the delegate method handles the result
-        // For now, just trigger the read and return immediately
-        // A more robust implementation would use a continuation
-        self.readRSSI()
-        return 0 // Placeholder - ping uses this for connectivity check
     }
 }

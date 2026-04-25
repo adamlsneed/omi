@@ -213,30 +213,6 @@ find "$HOME" -maxdepth 4 -name "$APP_NAME.app" -type d -not -path "$APP_BUNDLE" 
     rm -rf "$stale"
 done
 
-if [ "${OMI_SKIP_TUNNEL:-0}" != "1" ]; then
-    step "Starting Cloudflare quick tunnel..."
-    if command -v cloudflared >/dev/null 2>&1; then
-        TUNNEL_LOG=$(mktemp /tmp/cloudflared-XXXXXX.log)
-        cloudflared tunnel --url http://localhost:${BACKEND_PORT:-8080} > "$TUNNEL_LOG" 2>&1 &
-        TUNNEL_PID=$!
-        for i in {1..20}; do
-            TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | head -1)
-            if [ -n "$TUNNEL_URL" ]; then break; fi
-            sleep 0.5
-        done
-        if [ -n "$TUNNEL_URL" ]; then
-            rm -f "$TUNNEL_LOG"
-            substep "Tunnel URL: $TUNNEL_URL"
-        else
-            substep "Warning: Could not capture tunnel URL (see $TUNNEL_LOG for details)"
-        fi
-    else
-        substep "cloudflared not found — skipping tunnel (set OMI_API_URL in .env instead)"
-    fi
-else
-    substep "Skipping tunnel (OMI_SKIP_TUNNEL=1)"
-fi
-
 # ─── Load .env and credentials ─────────────────────────────────────────
 cd "$BACKEND_DIR"
 
@@ -320,6 +296,30 @@ fi
 substep "Firebase project: $FIREBASE_PROJECT_ID | Backend port: $BACKEND_PORT | Auth port: $AUTH_PORT"
 cd - > /dev/null
 
+if [ "${OMI_SKIP_TUNNEL:-0}" != "1" ]; then
+    step "Starting Cloudflare quick tunnel..."
+    if command -v cloudflared >/dev/null 2>&1; then
+        TUNNEL_LOG=$(mktemp /tmp/cloudflared-XXXXXX.log)
+        cloudflared tunnel --url "http://localhost:$BACKEND_PORT" > "$TUNNEL_LOG" 2>&1 &
+        TUNNEL_PID=$!
+        for i in {1..20}; do
+            TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_LOG" 2>/dev/null | head -1)
+            if [ -n "$TUNNEL_URL" ]; then break; fi
+            sleep 0.5
+        done
+        if [ -n "$TUNNEL_URL" ]; then
+            rm -f "$TUNNEL_LOG"
+            substep "Tunnel URL: $TUNNEL_URL"
+        else
+            substep "Warning: Could not capture tunnel URL (see $TUNNEL_LOG for details)"
+        fi
+    else
+        substep "cloudflared not found — skipping tunnel (set OMI_API_URL in .env instead)"
+    fi
+else
+    substep "Skipping tunnel (OMI_SKIP_TUNNEL=1)"
+fi
+
 # ─── Start Rust backend ───────────────────────────────────────────────
 if [ "${OMI_SKIP_BACKEND:-0}" != "1" ]; then
     step "Starting Rust backend..."
@@ -369,8 +369,7 @@ if [ "${OMI_SKIP_AUTH:-0}" != "1" ]; then
             fi
             export GOOGLE_APPLICATION_CREDENTIALS="$CREDS_PATH"
             export BASE_API_URL="http://localhost:$AUTH_PORT"
-            .venv/bin/uvicorn main:app --host 0.0.0.0 --port "$AUTH_PORT" --log-level warning &
-            echo $!
+            exec .venv/bin/uvicorn main:app --host 0.0.0.0 --port "$AUTH_PORT" --log-level warning
         ) &
         AUTH_PID=$!
         sleep 1
@@ -455,7 +454,21 @@ if [ -d "$CSPROTOBUF_FRAMEWORK" ]; then
 fi
 
 # Copy libwebp dylibs and rewrite load paths
-WEBP_LIB="$(pkg-config --variable=libdir libwebp 2>/dev/null)/libwebp.7.dylib"
+WEBP_LIB=""
+if command -v pkg-config >/dev/null 2>&1; then
+    WEBP_LIB_DIR="$(pkg-config --variable=libdir libwebp 2>/dev/null || true)"
+    if [ -n "$WEBP_LIB_DIR" ]; then
+        WEBP_LIB="$WEBP_LIB_DIR/libwebp.7.dylib"
+    fi
+fi
+if [ ! -f "$WEBP_LIB" ]; then
+    for candidate in /opt/homebrew/lib/libwebp.7.dylib /usr/local/lib/libwebp.7.dylib; do
+        if [ -f "$candidate" ]; then
+            WEBP_LIB="$candidate"
+            break
+        fi
+    done
+fi
 if [ -f "$WEBP_LIB" ]; then
     substep "Bundling libwebp"
     cp "$WEBP_LIB" "$APP_BUNDLE/Contents/Frameworks/libwebp.7.dylib"
@@ -464,9 +477,24 @@ if [ -f "$WEBP_LIB" ]; then
     if [ -f "$SHARPYUV_LIB" ]; then
         cp "$SHARPYUV_LIB" "$APP_BUNDLE/Contents/Frameworks/libsharpyuv.0.dylib"
         install_name_tool -id "@rpath/libsharpyuv.0.dylib" "$APP_BUNDLE/Contents/Frameworks/libsharpyuv.0.dylib"
+        for sharpyuv_path in \
+            "$SHARPYUV_LIB" \
+            /opt/homebrew/opt/webp/lib/libsharpyuv.0.dylib \
+            /opt/homebrew/lib/libsharpyuv.0.dylib \
+            /usr/local/opt/webp/lib/libsharpyuv.0.dylib \
+            /usr/local/lib/libsharpyuv.0.dylib; do
+            install_name_tool -change "$sharpyuv_path" "@rpath/libsharpyuv.0.dylib" "$APP_BUNDLE/Contents/Frameworks/libwebp.7.dylib" 2>/dev/null || true
+        done
     fi
     install_name_tool -id "@rpath/libwebp.7.dylib" "$APP_BUNDLE/Contents/Frameworks/libwebp.7.dylib"
-    install_name_tool -change "$WEBP_LIB" "@rpath/libwebp.7.dylib" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
+    for webp_path in \
+        "$WEBP_LIB" \
+        /opt/homebrew/opt/webp/lib/libwebp.7.dylib \
+        /opt/homebrew/lib/libwebp.7.dylib \
+        /usr/local/opt/webp/lib/libwebp.7.dylib \
+        /usr/local/lib/libwebp.7.dylib; do
+        install_name_tool -change "$webp_path" "@rpath/libwebp.7.dylib" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME" 2>/dev/null || true
+    done
 fi
 
 substep "Copying Info.plist"
@@ -714,7 +742,9 @@ $LSREGISTER -u "$APP_PATH" 2>/dev/null || true
 # These create ghost entries that can cause notification icons to show a
 # generic folder instead of the app icon
 for stale in /private/tmp/omi-dmg-staging-*/Omi\ Beta.app; do
-    [ -d "$stale" ] || $LSREGISTER -u "$stale" 2>/dev/null || true
+    if [ -d "$stale" ]; then
+        $LSREGISTER -u "$stale" 2>/dev/null || true
+    fi
 done
 # Register the /Applications/ copy as the canonical bundle for this bundle ID
 $LSREGISTER -f "$APP_PATH" 2>/dev/null || true

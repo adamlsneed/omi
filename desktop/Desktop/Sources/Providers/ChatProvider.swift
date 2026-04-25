@@ -11,6 +11,9 @@ extension UserDefaults {
     @objc dynamic var playwrightUseExtension: Bool {
         return bool(forKey: "playwrightUseExtension")
     }
+    @objc dynamic var playwrightExtensionToken: String {
+        return string(forKey: "playwrightExtensionToken") ?? ""
+    }
 }
 
 // MARK: - Chat Session Model
@@ -559,6 +562,7 @@ A screenshot may be attached — use it silently only if relevant. Never mention
     private let maxMessagesInMemory = 200
     private var multiChatObserver: AnyCancellable?
     private var playwrightExtensionObserver: AnyCancellable?
+    private var playwrightExtensionTokenObserver: AnyCancellable?
     private var sessionGroupingObserver: AnyCancellable?
     private var activationObserver: AnyCancellable?
     private var systemWakeObserver: AnyCancellable?
@@ -723,25 +727,19 @@ A screenshot may be attached — use it silently only if relevant. Never mention
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 Task { @MainActor in
-                    guard let self = self else { return }
-                    guard !self.isSending else {
-                        log("ChatProvider: Skipping bridge restart — query in progress")
-                        return
-                    }
-                    guard !self.modeSwitchInProgress else {
-                        log("ChatProvider: Playwright setting changed but mode switch in progress — skipping bridge restart")
-                        return
-                    }
-                    guard self.agentBridgeStarted else { return }
-                    log("ChatProvider: Playwright extension setting changed, restarting agent bridge")
-                    self.agentBridgeStarted = false
-                    do {
-                        try await self.agentBridge.restart()
-                        self.agentBridgeStarted = true
-                        log("ChatProvider: agent bridge restarted with new Playwright settings")
-                    } catch {
-                        logError("Failed to restart agent bridge after Playwright setting change", error: error)
-                    }
+                    await self?.restartAgentBridgeForPlaywrightSettingsChange(reason: "mode changed")
+                }
+            }
+
+        // Observe token changes too; otherwise reconfiguration can leave a running bridge
+        // with the previous PLAYWRIGHT_MCP_EXTENSION_TOKEN.
+        playwrightExtensionTokenObserver = UserDefaults.standard.publisher(for: \.playwrightExtensionToken)
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.restartAgentBridgeForPlaywrightSettingsChange(reason: "token changed")
                 }
             }
 
@@ -777,6 +775,28 @@ A screenshot may be attached — use it silently only if relevant. Never mention
     func invalidateAgentSession(sessionKey: String) async {
         guard agentBridgeStarted else { return }
         await agentBridge.invalidateSession(sessionKey: sessionKey)
+    }
+
+    private func restartAgentBridgeForPlaywrightSettingsChange(reason: String) async {
+        guard !isSending else {
+            log("ChatProvider: Skipping Playwright bridge restart after \(reason) - query in progress")
+            return
+        }
+        guard !modeSwitchInProgress else {
+            log("ChatProvider: Playwright \(reason) but mode switch in progress - skipping bridge restart")
+            return
+        }
+        guard agentBridgeStarted else { return }
+
+        log("ChatProvider: Playwright \(reason), restarting agent bridge")
+        agentBridgeStarted = false
+        do {
+            try await agentBridge.restart()
+            agentBridgeStarted = true
+            log("ChatProvider: agent bridge restarted with new Playwright settings")
+        } catch {
+            logError("Failed to restart agent bridge after Playwright \(reason)", error: error)
+        }
     }
 
     /// Test that the Playwright Chrome extension is connected and working.

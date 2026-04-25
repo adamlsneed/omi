@@ -4,6 +4,8 @@ import Foundation
 import ImageIO
 import ScreenCaptureKit
 
+/// Captures the active window/screen and owns Screen Recording, ScreenCaptureKit,
+/// and Accessibility recovery helpers.
 final class ScreenCaptureService: Sendable {
   private let maxSize: CGFloat = 3000
   private let jpegQuality: CGFloat = 0.8
@@ -207,7 +209,7 @@ final class ScreenCaptureService: Sendable {
     // 0. Ensure this app is the authoritative version in Launch Services
     // This fixes issues where stale registrations from old builds, DMGs, or Trash
     // cause macOS to grant permissions to the wrong app
-    ensureLaunchServicesRegistration()
+    ensureLaunchServicesRegistrationSync()
 
     // 1. Request traditional Screen Recording TCC permission
     CGRequestScreenCaptureAccess()

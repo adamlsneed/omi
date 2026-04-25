@@ -147,8 +147,8 @@ async fn main() {
     ).await {
         Ok(fs) => Arc::new(fs),
         Err(e) => {
-            tracing::warn!("Failed to initialize Firestore: {} - using placeholder", e);
-            Arc::new(FirestoreService::new(firestore_project_id, config.encryption_secret.clone()).await.unwrap())
+            tracing::error!("Failed to initialize Firestore: {}", e);
+            std::process::exit(1);
         }
     };
 
@@ -249,6 +249,15 @@ async fn main() {
     let addr = format!("0.0.0.0:{}", config.port);
     tracing::info!("Starting OMI Desktop Backend on {}", addr);
 
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(&addr).await {
+        Ok(listener) => listener,
+        Err(e) => {
+            tracing::error!("Failed to bind {}: {}", addr, e);
+            std::process::exit(1);
+        }
+    };
+    if let Err(e) = axum::serve(listener, app).await {
+        tracing::error!("Server failed: {}", e);
+        std::process::exit(1);
+    }
 }

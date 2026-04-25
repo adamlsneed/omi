@@ -44,7 +44,7 @@ class FloatingControlBarWindow: NSPanel, NSWindowDelegate {
     private var resizeWorkItem: DispatchWorkItem?
     /// Saved center point from before chat opened, used to restore position on close.
     private var preChatCenter: NSPoint?
-    /// Token incremented each time a windowDidResignKey dismiss animation starts.
+    /// Token incremented each time a dismiss animation starts.
     /// Checked in the completion block so a new PTT query can cancel a stale close.
     private var resignKeyAnimationToken: Int = 0
     /// The target origin of an in-progress close/restore animation, set in
@@ -291,6 +291,8 @@ class FloatingControlBarWindow: NSPanel, NSWindowDelegate {
 
     func closeAIConversation() {
         AnalyticsManager.shared.floatingBarAskOmiClosed()
+        resignKeyAnimationToken += 1
+        let animationToken = resignKeyAnimationToken
 
         // Cancel any in-flight chat streaming to prevent re-expansion
         FloatingControlBarManager.shared.cancelChat()
@@ -352,6 +354,7 @@ class FloatingControlBarWindow: NSPanel, NSWindowDelegate {
         preChatCenter = nil
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             guard let self = self else { return }
+            guard self.resignKeyAnimationToken == animationToken else { return }
             self.isResizingProgrammatically = false
             self.pendingRestoreOrigin = nil
             // Safety net: only snap if no new AI session was opened while the animation ran.
@@ -365,13 +368,15 @@ class FloatingControlBarWindow: NSPanel, NSWindowDelegate {
 
         // Allow hover resizes again after the animation settles.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-            self?.suppressHoverResize = false
+            guard let self = self else { return }
+            guard self.resignKeyAnimationToken == animationToken else { return }
+            self.suppressHoverResize = false
             FloatingControlBarManager.shared.flushQueuedNotificationsIfPossible()
 
             // If the user has the bar disabled, hide it completely after closing the
             // AI conversation instead of leaving the compact pill visible.
             if !FloatingControlBarManager.shared.isEnabled {
-                self?.orderOut(nil)
+                self.orderOut(nil)
             }
         }
     }

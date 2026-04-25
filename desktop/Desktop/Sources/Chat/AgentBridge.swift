@@ -199,6 +199,7 @@ actor AgentBridge {
       || defaults.bool(forKey: "playwrightUseExtension")
     if useExtension {
       env["PLAYWRIGHT_USE_EXTENSION"] = "true"
+      env["PLAYWRIGHT_MCP_EXTENSION"] = "true"
       if let token = defaults.string(forKey: "playwrightExtensionToken"), !token.isEmpty {
         env["PLAYWRIGHT_MCP_EXTENSION_TOKEN"] = token
       }

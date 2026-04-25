@@ -5,6 +5,9 @@ import Sentry
 import Sparkle
 import SwiftUI
 
+// SwiftUI host entry point and AppDelegate wiring for launch, menu bar,
+// auth callbacks, Sparkle updates, and installed-bundle cleanup.
+
 // MARK: - Launch Mode
 /// Determines which UI to show based on command-line arguments
 enum LaunchMode: String {
@@ -70,6 +73,7 @@ class AuthState: ObservableObject {
   }
 }
 
+/// Main desktop app scene container.
 @main
 struct OMIApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -1128,7 +1132,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       return
     }
 
-    NSLog("OMI AppDelegate: Received URL event: %@", urlString)
+    NSLog(
+      "OMI AppDelegate: Received URL event: %@://%@%@",
+      url.scheme ?? "(none)", url.host ?? "(none)", url.path)
 
     Task { @MainActor in
       AuthService.shared.handleOAuthCallback(url: url)
@@ -1223,10 +1229,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       log("Found old app at \(oldPath), cleaning up...")
 
       // Kill the old app if it's running
+      let oldBundlePath = URL(fileURLWithPath: oldPath).standardizedFileURL.path
       let running = NSRunningApplication.runningApplications(
         withBundleIdentifier: "com.omi.computer-macos")
       for app in running {
         guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { continue }
+        guard app.bundleURL?.standardizedFileURL.path == oldBundlePath else { continue }
         log("Terminating old Omi Computer process (PID \(app.processIdentifier))")
         app.forceTerminate()
       }

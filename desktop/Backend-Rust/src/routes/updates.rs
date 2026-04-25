@@ -26,6 +26,23 @@ fn default_platform() -> String {
     "macos".to_string()
 }
 
+fn escape_xml_text(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+fn escape_xml_attr(value: &str) -> String {
+    escape_xml_text(value)
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+fn escape_cdata(value: &str) -> String {
+    value.replace("]]>", "]]]]><![CDATA[>")
+}
+
 /// Release info stored in Firestore or config
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ReleaseInfo {
@@ -71,11 +88,19 @@ fn generate_appcast_xml(releases: &[ReleaseInfo], platform: &str) -> String {
         let changelog_html = if release.changelog.is_empty() {
             "<p>Bug fixes and improvements.</p>".to_string()
         } else {
-            let items: String = release.changelog.iter()
-                .map(|c| format!("<li>{}</li>", c))
+            let items: String = release
+                .changelog
+                .iter()
+                .map(|c| format!("<li>{}</li>", escape_xml_text(c)))
                 .collect();
             format!("<ul>{}</ul>", items)
         };
+        let changelog_html = escape_cdata(&changelog_html);
+        let version = escape_xml_text(&release.version);
+        let published_at = escape_xml_text(&release.published_at);
+        let download_url = escape_xml_attr(&release.download_url);
+        let platform = escape_xml_attr(platform);
+        let ed_signature = escape_xml_attr(&release.ed_signature);
 
         xml.push_str(&format!(r#"    <item>
       <title>Omi {}</title>
@@ -90,21 +115,24 @@ fn generate_appcast_xml(releases: &[ReleaseInfo], platform: &str) -> String {
         sparkle:edSignature="{}"
       />
 "#,
-            release.version,
+            version,
             release.build_number,
-            release.version,
+            version,
             changelog_html,
-            release.published_at,
-            release.download_url,
+            published_at,
+            download_url,
             platform,
-            release.ed_signature,
+            ed_signature,
         ));
 
         // Emit channel tag: None/missing → staging, "stable" → no tag (Sparkle default), others → as-is
         match release.channel.as_deref() {
             Some("stable") => {} // No tag = Sparkle default channel (stable)
             Some(ch) if !ch.is_empty() => {
-                xml.push_str(&format!("      <sparkle:channel>{}</sparkle:channel>\n", ch));
+                xml.push_str(&format!(
+                    "      <sparkle:channel>{}</sparkle:channel>\n",
+                    escape_xml_text(ch)
+                ));
             }
             _ => {
                 // None or empty = unpromoted, treat as staging
@@ -471,8 +499,33 @@ mod tests {
         let xml = generate_appcast_xml(&releases, "macos");
         assert!(!xml.contains("0.1.0"), "non-live release should not appear");
     }
+
+    #[test]
+    fn test_appcast_escapes_release_metadata() {
+        let mut release = make_release("1.0 & <beta>", 100, Some("beta&internal"), true);
+        release.download_url = "https://example.com/update?x=1&name=\"bad\"".to_string();
+        release.ed_signature = "sig\"<&".to_string();
+        release.published_at = "2025-01-01T00:00:00Z & later".to_string();
+        release.changelog = vec!["Fix <window> & keep quotes \"ok\"".to_string()];
+
+        let xml = generate_appcast_xml(&[release], "macos&test");
+
+        assert!(xml.contains("<title>Omi 1.0 &amp; &lt;beta&gt;</title>"));
+        assert!(
+            xml.contains(
+                "<sparkle:shortVersionString>1.0 &amp; &lt;beta&gt;</sparkle:shortVersionString>"
+            )
+        );
+        assert!(xml.contains("<pubDate>2025-01-01T00:00:00Z &amp; later</pubDate>"));
+        assert!(xml.contains("url=\"https://example.com/update?x=1&amp;name=&quot;bad&quot;\""));
+        assert!(xml.contains("sparkle:os=\"macos&amp;test\""));
+        assert!(xml.contains("sparkle:edSignature=\"sig&quot;&lt;&amp;\""));
+        assert!(xml.contains("<li>Fix &lt;window&gt; &amp; keep quotes \"ok\"</li>"));
+        assert!(xml.contains("<sparkle:channel>beta&amp;internal</sparkle:channel>"));
+    }
 }
 
+/// Build Sparkle appcast, latest-version, release creation, and promotion routes.
 pub fn updates_routes() -> Router<AppState> {
     Router::new()
         .route("/appcast.xml", get(get_appcast))
