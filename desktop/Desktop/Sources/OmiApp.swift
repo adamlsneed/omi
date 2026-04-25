@@ -673,6 +673,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
   // Dock icon is always visible — LSUIElement=false and activation policy stays .regular
 
+  private func makeMenuBarLogoIcon() -> NSImage {
+    let imageSize = NSSize(width: 18, height: 18)
+    let image = NSImage(size: imageSize)
+    image.lockFocus()
+
+    if let context = NSGraphicsContext.current?.cgContext {
+      context.setFillColor(NSColor.black.cgColor)
+      let iconRect = CGRect(x: 1.75, y: 1.75, width: 14.5, height: 14.5)
+      context.addPath(CGPath(roundedRect: iconRect, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
+      context.fillPath()
+
+      let center = CGPoint(x: imageSize.width / 2, y: imageSize.height / 2)
+      let ringRadius: CGFloat = 4.4
+      let dotRadius: CGFloat = 1.05
+      context.setBlendMode(.clear)
+      for index in 0..<8 {
+        let angle = CGFloat(index) * (.pi / 4)
+        let dotCenter = CGPoint(
+          x: center.x + cos(angle) * ringRadius,
+          y: center.y + sin(angle) * ringRadius
+        )
+        context.fillEllipse(
+          in: CGRect(
+            x: dotCenter.x - dotRadius,
+            y: dotCenter.y - dotRadius,
+            width: dotRadius * 2,
+            height: dotRadius * 2
+          ))
+      }
+      context.setBlendMode(.normal)
+    }
+
+    image.unlockFocus()
+    image.isTemplate = true
+    return image
+  }
+
   /// Force-refresh the menu bar icon after activation policy changes.
   /// Works around a macOS Sequoia bug where NSStatusBar items vanish
   /// when switching to .accessory activation policy.
@@ -694,14 +731,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
           icon.isTemplate = true
           button.image = icon
         }
-      } else if let iconURL = Bundle.resourceBundle.url(
-        forResource: "omi_text_logo", withExtension: "png"),
-        let icon = NSImage(contentsOf: iconURL)
-      {
-        icon.isTemplate = true
-        let aspect = icon.size.width / icon.size.height
-        icon.size = NSSize(width: 16 * aspect, height: 16)
-        button.image = icon
+      } else {
+        button.image = makeMenuBarLogoIcon()
+        button.imagePosition = .imageOnly
       }
     }
     // Safety net: verify again after a short delay
@@ -752,7 +784,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let displayName =
       Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "omi"
 
-    // Set up the button with icon — use "omi" text logo (not a circle)
+    // Set up the button with icon.
     if let button = statusBarItem.button {
       if OMIApp.launchMode == .rewind {
         // Rewind mode uses SF Symbol
@@ -763,24 +795,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
           button.image = icon
           log("AppDelegate: [MENUBAR] Rewind icon set successfully")
         }
-      } else if let iconURL = Bundle.resourceBundle.url(
-        forResource: "omi_text_logo", withExtension: "png"),
-        let icon = NSImage(contentsOf: iconURL)
-      {
-        icon.isTemplate = true
-        // Scale to menu bar height (16pt) with proportional width
-        let aspect = icon.size.width / icon.size.height
-        icon.size = NSSize(width: 16 * aspect, height: 16)
-        button.image = icon
-        button.imagePosition = .imageOnly
-        log("AppDelegate: [MENUBAR] Omi text logo set successfully (size: \(icon.size))")
       } else {
-        // Fallback to SF Symbol
-        if let icon = NSImage(systemSymbolName: "waveform", accessibilityDescription: "omi") {
-          icon.isTemplate = true
-          button.image = icon
-        }
-        log("AppDelegate: [MENUBAR] WARNING - Failed to load omi_text_logo, using fallback")
+        let icon = makeMenuBarLogoIcon()
+        button.imagePosition = .imageOnly
+        button.image = icon
+        log("AppDelegate: [MENUBAR] Omi icon set successfully (size: \(icon.size))")
       }
       button.toolTip = OMIApp.launchMode == .rewind ? "omi Rewind" : displayName
     } else {
