@@ -522,6 +522,23 @@ abstract class DeviceConnection {
 
   Future<int?> performGetMicGain();
 
+  Future<void> setRecordingPaused(bool paused) async {
+    if (await isConnected()) {
+      return await performSetRecordingPaused(paused);
+    }
+  }
+
+  Future<void> performSetRecordingPaused(bool paused) async {}
+
+  Future<bool?> getRecordingPaused() async {
+    if (await isConnected()) {
+      return await performGetRecordingPaused();
+    }
+    return null;
+  }
+
+  Future<bool?> performGetRecordingPaused() async => null;
+
   Future<bool> isWifiSyncSupported() async {
     if (await isConnected()) {
       return await performIsWifiSyncSupported();
