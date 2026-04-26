@@ -31,6 +31,7 @@ import 'package:omi/providers/message_provider.dart';
 import 'package:omi/providers/people_provider.dart';
 import 'package:omi/providers/usage_provider.dart';
 import 'package:omi/services/connectivity_service.dart';
+import 'package:omi/services/devices.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/voice_playback/omi_voice_playback_service.dart';
 import 'package:omi/services/sockets/transcription_service.dart';
@@ -698,6 +699,26 @@ class CaptureProvider extends ChangeNotifier
     return connection.performPlayToSpeakerHaptic(level);
   }
 
+  Future<void> _setDeviceRecordingPaused(bool paused) async {
+    final device = _recordingDevice;
+    if (device == null || device.type != DeviceType.omi) {
+      return;
+    }
+
+    final connection = await ServiceManager.instance().device.ensureConnection(device.id);
+    if (connection == null) {
+      return;
+    }
+
+    final features = await connection.getFeatures();
+    if ((features & OmiFeatures.recordingPause) == 0) {
+      Logger.debug('Device firmware does not support runtime recording pause');
+      return;
+    }
+
+    await connection.setRecordingPaused(paused);
+  }
+
   Future<StreamSubscription?> _getBleAudioBytesListener(
     String deviceId, {
     required void Function(List<int>) onAudioBytesReceived,
@@ -749,6 +770,9 @@ class CaptureProvider extends ChangeNotifier
     }
     final connection = await ServiceManager.instance().device.ensureConnection(deviceId);
     if (connection == null) return;
+    if (!_isPaused) {
+      await _setDeviceRecordingPaused(false);
+    }
     final codec = await _getAudioCodec(deviceId);
     await _wal.getSyncs().phone.onAudioCodecChanged(codec);
 
@@ -1029,6 +1053,8 @@ class CaptureProvider extends ChangeNotifier
   }
 
   Future stopStreamDeviceRecording({bool cleanDevice = false}) async {
+    await _setDeviceRecordingPaused(false);
+    _isPaused = false;
     await _cleanupCurrentState();
     if (cleanDevice) {
       _updateRecordingDevice(null);
@@ -1670,11 +1696,12 @@ class CaptureProvider extends ChangeNotifier
 
     // Write mute state first — before BLE cancel which may fire other events
     await BatteryWidgetService().updateMuteState(true);
-    // Pause the BLE stream but keep the device connection
-    await _bleBytesStream?.cancel();
     _isPaused = true;
     updateRecordingState(RecordingState.pause);
     notifyListeners();
+    await _setDeviceRecordingPaused(true);
+    // Pause the BLE stream but keep the device connection
+    await _bleBytesStream?.cancel();
   }
 
   Future<void> resumeDeviceRecording() async {
@@ -1682,6 +1709,7 @@ class CaptureProvider extends ChangeNotifier
     _isPaused = false;
     // Update widget immediately — don't wait for streaming setup
     BatteryWidgetService().updateMuteState(false);
+    await _setDeviceRecordingPaused(false);
     // Resume streaming from the device
     await _initiateDeviceAudioStreaming();
 

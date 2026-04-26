@@ -102,6 +102,17 @@ static ssize_t settings_charging_status_read_handler(struct bt_conn *conn,
                                                      void *buf,
                                                      uint16_t len,
                                                      uint16_t offset);
+static ssize_t settings_recording_pause_write_handler(struct bt_conn *conn,
+                                                      const struct bt_gatt_attr *attr,
+                                                      const void *buf,
+                                                      uint16_t len,
+                                                      uint16_t offset,
+                                                      uint8_t flags);
+static ssize_t settings_recording_pause_read_handler(struct bt_conn *conn,
+                                                     const struct bt_gatt_attr *attr,
+                                                     void *buf,
+                                                     uint16_t len,
+                                                     uint16_t offset);
 static int notify_charging_status(struct bt_conn *conn, bool force_notify);
 static ssize_t
 features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset);
@@ -189,6 +200,8 @@ static struct bt_uuid_128 settings_mic_gain_characteristic_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10012, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
 static struct bt_uuid_128 settings_charging_status_characteristic_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10013, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
+static struct bt_uuid_128 settings_recording_pause_characteristic_uuid =
+    BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10014, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
 
 static struct bt_gatt_attr settings_service_attr[] = {
     BT_GATT_PRIMARY_SERVICE(&settings_service_uuid),
@@ -211,6 +224,12 @@ static struct bt_gatt_attr settings_service_attr[] = {
                            NULL,
                            NULL),
     BT_GATT_CCC(charging_status_ccc_config_changed_handler, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+    BT_GATT_CHARACTERISTIC(&settings_recording_pause_characteristic_uuid.uuid,
+                           BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE,
+                           BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
+                           settings_recording_pause_read_handler,
+                           settings_recording_pause_write_handler,
+                           NULL),
 };
 
 static struct bt_gatt_service settings_service = BT_GATT_SERVICE(settings_service_attr);
@@ -469,6 +488,36 @@ static ssize_t settings_charging_status_read_handler(struct bt_conn *conn,
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &charging_status, sizeof(charging_status));
 }
 
+static ssize_t settings_recording_pause_write_handler(struct bt_conn *conn,
+                                                      const struct bt_gatt_attr *attr,
+                                                      const void *buf,
+                                                      uint16_t len,
+                                                      uint16_t offset,
+                                                      uint8_t flags)
+{
+    if (len != 1) {
+        LOG_WRN("Invalid length for recording pause write: %u", len);
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+    }
+
+    bool paused = ((uint8_t *) buf)[0] != 0;
+    LOG_INF("Received recording pause state: %u", paused ? 1U : 0U);
+    app_settings_set_recording_paused(paused);
+
+    return len;
+}
+
+static ssize_t settings_recording_pause_read_handler(struct bt_conn *conn,
+                                                     const struct bt_gatt_attr *attr,
+                                                     void *buf,
+                                                     uint16_t len,
+                                                     uint16_t offset)
+{
+    uint8_t paused = app_settings_is_recording_paused() ? 1U : 0U;
+    LOG_INF("Reading recording pause state: %u", paused);
+    return bt_gatt_attr_read(conn, attr, buf, len, offset, &paused, sizeof(paused));
+}
+
 static ssize_t
 features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset)
 {
@@ -499,6 +548,7 @@ features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, voi
     features |= OMI_FEATURE_LED_DIMMING;
     // Mic gain control is always enabled.
     features |= OMI_FEATURE_MIC_GAIN;
+    features |= OMI_FEATURE_RECORDING_PAUSE;
 
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &features, sizeof(features));
 }

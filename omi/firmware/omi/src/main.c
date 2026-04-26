@@ -80,6 +80,10 @@ static void codec_handler(uint8_t *data, size_t len)
 
 static void mic_handler(int16_t *buffer)
 {
+    if (app_settings_is_recording_paused()) {
+        return;
+    }
+
 #ifdef CONFIG_OMI_ENABLE_MONITOR
     // Track total bytes processed (each sample is 2 bytes)
     monitor_inc_mic_buffer();
@@ -141,6 +145,13 @@ void set_led_state()
     // If device is off, turn off all LEDs immediately
     if (is_off) {
         led_off();
+        return;
+    }
+
+    if (app_settings_is_recording_paused()) {
+        set_led_green(true);
+        set_led_blue(false);
+        set_led_red(true);
         return;
     }
 
