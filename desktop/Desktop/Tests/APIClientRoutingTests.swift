@@ -40,7 +40,10 @@ private final class URLCapture: URLProtocol, @unchecked Sendable {
             return body
         }
 
-        guard let stream = request.httpBodyStream else { return nil }
+        guard let stream = request.httpBodyStream else {
+            return nil
+        }
+
         stream.open()
         defer { stream.close() }
 
@@ -50,13 +53,16 @@ private final class URLCapture: URLProtocol, @unchecked Sendable {
         defer { buffer.deallocate() }
 
         while stream.hasBytesAvailable {
-            let count = stream.read(buffer, maxLength: bufferSize)
-            if count > 0 {
-                data.append(buffer, count: count)
+            let readCount = stream.read(buffer, maxLength: bufferSize)
+            if readCount > 0 {
+                data.append(buffer, count: readCount)
+            } else if readCount < 0 {
+                return nil
             } else {
                 break
             }
         }
+
         return data.isEmpty ? nil : data
     }
 
@@ -69,7 +75,7 @@ private final class URLCapture: URLProtocol, @unchecked Sendable {
                 url: url,
                 method: request.httpMethod ?? "GET",
                 headers: request.allHTTPHeaderFields ?? [:],
-                body: URLCapture.bodyData(from: request)
+                body: Self.bodyData(from: request)
             ))
         }
         let response = HTTPURLResponse(url: request.url!, statusCode: 403, httpVersion: nil, headerFields: nil)!
@@ -114,6 +120,60 @@ final class APIClientRoutingTests: XCTestCase {
         XCTAssertEqual(url, "https://api.omi.me/")
     }
 
+    func testBetaProductionBundleUsesDevelopmentPythonBackend() {
+        let url = DesktopBackendEnvironment.pythonBaseURL(
+            useDevelopmentBackends: true,
+            environmentValue: "https://api.omi.me"
+        )
+        XCTAssertEqual(url, "https://api.omiapi.com/")
+    }
+
+    func testStableProductionBundleKeepsProductionPythonBackend() {
+        let url = DesktopBackendEnvironment.pythonBaseURL(
+            useDevelopmentBackends: false,
+            environmentValue: "https://api.omi.me"
+        )
+        XCTAssertEqual(url, "https://api.omi.me/")
+    }
+
+    func testBetaProductionBundleUsesDevelopmentRustBackend() {
+        let url = DesktopBackendEnvironment.rustBackendURL(
+            useDevelopmentBackends: true,
+            environmentValue: "https://desktop-backend-hhibjajaja-uc.a.run.app",
+            launchEnvironmentValue: nil
+        )
+        XCTAssertEqual(url, "https://desktop-backend-dt5lrfkkoa-uc.a.run.app/")
+    }
+
+    func testStableProductionBundleKeepsConfiguredRustBackend() {
+        let url = DesktopBackendEnvironment.rustBackendURL(
+            useDevelopmentBackends: false,
+            environmentValue: "https://desktop-backend-hhibjajaja-uc.a.run.app",
+            launchEnvironmentValue: nil
+        )
+        XCTAssertEqual(url, "https://desktop-backend-hhibjajaja-uc.a.run.app/")
+    }
+
+    func testDevelopmentBackendRoutingDisabled() {
+        // Beta-to-dev routing disabled — see DesktopBackendEnvironment for context.
+        XCTAssertFalse(DesktopBackendEnvironment.shouldUseDevelopmentBackends(
+            bundleIdentifier: "com.omi.computer-macos",
+            updateChannel: "beta"
+        ))
+        XCTAssertFalse(DesktopBackendEnvironment.shouldUseDevelopmentBackends(
+            bundleIdentifier: "com.omi.computer-macos",
+            updateChannel: "staging"
+        ))
+        XCTAssertFalse(DesktopBackendEnvironment.shouldUseDevelopmentBackends(
+            bundleIdentifier: "com.omi.computer-macos",
+            updateChannel: "stable"
+        ))
+        XCTAssertFalse(DesktopBackendEnvironment.shouldUseDevelopmentBackends(
+            bundleIdentifier: "com.omi.desktop-dev",
+            updateChannel: "beta"
+        ))
+    }
+
     func testBaseURLReadsFromPythonEnvVar() async {
         setenv("OMI_PYTHON_API_URL", "http://localhost:8080", 1)
         defer { unsetenv("OMI_PYTHON_API_URL") }
@@ -139,15 +199,15 @@ final class APIClientRoutingTests: XCTestCase {
     }
 
     func testRustBackendURLReadsFromApiUrlEnvVar() async {
-        setenv("OMI_API_URL", "http://localhost:8787", 1)
-        defer { unsetenv("OMI_API_URL") }
+        setenv("OMI_DESKTOP_API_URL", "http://localhost:8787", 1)
+        defer { unsetenv("OMI_DESKTOP_API_URL") }
         let client = APIClient()
         let url = await client.rustBackendURL
         XCTAssertEqual(url, "http://localhost:8787/")
     }
 
     func testRustBackendURLReturnsEmptyWhenNotSet() async {
-        unsetenv("OMI_API_URL")
+        unsetenv("OMI_DESKTOP_API_URL")
         let client = APIClient()
         let url = await client.rustBackendURL
         XCTAssertEqual(url, "")
@@ -155,8 +215,8 @@ final class APIClientRoutingTests: XCTestCase {
 
     func testBaseURLAndRustBackendURLAreIndependent() async {
         setenv("OMI_PYTHON_API_URL", "http://python:8080", 1)
-        setenv("OMI_API_URL", "http://rust:8787", 1)
-        defer { unsetenv("OMI_PYTHON_API_URL"); unsetenv("OMI_API_URL") }
+        setenv("OMI_DESKTOP_API_URL", "http://rust:8787", 1)
+        defer { unsetenv("OMI_PYTHON_API_URL"); unsetenv("OMI_DESKTOP_API_URL") }
 
         let client = APIClient()
         let base = await client.baseURL
@@ -181,12 +241,12 @@ final class APIClientRoutingTests: XCTestCase {
         super.setUp()
         URLCapture.reset()
         setenv("OMI_PYTHON_API_URL", "http://python-test:9001", 1)
-        setenv("OMI_API_URL", "http://rust-test:9002", 1)
+        setenv("OMI_DESKTOP_API_URL", "http://rust-test:9002", 1)
     }
 
     override func tearDown() {
         unsetenv("OMI_PYTHON_API_URL")
-        unsetenv("OMI_API_URL")
+        unsetenv("OMI_DESKTOP_API_URL")
         URLCapture.reset()
         super.tearDown()
     }

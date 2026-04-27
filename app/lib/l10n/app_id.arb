@@ -3028,5 +3028,10 @@
     "voiceResponseModeTitle": "Kapan respons diucapkan",
     "voiceResponseOff": "Mati",
     "voiceResponseHeadphonesOnly": "Hanya headphone",
-    "voiceResponseAlways": "Selalu"
+    "voiceResponseAlways": "Selalu",
+    "agreeAndContinue": "Setuju & Lanjutkan",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

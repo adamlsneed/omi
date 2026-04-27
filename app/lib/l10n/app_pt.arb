@@ -3022,5 +3022,10 @@
     "voiceResponseModeTitle": "Quando ler respostas",
     "voiceResponseOff": "Desligado",
     "voiceResponseHeadphonesOnly": "Apenas fones",
-    "voiceResponseAlways": "Sempre"
+    "voiceResponseAlways": "Sempre",
+    "agreeAndContinue": "Aceitar e continuar",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

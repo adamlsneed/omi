@@ -10694,5 +10694,10 @@
     "voiceResponseModeTitle": "چه زمانی پاسخ‌ها خوانده شوند",
     "voiceResponseOff": "خاموش",
     "voiceResponseHeadphonesOnly": "فقط هدفون",
-    "voiceResponseAlways": "همیشه"
+    "voiceResponseAlways": "همیشه",
+    "agreeAndContinue": "موافقم و ادامه",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

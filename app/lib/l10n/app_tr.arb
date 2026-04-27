@@ -3021,5 +3021,10 @@
     "voiceResponseModeTitle": "Yanıtlar ne zaman okunsun",
     "voiceResponseOff": "Kapalı",
     "voiceResponseHeadphonesOnly": "Sadece kulaklık",
-    "voiceResponseAlways": "Her zaman"
+    "voiceResponseAlways": "Her zaman",
+    "agreeAndContinue": "Kabul Et ve Devam Et",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

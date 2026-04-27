@@ -2986,5 +2986,10 @@
     "voiceResponseModeTitle": "Når svar skal leses",
     "voiceResponseOff": "Av",
     "voiceResponseHeadphonesOnly": "Bare hodetelefoner",
-    "voiceResponseAlways": "Alltid"
+    "voiceResponseAlways": "Alltid",
+    "agreeAndContinue": "Godta og fortsett",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

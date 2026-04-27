@@ -10694,5 +10694,10 @@
     "voiceResponseModeTitle": "Када изговарати одговоре",
     "voiceResponseOff": "Искључено",
     "voiceResponseHeadphonesOnly": "Само слушалице",
-    "voiceResponseAlways": "Увек"
+    "voiceResponseAlways": "Увек",
+    "agreeAndContinue": "Slažem se i nastavi",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

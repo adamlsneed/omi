@@ -2986,5 +2986,10 @@
     "voiceResponseModeTitle": "Milloin vastaukset luetaan",
     "voiceResponseOff": "Pois",
     "voiceResponseHeadphonesOnly": "Vain kuulokkeet",
-    "voiceResponseAlways": "Aina"
+    "voiceResponseAlways": "Aina",
+    "agreeAndContinue": "Hyväksy ja jatka",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

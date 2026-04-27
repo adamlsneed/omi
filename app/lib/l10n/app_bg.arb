@@ -2955,5 +2955,10 @@
     "voiceResponseModeTitle": "Кога да се произнасят отговорите",
     "voiceResponseOff": "Изкл",
     "voiceResponseHeadphonesOnly": "Само слушалки",
-    "voiceResponseAlways": "Винаги"
+    "voiceResponseAlways": "Винаги",
+    "agreeAndContinue": "Приемам и продължавам",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

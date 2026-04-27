@@ -2986,5 +2986,10 @@
     "voiceResponseModeTitle": "Πότε να εκφωνούνται οι απαντήσεις",
     "voiceResponseOff": "Απενεργ.",
     "voiceResponseHeadphonesOnly": "Μόνο ακουστικά",
-    "voiceResponseAlways": "Πάντα"
+    "voiceResponseAlways": "Πάντα",
+    "agreeAndContinue": "Συμφωνώ και Συνέχεια",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

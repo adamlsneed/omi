@@ -1,6 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <zephyr/drivers/rtc.h>
 
@@ -42,6 +43,23 @@ int app_settings_save_mic_gain(uint8_t new_gain);
  * @return The current gain level (0-8).
  */
 uint8_t app_settings_get_mic_gain(void);
+
+/**
+ * @brief Set the runtime recording pause state.
+ *
+ * This is intentionally not persisted. It reflects a current app-driven mute
+ * request and resets to unpaused on reboot.
+ *
+ * @param paused true to pause recording, false to resume.
+ */
+void app_settings_set_recording_paused(bool paused);
+
+/**
+ * @brief Check whether app-driven recording pause is active.
+ *
+ * @return true when audio capture should be suppressed.
+ */
+bool app_settings_is_recording_paused(void);
 
 /**
  * @brief Save the RTC timestamp setting.

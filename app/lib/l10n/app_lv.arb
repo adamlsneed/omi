@@ -2986,5 +2986,10 @@
     "voiceResponseModeTitle": "Kad atskaņot atbildes",
     "voiceResponseOff": "Izslēgts",
     "voiceResponseHeadphonesOnly": "Tikai austiņās",
-    "voiceResponseAlways": "Vienmēr"
+    "voiceResponseAlways": "Vienmēr",
+    "agreeAndContinue": "Piekrītu un turpināt",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }
