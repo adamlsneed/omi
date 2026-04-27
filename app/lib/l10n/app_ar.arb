@@ -2953,5 +2953,10 @@
     "voiceResponseModeTitle": "متى تُقرأ الردود",
     "voiceResponseOff": "إيقاف",
     "voiceResponseHeadphonesOnly": "السماعات فقط",
-    "voiceResponseAlways": "دائماً"
+    "voiceResponseAlways": "دائماً",
+    "agreeAndContinue": "أوافق وأتابع",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

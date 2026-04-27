@@ -2986,5 +2986,10 @@
     "voiceResponseModeTitle": "Wanneer antwoorden worden voorgelezen",
     "voiceResponseOff": "Uit",
     "voiceResponseHeadphonesOnly": "Alleen koptelefoon",
-    "voiceResponseAlways": "Altijd"
+    "voiceResponseAlways": "Altijd",
+    "agreeAndContinue": "Akkoord en doorgaan",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

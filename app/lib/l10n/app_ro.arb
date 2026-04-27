@@ -2986,5 +2986,10 @@
     "voiceResponseModeTitle": "Când să rostească răspunsurile",
     "voiceResponseOff": "Oprit",
     "voiceResponseHeadphonesOnly": "Doar căști",
-    "voiceResponseAlways": "Întotdeauna"
+    "voiceResponseAlways": "Întotdeauna",
+    "agreeAndContinue": "Accept și continuă",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

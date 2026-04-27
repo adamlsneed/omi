@@ -10694,5 +10694,10 @@
     "voiceResponseModeTitle": "جواب کب پڑھے جائیں",
     "voiceResponseOff": "بند",
     "voiceResponseHeadphonesOnly": "صرف ہیڈ فون",
-    "voiceResponseAlways": "ہمیشہ"
+    "voiceResponseAlways": "ہمیشہ",
+    "agreeAndContinue": "اتفاق اور جاری رکھیں",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

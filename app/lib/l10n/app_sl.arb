@@ -10694,5 +10694,10 @@
     "voiceResponseModeTitle": "Kdaj prebrati odgovore",
     "voiceResponseOff": "Izklop",
     "voiceResponseHeadphonesOnly": "Samo slušalke",
-    "voiceResponseAlways": "Vedno"
+    "voiceResponseAlways": "Vedno",
+    "agreeAndContinue": "Strinjam se in nadaljuj",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

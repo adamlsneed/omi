@@ -10694,5 +10694,10 @@
     "voiceResponseModeTitle": "Калі агучваць адказы",
     "voiceResponseOff": "Выкл",
     "voiceResponseHeadphonesOnly": "Толькі навушнікі",
-    "voiceResponseAlways": "Заўсёды"
+    "voiceResponseAlways": "Заўсёды",
+    "agreeAndContinue": "Прыняць і працягнуць",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

@@ -2954,5 +2954,10 @@
     "voiceResponseModeTitle": "Wann Antworten vorgelesen werden",
     "voiceResponseOff": "Aus",
     "voiceResponseHeadphonesOnly": "Nur Kopfhörer",
-    "voiceResponseAlways": "Immer"
+    "voiceResponseAlways": "Immer",
+    "agreeAndContinue": "Zustimmen und fortfahren",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

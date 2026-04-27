@@ -3082,5 +3082,10 @@
     "voiceResponseModeTitle": "Mikor szólaljon meg a válasz",
     "voiceResponseOff": "Ki",
     "voiceResponseHeadphonesOnly": "Csak fülhallgató",
-    "voiceResponseAlways": "Mindig"
+    "voiceResponseAlways": "Mindig",
+    "agreeAndContinue": "Elfogadom és folytatom",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }

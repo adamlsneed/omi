@@ -10694,5 +10694,10 @@
     "voiceResponseModeTitle": "Kailan bibigkasin ang tugon",
     "voiceResponseOff": "Naka-off",
     "voiceResponseHeadphonesOnly": "Headphones lang",
-    "voiceResponseAlways": "Palagi"
+    "voiceResponseAlways": "Palagi",
+    "agreeAndContinue": "Sumasang-ayon at Magpatuloy",
+    "mindMap": "Mind Map",
+    "@mindMap": {
+        "description": "Section header for memory knowledge graph on home page"
+    }
 }
