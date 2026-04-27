@@ -154,6 +154,10 @@ describe("PiMonoAdapter source-level invariants", () => {
     fileURLToPath(new URL("../src/adapters/pi-mono.ts", import.meta.url)),
     "utf8"
   );
+  const bridgeSrc = readFileSync(
+    fileURLToPath(new URL("../src/index.ts", import.meta.url)),
+    "utf8"
+  );
 
   it("does not put the Firebase token directly in the pi subprocess env", () => {
     expect(piMonoSrc).toMatch(/OMI_API_KEY_FILE/);
@@ -163,6 +167,12 @@ describe("PiMonoAdapter source-level invariants", () => {
   it("does not allow ambient ANTHROPIC_API_KEY into the child env", () => {
     expect(piMonoSrc).toContain("makeSubprocessEnv");
     expect(piMonoSrc).not.toMatch(/["']ANTHROPIC_API_KEY["']/);
+  });
+
+  it("reads the Swift-provided auth token from a private file", () => {
+    expect(bridgeSrc).toContain("OMI_AUTH_TOKEN_FILE");
+    expect(bridgeSrc).toContain("readOmiAuthToken");
+    expect(bridgeSrc).not.toMatch(/process\.env\.OMI_AUTH_TOKEN\s*=\s*rtm\.token/);
   });
 });
 

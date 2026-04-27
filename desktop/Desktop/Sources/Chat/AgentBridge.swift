@@ -100,6 +100,8 @@ actor AgentBridge {
   private var isInterrupted = false
   /// Timer for periodic Firebase token refresh (piMono mode)
   private var tokenRefreshTask: Task<Void, Never>?
+  /// Temporary directory containing the Firebase token file passed to Node.
+  private var authTokenDirectoryURL: URL?
 
   /// Whether the bridge subprocess is alive and ready
   var isAlive: Bool { isRunning }
@@ -198,7 +200,7 @@ actor AgentBridge {
         log("AgentBridge: pi-mono start refused — Firebase ID token is empty")
         throw BridgeError.authMissing
       }
-      env["OMI_AUTH_TOKEN"] = token
+      env["OMI_AUTH_TOKEN_FILE"] = try writeAuthTokenFile(token)
       // Point pi-mono at the Rust desktop-backend's /v2/chat/completions proxy.
       // Without this, pi-mono-extension falls back to https://api.omi.me/v2 which
       // does NOT serve chat/completions — the shipped app would get 404 on every
@@ -275,7 +277,12 @@ actor AgentBridge {
       }
     }
 
-    try proc.run()
+    do {
+      try proc.run()
+    } catch {
+      cleanupAuthTokenFile()
+      throw error
+    }
     isRunning = true
 
     // Start reading stdout
@@ -345,6 +352,7 @@ actor AgentBridge {
 
     process?.terminate()
     process = nil
+    cleanupAuthTokenFile()
     closePipes()
     isRunning = false
 
@@ -634,6 +642,36 @@ actor AgentBridge {
 
   // MARK: - Private
 
+  private func writeAuthTokenFile(_ token: String) throws -> String {
+    cleanupAuthTokenFile()
+
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("omi-agent-token-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: directory,
+      withIntermediateDirectories: true,
+      attributes: [.posixPermissions: 0o700]
+    )
+
+    let tokenURL = directory.appendingPathComponent("token")
+    guard let tokenData = token.data(using: .utf8) else {
+      throw BridgeError.encodingError
+    }
+    _ = FileManager.default.createFile(
+      atPath: tokenURL.path,
+      contents: tokenData,
+      attributes: [.posixPermissions: 0o600]
+    )
+    authTokenDirectoryURL = directory
+    return tokenURL.path
+  }
+
+  private func cleanupAuthTokenFile() {
+    guard let directory = authTokenDirectoryURL else { return }
+    try? FileManager.default.removeItem(at: directory)
+    authTokenDirectoryURL = nil
+  }
+
   private func sendLine(_ line: String) {
     guard let pipe = stdinPipe else { return }
     let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -836,6 +874,7 @@ actor AgentBridge {
 
     log("AgentBridge: process terminated (code=\(exitCode), reason=\(reasonStr), error=\(error))")
     isRunning = false
+    cleanupAuthTokenFile()
     closePipes()
     messageContinuation?.resume(throwing: error)
     messageContinuation = nil
