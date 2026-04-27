@@ -20,6 +20,7 @@ import {
   classifyFileWrite,
   inspectToolCall,
   summarizeInput,
+  readOmiApiKeyForTest,
   appendAudit,
   __resetAuditWarnedForTest,
   OMI_TOOLS,
@@ -30,6 +31,27 @@ import {
   __resetOmiPipeForTest,
 } from "./index.ts";
 import type { ToolCallEvent } from "@mariozechner/pi-coding-agent";
+
+test("readOmiApiKey: prefers private token file and unlinks it", async () => {
+  const previousKey = process.env.OMI_API_KEY;
+  const previousFile = process.env.OMI_API_KEY_FILE;
+  const tokenPath = pathJoin(tmpdir(), `omi-token-${Date.now()}-${Math.random()}`);
+
+  try {
+    delete process.env.OMI_API_KEY;
+    process.env.OMI_API_KEY_FILE = tokenPath;
+    await writeFile(tokenPath, "firebase-id-token-xyz", { mode: 0o600 });
+
+    assert.equal(readOmiApiKeyForTest(), "firebase-id-token-xyz");
+    await assert.rejects(unlink(tokenPath), /ENOENT/);
+  } finally {
+    if (previousKey === undefined) delete process.env.OMI_API_KEY;
+    else process.env.OMI_API_KEY = previousKey;
+    if (previousFile === undefined) delete process.env.OMI_API_KEY_FILE;
+    else process.env.OMI_API_KEY_FILE = previousFile;
+    try { await unlink(tokenPath); } catch {}
+  }
+});
 
 // ---------------------------------------------------------------------------
 // classifyBash — allow-by-default for normal dev commands

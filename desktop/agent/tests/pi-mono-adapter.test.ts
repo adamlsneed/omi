@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PassThrough } from "node:stream";
 import { EventEmitter } from "node:events";
@@ -155,13 +155,14 @@ describe("PiMonoAdapter source-level invariants", () => {
     "utf8"
   );
 
-  it("passes the raw authToken as OMI_API_KEY (no `Bearer ` prefix)", () => {
-    expect(piMonoSrc).toMatch(/env\.OMI_API_KEY\s*=\s*this\.config\.authToken\s*;?/);
-    expect(piMonoSrc).not.toMatch(/env\.OMI_API_KEY\s*=\s*`Bearer \$\{/);
+  it("does not put the Firebase token directly in the pi subprocess env", () => {
+    expect(piMonoSrc).toMatch(/OMI_API_KEY_FILE/);
+    expect(piMonoSrc).not.toMatch(/env\.OMI_API_KEY\s*=\s*this\.config\.authToken\s*;?/);
   });
 
-  it("always scrubs ANTHROPIC_API_KEY from the child env", () => {
-    expect(piMonoSrc).toMatch(/delete\s+env\.ANTHROPIC_API_KEY\s*;?/);
+  it("does not allow ambient ANTHROPIC_API_KEY into the child env", () => {
+    expect(piMonoSrc).toContain("makeSubprocessEnv");
+    expect(piMonoSrc).not.toMatch(/["']ANTHROPIC_API_KEY["']/);
   });
 });
 
@@ -210,20 +211,39 @@ describe("PiMonoAdapter spawn args (behavioral)", () => {
     await adapter.stop();
   });
 
-  it("scrubs OMI_API_KEY into the subprocess env from authToken", async () => {
+  it("passes authToken through a private file and scrubs ambient secrets", async () => {
+    const previousAmbientSecret = process.env.APPLE_APP_SPECIFIC_PASSWORD;
+    process.env.APPLE_APP_SPECIFIC_PASSWORD = "do-not-forward";
     const config: HarnessConfig = {
       authToken: "firebase-id-token-xyz",
     };
-    const adapter = new PiMonoAdapter(config, "/fake/pi", "/fake/ext.ts");
-    await adapter.start();
+    const adapter = new PiMonoAdapter(config, "/fake/pi.js", "/fake/ext.ts");
 
-    const [, , options] = vi.mocked(spawn).mock.calls[0] as [string, string[], { env: Record<string, string> }];
-    // Raw token, not "Bearer <token>"
-    expect(options.env.OMI_API_KEY).toBe("firebase-id-token-xyz");
-    // Upstream secret must be scrubbed
-    expect(options.env.ANTHROPIC_API_KEY).toBeUndefined();
+    try {
+      await adapter.start();
 
-    await adapter.stop();
+      const [cmd, args, options] = vi.mocked(spawn).mock.calls[0] as [
+        string,
+        string[],
+        { env: Record<string, string> },
+      ];
+      expect(cmd).toBe(process.execPath);
+      expect(args[0]).toBe("/fake/pi.js");
+      expect(options.env.OMI_API_KEY).toBeUndefined();
+      expect(options.env.OMI_API_KEY_FILE).toBeTruthy();
+      expect(readFileSync(options.env.OMI_API_KEY_FILE!, "utf8")).toBe("firebase-id-token-xyz");
+      expect(options.env.ANTHROPIC_API_KEY).toBeUndefined();
+      expect(options.env.APPLE_APP_SPECIFIC_PASSWORD).toBeUndefined();
+
+      await adapter.stop();
+      expect(existsSync(options.env.OMI_API_KEY_FILE!)).toBe(false);
+    } finally {
+      if (previousAmbientSecret === undefined) {
+        delete process.env.APPLE_APP_SPECIFIC_PASSWORD;
+      } else {
+        process.env.APPLE_APP_SPECIFIC_PASSWORD = previousAmbientSecret;
+      }
+    }
   });
 });
 

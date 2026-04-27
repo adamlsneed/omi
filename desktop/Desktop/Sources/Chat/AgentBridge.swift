@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// Manages a long-lived Node.js subprocess running the agent runtime.
@@ -103,6 +104,34 @@ actor AgentBridge {
   /// Whether the bridge subprocess is alive and ready
   var isAlive: Bool { isRunning }
 
+  private nonisolated static func currentEnvironmentValue(_ key: String) -> String? {
+    guard let rawValue = getenv(key), rawValue[0] != 0 else { return nil }
+    return String(cString: rawValue)
+  }
+
+  private nonisolated static func makeAgentSubprocessEnvironment() -> [String: String] {
+    let allowedKeys = [
+      "HOME",
+      "USER",
+      "LOGNAME",
+      "PATH",
+      "TMPDIR",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "TERM",
+    ]
+
+    var env: [String: String] = [:]
+    for key in allowedKeys {
+      if let value = currentEnvironmentValue(key) {
+        env[key] = value
+      }
+    }
+    env["NODE_NO_WARNINGS"] = "1"
+    return env
+  }
+
   // MARK: - Lifecycle
 
   /// Start the Node.js agent bridge process
@@ -142,12 +171,10 @@ actor AgentBridge {
     proc.executableURL = URL(fileURLWithPath: nodePath)
     proc.arguments = ["--max-old-space-size=256", "--max-semi-space-size=16", bridgePath]
 
-    // Build environment — ANTHROPIC_API_KEY is never passed to subprocesses (issue #6594).
+    // Build a small allowlisted environment. Copying the whole app/shell
+    // environment can leak local secrets into child process listings.
     // ACP mode uses user's own Claude OAuth; piMono mode uses Firebase token.
-    var env = ProcessInfo.processInfo.environment
-    env["NODE_NO_WARNINGS"] = "1"
-    env.removeValue(forKey: "ANTHROPIC_API_KEY")
-    env.removeValue(forKey: "CLAUDE_CODE_USE_VERTEX")
+    var env = Self.makeAgentSubprocessEnvironment()
 
     // Pass harness mode to bridge (acp or piMono)
     env["HARNESS_MODE"] = harnessMode

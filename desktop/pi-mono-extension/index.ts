@@ -29,6 +29,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Type } from "@mariozechner/pi-ai";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { readFileSync, unlinkSync } from "node:fs";
 import { appendFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { createConnection, type Socket } from "node:net";
@@ -1046,9 +1047,37 @@ async function registerOmiTools(pi: ExtensionAPI): Promise<void> {
 // Extension entry point
 // ---------------------------------------------------------------------------
 
+function readOmiApiKey(): string {
+  if (process.env.OMI_API_KEY) {
+    return process.env.OMI_API_KEY;
+  }
+
+  const tokenFile = process.env.OMI_API_KEY_FILE;
+  if (!tokenFile) {
+    return "";
+  }
+
+  try {
+    const token = readFileSync(tokenFile, "utf8").trim();
+    try {
+      unlinkSync(tokenFile);
+    } catch {
+      // Best-effort cleanup only; the parent process also removes the temp dir.
+    }
+    delete process.env.OMI_API_KEY_FILE;
+    return token;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`[omi-provider] failed to read OMI_API_KEY_FILE: ${msg}\n`);
+    return "";
+  }
+}
+
+export const readOmiApiKeyForTest = readOmiApiKey;
+
 export default function omiProvider(pi: ExtensionAPI): void {
   const baseUrl = process.env.OMI_API_BASE_URL || "https://api.omi.me/v2";
-  const apiKey = process.env.OMI_API_KEY || "";
+  const apiKey = readOmiApiKey();
 
   pi.registerProvider("omi", {
     api: "openai-completions",
