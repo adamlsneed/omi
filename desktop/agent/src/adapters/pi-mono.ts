@@ -7,7 +7,9 @@
 // Issue #6594: Pi-mono harness with Omi API proxy for server-side cost control.
 
 import { ChildProcess, spawn } from "child_process";
-import { existsSync } from "fs";
+import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { createInterface, Interface as ReadlineInterface } from "readline";
 import {
   HarnessAdapter,
@@ -189,6 +191,8 @@ export class PiMonoAdapter implements HarnessAdapter {
   private pendingTokenRefresh = false;
   /** True when a system-prompt change was deferred because a prompt was active */
   private pendingSystemPromptRefresh = false;
+  private tokenFileDir: string | null = null;
+  private tokenFilePath: string | null = null;
 
   constructor(config: HarnessConfig, piPath?: string, extensionPath?: string) {
     this.config = config;
@@ -215,11 +219,6 @@ export class PiMonoAdapter implements HarnessAdapter {
       "omi-sonnet",
       // Auto-discover extensions and MCP servers from the user's machine
       // to maximize pi-mono's capabilities (e.g. Playwright, filesystem tools).
-      // SECURITY NOTE: auto-discovered extensions run in the pi subprocess and
-      // can read process.env (including OMI_API_KEY). This is acceptable because:
-      // 1. OMI_API_KEY is a short-lived Firebase ID token (~1 hour expiry)
-      // 2. Extensions are user-installed — the trust boundary is the user's machine
-      // 3. ANTHROPIC_API_KEY is always scrubbed (never exposed to extensions)
     ];
     // Pi has no set_system_prompt RPC — system prompt must be baked at spawn
     // time via the --system-prompt CLI flag. To change it, restart the process.
@@ -236,13 +235,8 @@ export class PiMonoAdapter implements HarnessAdapter {
       );
     }
 
-    // Scrub any ANTHROPIC_API_KEY from the child env so the extension cannot
-    // accidentally read it as a credential. pi-mono talks to api.omi.me with
-    // OMI_API_KEY only.
-    const env: Record<string, string> = {
-      ...process.env as Record<string, string>,
-    };
-    delete env.ANTHROPIC_API_KEY;
+    this.cleanupTokenFile();
+    const env = this.makeSubprocessEnv();
 
     // SECURITY: OMI_YOLO_MODE bypasses the extension's entire tool denylist.
     // Scrub it from the subprocess env, then only re-inject when explicitly
@@ -255,10 +249,10 @@ export class PiMonoAdapter implements HarnessAdapter {
       process.stderr.write("[pi-mono] WARNING: OMI_YOLO_MODE=1 — denylist bypass active\n");
     }
 
-    // Pass the raw Firebase ID token. pi's openai-completions client already
-    // prepends `Authorization: Bearer ${apiKey}` — adding our own "Bearer "
-    // prefix here would produce a malformed `Bearer Bearer <token>` header.
-    env.OMI_API_KEY = this.config.authToken;
+    // Pass the raw Firebase ID token through a private file. pi sets a short
+    // process title on macOS; putting the token directly in env can make it
+    // appear in process listings when argv/environ memory is displayed.
+    env.OMI_API_KEY_FILE = this.writeAuthTokenFile(this.config.authToken);
     if (this.config.omiApiBaseUrl) {
       env.OMI_API_BASE_URL = this.config.omiApiBaseUrl;
     }
@@ -266,7 +260,8 @@ export class PiMonoAdapter implements HarnessAdapter {
     // (execute_sql, semantic_search, etc.) that forward to Swift.
     // The pipe is already set in process.env by runPiMonoMode().
 
-    this.process = spawn(this.piPath, args, {
+    const [command, spawnArgs] = this.spawnCommand(args);
+    this.process = spawn(command, spawnArgs, {
       stdio: ["pipe", "pipe", "pipe"],
       env,
     });
@@ -295,6 +290,7 @@ export class PiMonoAdapter implements HarnessAdapter {
       process.stderr.write(`[pi-mono] process exited with code ${code}\n`);
       this.process = null;
       this.readline = null;
+      this.cleanupTokenFile();
       this.sessions.clear();
       // Reject pending requests
       for (const [, req] of this.pendingRequests) {
@@ -324,6 +320,7 @@ export class PiMonoAdapter implements HarnessAdapter {
         this.readline = null;
       }
     }
+    this.cleanupTokenFile();
     this.sessions.clear();
     this.pendingRequests.clear();
     this.activePromptGeneration = 0;
@@ -587,6 +584,58 @@ export class PiMonoAdapter implements HarnessAdapter {
   }
 
   // ── Private helpers ──────────────────────────────────────────────────
+
+  private makeSubprocessEnv(): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (const key of [
+      "HOME",
+      "USER",
+      "LOGNAME",
+      "PATH",
+      "TMPDIR",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "TERM",
+      "NODE_NO_WARNINGS",
+      "OMI_BRIDGE_PIPE",
+      "PLAYWRIGHT_USE_EXTENSION",
+      "PLAYWRIGHT_MCP_EXTENSION",
+      "PLAYWRIGHT_MCP_EXTENSION_TOKEN",
+    ]) {
+      const value = process.env[key];
+      if (value) env[key] = value;
+    }
+    env.NODE_NO_WARNINGS = env.NODE_NO_WARNINGS || "1";
+    return env;
+  }
+
+  private writeAuthTokenFile(token: string): string {
+    const dir = mkdtempSync(join(tmpdir(), "omi-pi-token-"));
+    const filePath = join(dir, "token");
+    writeFileSync(filePath, token, { encoding: "utf8", mode: 0o600 });
+    chmodSync(filePath, 0o600);
+    this.tokenFileDir = dir;
+    this.tokenFilePath = filePath;
+    return filePath;
+  }
+
+  private cleanupTokenFile(): void {
+    if (this.tokenFileDir) {
+      rmSync(this.tokenFileDir, { recursive: true, force: true });
+    } else if (this.tokenFilePath) {
+      rmSync(this.tokenFilePath, { force: true });
+    }
+    this.tokenFileDir = null;
+    this.tokenFilePath = null;
+  }
+
+  private spawnCommand(args: string[]): [string, string[]] {
+    if (this.piPath.endsWith(".js")) {
+      return [process.execPath, [this.piPath, ...args]];
+    }
+    return [this.piPath, args];
+  }
 
   private sendCommand(cmd: PiRpcCommand): void {
     if (!this.process?.stdin?.writable) {

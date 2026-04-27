@@ -219,6 +219,32 @@ final class PiMonoWiringTests: XCTestCase {
         + violations.joined(separator: "\n"))
   }
 
+  func testAgentBridgeDoesNotCopyWholeAppEnvironmentToNode() throws {
+    let agentBridgePath = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // Tests/
+      .deletingLastPathComponent()  // Desktop/
+      .appendingPathComponent("Sources/Chat/AgentBridge.swift")
+
+    let src = try String(contentsOf: agentBridgePath, encoding: .utf8)
+    XCTAssertFalse(src.contains("ProcessInfo.processInfo.environment"),
+      "AgentBridge must not copy the whole app environment into Node; shell secrets can leak into child process listings")
+    XCTAssert(src.contains("makeAgentSubprocessEnvironment"),
+      "AgentBridge should build a small allowlisted subprocess environment")
+  }
+
+  func testAgentBridgeDoesNotPutAuthTokenDirectlyInNodeEnvironment() throws {
+    let agentBridgePath = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // Tests/
+      .deletingLastPathComponent()  // Desktop/
+      .appendingPathComponent("Sources/Chat/AgentBridge.swift")
+
+    let src = try String(contentsOf: agentBridgePath, encoding: .utf8)
+    XCTAssertFalse(src.contains("env[\"OMI_AUTH_TOKEN\"] = token"),
+      "AgentBridge must not put Firebase tokens directly in Node env; process listings expose env values")
+    XCTAssert(src.contains("OMI_AUTH_TOKEN_FILE"),
+      "AgentBridge should pass the Firebase token to Node through a private token file")
+  }
+
   // MARK: - Legacy key backend wiring (source-level)
 
   func testRustConfigServesLegacyAnthropicKey() throws {

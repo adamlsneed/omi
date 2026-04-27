@@ -268,15 +268,15 @@ class MemoryGraphViewModel: ObservableObject {
       // Populate simulation with user node at center
       let userName = AuthService.shared.displayName.isEmpty ? nil : AuthService.shared.givenName
       log("User name for center node: \(userName ?? "nil")")
-      simulation.populate(graphResponse: response, userNodeLabel: userName)
+      let nextSimulation = ForceDirectedSimulation()
+      nextSimulation.populate(graphResponse: response, userNodeLabel: userName)
       log(
-        "Simulation populated: \(simulation.nodes.count) nodes (including user), \(simulation.edges.count) edges"
+        "Simulation populated: \(nextSimulation.nodes.count) nodes (including user), \(nextSimulation.edges.count) edges"
       )
 
       // Run initial layout off main thread for responsiveness
-      await Task.detached(priority: .userInitiated) { [simulation] in
-        simulation.runSync(ticks: 800)
-      }.value
+      await runSimulationLayout(nextSimulation, ticks: 800)
+      simulation = nextSimulation
 
       // Create scene nodes
       createSceneNodes()
@@ -350,12 +350,12 @@ class MemoryGraphViewModel: ObservableObject {
     isEmpty = false
 
     let userName = AuthService.shared.displayName.isEmpty ? nil : AuthService.shared.givenName
-    simulation.addNodesAndEdges(graphResponse: response, userNodeLabel: userName)
+    let nextSimulation = simulation.copy()
+    nextSimulation.addNodesAndEdges(graphResponse: response, userNodeLabel: userName)
 
     // Run a burst of physics to integrate new nodes
-    await Task.detached(priority: .userInitiated) { [simulation] in
-      simulation.runSync(ticks: 200)
-    }.value
+    await runSimulationLayout(nextSimulation, ticks: 200)
+    simulation = nextSimulation
 
     // Create scene nodes for new entries, animate them in
     addNewSceneNodes()
@@ -367,6 +367,14 @@ class MemoryGraphViewModel: ObservableObject {
       try? await Task.sleep(nanoseconds: 3_000_000_000)
       await MainActor.run { isAnimating = false }
     }
+  }
+
+  private func runSimulationLayout(_ simulation: ForceDirectedSimulation, ticks: Int) async {
+    isAnimating = false
+
+    await Task.detached(priority: .userInitiated) { [simulation] in
+      simulation.runSync(ticks: ticks)
+    }.value
   }
 
   /// Create scene nodes only for simulation nodes/edges not yet in the scene

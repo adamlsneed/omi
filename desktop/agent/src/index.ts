@@ -34,7 +34,7 @@ import { resolveSession, needsModelUpdate, filterSessionsToWarm, getRetryDeleteK
 import { fileURLToPath } from "url";
 import { createServer as createNetServer, type Socket } from "net";
 import { tmpdir } from "os";
-import { unlinkSync, appendFileSync } from "fs";
+import { unlinkSync, appendFileSync, readFileSync } from "fs";
 import type {
   InboundMessage,
   OutboundMessage,
@@ -78,6 +78,32 @@ function logErr(msg: string): void {
     process.stderr.write(`[agent] ${msg}\n`);
   } catch {
     // ignore — parent pipe is gone; we'll exit shortly anyway
+  }
+}
+
+function readOmiAuthToken(): string {
+  if (process.env.OMI_AUTH_TOKEN) {
+    return process.env.OMI_AUTH_TOKEN;
+  }
+
+  const tokenFile = process.env.OMI_AUTH_TOKEN_FILE;
+  if (!tokenFile) {
+    return "";
+  }
+
+  try {
+    const token = readFileSync(tokenFile, "utf8").trim();
+    try {
+      unlinkSync(tokenFile);
+    } catch {
+      // Swift also removes the containing temp directory when the bridge exits.
+    }
+    delete process.env.OMI_AUTH_TOKEN_FILE;
+    return token;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logErr(`failed to read OMI_AUTH_TOKEN_FILE: ${msg}`);
+    return "";
   }
 }
 
@@ -1172,9 +1198,9 @@ async function runPiMonoMode(): Promise<void> {
   // upstream Anthropic provider secret to the Omi backend. If the token is
   // missing the bridge must fail loudly so Swift can prompt the user to
   // re-auth.
-  const omiAuthToken = process.env.OMI_AUTH_TOKEN;
+  const omiAuthToken = readOmiAuthToken();
   if (!omiAuthToken) {
-    const msg = "pi-mono mode requires OMI_AUTH_TOKEN (Firebase ID token); refusing to start";
+    const msg = "pi-mono mode requires an Omi Firebase ID token; refusing to start";
     logErr(msg);
     send({ type: "error", message: msg });
     process.exit(1);
@@ -1420,7 +1446,6 @@ async function runPiMonoMode(): Promise<void> {
         // (only when idle) so the extension picks up the fresh credential.
         // If busy, deferred restart happens after the current prompt completes.
         const rtm = msg as RefreshTokenMessage;
-        process.env.OMI_AUTH_TOKEN = rtm.token;
         try {
           const restarted = await adapter.updateAuthToken(rtm.token);
           if (restarted) {

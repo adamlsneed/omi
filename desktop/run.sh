@@ -716,10 +716,24 @@ echo "========================================"
 echo ""
 
 auth_debug "BEFORE launch: $(defaults read "$BUNDLE_ID" auth_isSignedIn 2>&1 || true)"
+SANITIZED_LAUNCH_ENV=(
+    "HOME=$HOME"
+    "USER=$USER"
+    "LOGNAME=${LOGNAME:-$USER}"
+    "PATH=/usr/bin:/bin:/usr/sbin:/sbin"
+    "TMPDIR=${TMPDIR:-/tmp}"
+    "LANG=${LANG:-en_US.UTF-8}"
+    "LC_CTYPE=${LC_CTYPE:-UTF-8}"
+    "__CF_USER_TEXT_ENCODING=${__CF_USER_TEXT_ENCODING:-0x$(id -u):0:0}"
+)
 if [ "${#AUTOMATION_ARGS[@]}" -gt 0 ]; then
-    open "$APP_PATH" --args "${AUTOMATION_ARGS[@]}" || "$APP_PATH/Contents/MacOS/$BINARY_NAME" "${AUTOMATION_ARGS[@]}" &
+    if ! /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" /usr/bin/open "$APP_PATH" --args "${AUTOMATION_ARGS[@]}"; then
+        /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" "$APP_PATH/Contents/MacOS/$BINARY_NAME" "${AUTOMATION_ARGS[@]}" &
+    fi
 else
-    open "$APP_PATH" || "$APP_PATH/Contents/MacOS/$BINARY_NAME" &
+    if ! /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" /usr/bin/open "$APP_PATH"; then
+        /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" "$APP_PATH/Contents/MacOS/$BINARY_NAME" &
+    fi
 fi
 
 # Keep script running until Ctrl+C
