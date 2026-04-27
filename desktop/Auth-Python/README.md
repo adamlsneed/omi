@@ -20,7 +20,7 @@ OAuth broker for the desktop macOS app. Handles Google and Apple Sign-In:
 
 ## Running locally
 
-Started automatically by `desktop/run.sh` on the auth port (default: 10200).
+`desktop/run.sh` no longer starts this service for normal development. Hosted backend mode uses `OMI_PYTHON_API_URL=https://api.omi.me` for auth. Run Auth-Python only when investigating legacy desktop auth behavior.
 
 To run standalone:
 

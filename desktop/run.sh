@@ -6,7 +6,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     cat <<'USAGE'
 Usage: ./run.sh [options]
 
-Build and run the Omi Desktop dev app with local backend services.
+Build and run the Omi Desktop dev app.
 
 Options (via environment variables):
   OMI_SKIP_BACKEND=1      Skip starting Rust backend (use remote backend via OMI_DESKTOP_API_URL)
@@ -17,12 +17,13 @@ Options (via environment variables):
   OMI_SIGN_IDENTITY="..."  Code signing identity (auto-detected if not set)
   OMI_ENABLE_LOCAL_AUTOMATION=1  Enable agent-swift automation bridge
 
-Required files:
+Required files for full local backend mode:
   Backend-Rust/.env         Environment variables (copy from ../.env.example)
   Backend-Rust/google-credentials.json  GCP service account key
 
 Required tools:
-  cargo, xcrun/swift, python3, npm, node, codesign, cloudflared (unless skipped)
+  xcrun/swift, npm, node, codesign
+  cargo and cloudflared only for full local backend mode
 
 Port allocation (avoid 8080 to prevent port conflicts):
   Backend default: 10201
@@ -31,24 +32,21 @@ Examples:
   ./run.sh                                  # Full local dev (backend + tunnel + app)
   OMI_SKIP_BACKEND=1 ./run.sh               # App only (backend running elsewhere)
   OMI_SKIP_TUNNEL=1 ./run.sh                # No Cloudflare tunnel (use direct URL)
-  ./run.sh --yolo                            # Quick start: use prod backend, no local services
+  ./run.sh --yolo                            # Local app + Omi hosted backends, no local services
 USAGE
     exit 0
 fi
 
-# ─── YOLO mode: use prod backend, zero local setup ───────────────────
-# WARNING: Temporary shortcut while desktop dev setup is being cleaned up.
-# Will be removed once all desktop slop is fixed.
+# ─── Hosted backend mode: local app, Omi cloud services ──────────────
 if [ "$1" = "--yolo" ]; then
     echo ""
     echo "=========================================="
-    echo "  YOLO MODE — using production backend"
+    echo "  HOSTED BACKEND MODE"
     echo "=========================================="
     echo ""
-    echo "  WARNING: This connects directly to the prod Cloud Run backend."
-    echo "  No local Rust backend, no local auth, no tunnel."
-    echo "  This is a temporary shortcut — will be removed once"
-    echo "  desktop dev setup friction is fully resolved."
+    echo "  Building the local Omi Dev app and connecting it"
+    echo "  to Omi-hosted desktop and Python backends."
+    echo "  No local Rust backend and no tunnel."
     echo ""
     echo "=========================================="
     echo ""
@@ -140,7 +138,7 @@ BACKEND_PID=""
 TUNNEL_PID=""
 TUNNEL_URL="${TUNNEL_URL:-}"
 
-# Cleanup function to stop backend, auth, and tunnel on exit
+# Cleanup function to stop local backend and tunnel on exit
 cleanup() {
     if [ -n "$TUNNEL_PID" ] && kill -0 "$TUNNEL_PID" 2>/dev/null; then
         echo "Stopping tunnel (PID: $TUNNEL_PID)..."
@@ -254,7 +252,7 @@ fi
 BACKEND_PORT="${PORT:-10201}"
 export PORT="$BACKEND_PORT"
 
-# Validate credentials (needed for both backend and auth)
+# Validate credentials for the local Rust backend
 CREDS_PATH="$BACKEND_DIR/google-credentials.json"
 if [ "${OMI_SKIP_BACKEND:-0}" != "1" ] && [ ! -f "$CREDS_PATH" ]; then
     echo "ERROR: Missing credentials file: $CREDS_PATH"
