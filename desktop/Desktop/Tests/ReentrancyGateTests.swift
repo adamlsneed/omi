@@ -88,6 +88,8 @@ final class ReentrancyGateTests: XCTestCase {
                 gate.exit()
                 exitCalls += 1
             }
+            // Keep the modeled critical section non-empty so `defer` mirrors production usage.
+            _ = gate
         }
 
         // Caller A (the test itself) acquires the gate directly.

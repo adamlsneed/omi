@@ -671,9 +671,10 @@ enum FocusTestRunner {
         }
 
         // Filter excluded apps
+        let builtInExcludedApps = TaskAssistantSettings.builtInExcludedApps
         let filtered = allScreenshots.filter { screenshot in
             !screenshot.appName.isEmpty
-                && !TaskAssistantSettings.builtInExcludedApps.contains(screenshot.appName)
+                && !builtInExcludedApps.contains(screenshot.appName)
                 && !excludedApps.contains(screenshot.appName)
         }
 

@@ -719,9 +719,10 @@ enum InsightTestRunner {
             }
 
             // Pick the latest non-excluded screenshot
+            let builtInExcludedApps = TaskAssistantSettings.builtInExcludedApps
             guard let anchor = screenshots.first(where: { ss in
                 !ss.appName.isEmpty
-                    && !TaskAssistantSettings.builtInExcludedApps.contains(ss.appName)
+                    && !builtInExcludedApps.contains(ss.appName)
                     && !excludedApps.contains(ss.appName)
             }) else {
                 log("InsightTestCLI: \(label) \(timeFormatter.string(from: window.windowEnd)) — skipped (no non-excluded screenshots)")

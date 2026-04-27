@@ -1,5 +1,22 @@
 import Foundation
 
+private final class LockedDataBuffer: @unchecked Sendable {
+  private let lock = NSLock()
+  private var data = Data()
+
+  func append(_ chunk: Data) {
+    lock.lock()
+    defer { lock.unlock() }
+    data.append(chunk)
+  }
+
+  func snapshot() -> Data {
+    lock.lock()
+    defer { lock.unlock() }
+    return data
+  }
+}
+
 // MARK: - Models
 
 struct CalendarEvent: Identifiable {
@@ -597,8 +614,8 @@ actor CalendarReaderService {
 
     // Read pipe data asynchronously to avoid deadlock
     // (waitUntilExit blocks if pipe buffers are full)
-    var outputData = Data()
-    var errData = Data()
+    let outputData = LockedDataBuffer()
+    let errData = LockedDataBuffer()
     let outputSem = DispatchSemaphore(value: 0)
     let errSem = DispatchSemaphore(value: 0)
     pipe.fileHandleForReading.readabilityHandler = { handle in
@@ -635,14 +652,14 @@ actor CalendarReaderService {
     _ = outputSem.wait(timeout: .now() + .seconds(5))
     _ = errSem.wait(timeout: .now() + .seconds(5))
 
-    let errOutput = String(data: errData, encoding: .utf8) ?? ""
+    let errOutput = String(data: errData.snapshot(), encoding: .utf8) ?? ""
     if !errOutput.isEmpty {
       log("CalendarReaderService: Python stderr: \(errOutput.prefix(500))")
     }
 
     // Python writes JSON to a temp file and prints the path to stdout
     let outputPath =
-      String(data: outputData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+      String(data: outputData.snapshot(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
       ?? ""
     guard !outputPath.isEmpty, FileManager.default.fileExists(atPath: outputPath) else {
       throw CalendarReaderError.networkError(
