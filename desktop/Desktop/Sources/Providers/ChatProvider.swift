@@ -2,6 +2,23 @@ import SwiftUI
 import Combine
 import GRDB
 
+private actor SQLToolStats {
+    private var rowsReturned = 0
+    private var queryCount = 0
+
+    func record(result: String) {
+        queryCount += 1
+        if let match = result.range(of: #"(\d+) row\(s\)"#, options: .regularExpression) {
+            let numStr = result[match].components(separatedBy: " ").first ?? "0"
+            rowsReturned += Int(numStr) ?? 0
+        }
+    }
+
+    func snapshot() -> (rowsReturned: Int, queryCount: Int) {
+        (rowsReturned, queryCount)
+    }
+}
+
 // MARK: - UserDefaults Extension for KVO
 
 extension UserDefaults {
@@ -2433,8 +2450,7 @@ A screenshot may be attached — use it silently only if relevant. Never mention
         let queryStartTime = Date()
         var toolNames: [String] = []
         var toolStartTimes: [String: Date] = [:]
-        var sqlRowsReturned = 0
-        var sqlQueryCount = 0
+        let sqlToolStats = SQLToolStats()
 
         do {
             // Use the system prompt built at warmup. The agent bridge applies it only
@@ -2486,12 +2502,7 @@ A screenshot may be attached — use it silently only if relevant. Never mention
                 log("OMI tool \(name) executed for callId=\(callId)")
                 // Track SQL query stats for metadata
                 if name == "execute_sql" {
-                    sqlQueryCount += 1
-                    // Parse row count from result (format: "\nN row(s)" at end)
-                    if let match = result.range(of: #"(\d+) row\(s\)"#, options: .regularExpression) {
-                        let numStr = result[match].components(separatedBy: " ").first ?? "0"
-                        sqlRowsReturned += Int(numStr) ?? 0
-                    }
+                    await sqlToolStats.record(result: result)
                 }
                 return result
             }
@@ -2584,6 +2595,7 @@ A screenshot may be attached — use it silently only if relevant. Never mention
 
             // Determine the final text to display and save
             let messageText: String
+            let sqlStats = await sqlToolStats.snapshot()
             if let index = messages.firstIndex(where: { $0.id == aiMessageId }) {
                 // Message still in memory — update it in-place
                 messageText = messages[index].text.isEmpty ? queryResult.text : messages[index].text
@@ -2600,8 +2612,8 @@ A screenshot may be attached — use it silently only if relevant. Never mention
                     hasScreenshot: imageData != nil,
                     screenshotSizeBytes: imageData?.count,
                     toolNames: toolNames,
-                    sqlRowsReturned: sqlRowsReturned,
-                    sqlQueryCount: sqlQueryCount
+                    sqlRowsReturned: sqlStats.rowsReturned,
+                    sqlQueryCount: sqlStats.queryCount
                 )
                 completeRemainingToolCalls(messageId: aiMessageId)
             } else {

@@ -320,7 +320,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // (e.g. proactive assistants cancelling in-flight Gemini requests on context switch)
         if let exceptions = event.exceptions,
           exceptions.contains(where: { exc in
-            let value = exc.value ?? ""
+            let value = exc.value
             return exc.type == "NSURLErrorDomain" && (
               value.contains("Code=-999") || value.contains("Code: -999")
             )
@@ -333,7 +333,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // UserDefaults; the 30s refresh timer will retry. Not actionable as a Sentry error.
         if let exceptions = event.exceptions,
           exceptions.contains(where: { exc in
-            exc.type == "Omi_Computer.AuthError" && (exc.value ?? "").contains("notSignedIn")
+            exc.type == "Omi_Computer.AuthError" && exc.value.contains("notSignedIn")
           })
         {
           return nil

@@ -1,11 +1,11 @@
 import Combine
-import CoreBluetooth
+@preconcurrency import CoreBluetooth
 import Foundation
 import os.log
 
 /// BLE transport implementation using CoreBluetooth
 /// Ported from: omi/app/lib/services/devices/transports/ble_transport.dart
-final class BleTransport: NSObject, DeviceTransport {
+final class BleTransport: NSObject, DeviceTransport, @unchecked Sendable {
 
     // MARK: - DeviceTransport Protocol
 

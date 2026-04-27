@@ -49,6 +49,9 @@ let package = Package(
         .product(name: "HeapSwiftCore", package: "heap-swift-core-sdk"),
       ],
       path: "Sources",
+      exclude: [
+        "GoogleService-Info-Dev.plist",
+      ],
       resources: [
         .process("GoogleService-Info.plist"),
         .process("Resources"),
