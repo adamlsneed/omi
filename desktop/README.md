@@ -1,21 +1,41 @@
 # Omi Desktop
 
-macOS app for Omi. The desktop product is a Swift/SwiftUI host app plus a Rust HTTP backend, a local Python OAuth broker for development, and a TypeScript agent runtime.
+macOS app for Omi. The desktop product is a Swift/SwiftUI host app, a TypeScript agent runtime, and an optional Rust HTTP backend for desktop-specific services.
+
+Most day-to-day desktop development should use the local app with Omi's hosted backends. That keeps the app on your local branch while auth, subscriptions, transcription, and desktop backend calls use the same cloud services as a normal Omi account.
 
 ## Prerequisites
 
 - macOS 14 or newer.
 - Xcode and Command Line Tools.
-- Rust toolchain for `Backend-Rust/`.
-- Python 3 for `Auth-Python/`.
 - Node.js and npm for `agent/`.
-- `cloudflared` if local OAuth callbacks or remote device testing need a public tunnel.
+- Rust toolchain for `Backend-Rust/` only when running the local Rust backend.
+- Python 3 only when working on deprecated `Auth-Python/`.
+- `cloudflared` only when exposing a local Rust backend through a public tunnel.
 - `libwebp` from Homebrew if SwiftPM cannot find WebP headers.
 - Apple code-signing identity in the login keychain. `run.sh` auto-detects `Apple Development` or `Developer ID Application`; override with `OMI_SIGN_IDENTITY="..."`.
 
-## Environment
+## Hosted Backend Mode
 
-Create the backend env first:
+Use this mode for normal local testing with an Omi subscription:
+
+```bash
+cd desktop
+./run.sh --yolo
+```
+
+This builds and installs `/Applications/Omi Dev.app`, then launches it with:
+
+- `OMI_SKIP_BACKEND=1`
+- `OMI_SKIP_TUNNEL=1`
+- `OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app`
+- `OMI_PYTHON_API_URL=https://api.omi.me`
+
+No local `.env`, Rust backend, Cloudflare tunnel, or Auth-Python service is required. The app binary is local; the services are Omi-hosted.
+
+## Local Backend Environment
+
+Use this only when changing or debugging `Backend-Rust/`. Create the backend env first:
 
 ```bash
 cd desktop/Backend-Rust
@@ -27,31 +47,39 @@ Fill in the required values:
 - `PORT=10201` for the Rust backend. Avoid 8080.
 - `FIREBASE_PROJECT_ID`, `FIREBASE_API_KEY`, and `GOOGLE_APPLICATION_CREDENTIALS`.
 - `ENCRYPTION_SECRET` for encrypted user data.
-- OAuth values used by both `Backend-Rust/` and `Auth-Python/`: `BASE_API_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and optional Apple Sign-In values.
+- `OMI_PYTHON_API_URL=https://api.omi.me` unless you are also running the Python backend locally.
 
-For Auth-Python-only deployment, use `desktop/Auth-Python/.env.example`. For Swift app-only overrides, use `desktop/.env.example` or `~/.omi.env`.
+For Swift app-only overrides, use `desktop/.env.app` or `~/.omi.env`. `Auth-Python/` is deprecated; use it only for legacy auth investigation.
 
 ## Run In Development
 
-From `desktop/`:
+Recommended hosted mode:
+
+```bash
+./run.sh --yolo
+```
+
+The hosted runner:
+
+1. Builds the TypeScript agent runtime.
+2. Builds the Swift app.
+3. Signs and installs `/Applications/Omi Dev.app`.
+4. Writes hosted backend URLs into the bundled `.env`.
+5. Launches the dev app.
+
+Full local backend mode:
 
 ```bash
 ./run.sh
 ```
 
-The runner:
-
-1. Loads `Backend-Rust/.env`.
-2. Starts an optional Cloudflare tunnel.
-3. Builds and starts `Backend-Rust/`.
-4. Starts `Auth-Python/` on `AUTH_PORT` (default `10200`).
-5. Builds the Swift app, signs it, installs it to `/Applications/Omi Dev.app`, and launches it.
+The full local runner loads `Backend-Rust/.env`, starts an optional Cloudflare tunnel, builds and starts `Backend-Rust/`, then builds, signs, installs, and launches the Swift app.
 
 Useful variants:
 
 ```bash
 OMI_SKIP_TUNNEL=1 ./run.sh
-OMI_SKIP_BACKEND=1 OMI_API_URL=https://desktop-backend.example.com ./run.sh
+OMI_SKIP_BACKEND=1 OMI_DESKTOP_API_URL=https://desktop-backend.example.com ./run.sh
 ./run.sh --yolo
 OMI_APP_NAME="search" ./run.sh
 ```
@@ -111,13 +139,13 @@ For named builds, replace `BUNDLE_ID` with `com.omi.<name-slug>`. After resettin
 
 - Dev app log: `/private/tmp/omi-dev.log`
 - Production app log: `/private/tmp/omi.log`
-- Auth runner debug log: `/private/tmp/auth-debug.log`
+- Auth runner debug log: `/private/tmp/auth-debug.log` when using deprecated `Auth-Python/`
 
 ## Troubleshooting
 
-- Missing backend credentials: copy a service account JSON to `desktop/Backend-Rust/google-credentials.json` or set `GOOGLE_APPLICATION_CREDENTIALS`.
+- Missing backend credentials: use `./run.sh --yolo` for hosted mode, or copy a service account JSON to `desktop/Backend-Rust/google-credentials.json` when running the local Rust backend.
 - OAuth callback opens the wrong app: remove stale copies from Downloads/Desktop, run `./run.sh`, and verify the named bundle id and URL scheme match.
 - Screen Recording says granted but capture fails: reset ScreenCapture for the active bundle id, reinstall through `run.sh`, then grant again in System Settings.
 - Menu bar icon is missing or generic: remove stale DMG/app copies and relaunch from `/Applications/`.
-- Auth works once then fails after rebuild: confirm `FIREBASE_API_KEY`, `OMI_AUTH_URL`, and `BASE_API_URL` are present in the env copied into the app bundle.
+- Auth works once then fails after rebuild: confirm `FIREBASE_API_KEY` and `OMI_PYTHON_API_URL` are present in the env copied into the app bundle.
 - Rust backend fails immediately: check `PORT`, `FIREBASE_PROJECT_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, and `ENCRYPTION_SECRET`.
