@@ -127,36 +127,44 @@ class OverlayService {
         var focusedWindow: CFTypeRef?
         let focusResult = AXUIElementCopyAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, &focusedWindow)
 
-        guard focusResult == .success, let windowElement = focusedWindow else {
+        guard focusResult == .success, let windowElementRef = focusedWindow else {
             if focusResult == .apiDisabled || focusResult == .cannotComplete {
                 log("ACCESSIBILITY_AX: getWindowFrameViaAccessibility failed with \(focusResult.rawValue) — permission may be stuck")
             }
             return nil
         }
+        guard CFGetTypeID(windowElementRef) == AXUIElementGetTypeID() else {
+            return nil
+        }
+        let windowElement = windowElementRef as! AXUIElement
 
         // Get window position
         var positionValue: CFTypeRef?
-        let posResult = AXUIElementCopyAttributeValue(windowElement as! AXUIElement, kAXPositionAttribute as CFString, &positionValue)
+        let posResult = AXUIElementCopyAttributeValue(windowElement, kAXPositionAttribute as CFString, &positionValue)
 
-        guard posResult == .success, let posRef = positionValue else {
+        guard posResult == .success, let posRef = positionValue,
+              CFGetTypeID(posRef) == AXValueGetTypeID() else {
             return nil
         }
+        let axPosition = posRef as! AXValue
 
         var position = CGPoint.zero
-        if !AXValueGetValue(posRef as! AXValue, .cgPoint, &position) {
+        if !AXValueGetValue(axPosition, .cgPoint, &position) {
             return nil
         }
 
         // Get window size
         var sizeValue: CFTypeRef?
-        let sizeResult = AXUIElementCopyAttributeValue(windowElement as! AXUIElement, kAXSizeAttribute as CFString, &sizeValue)
+        let sizeResult = AXUIElementCopyAttributeValue(windowElement, kAXSizeAttribute as CFString, &sizeValue)
 
-        guard sizeResult == .success, let sizeRef = sizeValue else {
+        guard sizeResult == .success, let sizeRef = sizeValue,
+              CFGetTypeID(sizeRef) == AXValueGetTypeID() else {
             return nil
         }
+        let axSize = sizeRef as! AXValue
 
         var size = CGSize.zero
-        if !AXValueGetValue(sizeRef as! AXValue, .cgSize, &size) {
+        if !AXValueGetValue(axSize, .cgSize, &size) {
             return nil
         }
 

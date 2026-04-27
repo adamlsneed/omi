@@ -566,7 +566,7 @@ final class ScreenCaptureService: Sendable {
     let focusResult = AXUIElementCopyAttributeValue(
       appElement, kAXFocusedWindowAttribute as CFString, &focusedWindow)
 
-    guard focusResult == .success, let windowElement = focusedWindow else {
+    guard focusResult == .success, let windowElementRef = focusedWindow else {
       if focusResult == .apiDisabled {
         // System-wide AX permission issue. Set a flag so we stop attempting
         // AX on every capture cycle — avoids spinning on a known-broken call.
@@ -600,6 +600,10 @@ final class ScreenCaptureService: Sendable {
       }
       return nil
     }
+    guard CFGetTypeID(windowElementRef) == AXUIElementGetTypeID() else {
+      return nil
+    }
+    let windowElement = windowElementRef as! AXUIElement
 
     // On success, reset failure count in case the app's AX state recovered
     if !bundleID.isEmpty {
@@ -609,12 +613,12 @@ final class ScreenCaptureService: Sendable {
     // Get window title from AX
     var titleValue: CFTypeRef?
     AXUIElementCopyAttributeValue(
-      windowElement as! AXUIElement, kAXTitleAttribute as CFString, &titleValue)
+      windowElement, kAXTitleAttribute as CFString, &titleValue)
     let axTitle = titleValue as? String
 
     // Try direct CGWindowID lookup first (handles multiple windows of same app correctly)
     var directWindowID: CGWindowID = 0
-    let directResult = _AXUIElementGetWindow(windowElement as! AXUIElement, &directWindowID)
+    let directResult = _AXUIElementGetWindow(windowElement, &directWindowID)
     if directResult == .success && directWindowID != 0 {
       // Verify the window ID exists in the on-screen window list
       let existsOnScreen = windowList.contains { window in
@@ -628,27 +632,33 @@ final class ScreenCaptureService: Sendable {
     // Fallback: match by position/size (for apps where _AXUIElementGetWindow fails)
     var positionValue: CFTypeRef?
     let posResult = AXUIElementCopyAttributeValue(
-      windowElement as! AXUIElement, kAXPositionAttribute as CFString, &positionValue)
+      windowElement, kAXPositionAttribute as CFString, &positionValue)
 
-    guard posResult == .success, let posRef = positionValue else {
+    guard posResult == .success, let posRef = positionValue,
+      CFGetTypeID(posRef) == AXValueGetTypeID()
+    else {
       return nil
     }
+    let axPosition = posRef as! AXValue
 
     var position = CGPoint.zero
-    if !AXValueGetValue(posRef as! AXValue, .cgPoint, &position) {
+    if !AXValueGetValue(axPosition, .cgPoint, &position) {
       return nil
     }
 
     var sizeValue: CFTypeRef?
     let sizeResult = AXUIElementCopyAttributeValue(
-      windowElement as! AXUIElement, kAXSizeAttribute as CFString, &sizeValue)
+      windowElement, kAXSizeAttribute as CFString, &sizeValue)
 
-    guard sizeResult == .success, let sizeRef = sizeValue else {
+    guard sizeResult == .success, let sizeRef = sizeValue,
+      CFGetTypeID(sizeRef) == AXValueGetTypeID()
+    else {
       return nil
     }
+    let axSize = sizeRef as! AXValue
 
     var size = CGSize.zero
-    if !AXValueGetValue(sizeRef as! AXValue, .cgSize, &size) {
+    if !AXValueGetValue(axSize, .cgSize, &size) {
       return nil
     }
 
