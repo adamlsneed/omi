@@ -253,6 +253,7 @@ actor VideoChunkEncoder {
         // Uses fragmented MP4 so the file can be read while still being written
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ffmpegPath)
+        process.environment = ffmpegEnvironment()
         process.arguments = [
             "-f", "image2pipe",
             "-vcodec", "png",
@@ -299,6 +300,13 @@ actor VideoChunkEncoder {
             "max_resolution": Int(maxResolution)
         ]
         SentrySDK.addBreadcrumb(breadcrumb)
+    }
+
+    private func ffmpegEnvironment() -> [String: String] {
+        [
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": NSTemporaryDirectory()
+        ]
     }
 
     private func writeFrame(image: CGImage) async throws {

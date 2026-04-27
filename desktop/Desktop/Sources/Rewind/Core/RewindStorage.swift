@@ -211,6 +211,7 @@ actor RewindStorage {
         // Build ffmpeg command to extract single frame
         let process = Process()
         process.executableURL = URL(fileURLWithPath: ffmpegPath)
+        process.environment = ffmpegEnvironment()
         process.arguments = [
             "-ss", String(format: "%.3f", timeOffset),
             "-i", videoPath,
@@ -277,6 +278,13 @@ actor RewindStorage {
         try? FileManager.default.removeItem(at: outputPath)
 
         return image
+    }
+
+    private func ffmpegEnvironment() -> [String: String] {
+        [
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "TMPDIR": NSTemporaryDirectory()
+        ]
     }
 
     /// Find ffmpeg executable path
