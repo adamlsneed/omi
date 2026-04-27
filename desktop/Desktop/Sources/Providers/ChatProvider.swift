@@ -203,6 +203,8 @@ enum ToolCallStatus {
 
 /// Metadata about the context and resources used to generate an AI response
 struct MessageMetadata {
+    private static let promptSectionPattern = try? NSRegularExpression(pattern: #"<([a-z][a-z0-9_]*)>"#, options: [])
+
     var model: String?
     var inputTokens: Int?
     var outputTokens: Int?
@@ -246,7 +248,7 @@ struct MessageMetadata {
         var seen = Set<String>()
 
         // Find all <tag>...</tag> pairs
-        let pattern = try! NSRegularExpression(pattern: #"<([a-z][a-z0-9_]*)>"#, options: [])
+        guard let pattern = Self.promptSectionPattern else { return [] }
         let matches = pattern.matches(in: prompt, range: NSRange(prompt.startIndex..., in: prompt))
 
         for match in matches {
