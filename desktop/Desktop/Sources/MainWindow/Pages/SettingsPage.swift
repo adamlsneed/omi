@@ -441,11 +441,32 @@ struct SettingsContentView: View {
   }
 
   private var browserExtensionStatusText: String {
-    playwrightExtensionVerified ? "Verified" : "Configured"
+    browserExtensionStatus.text
+  }
+
+  private var browserExtensionStatus: BrowserExtensionSetup.SettingsStatus {
+    BrowserExtensionSetup.settingsStatus(
+      enabled: playwrightUseExtension,
+      token: playwrightExtensionToken,
+      verified: playwrightExtensionVerified
+    )
   }
 
   private var browserExtensionStatusColor: Color {
-    playwrightExtensionVerified ? Color.green : OmiColors.warning
+    switch browserExtensionStatus.kind {
+    case .off:
+      return OmiColors.textTertiary
+    case .notConfigured:
+      return OmiColors.warning
+    case .needsVerification:
+      return OmiColors.warning
+    case .verified:
+      return Color.green
+    }
+  }
+
+  private var browserExtensionActionTitle: String {
+    browserExtensionStatus.kind == .verified ? "Reconfigure" : "Verify"
   }
 
   private func refreshBrowserExtensionState() {
@@ -2779,7 +2800,7 @@ struct SettingsContentView: View {
 
             Spacer()
 
-            if !playwrightExtensionToken.isEmpty {
+            if playwrightUseExtension || !playwrightExtensionToken.isEmpty {
               HStack(spacing: 4) {
                 Circle()
                   .fill(browserExtensionStatusColor)
@@ -2801,6 +2822,10 @@ struct SettingsContentView: View {
           Text("Lets the AI use your Chrome browser with all your logged-in sessions.")
             .scaledFont(size: 12)
             .foregroundColor(OmiColors.textTertiary)
+
+          Text(browserExtensionStatus.detail)
+            .scaledFont(size: 11)
+            .foregroundColor(OmiColors.textQuaternary)
 
           if playwrightUseExtension {
             if playwrightExtensionToken.isEmpty {
@@ -2837,7 +2862,7 @@ struct SettingsContentView: View {
                   HStack(spacing: 4) {
                     Image(systemName: "arrow.clockwise")
                       .scaledFont(size: 11)
-                    Text("Reconfigure")
+                    Text(browserExtensionActionTitle)
                       .scaledFont(size: 12)
                   }
                 }
@@ -2918,20 +2943,6 @@ struct SettingsContentView: View {
     }
     .sheet(isPresented: $showFileViewer) {
       fileViewerSheet
-    }
-    .sheet(isPresented: $showBrowserSetup) {
-      BrowserExtensionSetup(
-        onComplete: {
-          showBrowserSetup = false
-          refreshBrowserExtensionState()
-        },
-        onDismiss: {
-          showBrowserSetup = false
-          refreshBrowserExtensionState()
-        },
-        chatProvider: chatProvider
-      )
-      .fixedSize()
     }
   }
 
@@ -3295,7 +3306,7 @@ struct SettingsContentView: View {
 
             Spacer()
 
-            if !playwrightExtensionToken.isEmpty {
+            if playwrightUseExtension || !playwrightExtensionToken.isEmpty {
               HStack(spacing: 4) {
                 Circle()
                   .fill(browserExtensionStatusColor)
@@ -3315,6 +3326,10 @@ struct SettingsContentView: View {
           Text("Lets the AI use your Chrome browser with all your logged-in sessions.")
             .scaledFont(size: 12)
             .foregroundColor(OmiColors.textTertiary)
+
+          Text(browserExtensionStatus.detail)
+            .scaledFont(size: 11)
+            .foregroundColor(OmiColors.textQuaternary)
 
           if playwrightUseExtension {
             if playwrightExtensionToken.isEmpty {
@@ -3349,7 +3364,7 @@ struct SettingsContentView: View {
                   HStack(spacing: 4) {
                     Image(systemName: "arrow.clockwise")
                       .scaledFont(size: 11)
-                    Text("Reconfigure")
+                    Text(browserExtensionActionTitle)
                       .scaledFont(size: 12)
                   }
                 }

@@ -18,6 +18,24 @@ struct BrowserExtensionSetup: View {
         case done = 3
     }
 
+    enum SettingsStatusKind: Equatable {
+        case off
+        case notConfigured
+        case needsVerification
+        case verified
+    }
+
+    struct SettingsStatus: Equatable {
+        let kind: SettingsStatusKind
+        let text: String
+        let detail: String
+    }
+
+    struct ConnectionFailureGuidance: Equatable {
+        let title: String
+        let message: String
+    }
+
     @State private var phase: Phase = .welcome
     @State private var tokenInput: String = ""
     @State private var tokenError: String? = nil
@@ -94,7 +112,7 @@ struct BrowserExtensionSetup: View {
             .padding(.horizontal, 40)
             .padding(.bottom, 24)
         }
-        .frame(width: phase == .connect ? 880 : 480, height: phase == .connect ? 520 : 420)
+        .frame(width: modalWidth, height: modalHeight)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(OmiColors.backgroundSecondary)
@@ -107,6 +125,16 @@ struct BrowserExtensionSetup: View {
     }
 
     // MARK: - Phase Views
+
+    private var modalWidth: CGFloat {
+        phase == .connect ? 880 : 480
+    }
+
+    private var modalHeight: CGFloat {
+        if phase == .connect { return 520 }
+        if phase == .verify, verifyError != nil { return 500 }
+        return 420
+    }
 
     private var welcomePhase: some View {
         VStack(spacing: 16) {
@@ -376,11 +404,39 @@ struct BrowserExtensionSetup: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
 
-                Text("Make sure Chrome is open, the extension is installed, and the token matches the extension page.")
+                let guidance = Self.connectionFailureGuidance(
+                    chromeInstalled: Self.isChromeInstalled,
+                    extensionInstalled: Self.isExtensionInstalled,
+                    token: Self.parseToken(tokenInput)
+                )
+
+                Text(guidance.title)
+                    .scaledFont(size: 13, weight: .semibold)
+                    .foregroundColor(OmiColors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                Text(guidance.message)
                     .scaledFont(size: 12)
                     .foregroundColor(OmiColors.textQuaternary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
+
+                HStack(spacing: 12) {
+                    Button("Open Extension Status") {
+                        Self.openExtensionInChrome()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button("Edit Token") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            phase = .connect
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
         }
         .padding(.horizontal, 20)
@@ -462,6 +518,74 @@ struct BrowserExtensionSetup: View {
             return "Token contains invalid characters. Copy the token value only, not the surrounding text."
         }
         return nil
+    }
+
+    static func settingsStatus(enabled: Bool, token: String, verified: Bool) -> SettingsStatus {
+        let parsedToken = parseToken(token)
+        if !enabled {
+            return SettingsStatus(
+                kind: .off,
+                text: "Off",
+                detail: "Browser access is disabled."
+            )
+        }
+        if parsedToken.isEmpty {
+            return SettingsStatus(
+                kind: .notConfigured,
+                text: "Not set up",
+                detail: "Set up browser access before the AI can use Chrome."
+            )
+        }
+        if validateToken(parsedToken) != nil {
+            return SettingsStatus(
+                kind: .needsVerification,
+                text: "Needs verification",
+                detail: "The saved token is invalid. Reconfigure browser access and copy the token again."
+            )
+        }
+        if verified {
+            return SettingsStatus(
+                kind: .verified,
+                text: "Verified",
+                detail: "Last connection test passed. Reconfigure if Chrome says no MCP clients are connected."
+            )
+        }
+        return SettingsStatus(
+            kind: .needsVerification,
+            text: "Needs verification",
+            detail: "The token is saved, but Chrome has not passed a live connection test yet."
+        )
+    }
+
+    static func connectionFailureGuidance(
+        chromeInstalled: Bool,
+        extensionInstalled: Bool,
+        token: String
+    ) -> ConnectionFailureGuidance {
+        let parsedToken = parseToken(token)
+        if validateToken(parsedToken) != nil {
+            return ConnectionFailureGuidance(
+                title: "Token needs attention",
+                message: "Copy the full auth token from the extension status page, then paste it here again."
+            )
+        }
+        if !chromeInstalled {
+            return ConnectionFailureGuidance(
+                title: "Chrome is not installed",
+                message: "Install Google Chrome, then reopen this setup flow and try the connection test again."
+            )
+        }
+        if !extensionInstalled {
+            return ConnectionFailureGuidance(
+                title: "Extension is not installed",
+                message: "Install the Playwright MCP Bridge extension from the Chrome Web Store, then retry the test."
+            )
+        }
+        return ConnectionFailureGuidance(
+            title: "No live browser connection",
+            message:
+                "Chrome and the extension are present, but the MCP client did not connect. Keep Chrome open, open the extension status page, and confirm it shows an MCP client during the test. If it still says no MCP clients are connected, copy a fresh token and try again."
+        )
     }
 
     /// Check if Google Chrome is installed.
