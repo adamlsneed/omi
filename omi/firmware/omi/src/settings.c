@@ -15,6 +15,7 @@ LOG_MODULE_REGISTER(app_settings, CONFIG_LOG_DEFAULT_LEVEL);
 static uint8_t dim_light_ratio = DEFAULT_DIM_LIGHT_RATIO;
 static uint8_t mic_gain = DEFAULT_MIC_GAIN;
 static atomic_t recording_paused;
+static atomic_t double_tap_pause_feedback_enabled = ATOMIC_INIT(1);
 static struct rtc_time rtc_timestamp = {0};
 static uint64_t rtc_epoch = 0;
 
@@ -263,7 +264,30 @@ void app_settings_set_recording_paused(bool paused)
     atomic_set(&recording_paused, paused ? 1 : 0);
 }
 
+bool app_settings_toggle_recording_paused(void)
+{
+    atomic_val_t current;
+    atomic_val_t next;
+
+    do {
+        current = atomic_get(&recording_paused);
+        next = current == 0 ? 1 : 0;
+    } while (!atomic_cas(&recording_paused, current, next));
+
+    return next != 0;
+}
+
 bool app_settings_is_recording_paused(void)
 {
     return atomic_get(&recording_paused) != 0;
+}
+
+void app_settings_set_double_tap_pause_feedback_enabled(bool enabled)
+{
+    atomic_set(&double_tap_pause_feedback_enabled, enabled ? 1 : 0);
+}
+
+bool app_settings_is_double_tap_pause_feedback_enabled(void)
+{
+    return atomic_get(&double_tap_pause_feedback_enabled) != 0;
 }

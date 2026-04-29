@@ -333,6 +333,14 @@ abstract class DeviceConnection {
     }
   }
 
+  Future<void> setDoubleTapPauseFeedbackEnabled(bool enabled) async {
+    if (await isConnected()) {
+      return await performSetDoubleTapPauseFeedbackEnabled(enabled);
+    }
+  }
+
+  Future<void> performSetDoubleTapPauseFeedbackEnabled(bool enabled) async {}
+
   // storage here
 
   // --- New multi-file storage protocol (firmware with LittleFS) ---

@@ -1,3 +1,6 @@
+#ifndef OMI_CORE_CONFIG_H
+#define OMI_CORE_CONFIG_H
+
 #include <haly/nrfy_gpio.h>
 
 // #define SAMPLE_RATE 16000
@@ -39,3 +42,5 @@
 
 // Logs
 // #define LOG_DISCARDED
+
+#endif

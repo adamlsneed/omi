@@ -22,6 +22,10 @@ class OmiDeviceConnection extends DeviceConnection {
   static const String settingsRecordingPauseCharacteristicUuid = '19b10014-e8f2-537e-4f6c-d104768a1214';
   static const String featuresServiceUuid = '19b10020-e8f2-537e-4f6c-d104768a1214';
   static const String featuresCharacteristicUuid = '19b10021-e8f2-537e-4f6c-d104768a1214';
+  static const int _hapticModeRecordingPause = 4;
+  static const int _hapticModeRecordingResume = 5;
+  static const int _hapticModeDoubleTapPauseFeedbackEnable = 6;
+  static const int _hapticModeDoubleTapPauseFeedbackDisable = 7;
 
   OmiDeviceConnection(super.device, super.transport);
 
@@ -730,7 +734,7 @@ class OmiDeviceConnection extends DeviceConnection {
   Future<void> performSetRecordingPaused(bool paused) async {
     try {
       await transport.writeCharacteristic(speakerDataStreamServiceUuid, speakerDataStreamCharacteristicUuid, [
-        paused ? 4 : 5,
+        paused ? _hapticModeRecordingPause : _hapticModeRecordingResume,
       ]);
       await transport.writeCharacteristic(settingsServiceUuid, settingsRecordingPauseCharacteristicUuid, [
         paused ? 1 : 0,
@@ -738,6 +742,18 @@ class OmiDeviceConnection extends DeviceConnection {
       Logger.debug('OmiDeviceConnection: Requested recording pause state: $paused');
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error setting recording pause state: $e');
+    }
+  }
+
+  @override
+  Future<void> performSetDoubleTapPauseFeedbackEnabled(bool enabled) async {
+    try {
+      await transport.writeCharacteristic(speakerDataStreamServiceUuid, speakerDataStreamCharacteristicUuid, [
+        enabled ? _hapticModeDoubleTapPauseFeedbackEnable : _hapticModeDoubleTapPauseFeedbackDisable,
+      ]);
+      Logger.debug('OmiDeviceConnection: Set double tap pause feedback enabled: $enabled');
+    } catch (e) {
+      Logger.debug('OmiDeviceConnection: Error setting double tap pause feedback: $e');
     }
   }
 

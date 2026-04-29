@@ -597,6 +597,7 @@ class CaptureProvider extends ChangeNotifier
         }
       },
     );
+    await _syncDoubleTapPauseFeedback(deviceId);
   }
 
   Future streamAudioToWs(String deviceId, BleAudioCodec codec) async {
@@ -697,6 +698,18 @@ class CaptureProvider extends ChangeNotifier
       return false;
     }
     return connection.performPlayToSpeakerHaptic(level);
+  }
+
+  Future<void> _syncDoubleTapPauseFeedback(String deviceId) async {
+    try {
+      final connection = await ServiceManager.instance().device.ensureConnection(deviceId);
+      if (connection == null) {
+        return;
+      }
+      await connection.setDoubleTapPauseFeedbackEnabled(SharedPreferencesUtil().doubleTapAction == 1);
+    } catch (e) {
+      Logger.debug("Failed to sync double tap pause feedback: $e");
+    }
   }
 
   Future<void> _setDeviceRecordingPaused(bool paused) async {

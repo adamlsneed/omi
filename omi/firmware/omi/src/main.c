@@ -101,45 +101,6 @@ static void mic_handler(int16_t *buffer)
     }
 }
 
-static void boot_led_sequence(void)
-{
-    // Quick blue pulse = "I'm alive, booting..."
-    set_led_blue(true);
-    k_msleep(300);
-    led_off();
-}
-
-static void boot_ready_sequence(void)
-{
-    const int steps = 50;
-    const int delay_ms = 10;
-
-    // Smooth green fade in/out 2 times = "Ready!"
-    for (int cycle = 0; cycle < 2; cycle++) {
-        // Fade in: ease-in-out
-        for (int i = 0; i <= steps; i++) {
-            float t = (float) i / steps;
-            // Ease-in-out quadratic
-            float eased = t < 0.5f ? 2.0f * t * t : 1.0f - 2.0f * (1.0f - t) * (1.0f - t);
-            uint8_t level = (uint8_t) (eased * 50.0f);
-            set_led_pwm(LED_GREEN, level);
-            k_msleep(delay_ms);
-        }
-
-        // Fade out: ease-in-out
-        for (int i = 0; i <= steps; i++) {
-            float t = (float) i / steps;
-            float eased = t < 0.5f ? 2.0f * t * t : 1.0f - 2.0f * (1.0f - t) * (1.0f - t);
-            uint8_t level = (uint8_t) ((1.0f - eased) * 70.0f);
-            set_led_pwm(LED_GREEN, level);
-            k_msleep(delay_ms);
-        }
-    }
-    k_msleep(10);
-    led_off();
-    k_msleep(10);
-}
-
 void set_led_state(void)
 {
     // If device is off, turn off all LEDs immediately
@@ -149,12 +110,10 @@ void set_led_state(void)
     }
 
     if (app_settings_is_recording_paused()) {
-        // Magenta blink is distinct from normal recording, charging, and RTC warning states.
-        bool paused_led_on = !blink_toggle;
-        set_led_green(false);
-        set_led_blue(paused_led_on);
-        set_led_red(paused_led_on);
-        blink_toggle = !blink_toggle;
+        // Amber is intentionally far from the normal connected/recording blue.
+        set_led_green(true);
+        set_led_blue(false);
+        set_led_red(true);
         return;
     }
 
