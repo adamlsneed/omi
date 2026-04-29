@@ -152,6 +152,9 @@ abstract class DeviceConnection {
     // Listen to transport state changes
     _transportStateSubscription = transport.connectionStateStream.listen((transportState) {
       final deviceState = _mapTransportStateToDeviceState(transportState);
+      if (deviceState == DeviceConnectionState.disconnected) {
+        _features = null;
+      }
       if (_connectionState != deviceState) {
         _connectionState = deviceState;
         _connectionStateChangedCallback?.call(device.id, _connectionState);
@@ -195,6 +198,7 @@ abstract class DeviceConnection {
 
   Future<void> disconnect() async {
     _connectionState = DeviceConnectionState.disconnected;
+    _features = null;
     if (_connectionStateChangedCallback != null) {
       _connectionStateChangedCallback!(device.id, _connectionState);
       _connectionStateChangedCallback = null;
@@ -477,12 +481,13 @@ abstract class DeviceConnection {
 
   Future<StreamSubscription<List<int>>?> performGetAccelListener({void Function(int)? onAccelChange});
 
-  Future<int> getFeatures() async {
-    if (_features != null) return _features!;
+  Future<int> getFeatures({bool refresh = false}) async {
+    if (!refresh && _features != null) return _features!;
     if (await isConnected()) {
       _features = await performGetFeatures();
       return _features!;
     }
+    _features = null;
     return 0;
   }
 

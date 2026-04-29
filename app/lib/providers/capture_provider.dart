@@ -702,21 +702,25 @@ class CaptureProvider extends ChangeNotifier
   Future<void> _setDeviceRecordingPaused(bool paused) async {
     final device = _recordingDevice;
     if (device == null || device.type != DeviceType.omi) {
+      Logger.debug('Recording pause skipped: device unavailable or unsupported type ${device?.type}');
       return;
     }
 
     final connection = await ServiceManager.instance().device.ensureConnection(device.id);
     if (connection == null) {
+      Logger.debug('Recording pause skipped: no connection for ${device.id}');
       return;
     }
 
-    final features = await connection.getFeatures();
+    final features = await connection.getFeatures(refresh: true);
     if ((features & OmiFeatures.recordingPause) == 0) {
-      Logger.debug('Device firmware does not support runtime recording pause');
-      return;
+      Logger.debug('Device firmware does not advertise runtime recording pause; attempting compatibility write');
     }
 
     await connection.setRecordingPaused(paused);
+    final readback = await connection.getRecordingPaused();
+    Logger.debug(
+        'Recording pause requested: paused=$paused features=0x${features.toRadixString(16)} readback=$readback');
   }
 
   Future<StreamSubscription?> _getBleAudioBytesListener(

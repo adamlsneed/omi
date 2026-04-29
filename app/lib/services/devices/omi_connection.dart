@@ -729,9 +729,13 @@ class OmiDeviceConnection extends DeviceConnection {
   @override
   Future<void> performSetRecordingPaused(bool paused) async {
     try {
+      await transport.writeCharacteristic(speakerDataStreamServiceUuid, speakerDataStreamCharacteristicUuid, [
+        paused ? 4 : 5,
+      ]);
       await transport.writeCharacteristic(settingsServiceUuid, settingsRecordingPauseCharacteristicUuid, [
         paused ? 1 : 0,
       ]);
+      Logger.debug('OmiDeviceConnection: Requested recording pause state: $paused');
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error setting recording pause state: $e');
     }

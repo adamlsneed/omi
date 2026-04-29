@@ -6,11 +6,16 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "lib/core/settings.h"
+
 LOG_MODULE_REGISTER(haptic, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define MAX_HAPTIC_DURATION 5000
+#define HAPTIC_MODE_RECORDING_PAUSE 4
+#define HAPTIC_MODE_RECORDING_RESUME 5
 
 static const struct gpio_dt_spec haptic_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(motor_pin), gpios, {0});
+extern void set_led_state(void);
 
 // Haptic Off Work Item
 static struct k_work_delayable haptic_off_work;
@@ -66,8 +71,8 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
     uint8_t value = ((uint8_t *) buf)[0];
     LOG_INF("Haptic write received: value %d", value);
 
-    // Map received value to haptic duration
-    // 1 -> 100ms, 2 -> 300ms, 3 -> 500ms
+    // Values 4 and 5 reuse the existing haptic characteristic as a pause control path.
+    // iOS can cache the GATT table and miss newly added characteristics after DFU.
     switch (value) {
     case 1:
         play_haptic_milli(100);
@@ -77,6 +82,16 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
         break;
     case 3:
         play_haptic_milli(500);
+        break;
+    case HAPTIC_MODE_RECORDING_PAUSE:
+        app_settings_set_recording_paused(true);
+        play_haptic_milli(300);
+        set_led_state();
+        break;
+    case HAPTIC_MODE_RECORDING_RESUME:
+        app_settings_set_recording_paused(false);
+        play_haptic_milli(100);
+        set_led_state();
         break;
     default:
         LOG_WRN("Haptic write: Invalid value %d", value);
