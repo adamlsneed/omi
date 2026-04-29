@@ -140,7 +140,7 @@ static void boot_ready_sequence(void)
     k_msleep(10);
 }
 
-void set_led_state()
+void set_led_state(void)
 {
     // If device is off, turn off all LEDs immediately
     if (is_off) {
@@ -149,9 +149,12 @@ void set_led_state()
     }
 
     if (app_settings_is_recording_paused()) {
-        set_led_green(true);
-        set_led_blue(false);
-        set_led_red(true);
+        // Magenta blink is distinct from normal recording, charging, and RTC warning states.
+        bool paused_led_on = !blink_toggle;
+        set_led_green(false);
+        set_led_blue(paused_led_on);
+        set_led_red(paused_led_on);
+        blink_toggle = !blink_toggle;
         return;
     }
 

@@ -49,6 +49,7 @@ extern bool is_connected;
 #ifdef CONFIG_OMI_ENABLE_BATTERY
 extern bool is_charging;
 #endif
+extern void set_led_state(void);
 static atomic_t pusher_stop_flag;
 
 struct bt_conn *current_connection = NULL;
@@ -503,6 +504,7 @@ static ssize_t settings_recording_pause_write_handler(struct bt_conn *conn,
     bool paused = ((uint8_t *) buf)[0] != 0;
     LOG_INF("Received recording pause state: %u", paused ? 1U : 0U);
     app_settings_set_recording_paused(paused);
+    set_led_state();
 
     return len;
 }
