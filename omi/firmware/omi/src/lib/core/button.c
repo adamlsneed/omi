@@ -13,13 +13,13 @@
 #include <zephyr/sys/poweroff.h>
 
 #include "haptic.h"
+#include "imu.h"
 #include "led.h"
 #include "mic.h"
+#include "settings.h"
 #include "speaker.h"
 #include "transport.h"
 #include "wdog_facade.h"
-
-#include "imu.h"
 #ifdef CONFIG_OMI_ENABLE_OFFLINE_STORAGE
 #include "sd_card.h"
 #endif
@@ -27,6 +27,7 @@
 LOG_MODULE_REGISTER(button, CONFIG_LOG_DEFAULT_LEVEL);
 
 extern bool is_off;
+extern void set_led_state(void);
 
 static void button_ccc_config_changed_handler(const struct bt_gatt_attr *attr, uint16_t value);
 static ssize_t button_data_read_characteristic(struct bt_conn *conn,
@@ -85,17 +86,9 @@ K_WORK_DELAYABLE_DEFINE(button_work, check_button_level);
 
 // 4 is button down, 5 is button up
 static FSM_STATE_T current_button_state = IDLE;
-static uint32_t inc_count_1 = 0;
-static uint32_t inc_count_0 = 0;
 
 static int final_button_state[2] = {0, 0};
-const static int threshold = 10;
 
-static void reset_count()
-{
-    inc_count_0 = 0;
-    inc_count_1 = 0;
-}
 static inline void notify_press()
 {
     final_button_state[0] = BUTTON_PRESS;
@@ -227,6 +220,14 @@ void check_button_level(struct k_work *work_item)
     if (event == BUTTON_EVENT_DOUBLE_TAP) {
         LOG_INF("double tap detected\n");
         btn_last_event = event;
+        if (app_settings_is_double_tap_pause_feedback_enabled()) {
+            bool paused = app_settings_toggle_recording_paused();
+            LOG_INF("Double tap pause feedback toggled recording pause: %u", paused ? 1U : 0U);
+#ifdef CONFIG_OMI_ENABLE_HAPTIC
+            play_haptic_milli(paused ? 300U : 100U);
+#endif
+            set_led_state();
+        }
         notify_double_tap();
     }
 
@@ -254,7 +255,7 @@ void check_button_level(struct k_work *work_item)
     }
 
     k_work_reschedule(&button_work, K_MSEC(BUTTON_CHECK_INTERVAL));
-    return 0;
+    return;
 }
 
 static ssize_t button_data_read_characteristic(struct bt_conn *conn,
@@ -420,7 +421,6 @@ void turnoff_all()
         return;
     }
 
-    
     /* Persist an IMU timestamp base so we can estimate time across system_off. */
     lsm6dsl_time_prepare_for_system_off();
     k_msleep(1000);

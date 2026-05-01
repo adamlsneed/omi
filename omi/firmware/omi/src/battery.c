@@ -23,8 +23,8 @@ int16_t sample_buffer[ADC_TOTAL_SAMPLES + 1];
 #define ADC_ACQUISITION_TIME ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 10)
 #define ADC_1ST_CHANNEL_ID 0
 #define ADC_1ST_CHANNEL_INPUT NRF_SAADC_INPUT_AIN0
-#define BATTERY_FILTER_ALPHA_U16 (uint16_t)(65535/(5+1))
-#define FILTER_INIT_CYCLES 5
+#define FILTER_INIT_CYCLES 5U
+#define BATTERY_FILTER_ALPHA_U16 (UINT16_MAX / (FILTER_INIT_CYCLES + 1U))
 #define BATTERY_STATES(is_charging) ((is_charging) ? battery_charging_states : battery_discharge_states)
 
 // Static variable to store previous EMA value for battery percentage
@@ -34,7 +34,6 @@ static bool is_first_measurement = true;
 static uint8_t ema_init_counter = 0;
 
 static const struct device *const adc_dev = DEVICE_DT_GET(DT_NODELABEL(adc));
-static const struct gpio_dt_spec power_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(power_pin), gpios, {0});
 static const struct gpio_dt_spec bat_read_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(bat_read_pin), gpios, {0});
 static const struct gpio_dt_spec bat_chg_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(bat_chg_pin), gpios, {0});
 
@@ -126,7 +125,7 @@ uint8_t update_ema_filter(uint32_t current_ema, uint8_t new_value)
     uint64_t new_ema = (alpha * new_value) + (alpha_complement * current_ema);
 
     // Scale result back to 8-bit, with rounding up
-    return (uint8_t)((new_ema + 32768) >> 16);
+    return (uint8_t) ((new_ema + 32768) >> 16);
 }
 
 static void battery_charging_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
@@ -233,7 +232,7 @@ int battery_get_millivolt(uint16_t *battery_millivolt)
     // Calculate battery voltage using the voltage divider formula
     *battery_millivolt = (uint16_t) (adc_raw_val * ((float) (R1 + R2) / R2));
     LOG_INF("Battery voltage (mV): %d", *battery_millivolt);
-    
+
     // Restore bat_read_pin to INPUT state to save power/avoid affecting other circuits
     err = gpio_pin_configure_dt(&bat_read_pin, GPIO_INPUT);
     if (err < 0) {
@@ -241,7 +240,7 @@ int battery_get_millivolt(uint16_t *battery_millivolt)
         k_mutex_unlock(&battery_mut);
         return err;
     }
-    
+
     if (is_first_measurement) {
         LOG_INF("First measurement, skipping to allow voltage to stabilize");
         is_first_measurement = false;
@@ -267,13 +266,14 @@ int battery_get_percentage(uint8_t *battery_percentage, uint16_t battery_millivo
     } else {
         // Find the appropriate range in the battery profile
         for (int i = 0; i < BATTERY_STATES_COUNT - 1; i++) {
-            if (battery_millivolt <= battery_states[i].millivolts && battery_millivolt > battery_states[i + 1].millivolts) {
-    
+            if (battery_millivolt <= battery_states[i].millivolts &&
+                battery_millivolt > battery_states[i + 1].millivolts) {
+
                 // Linear interpolation between the two closest points
                 uint16_t voltage_range = battery_states[i].millivolts - battery_states[i + 1].millivolts;
                 uint8_t percentage_range = battery_states[i].percentage - battery_states[i + 1].percentage;
                 uint16_t voltage_diff = battery_states[i].millivolts - battery_millivolt;
-    
+
                 raw_percentage = battery_states[i].percentage - (voltage_diff * percentage_range) / voltage_range;
                 break;
             }
@@ -293,12 +293,12 @@ int battery_get_percentage(uint8_t *battery_percentage, uint16_t battery_millivo
     if (!ema_initialized) {
         battery_percentage_ema = raw_percentage;
         ema_init_counter++;
-        
+
         // Run filter for FILTER_INIT_CYCLES to stabilize
         if (ema_init_counter >= FILTER_INIT_CYCLES) {
             ema_initialized = true;
         }
-        
+
         *battery_percentage = raw_percentage;
     } else {
         // Apply EMA filter to smooth out percentage changes

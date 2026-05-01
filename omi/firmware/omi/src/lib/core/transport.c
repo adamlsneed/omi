@@ -25,6 +25,9 @@
 #include "config.h"
 #include "features.h"
 #include "haptic.h"
+#ifdef CONFIG_OMI_ENABLE_BATTERY
+#include "lib/core/lib/battery/battery.h"
+#endif
 #include "mic.h"
 #ifdef CONFIG_OMI_ENABLE_MONITOR
 #include "monitor.h"
@@ -32,6 +35,9 @@
 #include "rtc.h"
 #include "sd_card.h"
 #include "settings.h"
+#ifdef CONFIG_OMI_ENABLE_SPEAKER
+#include "speaker.h"
+#endif
 #include "storage.h"
 LOG_MODULE_REGISTER(transport, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -49,18 +55,21 @@ extern bool is_connected;
 #ifdef CONFIG_OMI_ENABLE_BATTERY
 extern bool is_charging;
 #endif
+extern void set_led_state(void);
 static atomic_t pusher_stop_flag;
 
 struct bt_conn *current_connection = NULL;
 uint16_t current_mtu = 0;
 uint16_t current_package_index = 0;
 
+#ifdef CONFIG_OMI_ENABLE_SPEAKER
 static ssize_t audio_data_write_handler(struct bt_conn *conn,
                                         const struct bt_gatt_attr *attr,
                                         const void *buf,
                                         uint16_t len,
                                         uint16_t offset,
                                         uint8_t flags);
+#endif
 
 static struct bt_conn_cb _callback_references;
 static void audio_ccc_config_changed_handler(const struct bt_gatt_attr *attr, uint16_t value);
@@ -159,8 +168,10 @@ static struct bt_uuid_128 audio_characteristic_data_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10001, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
 static struct bt_uuid_128 audio_characteristic_format_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10002, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
+#ifdef CONFIG_OMI_ENABLE_SPEAKER
 static struct bt_uuid_128 audio_characteristic_speaker_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10003, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
+#endif
 
 static struct bt_gatt_attr audio_service_attr[] = {
     BT_GATT_PRIMARY_SERVICE(&audio_service_uuid),
@@ -385,6 +396,7 @@ static ssize_t audio_codec_read_characteristic(struct bt_conn *conn,
     return bt_gatt_attr_read(conn, attr, buf, len, offset, value, sizeof(value));
 }
 
+#ifdef CONFIG_OMI_ENABLE_SPEAKER
 static ssize_t audio_data_write_handler(struct bt_conn *conn,
                                         const struct bt_gatt_attr *attr,
                                         const void *buf,
@@ -393,12 +405,11 @@ static ssize_t audio_data_write_handler(struct bt_conn *conn,
                                         uint8_t flags)
 {
     uint16_t amount = 400;
-    int16_t *int16_buf = (int16_t *) buf;
-    uint8_t *data = (uint8_t *) buf;
     bt_gatt_notify(conn, attr, &amount, sizeof(amount));
-    amount = speak(len, buf);
+    (void) speak(len, buf);
     return len;
 }
+#endif
 
 static ssize_t settings_dim_ratio_write_handler(struct bt_conn *conn,
                                                 const struct bt_gatt_attr *attr,
@@ -503,6 +514,7 @@ static ssize_t settings_recording_pause_write_handler(struct bt_conn *conn,
     bool paused = ((uint8_t *) buf)[0] != 0;
     LOG_INF("Received recording pause state: %u", paused ? 1U : 0U);
     app_settings_set_recording_paused(paused);
+    set_led_state();
 
     return len;
 }
@@ -1143,7 +1155,6 @@ static bool push_to_gatt(struct bt_conn *conn)
 #define OPUS_PREFIX_LENGTH 1
 #define OPUS_PADDED_LENGTH 80
 #define MAX_WRITE_SIZE 440
-static uint32_t offset = 0;
 static uint16_t buffer_offset = 0;
 
 #ifdef CONFIG_OMI_ENABLE_OFFLINE_STORAGE
@@ -1185,11 +1196,8 @@ bool write_to_storage(void)
 }
 #endif
 
-static bool use_storage = true;
 #define MAX_FILES 10
 #define MAX_AUDIO_FILE_SIZE 300000
-static int recent_file_size_updated = 0;
-static uint8_t heartbeat_count = 0;
 
 void test_pusher(void)
 {

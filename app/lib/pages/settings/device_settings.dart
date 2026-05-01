@@ -363,6 +363,26 @@ class _DeviceSettingsState extends State<DeviceSettings> {
     }
   }
 
+  Future<void> _syncDoubleTapActionToDevice(int action) async {
+    try {
+      final btDevice = SharedPreferencesUtil().btDevice;
+      if (btDevice.id.isEmpty || btDevice.type != DeviceType.omi) {
+        return;
+      }
+
+      final connection = await ServiceManager.instance().device.ensureConnection(btDevice.id);
+      await connection?.setDoubleTapPauseFeedbackEnabled(action == 1);
+    } catch (e) {
+      Logger.debug('Failed to sync double tap action to device: $e');
+    }
+  }
+
+  void _setDoubleTapAction(int action, BuildContext sheetContext) {
+    setState(() => SharedPreferencesUtil().doubleTapAction = action);
+    if (sheetContext.mounted) Navigator.pop(sheetContext);
+    unawaited(_syncDoubleTapActionToDevice(action));
+  }
+
   void _showDoubleTapActionSheet() {
     int currentAction = SharedPreferencesUtil().doubleTapAction;
 
@@ -395,8 +415,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
                     ),
                     trailing: currentAction == 0 ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
                     onTap: () {
-                      setState(() => SharedPreferencesUtil().doubleTapAction = 0);
-                      Navigator.pop(sheetContext);
+                      _setDoubleTapAction(0, sheetContext);
                     },
                   ),
                   ListTile(
@@ -406,8 +425,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
                     ),
                     trailing: currentAction == 1 ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
                     onTap: () {
-                      setState(() => SharedPreferencesUtil().doubleTapAction = 1);
-                      Navigator.pop(sheetContext);
+                      _setDoubleTapAction(1, sheetContext);
                     },
                   ),
                   ListTile(
@@ -417,8 +435,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
                     ),
                     trailing: currentAction == 2 ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
                     onTap: () {
-                      setState(() => SharedPreferencesUtil().doubleTapAction = 2);
-                      Navigator.pop(sheetContext);
+                      _setDoubleTapAction(2, sheetContext);
                     },
                   ),
                   const SizedBox(height: 16),

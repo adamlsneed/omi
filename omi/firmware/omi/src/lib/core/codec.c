@@ -7,6 +7,7 @@
 #include "config.h"
 #include "utils.h"
 #ifdef CODEC_OPUS
+#include "lib/opus-1.2.1/config.h"
 #include "lib/opus-1.2.1/opus.h"
 #endif
 
@@ -57,9 +58,10 @@ uint16_t execute_codec();
 #if CODEC_OPUS
 #if (CONFIG_OPUS_MODE == CONFIG_OPUS_MODE_CELT)
 #define OPUS_ENCODER_SIZE 7180
-#endif
-#if (CONFIG_OPUS_MODE == CONFIG_OPUS_MODE_HYBRID)
+#elif (CONFIG_OPUS_MODE == CONFIG_OPUS_MODE_HYBRID)
 #define OPUS_ENCODER_SIZE 10916
+#else
+#error "Unsupported Opus encoder mode"
 #endif
 __ALIGN(4)
 static uint8_t m_opus_encoder[OPUS_ENCODER_SIZE];

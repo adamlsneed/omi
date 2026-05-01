@@ -597,6 +597,7 @@ class CaptureProvider extends ChangeNotifier
         }
       },
     );
+    await _syncDoubleTapPauseFeedback(deviceId);
   }
 
   Future streamAudioToWs(String deviceId, BleAudioCodec codec) async {
@@ -699,24 +700,40 @@ class CaptureProvider extends ChangeNotifier
     return connection.performPlayToSpeakerHaptic(level);
   }
 
+  Future<void> _syncDoubleTapPauseFeedback(String deviceId) async {
+    try {
+      final connection = await ServiceManager.instance().device.ensureConnection(deviceId);
+      if (connection == null) {
+        return;
+      }
+      await connection.setDoubleTapPauseFeedbackEnabled(SharedPreferencesUtil().doubleTapAction == 1);
+    } catch (e) {
+      Logger.debug("Failed to sync double tap pause feedback: $e");
+    }
+  }
+
   Future<void> _setDeviceRecordingPaused(bool paused) async {
     final device = _recordingDevice;
     if (device == null || device.type != DeviceType.omi) {
+      Logger.debug('Recording pause skipped: device unavailable or unsupported type ${device?.type}');
       return;
     }
 
     final connection = await ServiceManager.instance().device.ensureConnection(device.id);
     if (connection == null) {
+      Logger.debug('Recording pause skipped: no connection for ${device.id}');
       return;
     }
 
-    final features = await connection.getFeatures();
+    final features = await connection.getFeatures(refresh: true);
     if ((features & OmiFeatures.recordingPause) == 0) {
-      Logger.debug('Device firmware does not support runtime recording pause');
-      return;
+      Logger.debug('Device firmware does not advertise runtime recording pause; attempting compatibility write');
     }
 
     await connection.setRecordingPaused(paused);
+    final readback = await connection.getRecordingPaused();
+    Logger.debug(
+        'Recording pause requested: paused=$paused features=0x${features.toRadixString(16)} readback=$readback');
   }
 
   Future<StreamSubscription?> _getBleAudioBytesListener(

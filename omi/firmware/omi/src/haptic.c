@@ -6,11 +6,18 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "lib/core/settings.h"
+
 LOG_MODULE_REGISTER(haptic, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define MAX_HAPTIC_DURATION 5000
+#define HAPTIC_MODE_RECORDING_PAUSE 4
+#define HAPTIC_MODE_RECORDING_RESUME 5
+#define HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_ENABLE 6
+#define HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_DISABLE 7
 
 static const struct gpio_dt_spec haptic_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(motor_pin), gpios, {0});
+extern void set_led_state(void);
 
 // Haptic Off Work Item
 static struct k_work_delayable haptic_off_work;
@@ -22,8 +29,6 @@ static void haptic_off_work_handler(struct k_work *work)
     LOG_INF("Haptic turned off by work handler");
 }
 
-// BLE Service definitions
-static void haptic_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value);
 static ssize_t haptic_write_handler(struct bt_conn *conn,
                                     const struct bt_gatt_attr *attr,
                                     const void *buf,
@@ -66,8 +71,8 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
     uint8_t value = ((uint8_t *) buf)[0];
     LOG_INF("Haptic write received: value %d", value);
 
-    // Map received value to haptic duration
-    // 1 -> 100ms, 2 -> 300ms, 3 -> 500ms
+    // Values 4 and 5 reuse the existing haptic characteristic as a pause control path.
+    // iOS can cache the GATT table and miss newly added characteristics after DFU.
     switch (value) {
     case 1:
         play_haptic_milli(100);
@@ -77,6 +82,24 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
         break;
     case 3:
         play_haptic_milli(500);
+        break;
+    case HAPTIC_MODE_RECORDING_PAUSE:
+        app_settings_set_recording_paused(true);
+        play_haptic_milli(300);
+        set_led_state();
+        break;
+    case HAPTIC_MODE_RECORDING_RESUME:
+        app_settings_set_recording_paused(false);
+        play_haptic_milli(100);
+        set_led_state();
+        break;
+    case HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_ENABLE:
+        app_settings_set_double_tap_pause_feedback_enabled(true);
+        LOG_INF("Double tap pause feedback enabled");
+        break;
+    case HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_DISABLE:
+        app_settings_set_double_tap_pause_feedback_enabled(false);
+        LOG_INF("Double tap pause feedback disabled");
         break;
     default:
         LOG_WRN("Haptic write: Invalid value %d", value);
@@ -90,9 +113,15 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
 
 int haptic_init(void)
 {
-    if (!gpio_is_ready_dt(&haptic_pin)) {
-        LOG_ERR("Haptic GPIO device %s is not ready", haptic_pin.port->name);
+    if (!haptic_pin.port || !gpio_is_ready_dt(&haptic_pin)) {
+        LOG_ERR("Haptic GPIO device is not ready");
         return -ENODEV;
+    }
+
+    int err = gpio_pin_configure_dt(&haptic_pin, GPIO_OUTPUT_INACTIVE);
+    if (err) {
+        LOG_ERR("Failed to configure haptic pin for output (err %d)", err);
+        return err;
     }
 
     // Initialize the delayable work item
@@ -116,13 +145,6 @@ void play_haptic_milli(uint32_t duration)
         // If duration is 0, ensure the pin is off and we are done.
         gpio_pin_set_dt(&haptic_pin, 0);
         LOG_INF("Haptic explicitly stopped (duration 0)");
-        return;
-    }
-
-    // Configure GPIO pin just before turning it on
-    int err = gpio_pin_configure_dt(&haptic_pin, GPIO_OUTPUT);
-    if (err) {
-        LOG_ERR("Failed to configure haptic pin for output (err %d)", err);
         return;
     }
 

@@ -55,11 +55,38 @@ uint8_t app_settings_get_mic_gain(void);
 void app_settings_set_recording_paused(bool paused);
 
 /**
+ * @brief Toggle the runtime recording pause state.
+ *
+ * This is intentionally not persisted. It is used for immediate firmware-side
+ * double-tap feedback before the app confirms the same state over BLE.
+ *
+ * @return true when recording is now paused, false when recording is now resumed.
+ */
+bool app_settings_toggle_recording_paused(void);
+
+/**
  * @brief Check whether app-driven recording pause is active.
  *
  * @return true when audio capture should be suppressed.
  */
 bool app_settings_is_recording_paused(void);
+
+/**
+ * @brief Enable or disable firmware-side double-tap pause feedback.
+ *
+ * The phone app owns the user's double-tap action setting and syncs this volatile
+ * flag after connection or when the setting changes.
+ *
+ * @param enabled true when double tap should pause/resume recording locally.
+ */
+void app_settings_set_double_tap_pause_feedback_enabled(bool enabled);
+
+/**
+ * @brief Check whether firmware-side double-tap pause feedback is enabled.
+ *
+ * @return true when a double tap should toggle recording pause before notifying the app.
+ */
+bool app_settings_is_double_tap_pause_feedback_enabled(void);
 
 /**
  * @brief Save the RTC timestamp setting.
