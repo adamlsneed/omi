@@ -158,7 +158,7 @@ class AudioWavePainter extends CustomPainter {
   bool shouldRepaint(covariant AudioWavePainter oldDelegate) {
     if (levels.length != oldDelegate.levels.length) return true;
     for (int i = 0; i < levels.length; i++) {
-      if ((levels[i] - oldDelegate.levels[i]).abs() > 0.005) return true;
+      if ((levels[i] - oldDelegate.levels[i]).abs() > 0.01) return true;
     }
     return false;
   }
