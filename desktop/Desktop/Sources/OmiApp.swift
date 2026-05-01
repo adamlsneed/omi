@@ -1,6 +1,5 @@
 import FirebaseAuth
 import FirebaseCore
-import Mixpanel
 import Sentry
 import Sparkle
 import SwiftUI
@@ -353,7 +352,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       AuthService.shared.configure()
     }
 
-    // Initialize analytics (MixPanel + PostHog)
+    // Initialize analytics (PostHog)
     AnalyticsManager.shared.initialize()
     AnalyticsManager.shared.detectAndReportCrash()
     AnalyticsManager.shared.appLaunched()
