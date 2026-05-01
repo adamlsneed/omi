@@ -24,6 +24,8 @@ class _PhoneSetupVerifyPageState extends State<PhoneSetupVerifyPage> with Single
   _VerifyStatus _status = _VerifyStatus.calling;
   Timer? _pollingTimer;
   int _pollCount = 0;
+  bool _isCheckingVerification = false;
+  int _pollingRunId = 0;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -41,24 +43,34 @@ class _PhoneSetupVerifyPageState extends State<PhoneSetupVerifyPage> with Single
 
   @override
   void dispose() {
+    _pollingRunId++;
     _pollingTimer?.cancel();
+    _pollingTimer = null;
     _pulseController.dispose();
     super.dispose();
   }
 
   void _startPolling() {
     _pollCount = 0;
+    _isCheckingVerification = false;
+    _pollingRunId++;
+    final runId = _pollingRunId;
     setState(() => _status = _VerifyStatus.calling);
 
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted || runId != _pollingRunId) {
+        timer.cancel();
+        return;
+      }
+
       _pollCount++;
 
-      if (_pollCount == 2 && mounted && _status == _VerifyStatus.calling) {
+      if (_pollCount == 2 && _status == _VerifyStatus.calling) {
         setState(() => _status = _VerifyStatus.inProgress);
       }
 
-      if (_pollCount == 15 && mounted && _status == _VerifyStatus.inProgress) {
+      if (_pollCount == 15 && _status == _VerifyStatus.inProgress) {
         setState(() => _status = _VerifyStatus.missedCall);
       }
 
@@ -69,13 +81,28 @@ class _PhoneSetupVerifyPageState extends State<PhoneSetupVerifyPage> with Single
         return;
       }
 
+      if (_isCheckingVerification) return;
+      _isCheckingVerification = true;
       var provider = context.read<PhoneCallProvider>();
-      var verified = await provider.checkVerification(widget.phoneNumber);
+      bool verified;
+      try {
+        verified = await provider.checkVerification(widget.phoneNumber);
+      } catch (e) {
+        debugPrint('Phone verification check failed: $e');
+        verified = false;
+      } finally {
+        if (runId == _pollingRunId) {
+          _isCheckingVerification = false;
+        }
+      }
 
-      if (!mounted) return;
+      if (!mounted || runId != _pollingRunId) return;
 
       if (verified) {
         timer.cancel();
+        if (identical(_pollingTimer, timer)) {
+          _pollingTimer = null;
+        }
         setState(() => _status = _VerifyStatus.verified);
         HapticFeedback.mediumImpact();
         await Future.delayed(const Duration(milliseconds: 800));

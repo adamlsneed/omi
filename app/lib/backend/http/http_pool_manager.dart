@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:pool/pool.dart';
@@ -28,7 +27,6 @@ class HttpPoolManager {
   /// Single enforcement point: every HTTP request to the Omi backend flows
   /// through send() or sendStreaming(), so retries, pool-queued requests,
   /// and multipart uploads all get a current timestamp. (#6274)
-  @visibleForTesting
   static void stampRequestTime(http.BaseRequest request) {
     request.headers['X-Request-Start-Time'] = (DateTime.now().millisecondsSinceEpoch / 1000).toString();
   }

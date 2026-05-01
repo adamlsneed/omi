@@ -54,6 +54,7 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
     try {
       bool hasPermission = await FlutterContacts.requestPermission(readonly: true);
       if (!hasPermission) {
+        if (!mounted) return;
         setState(() {
           _permissionDenied = true;
           _loadingContacts = false;
@@ -65,12 +66,14 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
       contacts = contacts.where((c) => c.phones.isNotEmpty).toList();
       contacts.sort((a, b) => a.displayName.compareTo(b.displayName));
 
+      if (!mounted) return;
       setState(() {
         _contacts = contacts;
         _filteredContacts = contacts;
         _loadingContacts = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loadingContacts = false;
       });
