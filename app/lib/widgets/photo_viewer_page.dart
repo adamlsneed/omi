@@ -20,23 +20,84 @@ class PhotoViewerPage extends StatefulWidget {
 
 class _PhotoViewerPageState extends State<PhotoViewerPage> {
   late int currentIndex;
-  late PageController pageController;
+  late final PageController pageController;
 
   @override
   void initState() {
     super.initState();
-    currentIndex = widget.initialIndex;
-    pageController = PageController(initialPage: widget.initialIndex);
+    currentIndex = _clampedIndex(widget.initialIndex);
+    pageController = PageController(initialPage: currentIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant PhotoViewerPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextIndex = _clampedIndex(currentIndex);
+    if (nextIndex != currentIndex) {
+      currentIndex = nextIndex;
+      if (widget.photos.isNotEmpty && pageController.hasClients) {
+        pageController.jumpToPage(currentIndex);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    pageController.dispose();
+    super.dispose();
+  }
+
+  int _clampedIndex(int index) {
+    if (widget.photos.isEmpty) return 0;
+    return index.clamp(0, widget.photos.length - 1);
   }
 
   void onPageChanged(int index) {
     setState(() {
-      currentIndex = index;
+      currentIndex = _clampedIndex(index);
     });
+  }
+
+  PhotoViewGalleryPageOptions _buildPageOptions(ConversationPhoto photo, int index) {
+    try {
+      final imageBytes = base64Decode(photo.base64);
+      return PhotoViewGalleryPageOptions(
+        imageProvider: MemoryImage(imageBytes),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.covered * 4,
+        heroAttributes: PhotoViewHeroAttributes(tag: photo.id),
+        errorBuilder: (context, error, stackTrace) => _buildBrokenImage(),
+      );
+    } on FormatException {
+      return PhotoViewGalleryPageOptions.customChild(
+        child: _buildBrokenImage(),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.covered * 4,
+        heroAttributes: PhotoViewHeroAttributes(tag: photo.id),
+      );
+    }
+  }
+
+  Widget _buildBrokenImage() {
+    return const Center(
+      child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.photos.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: const SafeArea(child: SizedBox.shrink()),
+      );
+    }
+
     final currentPhoto = widget.photos[currentIndex];
     final hasDescription = currentPhoto.description != null && currentPhoto.description!.isNotEmpty;
     final isProcessing = currentPhoto.description == null;
@@ -58,13 +119,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                 onPageChanged: onPageChanged,
                 builder: (context, index) {
                   final photo = widget.photos[index];
-                  final imageBytes = base64Decode(photo.base64);
-                  return PhotoViewGalleryPageOptions(
-                    imageProvider: MemoryImage(imageBytes),
-                    minScale: PhotoViewComputedScale.contained,
-                    maxScale: PhotoViewComputedScale.covered * 4,
-                    heroAttributes: PhotoViewHeroAttributes(tag: photo.id ?? index.toString()),
-                  );
+                  return _buildPageOptions(photo, index);
                 },
                 scrollPhysics: const BouncingScrollPhysics(),
                 backgroundDecoration: const BoxDecoration(color: Colors.black),
