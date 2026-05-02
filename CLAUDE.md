@@ -188,6 +188,7 @@ Files ending in `.gen.dart` or `.g.dart` are auto-generated — don't format man
 ### Rules
 - Always commit to the current branch — never switch branches.
 - Never push directly to `main`. Land changes through PRs only.
+- Never submit PRs to `BasedHardware/omi`; treat it as a read-only upstream for fetching, comparing, merging, or cherry-picking fixes into this fork.
 - Never squash merge PRs — use regular merge.
 - Make individual commits per file, not bulk commits.
 - If push fails (remote ahead): `git pull --rebase && git push`.
