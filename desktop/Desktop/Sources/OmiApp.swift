@@ -220,6 +220,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var localHotkeyMonitor: Any?
   private var windowObservers: [NSObjectProtocol] = []
   private var userDefaultsObserver: NSObjectProtocol?
+  private var dockIconVisibilityObserver: NSObjectProtocol?
   private var statusBarItem: NSStatusItem?
   private var screenCaptureSwitch: NSSwitch?
   private var audioRecordingSwitch: NSSwitch?
@@ -434,7 +435,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       object: nil,
       queue: .main
     ) { [weak self] _ in
-      self?.updateOnboardingLifecyclePolicy(reason: "user_defaults_changed")
+      guard let self = self else { return }
+      Task { @MainActor in
+        self.updateOnboardingLifecyclePolicy(reason: "user_defaults_changed")
+        self.applyDockIconVisibilityPolicy(reason: "user_defaults_changed")
+      }
+    }
+    dockIconVisibilityObserver = NotificationCenter.default.addObserver(
+      forName: .dockIconVisibilityPreferenceDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      guard let self = self else { return }
+      Task { @MainActor in
+        self.applyDockIconVisibilityPolicy(reason: "preference_changed")
+      }
     }
 
     // Track launch at login status once per app launch
@@ -457,8 +472,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Register Carbon-based global shortcuts for floating control bar (Ask Omi)
     GlobalShortcutManager.shared.registerShortcuts()
 
-    // Ensure app always shows in dock as a regular app
-    NSApp.setActivationPolicy(.regular)
+    applyDockIconVisibilityPolicy(reason: "launch")
 
     // Set up menu bar icon with NSStatusBar (more reliable than SwiftUI MenuBarExtra)
     // Called synchronously on main thread to ensure status item is created before app finishes launching
@@ -670,7 +684,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     log("AppDelegate: Hotkey is Ctrl+Option+R (⌃⌥R), Ask Omi via Carbon hotkeys")
   }
 
-  // Dock icon is always visible — LSUIElement=false and activation policy stays .regular
+  @MainActor private func applyDockIconVisibilityPolicy(reason: String) {
+    let hidesDockIcon = DockIconVisibilitySettings().hidesDockIcon
+    let policy = DockIconVisibilitySettings.activationPolicy(hidesDockIcon: hidesDockIcon)
+    guard NSApp.activationPolicy() != policy else { return }
+
+    NSApp.setActivationPolicy(policy)
+    log(
+      "AppDelegate: Dock icon visibility updated (hidden=\(hidesDockIcon), policy=\(policy), reason=\(reason))"
+    )
+
+    if statusBarItem != nil {
+      refreshMenuBarIcon()
+    }
+  }
 
   private func makeMenuBarLogoIcon() -> NSImage {
     let imageSize = NSSize(width: 18, height: 18)
@@ -909,7 +936,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       Self.openMainWindow?()
       foundWindow = revealMainWindowIfAvailable()
     }
-    // Dock icon is always visible; just activate the app
     NSApp.activate()
     if !foundWindow {
       log("AppDelegate: [MENUBAR] WARNING - No Omi window found when opening from menu bar")
@@ -1100,6 +1126,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     if let observer = userDefaultsObserver {
       NotificationCenter.default.removeObserver(observer)
       userDefaultsObserver = nil
+    }
+    if let observer = dockIconVisibilityObserver {
+      NotificationCenter.default.removeObserver(observer)
+      dockIconVisibilityObserver = nil
     }
     // Remove hotkey monitors
     if let monitor = globalHotkeyMonitor {
