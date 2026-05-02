@@ -82,6 +82,7 @@ final class QuickActionsIconPatcher: NSObject {
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private var methodChannel: FlutterMethodChannel?
+  private var deepLinkChannel: FlutterMethodChannel?
   private var appleRemindersChannel: FlutterMethodChannel?
   private var appleHealthChannel: FlutterMethodChannel?
   private let appleRemindersService = AppleRemindersService()
@@ -128,17 +129,20 @@ final class QuickActionsIconPatcher: NSObject {
           NSLog("[OmiBle] ERROR: Could not get FlutterBinaryMessenger")
       }
 
-      // Retrieve the link from parameters
-    if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
-      // We have a link, propagate it to your Flutter app or not
-      AppLinks.shared.handleLink(url: url)
-      return true // Returning true will stop the propagation to other packages
-    }
     //Creates a method channel to handle notifications on kill
     let controller = window?.rootViewController as? FlutterViewController
     methodChannel = FlutterMethodChannel(name: "com.friend.ios/notifyOnKill", binaryMessenger: controller!.binaryMessenger)
     methodChannel?.setMethodCallHandler { [weak self] (call, result) in
       self?.handleMethodCall(call, result: result)
+    }
+
+    // Direct deep-link fallback for OAuth callbacks. The app_links plugin also
+    // receives these links, but this channel keeps auth working if a callback
+    // arrives before Flutter has attached its stream listener.
+    deepLinkChannel = FlutterMethodChannel(name: "com.omi/deep_links", binaryMessenger: controller!.binaryMessenger)
+    if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
+      forwardDeepLink(url)
+      AppLinks.shared.handleLink(url: url)
     }
     
     // Create Apple Reminders method channel
@@ -240,6 +244,24 @@ final class QuickActionsIconPatcher: NSObject {
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    forwardDeepLink(url)
+    AppLinks.shared.handleLink(url: url)
+    let handledByFlutter = super.application(app, open: url, options: options)
+    return handledByFlutter || url.scheme == "omi"
+  }
+
+  private func forwardDeepLink(_ url: URL) {
+    guard url.scheme == "omi" else { return }
+    DispatchQueue.main.async { [weak self] in
+      self?.deepLinkChannel?.invokeMethod("onDeepLink", arguments: url.absoluteString)
+    }
   }
 
   private func handleMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
