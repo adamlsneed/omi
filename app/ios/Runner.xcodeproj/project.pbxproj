@@ -561,7 +561,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a sc# Type a script or drag a script file from your workspace to insert its path.\nDEV_GOOGLE_PLIST=\"${PROJECT_DIR}/Config/Dev\"\nPROD_GOOGLE_PLIST=\"${PROJECT_DIR}/Config/Prod\"\n\necho \"build config is ${CONFIGURATION}\"\n\ncase \"${CONFIGURATION}\" in\n\n   \"Debug-dev\" | \"AdHoc_Staging\" | \"Release-dev\" | \"Debug\")\n        cp -r \"$DEV_GOOGLE_PLIST/GoogleService-Info.plist\" \"${PROJECT_DIR}/Runner/GoogleService-Info.plist\" ;;\n   \"Debug-prod\" | \"Profile\" |\"Release-prod\" |\"Release\")\n        cp -r \"$PROD_GOOGLE_PLIST/GoogleService-Info.plist\" \"${PROJECT_DIR}/Runner/GoogleService-Info.plist\" ;;\n\n    *)\n        ;;\nesac\n";
+			shellScript = "# Type a script or drag a sc# Type a script or drag a script file from your workspace to insert its path.\nDEV_GOOGLE_PLIST=\"${PROJECT_DIR}/Config/Dev\"\nPROD_GOOGLE_PLIST=\"${PROJECT_DIR}/Config/Prod\"\n\necho \"build config is ${CONFIGURATION}\"\n\ncase \"${CONFIGURATION}\" in\n\n   \"Debug-dev\" | \"Profile-dev\" | \"AdHoc_Staging\" | \"Release-dev\" | \"Debug\")\n        cp -r \"$DEV_GOOGLE_PLIST/GoogleService-Info.plist\" \"${PROJECT_DIR}/Runner/GoogleService-Info.plist\" ;;\n   \"Debug-prod\" | \"Profile-prod\" | \"Profile\" |\"Release-prod\" |\"Release\")\n        cp -r \"$PROD_GOOGLE_PLIST/GoogleService-Info.plist\" \"${PROJECT_DIR}/Runner/GoogleService-Info.plist\" ;;\n\n    *)\n        ;;\nesac\n";
 		};
 		5E0F0CE2C49A24EAD456EE00 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;

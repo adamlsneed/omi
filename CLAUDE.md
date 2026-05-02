@@ -78,6 +78,11 @@ See service descriptions in AGENTS.md. Update both files when service boundaries
 ### Firebase Prod Config
 Never run `flutterfire configure` — it overwrites prod credentials. Prod config files in `app/ios/Config/Prod/`, `app/lib/firebase_options_prod.dart`, `app/android/app/src/prod/`.
 
+### Hosted Backend Config
+- Local/dev builds should use Omi's hosted backend when the user is testing against their paid Omi subscription.
+- Do not commit personal custom API endpoints, private backend URLs, or user-specific API credentials into the app. Keep those in local ignored env files or runtime configuration only.
+- When testing hosted auth locally, prefer the Omi auth exchange (`API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`) over direct dev Firebase tokens unless explicitly testing a local backend.
+
 ### Verifying UI Changes (agent-flutter)
 After editing Flutter UI code, **verify programmatically** — don't just hot restart and hope.
 
@@ -188,6 +193,7 @@ Files ending in `.gen.dart` or `.g.dart` are auto-generated — don't format man
 ### Rules
 - Always commit to the current branch — never switch branches.
 - Never push directly to `main`. Land changes through PRs only.
+- Never open pull requests against the upstream BasedHardware/omi repository. Upstream is fetch-only for pulling the creator team's changes; all pushed branches and PRs must target the user's fork (`origin`).
 - Never squash merge PRs — use regular merge.
 - Make individual commits per file, not bulk commits.
 - If push fails (remote ahead): `git pull --rebase && git push`.
