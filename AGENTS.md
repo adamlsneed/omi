@@ -15,6 +15,7 @@ These rules apply to Codex when working in this repository.
 
 - Never kill, stop, or restart the production macOS app (`/Applications/omi.app`, bundle id `com.omi.computer-macos`) during local development or testing.
 - Development scripts/commands must target only dev app processes (for example `Omi Dev.app` / `com.omi.desktop-dev`), never production.
+- Never configure or default the actively used app to user-supplied/BYOK AI/API keys. Normal Omi AI/API access must stay routed through the backend and company-managed provider credentials.
 
 ## Coding Guidelines
 

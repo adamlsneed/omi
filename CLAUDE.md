@@ -32,6 +32,7 @@ cd app && bash setup.sh ios    # or: bash setup.sh android
 - **Import hierarchy** (low → high): `database/` → `utils/` → `routers/` → `main.py`. Never import upward.
 - **Memory management** — `del` byte arrays after processing, `.clear()` dicts/lists holding data.
 - **Async I/O** — never `requests.*` in async (use `httpx.AsyncClient` pools from `utils/http_client.py`), never `Thread().start().join()` (use `critical_executor`/`storage_executor`), never `time.sleep()` in async (use `asyncio.sleep()`). Run `python scripts/lint_async_blockers.py` before committing.
+- **AI/API credential routing** — never configure or default the actively used app to user-supplied/BYOK AI/API keys. Normal Omi AI/API access must stay routed through the backend and company-managed provider credentials.
 
 ### Logging Security
 Never log raw sensitive data. Use `sanitize()` and `sanitize_pii()` from `utils.log_sanitizer`.
