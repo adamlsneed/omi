@@ -63,6 +63,10 @@ sys.modules["database.notifications"].get_mentor_notification_frequency = MagicM
 sys.modules["database.conversations"].get_conversations_by_id = MagicMock(return_value=[])
 sys.modules["database.goals"].get_user_goals = MagicMock(return_value=[])
 
+utils_pkg = sys.modules.setdefault("utils", types.ModuleType("utils"))
+if not hasattr(utils_pkg, "__path__"):
+    utils_pkg.__path__ = [os.path.join(os.path.dirname(__file__), "..", "..", "utils")]
+
 for name in [
     "utils.apps",
     "utils.notifications",
@@ -83,6 +87,7 @@ sys.modules["utils.apps"].get_available_apps = MagicMock(return_value=[])
 sys.modules["utils.notifications"].send_notification = MagicMock()
 sys.modules["utils.llm.clients"].generate_embedding = MagicMock(return_value=[0] * 3072)
 sys.modules["utils.mentor_notifications"].process_mentor_notification = MagicMock(return_value=None)
+setattr(sys.modules["utils"], "mentor_notifications", sys.modules["utils.mentor_notifications"])
 sys.modules["utils.log_sanitizer"].sanitize = MagicMock(side_effect=lambda x: x)
 sys.modules["utils.log_sanitizer"].sanitize_pii = MagicMock(side_effect=lambda x: x)
 

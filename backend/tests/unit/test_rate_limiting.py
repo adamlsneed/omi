@@ -17,6 +17,7 @@ for mod_name in [
     'google.cloud.firestore',
     'database.redis_db',
     'database.auth',
+    'database.users',
 ]:
     if mod_name not in sys.modules:
         sys.modules[mod_name] = types.ModuleType(mod_name)
@@ -56,6 +57,7 @@ def _check_rate_limit(key, policy, max_requests, window):
 
 
 redis_db_stub.check_rate_limit = _check_rate_limit
+sys.modules['database.users'].record_user_platform = MagicMock()
 
 from utils.rate_limit_config import RATE_POLICIES, get_effective_limit, RATE_LIMIT_BOOST
 
@@ -481,16 +483,20 @@ class TestRealCheckRateLimit(unittest.TestCase):
 
     def test_lua_script_has_ttl_self_heal(self):
         """Verify the registered Lua script contains TTL self-heal logic."""
-        # register_script was called with the Lua source
-        call_args = self.real_module.r.register_script.call_args
-        lua_source = call_args[0][0]
+        lua_sources = [call_args[0][0] for call_args in self.real_module.r.register_script.call_args_list]
+        lua_source = next(
+            source for source in lua_sources if "local key = KEYS[1]" in source and "redis.call('INCR', key)" in source
+        )
         self.assertIn('TTL', lua_source)
         self.assertIn('ttl < 0', lua_source)
         self.assertIn('EXPIRE', lua_source)
 
     def test_lua_script_uses_incr(self):
         """Verify Lua uses INCR for atomic counter."""
-        lua_source = self.real_module.r.register_script.call_args[0][0]
+        lua_sources = [call_args[0][0] for call_args in self.real_module.r.register_script.call_args_list]
+        lua_source = next(
+            source for source in lua_sources if "local key = KEYS[1]" in source and "redis.call('INCR', key)" in source
+        )
         self.assertIn('INCR', lua_source)
 
     def test_real_check_rate_limit_key_format(self):

@@ -288,6 +288,7 @@ struct SettingsContentView: View {
 
   // Dev Mode setting
   @AppStorage("devModeEnabled") private var devModeEnabled = false
+  @AppStorage(DockIconVisibilitySettings.hideDockIconKey) private var hidesDockIcon = false
 
   // Browser Extension settings
   @AppStorage("playwrightUseExtension") private var playwrightUseExtension = true
@@ -781,6 +782,46 @@ struct SettingsContentView: View {
                 .fill(OmiColors.warning.opacity(0.1))
             )
           }
+        }
+      }
+
+      // Dock Icon toggle
+      settingsCard(settingId: "general.dockicon") {
+        HStack(spacing: 16) {
+          Image(systemName: "dock.rectangle")
+            .scaledFont(size: 16)
+            .foregroundColor(OmiColors.purplePrimary)
+            .frame(width: 12)
+
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Dock Icon")
+              .scaledFont(size: 16, weight: .semibold)
+              .foregroundColor(OmiColors.textPrimary)
+
+            Text(
+              hidesDockIcon
+                ? "Hidden from Dock and app switcher"
+                : "Visible in Dock and app switcher"
+            )
+              .scaledFont(size: 13)
+              .foregroundColor(OmiColors.textTertiary)
+          }
+
+          Spacer()
+
+          Toggle(
+            "",
+            isOn: Binding(
+              get: { hidesDockIcon },
+              set: { newValue in
+                hidesDockIcon = newValue
+                NotificationCenter.default.post(
+                  name: .dockIconVisibilityPreferenceDidChange, object: nil)
+              }
+            )
+          )
+          .toggleStyle(.switch)
+          .labelsHidden()
         }
       }
 

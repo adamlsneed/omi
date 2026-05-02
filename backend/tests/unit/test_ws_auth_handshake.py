@@ -7,6 +7,8 @@ Verifies that:
 """
 
 import asyncio
+import sys
+import types
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -14,6 +16,13 @@ from fastapi import FastAPI, WebSocket, WebSocketException, Depends
 from fastapi.testclient import TestClient
 from firebase_admin.auth import InvalidIdTokenError
 from starlette.websockets import WebSocketDisconnect
+
+# This test only exercises endpoint auth behavior. Avoid importing the real
+# Firestore-backed database.users module while collecting tests locally.
+if 'database.users' not in sys.modules:
+    users_db_stub = types.ModuleType('database.users')
+    users_db_stub.record_user_platform = MagicMock()
+    sys.modules['database.users'] = users_db_stub
 
 from utils.other.endpoints import get_current_user_uid_ws_listen, get_current_user_uid_ws, get_current_user_uid
 

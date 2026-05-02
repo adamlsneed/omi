@@ -15,6 +15,7 @@ These rules apply to Codex when working in this repository.
 
 - Never kill, stop, or restart the production macOS app (`/Applications/omi.app`, bundle id `com.omi.computer-macos`) during local development or testing.
 - Development scripts/commands must target only dev app processes (for example `Omi Dev.app` / `com.omi.desktop-dev`), never production.
+- Never configure or default the actively used app to user-supplied/BYOK AI/API keys. Normal Omi AI/API access must stay routed through the backend and company-managed provider credentials.
 
 ## Coding Guidelines
 
@@ -138,7 +139,7 @@ Always format code after making changes. The pre-commit hook handles this automa
 
 - Never push directly to `main`.
 - Never merge directly from a local branch. Land changes through a PR only.
-- Never open pull requests against the upstream BasedHardware/omi repository. Upstream is fetch-only for pulling the creator team's changes; all pushed branches and PRs must target the user's fork (`origin`).
+- Never open pull requests against the upstream `BasedHardware/omi` repository. Upstream is read-only/fetch-only for pulling the creator team's changes; all pushed branches and PRs must target the user's fork (`origin`).
 - When a change should go remote, create or use a feature branch, commit there, open/update a PR, and merge via the PR.
 - Always work in a git worktree for code changes. Use `EnterWorktree` at the start of a task to isolate your work.
 - Before creating a worktree or branch, run `git fetch origin && git pull --ff-only` on `main` — don't branch off stale local state.

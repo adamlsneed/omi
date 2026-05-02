@@ -87,6 +87,19 @@ os.environ.setdefault('DEEPGRAM_API_KEY', 'fake-for-test')
 os.environ.setdefault('ENCRYPTION_SECRET', 'omi_ZwB2ZNqB2HHpMK6wStk7sTpavJiPTFg7gXUHnc4tFABPU6pZ2c2DKgehtfgi4RZv')
 
 
+class _NoopExecutor:
+    def submit(self, *args, **kwargs):
+        future = MagicMock()
+        future.result.return_value = None
+        return future
+
+
+_executors = ModuleType('utils.executors')
+_executors.critical_executor = _NoopExecutor()
+_executors.storage_executor = _NoopExecutor()
+sys.modules.setdefault('utils.executors', _executors)
+
+
 # ---------------------------------------------------------------------------
 # deepgram_prerecorded: keywords parameter
 # ---------------------------------------------------------------------------
@@ -695,9 +708,9 @@ class TestBuildPersonEmbeddingsCache:
 
         mock_users_db.get_user_speaker_embedding.return_value = None
         mock_users_db.get_people.return_value = [
-            {'id': 'p1', 'name': 'Alice', 'speaker_embedding': [0.2] * 512},
+            {'id': 'p1', 'name': 'Alice', 'speaker_embedding': [0.2] * 512, 'speech_samples': ['sample1']},
             {'id': 'p2', 'name': 'Bob'},  # no embedding
-            {'id': 'p3', 'name': 'Carol', 'speaker_embedding': [0.3] * 512},
+            {'id': 'p3', 'name': 'Carol', 'speaker_embedding': [0.3] * 512, 'speech_samples': ['sample3']},
         ]
 
         cache = build_person_embeddings_cache('uid1')
@@ -1213,24 +1226,24 @@ class TestSyncEndpointSpeakerIdWiring:
 class TestDownloadAudioBytes:
     """Verify _download_audio_bytes handles success and failure."""
 
-    @patch('routers.sync.requests')
-    def test_download_success(self, mock_requests):
+    @patch('routers.sync.httpx')
+    def test_download_success(self, mock_httpx):
         from routers.sync import _download_audio_bytes
 
         mock_resp = MagicMock()
         mock_resp.content = b'wav-bytes'
         mock_resp.raise_for_status.return_value = None
-        mock_requests.get.return_value = mock_resp
+        mock_httpx.get.return_value = mock_resp
 
         result = _download_audio_bytes('http://example.com/audio.wav')
         assert result == b'wav-bytes'
-        mock_requests.get.assert_called_once_with('http://example.com/audio.wav', timeout=60)
+        mock_httpx.get.assert_called_once_with('http://example.com/audio.wav', timeout=60.0)
 
-    @patch('routers.sync.requests')
-    def test_download_failure_returns_none(self, mock_requests):
+    @patch('routers.sync.httpx')
+    def test_download_failure_returns_none(self, mock_httpx):
         from routers.sync import _download_audio_bytes
 
-        mock_requests.get.side_effect = Exception("Connection refused")
+        mock_httpx.get.side_effect = Exception("Connection refused")
 
         result = _download_audio_bytes('http://example.com/audio.wav')
         assert result is None

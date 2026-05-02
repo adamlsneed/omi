@@ -595,6 +595,10 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
         def __init__(self, **kwargs):
             pass
 
+    class FakeChatGoogleGenerativeAI:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
     # Temporarily remove cached module so we get a fresh load
     saved = sys.modules.pop("utils.llm.clients_real", None)
 
@@ -609,6 +613,7 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
     # Read source, replace imports, exec in isolated namespace
     source = (BACKEND_DIR / "utils" / "llm" / "clients.py").read_text()
     source = source.replace("from langchain_openai import ChatOpenAI, OpenAIEmbeddings", "")
+    source = source.replace("from langchain_google_genai import ChatGoogleGenerativeAI", "")
     source = source.replace("import tiktoken", "")
     source = source.replace("import anthropic", "")
     source = source.replace("from langchain_core.output_parsers import PydanticOutputParser", "")
@@ -623,6 +628,7 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
         "os": os,
         "ChatOpenAI": FakeChatOpenAI,
         "OpenAIEmbeddings": FakeOpenAIEmbeddings,
+        "ChatGoogleGenerativeAI": FakeChatGoogleGenerativeAI,
         "tiktoken": fake_tiktoken,
         "anthropic": fake_anthropic,
         "PydanticOutputParser": MagicMock(),
