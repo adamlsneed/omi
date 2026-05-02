@@ -1,12 +1,15 @@
 """Tests for the LLM fair-use classifier (utils/llm/fair_use_classifier.py)."""
 
 import json
+import os
 import sys
 import types
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+os.environ.setdefault('OPENAI_API_KEY', 'sk-test-fake-for-unit-tests')
 
 # ---------------------------------------------------------------------------
 # Stub heavy dependencies before importing the module under test
@@ -33,6 +36,8 @@ _llm_clients.llm_mini = MagicMock()
 sys.modules.setdefault('utils.llm.clients', _llm_clients)
 
 import utils.llm.fair_use_classifier as classifier_mod
+
+classifier_mod._classifier_llm = _llm_clients.llm_mini
 
 
 class TestSelectRecipes:
