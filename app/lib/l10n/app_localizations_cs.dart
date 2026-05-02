@@ -1707,7 +1707,12 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'ZAŘÍZENÍ', one: 'ZAŘÍZENÍ');
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ZAŘÍZENÍ',
+      one: 'ZAŘÍZENÍ',
+    );
     return '$count $_temp0 NALEZENO V BLÍZKOSTI';
   }
 
