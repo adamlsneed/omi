@@ -72,6 +72,8 @@ If a PR changes how audio streaming, transcription, conversation lifecycle, spea
 - All user-facing strings must use l10n (`context.l10n.keyName`). Add keys to ARB files using `jq` to avoid reading large files.
 - When adding new l10n keys, translate all 33 non-English locales — never leave English text in non-English ARB files. Use `omi-add-missing-language-keys-l10n` skill for translations. Ensure `{parameter}` placeholders match the English ARB exactly.
 - After modifying ARB files in `app/lib/l10n/`, regenerate localizations: `cd app && flutter gen-l10n`
+- Local/dev builds should use Omi's hosted backend when the user is testing against their paid Omi subscription. Do not commit personal custom API endpoints, private backend URLs, or user-specific API credentials into the app; keep those in local ignored env files or runtime configuration.
+- When testing hosted auth locally, prefer the Omi auth exchange (`API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`) over direct dev Firebase tokens unless explicitly testing a local backend.
 
 #### Verifying UI Changes (agent-flutter)
 
@@ -137,7 +139,7 @@ Always format code after making changes. The pre-commit hook handles this automa
 
 - Never push directly to `main`.
 - Never merge directly from a local branch. Land changes through a PR only.
-- Never submit PRs to `BasedHardware/omi`; treat it as a read-only upstream for fetching, comparing, merging, or cherry-picking fixes into this fork.
+- Never open pull requests against the upstream `BasedHardware/omi` repository. Upstream is read-only/fetch-only for pulling the creator team's changes; all pushed branches and PRs must target the user's fork (`origin`).
 - When a change should go remote, create or use a feature branch, commit there, open/update a PR, and merge via the PR.
 - Always work in a git worktree for code changes. Use `EnterWorktree` at the start of a task to isolate your work.
 - Before creating a worktree or branch, run `git fetch origin && git pull --ff-only` on `main` — don't branch off stale local state.

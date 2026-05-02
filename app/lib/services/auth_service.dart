@@ -206,6 +206,12 @@ class AuthService {
   // Method channel for direct deep link delivery (fallback for app_links)
   static const _deepLinkChannel = MethodChannel('com.omi/deep_links');
 
+  Future<bool> _launchOAuthUrl(Uri authUri) {
+    final launchMode =
+        defaultTargetPlatform == TargetPlatform.iOS ? LaunchMode.externalApplication : LaunchMode.inAppBrowserView;
+    return launchUrl(authUri, mode: launchMode);
+  }
+
   Future<UserCredential?> authenticateWithProvider(String provider) async {
     try {
       final state = _generateState();
@@ -262,7 +268,7 @@ class AuthService {
       });
 
       // Now launch the URL
-      final launched = await launchUrl(Uri.parse(authUrl), mode: LaunchMode.inAppBrowserView);
+      final launched = await _launchOAuthUrl(Uri.parse(authUrl));
 
       if (!launched) {
         linkSubscription.cancel();
@@ -558,7 +564,7 @@ class AuthService {
 
       Logger.debug('Authorization URL: $authUrl');
 
-      final launched = await launchUrl(Uri.parse(authUrl), mode: LaunchMode.inAppBrowserView);
+      final launched = await _launchOAuthUrl(Uri.parse(authUrl));
 
       if (!launched) {
         throw Exception('Failed to launch authentication URL');
