@@ -8415,12 +8415,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String nConversationsCreated(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '대화 $count개 생성됨',
-      one: '대화 1개 생성됨',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '대화 $count개 생성됨', one: '대화 1개 생성됨');
     return '$_temp0';
   }
 
@@ -9020,4 +9015,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Omi에게 무엇이든 물어보세요';
+
+  @override
+  String get record => '녹음';
+
+  @override
+  String get stop => '중지';
+
+  @override
+  String get recordWithPhoneMic => '휴대폰 마이크로 녹음';
+
+  @override
+  String get recordWithPhoneMicSubtitle => '주변 오디오를 캡처하세요';
+
+  @override
+  String get phoneCall => '전화 통화';
+
+  @override
+  String get phoneCallSubtitle => '실시간 전사로 통화 녹음';
 }

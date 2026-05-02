@@ -1708,12 +1708,7 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'DEVICES',
-      one: 'DEVICE',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'DEVICES', one: 'DEVICE');
     return '$count $_temp0 FOUND NEARBY';
   }
 
@@ -8581,12 +8576,7 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String nConversationsCreated(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 's',
-      one: '',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 's', one: '');
     return '$count conversation$_temp0 created';
   }
 
@@ -9194,4 +9184,22 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Спытайце ў Омі што заўгодна';
+
+  @override
+  String get record => 'Запісаць';
+
+  @override
+  String get stop => 'Спыніць';
+
+  @override
+  String get recordWithPhoneMic => 'Запіс мікрафонам тэлефона';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Запісвайце гук вакол сябе';
+
+  @override
+  String get phoneCall => 'Тэлефонны званок';
+
+  @override
+  String get phoneCallSubtitle => 'Запіс званка з жывой транскрыпцыяй';
 }

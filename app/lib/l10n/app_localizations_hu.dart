@@ -1717,12 +1717,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'ESZKÖZ',
-      one: 'ESZKÖZ',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'ESZKÖZ', one: 'ESZKÖZ');
     return '$count $_temp0 TALÁLHATÓ A KÖZELBEN';
   }
 
@@ -9207,4 +9202,22 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Kérdezz meg bármit Omitól';
+
+  @override
+  String get record => 'Felvétel';
+
+  @override
+  String get stop => 'Leállítás';
+
+  @override
+  String get recordWithPhoneMic => 'Felvétel a telefon mikrofonjával';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Rögzítse a környezete hangját';
+
+  @override
+  String get phoneCall => 'Telefonhívás';
+
+  @override
+  String get phoneCallSubtitle => 'Hívás rögzítése élő átirattal';
 }

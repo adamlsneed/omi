@@ -1711,12 +1711,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'PERANGKAT',
-      one: 'PERANGKAT',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'PERANGKAT', one: 'PERANGKAT');
     return '$count $_temp0 DITEMUKAN DI SEKITAR';
   }
 
@@ -9178,4 +9173,22 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Tanyakan apa saja kepada Omi';
+
+  @override
+  String get record => 'Rekam';
+
+  @override
+  String get stop => 'Hentikan';
+
+  @override
+  String get recordWithPhoneMic => 'Rekam dengan mikrofon ponsel';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Tangkap audio di sekitar Anda';
+
+  @override
+  String get phoneCall => 'Panggilan telepon';
+
+  @override
+  String get phoneCallSubtitle => 'Rekam panggilan dengan transkripsi langsung';
 }

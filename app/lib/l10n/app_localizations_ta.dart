@@ -1715,12 +1715,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'DEVICES',
-      one: 'DEVICE',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'DEVICES', one: 'DEVICE');
     return '$count $_temp0 FOUND NEARBY';
   }
 
@@ -8618,12 +8613,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String nConversationsCreated(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 's',
-      one: '',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 's', one: '');
     return '$count conversation$_temp0 created';
   }
 
@@ -9237,4 +9227,22 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Omi ஐ எதையும் கேளுங்கள்';
+
+  @override
+  String get record => 'பதிவு';
+
+  @override
+  String get stop => 'நிறுத்து';
+
+  @override
+  String get recordWithPhoneMic => 'போன் மைக்கில் பதிவு செய்யவும்';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'உங்களைச் சுற்றியுள்ள ஒலியைப் பதிவு செய்யவும்';
+
+  @override
+  String get phoneCall => 'தொலைபேசி அழைப்பு';
+
+  @override
+  String get phoneCallSubtitle => 'நேரடி படியெடுத்தலுடன் அழைப்பைப் பதிவு செய்யவும்';
 }

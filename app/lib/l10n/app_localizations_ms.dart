@@ -1712,12 +1712,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'PERANTI',
-      one: 'PERANTI',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'PERANTI', one: 'PERANTI');
     return '$count $_temp0 DIJUMPAI BERDEKATAN';
   }
 
@@ -9192,4 +9187,22 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Tanya Omi apa sahaja';
+
+  @override
+  String get record => 'Rakam';
+
+  @override
+  String get stop => 'Hentikan';
+
+  @override
+  String get recordWithPhoneMic => 'Rakam dengan mikrofon telefon';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Tangkap audio di sekeliling anda';
+
+  @override
+  String get phoneCall => 'Panggilan telefon';
+
+  @override
+  String get phoneCallSubtitle => 'Rakam panggilan dengan transkripsi langsung';
 }

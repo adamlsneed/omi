@@ -1706,12 +1706,7 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'DEVICES',
-      one: 'DEVICE',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'DEVICES', one: 'DEVICE');
     return '$count $_temp0 FOUND NEARBY';
   }
 
@@ -8579,12 +8574,7 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String nConversationsCreated(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 's',
-      one: '',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 's', one: '');
     return '$count conversation$_temp0 created';
   }
 
@@ -9192,4 +9182,22 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Vprašajte Omi karkoli';
+
+  @override
+  String get record => 'Posnemi';
+
+  @override
+  String get stop => 'Ustavi';
+
+  @override
+  String get recordWithPhoneMic => 'Snemaj s telefonskim mikrofonom';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Posnemite zvok okoli sebe';
+
+  @override
+  String get phoneCall => 'Telefonski klic';
+
+  @override
+  String get phoneCallSubtitle => 'Posnemite klic s prepisom v živo';
 }

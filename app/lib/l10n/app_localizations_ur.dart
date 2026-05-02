@@ -1705,12 +1705,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'DEVICES',
-      one: 'DEVICE',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'DEVICES', one: 'DEVICE');
     return '$count $_temp0 FOUND NEARBY';
   }
 
@@ -8570,12 +8565,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String nConversationsCreated(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 's',
-      one: '',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 's', one: '');
     return '$count conversation$_temp0 created';
   }
 
@@ -9185,4 +9175,22 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Omi سے کچھ بھی پوچھیں';
+
+  @override
+  String get record => 'ریکارڈ کریں';
+
+  @override
+  String get stop => 'روکیں';
+
+  @override
+  String get recordWithPhoneMic => 'فون مائیک سے ریکارڈ کریں';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'اپنے ارد گرد کی آواز ریکارڈ کریں';
+
+  @override
+  String get phoneCall => 'فون کال';
+
+  @override
+  String get phoneCallSubtitle => 'لائیو ٹرانسکرپشن کے ساتھ کال ریکارڈ کریں';
 }

@@ -1707,12 +1707,7 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'ZAŘÍZENÍ',
-      one: 'ZAŘÍZENÍ',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'ZAŘÍZENÍ', one: 'ZAŘÍZENÍ');
     return '$count $_temp0 NALEZENO V BLÍZKOSTI';
   }
 
@@ -9164,4 +9159,22 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Zeptejte se Omi na cokoliv';
+
+  @override
+  String get record => 'Nahrát';
+
+  @override
+  String get stop => 'Zastavit';
+
+  @override
+  String get recordWithPhoneMic => 'Nahrát mikrofonem telefonu';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Zaznamenávejte zvuk kolem vás';
+
+  @override
+  String get phoneCall => 'Telefonní hovor';
+
+  @override
+  String get phoneCallSubtitle => 'Nahrávejte hovor s živým přepisem';
 }

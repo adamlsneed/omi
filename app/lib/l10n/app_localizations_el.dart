@@ -1718,12 +1718,7 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'ΣΥΣΚΕΥΕΣ',
-      one: 'ΣΥΣΚΕΥΗ',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'ΣΥΣΚΕΥΕΣ', one: 'ΣΥΣΚΕΥΗ');
     return '$count $_temp0 ΒΡΕΘΗΚΑΝ ΚΟΝΤΑ';
   }
 
@@ -9233,4 +9228,22 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Ρωτήστε τον Omi οτιδήποτε';
+
+  @override
+  String get record => 'Εγγραφή';
+
+  @override
+  String get stop => 'Διακοπή';
+
+  @override
+  String get recordWithPhoneMic => 'Εγγραφή με μικρόφωνο τηλεφώνου';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Καταγράψτε ήχο γύρω σας';
+
+  @override
+  String get phoneCall => 'Τηλεφωνική κλήση';
+
+  @override
+  String get phoneCallSubtitle => 'Καταγράψτε κλήση με ζωντανή μεταγραφή';
 }

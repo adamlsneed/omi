@@ -1710,12 +1710,7 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'УСТРОЙСТВА',
-      one: 'УСТРОЙСТВО',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'УСТРОЙСТВА', one: 'УСТРОЙСТВО');
     return '$count $_temp0 НАМЕРЕНИ НАБЛИЗО';
   }
 
@@ -9203,4 +9198,22 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get quickActionAskOmi => 'Попитайте Omi всичко';
+
+  @override
+  String get record => 'Запис';
+
+  @override
+  String get stop => 'Спри';
+
+  @override
+  String get recordWithPhoneMic => 'Запис с микрофона на телефона';
+
+  @override
+  String get recordWithPhoneMicSubtitle => 'Заснемайте звук около вас';
+
+  @override
+  String get phoneCall => 'Телефонно обаждане';
+
+  @override
+  String get phoneCallSubtitle => 'Записвайте обаждане с транскрипция в реално време';
 }
