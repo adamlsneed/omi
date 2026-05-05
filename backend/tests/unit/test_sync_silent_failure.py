@@ -586,6 +586,7 @@ from unittest.mock import MagicMock, patch
 _STUB_MODULES = [
     'models',
     'models.conversation',
+    'models.conversation_enums',
     'models.transcript_segment',
     'database._client',
     'database.redis_db',
@@ -593,10 +594,12 @@ _STUB_MODULES = [
     'database.users',
     'database.user_usage',
     'database.conversations',
+    'database.sync_jobs',
     'firebase_admin',
     'firebase_admin.messaging',
     'opuslib',
     'pydub',
+    'utils.conversations.factory',
     'utils.other.endpoints',
     'utils.other.storage',
     'utils.log_sanitizer',
@@ -604,6 +607,10 @@ _STUB_MODULES = [
     'utils.stt.pre_recorded',
     'utils.stt.vad',
     'utils.fair_use',
+    'utils.speaker_assignment',
+    'utils.speaker_identification',
+    'utils.stt.speaker_embedding',
+    'utils.executors',
     'utils.subscription',
     'utils.conversations.process_conversation',
 ]
@@ -629,6 +636,7 @@ class TestProcessSegmentReal:
         # Install stubs
         for mod_name in _STUB_MODULES:
             sys.modules[mod_name] = ModuleType(mod_name)
+        sys.modules['models'].__path__ = []
 
         sys.modules['database.redis_db'].r = MagicMock()
         sys.modules['database._client'].db = MagicMock()
@@ -637,8 +645,18 @@ class TestProcessSegmentReal:
         _mock_conv_db.update_conversation_segments = MagicMock()
         _mock_conv_db.update_conversation = MagicMock()
         _mock_conv_db.get_conversation = MagicMock()
+        _mock_sync_jobs = sys.modules['database.sync_jobs']
+        _mock_sync_jobs.create_sync_job = MagicMock()
+        _mock_sync_jobs.get_sync_job = MagicMock()
+        _mock_sync_jobs.update_sync_job = MagicMock()
+        _mock_sync_jobs.mark_job_processing = MagicMock()
+        _mock_sync_jobs.mark_job_completed = MagicMock()
+        _mock_sync_jobs.mark_job_failed = MagicMock()
         sys.modules['opuslib'].Decoder = MagicMock()
         sys.modules['pydub'].AudioSegment = MagicMock()
+        sys.modules['utils.executors'].critical_executor = MagicMock()
+        sys.modules['utils.executors'].storage_executor = MagicMock()
+        sys.modules['utils.conversations.factory'].deserialize_conversation = MagicMock()
         sys.modules['utils.other.endpoints'].get_current_user_uid = MagicMock()
         sys.modules['utils.other.storage'].get_syncing_file_temporal_signed_url = MagicMock(return_value='https://fake')
         sys.modules['utils.other.storage'].delete_syncing_temporal_file = MagicMock()
@@ -648,6 +666,7 @@ class TestProcessSegmentReal:
         sys.modules['utils.log_sanitizer'].sanitize = lambda value: value
         sys.modules['utils.encryption'].encrypt = MagicMock()
         sys.modules['utils.stt.pre_recorded'].deepgram_prerecorded = MagicMock()
+        sys.modules['utils.stt.pre_recorded'].get_deepgram_model_for_language = MagicMock(return_value=('en', 'nova-3'))
         sys.modules['utils.stt.pre_recorded'].postprocess_words = MagicMock()
         sys.modules['utils.stt.vad'].vad_is_empty = MagicMock()
         sys.modules['utils.fair_use'].FAIR_USE_ENABLED = False
@@ -660,6 +679,11 @@ class TestProcessSegmentReal:
         sys.modules['utils.fair_use'].is_dg_budget_exhausted = MagicMock(return_value=False)
         sys.modules['utils.fair_use'].get_enforcement_stage = MagicMock(return_value='off')
         sys.modules['utils.fair_use'].record_dg_usage_ms = MagicMock()
+        sys.modules['utils.speaker_assignment'].process_speaker_assigned_segments = MagicMock()
+        sys.modules['utils.speaker_identification'].detect_speaker_from_text = MagicMock(return_value=None)
+        sys.modules['utils.stt.speaker_embedding'].extract_embedding_from_bytes = MagicMock()
+        sys.modules['utils.stt.speaker_embedding'].compare_embeddings = MagicMock(return_value=False)
+        sys.modules['utils.stt.speaker_embedding'].SPEAKER_MATCH_THRESHOLD = 0.75
         sys.modules['utils.subscription'].has_transcription_credits = MagicMock(return_value=True)
         sys.modules['utils.conversations.process_conversation'].process_conversation = MagicMock()
 
@@ -681,7 +705,7 @@ class TestProcessSegmentReal:
             def dict(self):
                 return dict(self.__dict__)
 
-        sys.modules['models.conversation'].ConversationSource = _ConversationSource
+        sys.modules['models.conversation_enums'].ConversationSource = _ConversationSource
         sys.modules['models.conversation'].CreateConversation = _CreateConversation
         sys.modules['models.conversation'].Conversation = _Conversation
         sys.modules['models.transcript_segment'].TranscriptSegment = _TranscriptSegment
@@ -824,7 +848,7 @@ class TestProcessSegmentReal:
         call_count = [0]
         call_lock = threading.Lock()
 
-        def mock_deepgram_mixed(url, speakers_count=3, attempts=0, return_language=True):
+        def mock_deepgram_mixed(url, speakers_count=3, attempts=0, return_language=True, language=None, **kwargs):
             with call_lock:
                 call_count[0] += 1
                 n = call_count[0]
@@ -1009,6 +1033,7 @@ _CHAT_STUB_MODULES = [
     'utils.notifications',
     'utils.retrieval.graph',
     'utils.stt.pre_recorded',
+    'utils.executors',
     'utils.llm.usage_tracker',
     'utils.log_sanitizer',
 ]
@@ -1039,6 +1064,7 @@ class TestVoiceMessageRuntimeErrorHandling:
         sys.modules['utils.notifications'].send_notification = MagicMock()
         sys.modules['utils.retrieval.graph'].execute_graph_chat = MagicMock()
         sys.modules['utils.retrieval.graph'].execute_graph_chat_stream = MagicMock()
+        sys.modules['utils.executors'].storage_executor = MagicMock()
         sys.modules['utils.log_sanitizer'].sanitize = lambda v: v
         sys.modules['database._client'].db = MagicMock()
         sys.modules['database.redis_db'].r = MagicMock()
@@ -1062,6 +1088,7 @@ class TestVoiceMessageRuntimeErrorHandling:
 
         # STT stubs
         sys.modules['utils.stt.pre_recorded'].deepgram_prerecorded = MagicMock()
+        sys.modules['utils.stt.pre_recorded'].deepgram_prerecorded_from_bytes = MagicMock()
         sys.modules['utils.stt.pre_recorded'].postprocess_words = MagicMock()
         sys.modules['utils.stt.pre_recorded'].get_deepgram_model_for_language = MagicMock(return_value=('en', 'nova-3'))
 

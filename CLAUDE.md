@@ -32,6 +32,7 @@ cd app && bash setup.sh ios    # or: bash setup.sh android
 - **Import hierarchy** (low → high): `database/` → `utils/` → `routers/` → `main.py`. Never import upward.
 - **Memory management** — `del` byte arrays after processing, `.clear()` dicts/lists holding data.
 - **Async I/O** — never `requests.*` in async (use `httpx.AsyncClient` pools from `utils/http_client.py`), never `Thread().start().join()` (use `critical_executor`/`storage_executor`), never `time.sleep()` in async (use `asyncio.sleep()`). Run `python scripts/lint_async_blockers.py` before committing.
+- **AI/API credential routing** — never configure or default the actively used app to user-supplied/BYOK AI/API keys. Normal Omi AI/API access must stay routed through the backend and company-managed provider credentials.
 
 ### Logging Security
 Never log raw sensitive data. Use `sanitize()` and `sanitize_pii()` from `utils.log_sanitizer`.
@@ -193,7 +194,7 @@ Files ending in `.gen.dart` or `.g.dart` are auto-generated — don't format man
 ### Rules
 - Always commit to the current branch — never switch branches.
 - Never push directly to `main`. Land changes through PRs only.
-- Never open pull requests against the upstream BasedHardware/omi repository. Upstream is fetch-only for pulling the creator team's changes; all pushed branches and PRs must target the user's fork (`origin`).
+- Never open pull requests against the upstream `BasedHardware/omi` repository. Upstream is read-only/fetch-only for pulling the creator team's changes; all pushed branches and PRs must target the user's fork (`origin`).
 - Never squash merge PRs — use regular merge.
 - Make individual commits per file, not bulk commits.
 - If push fails (remote ahead): `git pull --rebase && git push`.

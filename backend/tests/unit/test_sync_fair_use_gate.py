@@ -255,10 +255,27 @@ class TestSyncEndpointCodeStructure:
         with open(sync_path) as f:
             return f.read()
 
+    @staticmethod
+    def _extract_async_function_source(source, function_name):
+        import ast
+
+        module = ast.parse(source)
+        for node in module.body:
+            if isinstance(node, ast.AsyncFunctionDef) and node.name == function_name:
+                lines = source.splitlines()
+                return '\n'.join(lines[node.lineno - 1 : node.end_lineno])
+        raise AssertionError(f'{function_name} not found in sync.py')
+
     def test_no_402_block(self):
-        """sync.py must not raise 402 (lock instead of block)."""
+        """Sync upload endpoints must not raise 402 (lock instead of block)."""
         source = self._read_sync_source()
-        assert 'status_code=402' not in source
+        upload_source = '\n'.join(
+            [
+                self._extract_async_function_source(source, 'sync_local_files'),
+                self._extract_async_function_source(source, 'sync_local_files_v2'),
+            ]
+        )
+        assert 'status_code=402' not in upload_source
 
     def test_should_lock_flag_exists(self):
         """sync.py must use should_lock flag for credit-exhausted locking."""

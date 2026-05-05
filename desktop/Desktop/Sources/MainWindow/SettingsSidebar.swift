@@ -30,6 +30,10 @@ struct SettingsSearchItem: Identifiable {
       keywords: ["floating bar", "chat bar"], section: .general, icon: "gearshape",
       settingId: "general.askomi"),
     SettingsSearchItem(
+      name: "Dock Icon", subtitle: "Show or hide Omi in the Dock and app switcher",
+      keywords: ["dock", "app switcher", "cmd tab", "menu bar", "background"],
+      section: .general, icon: "dock.rectangle", settingId: "general.dockicon"),
+    SettingsSearchItem(
       name: "Font Size", subtitle: "Adjust text size across the app",
       keywords: ["text size", "zoom", "scale", "reset"], section: .general, icon: "gearshape",
       settingId: "general.fontsize"),

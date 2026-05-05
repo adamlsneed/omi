@@ -1,6 +1,5 @@
 import json
 import re
-import threading
 import uuid
 from typing import List, Dict, Any, Union, Optional
 import hashlib
@@ -94,6 +93,7 @@ from utils.other.storage import (
 from utils.webhooks import webhook_first_time_setup
 from database.action_items import get_action_items as get_standalone_action_items
 from utils.byok import has_byok_keys, invalidate_byok_state_cache
+from utils.executors import storage_executor
 import logging
 
 logger = logging.getLogger(__name__)
@@ -163,7 +163,7 @@ def delete_account(
 
         # 3. Wipe Firestore subcollections in the background — can take minutes
         #    for heavy users and would otherwise time out at the load balancer.
-        threading.Thread(target=_background_wipe_user_data, args=(uid,), daemon=True).start()
+        storage_executor.submit(_background_wipe_user_data, uid)
 
         return {'status': 'ok', 'message': 'Account deletion started'}
     except Exception as e:

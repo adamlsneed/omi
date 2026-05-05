@@ -60,8 +60,11 @@ users_mod.get_people_by_ids = MagicMock(return_value=[])
 vector_db_mod = sys.modules["database.vector_db"]
 for attr in [
     "find_similar_memories",
+    "find_similar_action_items",
     "upsert_memory_vector",
+    "upsert_action_item_vectors_batch",
     "delete_memory_vector",
+    "delete_action_item_vectors_batch",
     "upsert_vector2",
     "update_vector_metadata",
 ]:
@@ -117,7 +120,7 @@ for name in [
         sys.modules[name] = types.ModuleType(name)
 
 utils_apps = sys.modules["utils.apps"]
-for attr in ["get_available_apps", "update_personas_async", "sync_update_persona_prompt"]:
+for attr in ["get_available_apps", "update_personas_async", "update_persona_prompt"]:
     setattr(utils_apps, attr, MagicMock())
 
 utils_analytics = sys.modules["utils.analytics"]

@@ -1212,9 +1212,11 @@ class TestV2EndpointExecution:
             'pydub',
             'models',
             'models.conversation',
+            'models.conversation_enums',
             'models.transcript_segment',
             'utils',
             'utils.conversations',
+            'utils.conversations.factory',
             'utils.conversations.process_conversation',
             'utils.other',
             'utils.other.endpoints',
@@ -1235,6 +1237,17 @@ class TestV2EndpointExecution:
         for mod_name in heavy_deps:
             saved_modules[mod_name] = sys.modules.get(mod_name)
             sys.modules[mod_name] = MagicMock()
+        sys.modules['models'].__path__ = []
+        sys.modules['utils'].__path__ = []
+        sys.modules['utils.conversations'].__path__ = []
+        sys.modules['utils.other'].__path__ = []
+        sys.modules['utils.stt'].__path__ = []
+
+        class _ConversationSource:
+            omi = 'omi'
+            limitless = 'limitless'
+
+        sys.modules['models.conversation_enums'].ConversationSource = _ConversationSource
 
         # Stub utils.executors with a real-ish critical_executor mock
         mock_executors = MagicMock()

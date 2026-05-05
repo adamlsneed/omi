@@ -114,6 +114,7 @@ for _ufull in [
     'utils.llm.goals',
     'utils.llm.usage_tracker',
     'utils.conversations',
+    'utils.conversations.factory',
     'utils.conversations.process_conversation',
     'utils.notifications',
     'utils.other.storage',
@@ -130,6 +131,15 @@ for _ufull in [
     'models.goal',
 ]:
     sys.modules.setdefault(_ufull, MagicMock())
+
+_conversations_pkg = ModuleType('utils.conversations')
+_conversations_pkg.__path__ = []
+_conversations_pkg.__package__ = 'utils.conversations'
+_factory_mod = MagicMock()
+_factory_mod.deserialize_conversation = MagicMock()
+sys.modules['utils.conversations'] = _conversations_pkg
+sys.modules['utils.conversations.factory'] = _factory_mod
+setattr(_conversations_pkg, 'factory', _factory_mod)
 
 # Force-import real models.chat (has no project deps, needed for FastAPI response_model)
 import importlib.util as _ilu

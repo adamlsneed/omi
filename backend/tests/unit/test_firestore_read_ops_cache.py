@@ -650,11 +650,14 @@ class TestWebhookInvalidationCoverage:
     def test_schedule_completed_calls_invalidation(self):
         """subscription_schedule.completed must call set_credits_invalidation_signal."""
         source = self._read_source(self.PAYMENT_SOURCE_FILE)
-        idx_scheduled = source.find("Scheduled upgrade completed for user")
-        assert idx_scheduled > 0
-        # Find the invalidation call before the log line (it's called right after update)
-        section = source[idx_scheduled - 200 : idx_scheduled]
-        assert 'set_credits_invalidation_signal(uid)' in section
+        idx_completed_block = source.find("if schedule_obj.get('status') == 'completed':")
+        assert idx_completed_block > 0, "subscription_schedule.completed block not found"
+        idx_update = source.find("users_db.update_user_subscription(uid, new_subscription.dict())", idx_completed_block)
+        assert idx_update > idx_completed_block, "scheduled completion subscription update not found"
+        idx_scheduled_log = source.find("Scheduled upgrade completed for user", idx_update)
+        assert idx_scheduled_log > idx_update, "scheduled completion log not found after subscription update"
+        idx_signal = source.find('set_credits_invalidation_signal(uid)', idx_update, idx_scheduled_log)
+        assert idx_signal > idx_update, "set_credits_invalidation_signal must be called after scheduled update"
 
     def test_schedule_canceled_calls_invalidation(self):
         """subscription_schedule.canceled must call set_credits_invalidation_signal."""
