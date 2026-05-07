@@ -419,6 +419,24 @@ def delete_action_item(uid: str, action_item_id: str) -> bool:
     return True
 
 
+def delete_action_items_batch(uid: str, action_item_ids: List[str]) -> List[str]:
+    """Delete multiple action items by id in a single Firestore batch."""
+    if not action_item_ids:
+        return []
+    if len(action_item_ids) > 500:
+        raise ValueError(f'delete_action_items_batch: {len(action_item_ids)} ids exceeds Firestore batch limit')
+
+    user_ref = db.collection('users').document(uid)
+    action_items_ref = user_ref.collection(action_items_collection)
+
+    batch = db.batch()
+    for item_id in action_item_ids:
+        batch.delete(action_items_ref.document(item_id))
+    batch.commit()
+
+    return list(action_item_ids)
+
+
 def delete_action_items_for_conversation(uid: str, conversation_id: str) -> int:
     """
     Delete all action items for a specific conversation.

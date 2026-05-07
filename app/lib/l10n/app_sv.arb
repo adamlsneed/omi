@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Spela in med telefonmikrofon",
     "recordWithPhoneMicSubtitle": "Fånga ljudet runt dig",
     "phoneCall": "Telefonsamtal",
-    "phoneCallSubtitle": "Spela in samtal med live-transkribering"
+    "phoneCallSubtitle": "Spela in samtal med live-transkribering",
+    "autoAddTasksToAppleReminders": "Lägg automatiskt till uppgifter i Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "När detta är aktiverat läggs uppgifter som Omi skapar automatiskt till i Påminnelser. Du kan fortfarande lägga till uppgifter manuellt när detta är avstängt.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Lägg till valda i Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Vissa valda uppgifter kunde inte läggas till.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "De valda uppgifterna har redan exporterats.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Starta samtalsinspelning",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Starta röstinspelning",
+    "@startVoiceRecording": {}
 }

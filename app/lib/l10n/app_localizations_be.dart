@@ -9181,10 +9181,10 @@ class AppLocalizationsBe extends AppLocalizations {
   String get agreeAndContinue => 'Прыняць і працягнуць';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Пачаць галасавы запіс';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Пачаць запіс выкліку';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9212,4 +9212,20 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Запіс званка з жывой транскрыпцыяй';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Аўтаматычна дадаваць задачы ў Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Калі ўключана, задачы, створаныя Omi, аўтаматычна дадаюцца ў напаміны. Калі гэта выключана, вы ўсё яшчэ можаце дадаваць задачы ўручную.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Дадаць выбранае ў Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Некаторыя выбраныя задачы не ўдалося дадаць.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Выбраныя задачы ўжо экспартаваныя.';
 }

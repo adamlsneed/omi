@@ -3041,5 +3041,29 @@
     "recordWithPhoneMic": "Rekam dengan mikrofon ponsel",
     "recordWithPhoneMicSubtitle": "Tangkap audio di sekitar Anda",
     "phoneCall": "Panggilan telepon",
-    "phoneCallSubtitle": "Rekam panggilan dengan transkripsi langsung"
+    "phoneCallSubtitle": "Rekam panggilan dengan transkripsi langsung",
+    "autoAddTasksToAppleReminders": "Tambahkan tugas otomatis ke Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Saat aktif, tugas yang dibuat Omi otomatis ditambahkan ke Pengingat. Anda tetap dapat menambahkan tugas secara manual saat opsi ini nonaktif.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Tambahkan pilihan ke Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Beberapa tugas yang dipilih tidak dapat ditambahkan.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Tugas yang dipilih sudah diekspor.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Mulai perekaman panggilan",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Mulai perekaman suara",
+    "@startVoiceRecording": {}
 }

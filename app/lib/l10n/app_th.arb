@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "บันทึกด้วยไมค์โทรศัพท์",
     "recordWithPhoneMicSubtitle": "บันทึกเสียงรอบตัวคุณ",
     "phoneCall": "การโทรศัพท์",
-    "phoneCallSubtitle": "บันทึกการโทรพร้อมถอดเสียงสด"
+    "phoneCallSubtitle": "บันทึกการโทรพร้อมถอดเสียงสด",
+    "autoAddTasksToAppleReminders": "เพิ่มงานไปยัง Apple Reminders โดยอัตโนมัติ",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "เมื่อเปิดใช้ งานที่ Omi สร้างจะถูกเพิ่มไปยังเตือนความจำโดยอัตโนมัติ คุณยังสามารถเพิ่มงานด้วยตนเองได้เมื่อปิดตัวเลือกนี้",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "เพิ่มรายการที่เลือกไปยัง Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "ไม่สามารถเพิ่มงานที่เลือกบางรายการได้",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "งานที่เลือกถูกส่งออกแล้ว",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "เริ่มบันทึกการโทร",
+    "@startCallRecording": {},
+    "startVoiceRecording": "เริ่มบันทึกเสียง",
+    "@startVoiceRecording": {}
 }

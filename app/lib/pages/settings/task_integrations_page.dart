@@ -212,7 +212,10 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
           // Update the provider's cached permission status with the granted result
           await provider.updateAppleRemindersPermission(granted: true);
           // Save connected status to backend so auto-sync works
-          await provider.saveConnectionDetails(app.key, {'connected': true});
+          await provider.saveConnectionDetails(app.key, {
+            'connected': true,
+            'auto_export_enabled': provider.appleRemindersAutoExportEnabled,
+          });
           await provider.setSelectedApp(app);
           MixpanelManager().taskIntegrationEnabled(appName: app.key, success: true);
           Logger.debug('✓ Task integration enabled: ${app.displayName} (${app.key})');
@@ -230,7 +233,10 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
         return;
       }
       // Permission already granted - ensure backend knows it's connected
-      await provider.saveConnectionDetails(app.key, {'connected': true});
+      await provider.saveConnectionDetails(app.key, {
+        'connected': true,
+        'auto_export_enabled': provider.appleRemindersAutoExportEnabled,
+      });
       await provider.setSelectedApp(app);
       return;
     }
@@ -462,6 +468,45 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
     );
   }
 
+  Widget _buildAppleRemindersAutoExportToggle(TaskIntegrationProvider provider) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n.autoAddTasksToAppleReminders,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.l10n.autoAddTasksToAppleRemindersDescription,
+                  style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: provider.appleRemindersAutoExportEnabled,
+            onChanged: (value) {
+              provider.setAppleRemindersAutoExportEnabled(value);
+            },
+            activeThumbColor: const Color(0xFF007AFF),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAppTile(TaskIntegrationApp app, bool isLoading) {
     final isSelected = context.read<TaskIntegrationProvider>().selectedApp == app;
     final isAvailable = app.isAvailable;
@@ -616,6 +661,7 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
                       .toList(),
                 ),
               ),
+              if (PlatformService.isApple) _buildAppleRemindersAutoExportToggle(provider),
               const SizedBox(height: 16),
 
               // Footer Note

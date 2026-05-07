@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "ফোনের মাইক্রোফোন দিয়ে রেকর্ড করুন",
     "recordWithPhoneMicSubtitle": "আপনার চারপাশের অডিও ক্যাপচার করুন",
     "phoneCall": "ফোন কল",
-    "phoneCallSubtitle": "লাইভ ট্রান্সক্রিপশন সহ কল রেকর্ড করুন"
+    "phoneCallSubtitle": "লাইভ ট্রান্সক্রিপশন সহ কল রেকর্ড করুন",
+    "autoAddTasksToAppleReminders": "Apple Reminders-এ স্বয়ংক্রিয়ভাবে কাজ যোগ করুন",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "চালু থাকলে, Omi তৈরি করা কাজগুলো স্বয়ংক্রিয়ভাবে Reminders-এ যোগ হবে। এটি বন্ধ থাকলেও আপনি হাতে কাজ যোগ করতে পারবেন।",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "নির্বাচিতগুলো Apple Reminders-এ যোগ করুন",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "কিছু নির্বাচিত কাজ যোগ করা যায়নি।",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "নির্বাচিত কাজগুলো ইতিমধ্যে রপ্তানি করা হয়েছে।",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "কল রেকর্ডিং শুরু করুন",
+    "@startCallRecording": {},
+    "startVoiceRecording": "ভয়েস রেকর্ডিং শুরু করুন",
+    "@startVoiceRecording": {}
 }

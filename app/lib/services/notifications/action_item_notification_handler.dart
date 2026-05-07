@@ -117,4 +117,17 @@ class ActionItemNotificationHandler {
 
     await cancelNotification(actionItemId);
   }
+
+  static Future<void> handleBatchDeletionMessage(Map<String, dynamic> data) async {
+    final rawIds = data['ids'];
+    if (rawIds == null || rawIds.toString().isEmpty) {
+      Logger.debug('[ActionItem] Invalid batch deletion data');
+      return;
+    }
+
+    final ids = rawIds.toString().split(',').where((id) => id.isNotEmpty);
+    for (final id in ids) {
+      await cancelNotification(id);
+    }
+  }
 }

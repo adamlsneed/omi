@@ -9165,10 +9165,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get agreeAndContinue => 'Setuju & Lanjutkan';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Mulai perekaman suara';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Mulai perekaman panggilan';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9196,4 +9196,21 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Rekam panggilan dengan transkripsi langsung';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Tambahkan tugas otomatis ke Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Saat aktif, tugas yang dibuat Omi otomatis ditambahkan ke Pengingat. Anda tetap dapat menambahkan tugas secara manual saat opsi ini nonaktif.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Tambahkan pilihan ke Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Beberapa tugas yang dipilih tidak dapat ditambahkan.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Tugas yang dipilih sudah diekspor.';
 }

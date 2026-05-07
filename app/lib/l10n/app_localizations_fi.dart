@@ -9154,10 +9154,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get agreeAndContinue => 'Hyväksy ja jatka';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Aloita äänitallennus';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Aloita puhelun tallennus';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9185,4 +9185,20 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Tallenna puhelu reaaliaikaisella tekstityksellä';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lisää tehtävät automaattisesti Apple Remindersiin';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kun tämä on käytössä, Omin luomat tehtävät lisätään automaattisesti Muistutuksiin. Voit silti lisätä tehtäviä manuaalisesti, kun tämä on pois päältä.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lisää valitut Apple Remindersiin';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Joitakin valittuja tehtäviä ei voitu lisätä.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Valitut tehtävät on jo viety.';
 }

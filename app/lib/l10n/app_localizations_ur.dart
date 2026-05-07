@@ -9172,10 +9172,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get agreeAndContinue => 'اتفاق اور جاری رکھیں';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'آواز ریکارڈنگ شروع کریں';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'کال ریکارڈنگ شروع کریں';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9203,4 +9203,20 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'لائیو ٹرانسکرپشن کے ساتھ کال ریکارڈ کریں';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'کام خودکار طور پر Apple Reminders میں شامل کریں';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'فعال ہونے پر، Omi کے بنائے ہوئے کام خودکار طور پر Reminders میں شامل ہو جاتے ہیں۔ یہ بند ہونے پر بھی آپ کام دستی طور پر شامل کر سکتے ہیں۔';
+
+  @override
+  String get addSelectedToAppleReminders => 'منتخب کردہ کو Apple Reminders میں شامل کریں';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'کچھ منتخب کام شامل نہیں کیے جا سکے۔';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'منتخب کام پہلے ہی برآمد ہو چکے ہیں۔';
 }

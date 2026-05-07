@@ -103,6 +103,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     await ActionItemNotificationHandler.handleUpdateMessage(data, channelKey);
   } else if (messageType == 'action_item_delete') {
     await ActionItemNotificationHandler.handleDeletionMessage(data);
+  } else if (messageType == 'action_item_batch_delete') {
+    await ActionItemNotificationHandler.handleBatchDeletionMessage(data);
   } else if (messageType == 'merge_completed') {
     await MergeNotificationHandler.handleMergeCompleted(data, channelKey, isAppInForeground: false);
   } else if (messageType == 'important_conversation') {

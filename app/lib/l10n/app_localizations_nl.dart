@@ -9183,10 +9183,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get agreeAndContinue => 'Akkoord en doorgaan';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Spraakopname starten';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Gespreksopname starten';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9214,4 +9214,21 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Neem een gesprek op met live transcriptie';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Taken automatisch toevoegen aan Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Wanneer dit is ingeschakeld, worden taken die Omi maakt automatisch toegevoegd aan Herinneringen. Je kunt taken nog steeds handmatig toevoegen wanneer dit uit staat.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Geselecteerde toevoegen aan Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Sommige geselecteerde taken konden niet worden toegevoegd.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'De geselecteerde taken zijn al geëxporteerd.';
 }

@@ -9232,10 +9232,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get agreeAndContinue => 'Zustimmen und fortfahren';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Sprachaufnahme starten';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Anrufaufnahme starten';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9263,4 +9263,21 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Anruf mit Live-Transkription aufnehmen';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Aufgaben automatisch zu Apple Erinnerungen hinzufügen';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Wenn aktiviert, werden von Omi erstellte Aufgaben automatisch zu Erinnerungen hinzugefügt. Du kannst Aufgaben weiterhin manuell hinzufügen, wenn dies deaktiviert ist.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Ausgewählte zu Apple Reminders hinzufügen';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Einige ausgewählte Aufgaben konnten nicht hinzugefügt werden.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Die ausgewählten Aufgaben wurden bereits exportiert.';
 }

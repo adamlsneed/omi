@@ -9206,10 +9206,10 @@ class AppLocalizationsTe extends AppLocalizations {
   String get agreeAndContinue => 'అంగీకరించి కొనసాగించండి';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'వాయిస్ రికార్డింగ్ ప్రారంభించండి';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'కాల్ రికార్డింగ్ ప్రారంభించండి';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9237,4 +9237,20 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'లైవ్ ట్రాన్స్‌క్రిప్షన్‌తో కాల్‌ను రికార్డ్ చేయండి';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple Reminders కు పనులను స్వయంచాలకంగా జోడించండి';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'ఇది ఆన్‌లో ఉన్నప్పుడు, Omi సృష్టించే పనులు స్వయంచాలకంగా Reminders కు జోడించబడతాయి. ఇది ఆఫ్‌లో ఉన్నప్పుడు కూడా మీరు పనులను చేతితో జోడించవచ్చు.';
+
+  @override
+  String get addSelectedToAppleReminders => 'ఎంచుకున్నవాటిని Apple Reminders కు జోడించండి';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ఎంచుకున్న కొన్ని పనులను జోడించలేకపోయాం.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'ఎంచుకున్న పనులు ఇప్పటికే ఎగుమతి చేయబడ్డాయి.';
 }

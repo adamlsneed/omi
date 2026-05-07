@@ -3034,5 +3034,29 @@
     "recordWithPhoneMic": "Telefon mikrofonuyla kaydet",
     "recordWithPhoneMicSubtitle": "Etrafınızdaki sesi yakalayın",
     "phoneCall": "Telefon araması",
-    "phoneCallSubtitle": "Canlı transkripsiyonla bir aramayı kaydedin"
+    "phoneCallSubtitle": "Canlı transkripsiyonla bir aramayı kaydedin",
+    "autoAddTasksToAppleReminders": "Görevleri Apple Reminders'a otomatik ekle",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Açık olduğunda, Omi'nin oluşturduğu görevler otomatik olarak Anımsatıcılara eklenir. Bu kapalıyken de görevleri elle ekleyebilirsiniz.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Seçilenleri Apple Reminders’a ekle",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Seçilen bazı görevler eklenemedi.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Seçilen görevler zaten dışa aktarıldı.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Arama kaydını başlat",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Ses kaydını başlat",
+    "@startVoiceRecording": {}
 }

@@ -9176,10 +9176,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get agreeAndContinue => 'Acepto y continuar';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Iniciar grabación de voz';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Iniciar grabación de llamada';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9207,4 +9207,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Graba una llamada con transcripción en vivo';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Añadir tareas automáticamente a Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Cuando está activado, las tareas que crea Omi se añaden automáticamente a Recordatorios. Aún puedes añadir tareas manualmente cuando esto está desactivado.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Añadir seleccionadas a Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'No se pudieron añadir algunas tareas seleccionadas.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Las tareas seleccionadas ya están exportadas.';
 }

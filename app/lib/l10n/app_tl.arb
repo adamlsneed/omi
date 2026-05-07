@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "Mag-record gamit ang mikropono ng telepono",
     "recordWithPhoneMicSubtitle": "Kunan ang audio sa paligid mo",
     "phoneCall": "Tawag sa telepono",
-    "phoneCallSubtitle": "Mag-record ng tawag na may live na transkripsyon"
+    "phoneCallSubtitle": "Mag-record ng tawag na may live na transkripsyon",
+    "autoAddTasksToAppleReminders": "Awtomatikong idagdag ang mga gawain sa Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kapag naka-on, awtomatikong idaragdag sa Mga Paalala ang mga gawaing ginagawa ng Omi. Maaari ka pa ring magdagdag ng mga gawain nang manu-mano kapag naka-off ito.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Idagdag ang napili sa Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Hindi naidagdag ang ilang napiling gawain.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Na-export na ang mga napiling gawain.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Simulan ang pag-record ng tawag",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Simulan ang pag-record ng boses",
+    "@startVoiceRecording": {}
 }

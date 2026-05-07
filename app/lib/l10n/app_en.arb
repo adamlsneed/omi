@@ -10932,5 +10932,25 @@
     "phoneCallSubtitle": "Record a call with live transcription",
     "@phoneCallSubtitle": {
         "description": "Subtitle for the phone-call option in the record-options sheet"
+    },
+    "autoAddTasksToAppleReminders": "Auto-add tasks to Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "When enabled, tasks Omi creates are automatically added to Reminders. You can still add tasks manually when this is off.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Add selected to Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Some selected tasks could not be added.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Selected tasks are already exported.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
     }
 }

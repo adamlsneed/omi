@@ -3021,5 +3021,29 @@
     "recordWithPhoneMic": "用手机麦克风录音",
     "recordWithPhoneMicSubtitle": "捕捉您周围的声音",
     "phoneCall": "电话",
-    "phoneCallSubtitle": "录制带实时转录的通话"
+    "phoneCallSubtitle": "录制带实时转录的通话",
+    "autoAddTasksToAppleReminders": "自动将任务添加到 Apple 提醒事项",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "将所选项添加到 Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "部分所选任务无法添加。",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "所选任务已导出。",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "开始通话录音",
+    "@startCallRecording": {},
+    "startVoiceRecording": "开始语音录音",
+    "@startVoiceRecording": {}
 }

@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "הקלט עם מיקרופון הטלפון",
     "recordWithPhoneMicSubtitle": "הקלט שמע סביבך",
     "phoneCall": "שיחת טלפון",
-    "phoneCallSubtitle": "הקלט שיחה עם תמלול חי"
+    "phoneCallSubtitle": "הקלט שיחה עם תמלול חי",
+    "autoAddTasksToAppleReminders": "הוספה אוטומטית של משימות ל-Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "כאשר האפשרות מופעלת, משימות ש-Omi יוצר מתווספות אוטומטית לתזכורות. עדיין ניתן להוסיף משימות ידנית כשהאפשרות כבויה.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "הוסף את הנבחרים ל-Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "לא ניתן היה להוסיף חלק מהמשימות שנבחרו.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "המשימות שנבחרו כבר יוצאו.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "התחל הקלטת שיחה",
+    "@startCallRecording": {},
+    "startVoiceRecording": "התחל הקלטת קול",
+    "@startVoiceRecording": {}
 }

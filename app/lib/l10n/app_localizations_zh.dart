@@ -8992,10 +8992,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agreeAndContinue => '同意并继续';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => '开始语音录音';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => '开始通话录音';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9023,4 +9023,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => '录制带实时转录的通话';
+
+  @override
+  String get autoAddTasksToAppleReminders => '自动将任务添加到 Apple 提醒事项';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription => '启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。';
+
+  @override
+  String get addSelectedToAppleReminders => '将所选项添加到 Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '部分所选任务无法添加。';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '所选任务已导出。';
 }

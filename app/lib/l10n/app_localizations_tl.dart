@@ -9240,10 +9240,10 @@ class AppLocalizationsTl extends AppLocalizations {
   String get agreeAndContinue => 'Sumasang-ayon at Magpatuloy';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Simulan ang pag-record ng boses';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Simulan ang pag-record ng tawag';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9271,4 +9271,20 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Mag-record ng tawag na may live na transkripsyon';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Awtomatikong idagdag ang mga gawain sa Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kapag naka-on, awtomatikong idaragdag sa Mga Paalala ang mga gawaing ginagawa ng Omi. Maaari ka pa ring magdagdag ng mga gawain nang manu-mano kapag naka-off ito.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Idagdag ang napili sa Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Hindi naidagdag ang ilang napiling gawain.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Na-export na ang mga napiling gawain.';
 }

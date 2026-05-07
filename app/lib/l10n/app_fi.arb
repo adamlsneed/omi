@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Tallenna puhelimen mikrofonilla",
     "recordWithPhoneMicSubtitle": "Tallenna ympärilläsi olevaa ääntä",
     "phoneCall": "Puhelu",
-    "phoneCallSubtitle": "Tallenna puhelu reaaliaikaisella tekstityksellä"
+    "phoneCallSubtitle": "Tallenna puhelu reaaliaikaisella tekstityksellä",
+    "autoAddTasksToAppleReminders": "Lisää tehtävät automaattisesti Apple Remindersiin",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kun tämä on käytössä, Omin luomat tehtävät lisätään automaattisesti Muistutuksiin. Voit silti lisätä tehtäviä manuaalisesti, kun tämä on pois päältä.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Lisää valitut Apple Remindersiin",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Joitakin valittuja tehtäviä ei voitu lisätä.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Valitut tehtävät on jo viety.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Aloita puhelun tallennus",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Aloita äänitallennus",
+    "@startVoiceRecording": {}
 }

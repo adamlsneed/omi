@@ -9083,10 +9083,10 @@ class AppLocalizationsHe extends AppLocalizations {
   String get agreeAndContinue => 'אני מסכים והמשך';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'התחל הקלטת קול';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'התחל הקלטת שיחה';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9114,4 +9114,20 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'הקלט שיחה עם תמלול חי';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'הוספה אוטומטית של משימות ל-Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'כאשר האפשרות מופעלת, משימות ש-Omi יוצר מתווספות אוטומטית לתזכורות. עדיין ניתן להוסיף משימות ידנית כשהאפשרות כבויה.';
+
+  @override
+  String get addSelectedToAppleReminders => 'הוסף את הנבחרים ל-Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'לא ניתן היה להוסיף חלק מהמשימות שנבחרו.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'המשימות שנבחרו כבר יוצאו.';
 }

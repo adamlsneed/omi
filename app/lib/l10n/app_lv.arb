@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Ierakstīt ar tālruņa mikrofonu",
     "recordWithPhoneMicSubtitle": "Tveriet skaņu sev apkārt",
     "phoneCall": "Telefona zvans",
-    "phoneCallSubtitle": "Ierakstiet zvanu ar tiešraides transkripciju"
+    "phoneCallSubtitle": "Ierakstiet zvanu ar tiešraides transkripciju",
+    "autoAddTasksToAppleReminders": "Automātiski pievienot uzdevumus Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kad ieslēgts, Omi izveidotie uzdevumi automātiski tiek pievienoti atgādinājumiem. Kad tas ir izslēgts, uzdevumus joprojām var pievienot manuāli.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Pievienot atlasītos Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Dažus atlasītos uzdevumus neizdevās pievienot.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Atlasītie uzdevumi jau ir eksportēti.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Sākt zvana ierakstīšanu",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Sākt balss ierakstīšanu",
+    "@startVoiceRecording": {}
 }

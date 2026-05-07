@@ -9006,10 +9006,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get agreeAndContinue => '同意して続ける';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => '音声録音を開始';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => '通話録音を開始';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9037,4 +9037,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'ライブ文字起こしで通話を録音';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'タスクをAppleリマインダーに自動追加';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription => 'オンにすると、Omiが作成したタスクが自動的にリマインダーに追加されます。オフの場合でも、手動でタスクを追加できます。';
+
+  @override
+  String get addSelectedToAppleReminders => '選択項目をApple Remindersに追加';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '一部の選択したタスクを追加できませんでした。';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '選択したタスクはすでにエクスポートされています。';
 }

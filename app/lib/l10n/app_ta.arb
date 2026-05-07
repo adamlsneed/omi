@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "போன் மைக்கில் பதிவு செய்யவும்",
     "recordWithPhoneMicSubtitle": "உங்களைச் சுற்றியுள்ள ஒலியைப் பதிவு செய்யவும்",
     "phoneCall": "தொலைபேசி அழைப்பு",
-    "phoneCallSubtitle": "நேரடி படியெடுத்தலுடன் அழைப்பைப் பதிவு செய்யவும்"
+    "phoneCallSubtitle": "நேரடி படியெடுத்தலுடன் அழைப்பைப் பதிவு செய்யவும்",
+    "autoAddTasksToAppleReminders": "Apple Reminders-இல் பணிகளை தானாகச் சேர்",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "இது இயக்கப்பட்டால், Omi உருவாக்கும் பணிகள் தானாக Reminders-இல் சேர்க்கப்படும். இது முடக்கப்பட்டிருந்தாலும் பணிகளை கைமுறையாகச் சேர்க்கலாம்.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "தேர்ந்தெடுத்தவற்றை Apple Reminders இல் சேர்க்கவும்",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "சில தேர்ந்தெடுத்த பணிகளைச் சேர்க்க முடியவில்லை.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "தேர்ந்தெடுத்த பணிகள் ஏற்கனவே ஏற்றுமதி செய்யப்பட்டுள்ளன.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "அழைப்பு பதிவைத் தொடங்கு",
+    "@startCallRecording": {},
+    "startVoiceRecording": "குரல் பதிவைத் தொடங்கு",
+    "@startVoiceRecording": {}
 }

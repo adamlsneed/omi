@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "휴대폰 마이크로 녹음",
     "recordWithPhoneMicSubtitle": "주변 오디오를 캡처하세요",
     "phoneCall": "전화 통화",
-    "phoneCallSubtitle": "실시간 전사로 통화 녹음"
+    "phoneCallSubtitle": "실시간 전사로 통화 녹음",
+    "autoAddTasksToAppleReminders": "Apple 미리 알림에 작업 자동 추가",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "켜져 있으면 Omi가 만든 작업이 미리 알림에 자동으로 추가됩니다. 이 옵션이 꺼져 있어도 작업을 수동으로 추가할 수 있습니다.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "선택 항목을 Apple Reminders에 추가",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "일부 선택한 작업을 추가하지 못했습니다.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "선택한 작업은 이미 내보냈습니다.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "통화 녹음 시작",
+    "@startCallRecording": {},
+    "startVoiceRecording": "음성 녹음 시작",
+    "@startVoiceRecording": {}
 }

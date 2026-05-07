@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Запис мікрофоном телефона",
     "recordWithPhoneMicSubtitle": "Записуйте звук навколо вас",
     "phoneCall": "Телефонний дзвінок",
-    "phoneCallSubtitle": "Запис дзвінка з живою транскрипцією"
+    "phoneCallSubtitle": "Запис дзвінка з живою транскрипцією",
+    "autoAddTasksToAppleReminders": "Автоматично додавати завдання в Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Коли ввімкнено, завдання, створені Omi, автоматично додаються до Нагадувань. Коли це вимкнено, ви все одно можете додавати завдання вручну.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Додати вибране до Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Деякі вибрані завдання не вдалося додати.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Вибрані завдання вже експортовані.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Почати запис дзвінка",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Почати запис голосу",
+    "@startVoiceRecording": {}
 }

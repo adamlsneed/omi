@@ -9168,10 +9168,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get agreeAndContinue => 'Kabul Et ve Devam Et';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Ses kaydını başlat';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Arama kaydını başlat';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9199,4 +9199,20 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Canlı transkripsiyonla bir aramayı kaydedin';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Görevleri Apple Reminders\'a otomatik ekle';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Açık olduğunda, Omi\'nin oluşturduğu görevler otomatik olarak Anımsatıcılara eklenir. Bu kapalıyken de görevleri elle ekleyebilirsiniz.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Seçilenleri Apple Reminders’a ekle';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Seçilen bazı görevler eklenemedi.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Seçilen görevler zaten dışa aktarıldı.';
 }

@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "Запіс мікрафонам тэлефона",
     "recordWithPhoneMicSubtitle": "Запісвайце гук вакол сябе",
     "phoneCall": "Тэлефонны званок",
-    "phoneCallSubtitle": "Запіс званка з жывой транскрыпцыяй"
+    "phoneCallSubtitle": "Запіс званка з жывой транскрыпцыяй",
+    "autoAddTasksToAppleReminders": "Аўтаматычна дадаваць задачы ў Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Калі ўключана, задачы, створаныя Omi, аўтаматычна дадаюцца ў напаміны. Калі гэта выключана, вы ўсё яшчэ можаце дадаваць задачы ўручную.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Дадаць выбранае ў Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Некаторыя выбраныя задачы не ўдалося дадаць.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Выбраныя задачы ўжо экспартаваныя.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Пачаць запіс выкліку",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Пачаць галасавы запіс",
+    "@startVoiceRecording": {}
 }

@@ -9187,10 +9187,10 @@ class AppLocalizationsKn extends AppLocalizations {
   String get agreeAndContinue => 'ಒಪ್ಪಿಗೆ ಮತ್ತು ಮುಂದುವರಿಯಿರಿ';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'ಧ್ವನಿ ಧ್ವನಿಮುದ್ರಣ ಪ್ರಾರಂಭಿಸಿ';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'ಕರೆ ಧ್ವನಿಮುದ್ರಣ ಪ್ರಾರಂಭಿಸಿ';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9218,4 +9218,20 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'ಲೈವ್ ಪ್ರತಿಲೇಖನದೊಂದಿಗೆ ಕರೆಯನ್ನು ರೆಕಾರ್ಡ್ ಮಾಡಿ';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'ಕಾರ್ಯಗಳನ್ನು Apple Reminders ಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸಿ';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'ಸಕ್ರಿಯವಾಗಿದ್ದರೆ, Omi ರಚಿಸುವ ಕಾರ್ಯಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ Reminders ಗೆ ಸೇರುತ್ತವೆ. ಇದು ಆಫ್ ಆಗಿದ್ದರೂ ನೀವು ಕಾರ್ಯಗಳನ್ನು ಕೈಯಾರೆ ಸೇರಿಸಬಹುದು.';
+
+  @override
+  String get addSelectedToAppleReminders => 'ಆಯ್ದವುಗಳನ್ನು Apple Reminders ಗೆ ಸೇರಿಸಿ';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ಕೆಲವು ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಸೇರಿಸಲಾಗಲಿಲ್ಲ.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಈಗಾಗಲೇ ರಫ್ತು ಮಾಡಲಾಗಿದೆ.';
 }

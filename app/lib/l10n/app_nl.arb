@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Opnemen met telefoonmicrofoon",
     "recordWithPhoneMicSubtitle": "Leg het geluid om je heen vast",
     "phoneCall": "Telefoongesprek",
-    "phoneCallSubtitle": "Neem een gesprek op met live transcriptie"
+    "phoneCallSubtitle": "Neem een gesprek op met live transcriptie",
+    "autoAddTasksToAppleReminders": "Taken automatisch toevoegen aan Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Wanneer dit is ingeschakeld, worden taken die Omi maakt automatisch toegevoegd aan Herinneringen. Je kunt taken nog steeds handmatig toevoegen wanneer dit uit staat.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Geselecteerde toevoegen aan Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Sommige geselecteerde taken konden niet worden toegevoegd.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "De geselecteerde taken zijn al geëxporteerd.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Gespreksopname starten",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Spraakopname starten",
+    "@startVoiceRecording": {}
 }

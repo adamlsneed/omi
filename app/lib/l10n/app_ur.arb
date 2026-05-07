@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "فون مائیک سے ریکارڈ کریں",
     "recordWithPhoneMicSubtitle": "اپنے ارد گرد کی آواز ریکارڈ کریں",
     "phoneCall": "فون کال",
-    "phoneCallSubtitle": "لائیو ٹرانسکرپشن کے ساتھ کال ریکارڈ کریں"
+    "phoneCallSubtitle": "لائیو ٹرانسکرپشن کے ساتھ کال ریکارڈ کریں",
+    "autoAddTasksToAppleReminders": "کام خودکار طور پر Apple Reminders میں شامل کریں",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "فعال ہونے پر، Omi کے بنائے ہوئے کام خودکار طور پر Reminders میں شامل ہو جاتے ہیں۔ یہ بند ہونے پر بھی آپ کام دستی طور پر شامل کر سکتے ہیں۔",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "منتخب کردہ کو Apple Reminders میں شامل کریں",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "کچھ منتخب کام شامل نہیں کیے جا سکے۔",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "منتخب کام پہلے ہی برآمد ہو چکے ہیں۔",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "کال ریکارڈنگ شروع کریں",
+    "@startCallRecording": {},
+    "startVoiceRecording": "آواز ریکارڈنگ شروع کریں",
+    "@startVoiceRecording": {}
 }

@@ -9159,10 +9159,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get agreeAndContinue => 'Godkänn och fortsätt';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Starta röstinspelning';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Starta samtalsinspelning';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9190,4 +9190,20 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Spela in samtal med live-transkribering';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lägg automatiskt till uppgifter i Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'När detta är aktiverat läggs uppgifter som Omi skapar automatiskt till i Påminnelser. Du kan fortfarande lägga till uppgifter manuellt när detta är avstängt.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lägg till valda i Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Vissa valda uppgifter kunde inte läggas till.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'De valda uppgifterna har redan exporterats.';
 }

@@ -4,6 +4,7 @@ import Flutter
 
 class AppleRemindersService {
     private let eventStore = EKEventStore()
+    private let autoExportEnabledKey = "appleRemindersAutoExportEnabled"
 
     private func hasRemindersAccess() -> Bool {
         let status = EKEventStore.authorizationStatus(for: .reminder)
@@ -12,6 +13,13 @@ class AppleRemindersService {
         } else {
             return status == .authorized
         }
+    }
+
+    private func isAutoExportEnabled() -> Bool {
+        if UserDefaults.standard.object(forKey: autoExportEnabledKey) == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: autoExportEnabledKey)
     }
 
     static let iso8601DateFormatter = ISO8601DateFormatter()
@@ -36,6 +44,8 @@ class AppleRemindersService {
             updateReminder(call: call, result: result)
         case "deleteReminder":
             deleteReminder(call: call, result: result)
+        case "setAutoExportEnabled":
+            setAutoExportEnabled(call: call, result: result)
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -47,6 +57,7 @@ class AppleRemindersService {
     /// and the background silent-push path (called from AppDelegate).
     /// Returns an array of mappings: [{"actionItemId": "...", "calendarItemIdentifier": "..."}]
     func syncBatchFromJSON(_ itemsJson: String) -> [[String: String]] {
+        guard isAutoExportEnabled() else { return [] }
         guard let data = itemsJson.data(using: .utf8),
               let items = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               !items.isEmpty else {
@@ -115,6 +126,16 @@ class AppleRemindersService {
             return
         }
         result(syncBatchFromJSON(itemsJson))
+    }
+
+    private func setAutoExportEnabled(call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard let args = call.arguments as? [String: Any],
+              let enabled = args["enabled"] as? Bool else {
+            result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing enabled flag", details: nil))
+            return
+        }
+        UserDefaults.standard.set(enabled, forKey: autoExportEnabledKey)
+        result(true)
     }
 
     // MARK: - Bidirectional Sync Methods

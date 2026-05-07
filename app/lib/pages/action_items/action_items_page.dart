@@ -12,6 +12,7 @@ import 'package:omi/providers/task_integration_provider.dart';
 import 'package:omi/services/app_review_service.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
+import 'package:omi/utils/platform/platform_service.dart';
 import 'widgets/action_item_form_sheet.dart';
 
 // Re-export Goal from goals.dart for use in this file
@@ -212,6 +213,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
 
   Widget _buildSelectionToolbar(ActionItemsProvider provider) {
     final hasAnything = provider.hasSelection || _selectedGoalIds.isNotEmpty;
+    final canAddSelectedToReminders = PlatformService.isApple && provider.hasSelection;
     return Positioned(
       left: 16,
       right: 16,
@@ -261,17 +263,54 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
               child: Text(context.l10n.tasksSelectAll, style: const TextStyle(fontSize: 14)),
             ),
             const SizedBox(width: 4),
+            if (PlatformService.isApple) ...[
+              Tooltip(
+                message: context.l10n.addSelectedToAppleReminders,
+                child: GestureDetector(
+                  onTap: canAddSelectedToReminders
+                      ? () async {
+                          await _addSelectedToAppleReminders(provider);
+                        }
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: canAddSelectedToReminders ? const Color(0xFF007AFF) : Colors.grey[700],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.event_available_rounded,
+                      color: canAddSelectedToReminders ? Colors.white : Colors.grey[500],
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             // Delete
             GestureDetector(
               onTap: hasAnything
                   ? () async {
                       HapticFeedback.mediumImpact();
                       final goalsProvider = Provider.of<GoalsProvider>(context, listen: false);
+                      final hadTasks = provider.hasSelection;
                       for (final goalId in List<String>.from(_selectedGoalIds)) {
                         await goalsProvider.deleteGoal(goalId);
                       }
                       setState(() => _selectedGoalIds.clear());
-                      await provider.deleteSelectedItems();
+                      if (hadTasks) {
+                        final success = await provider.deleteSelectedItems();
+                        if (!success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(context.l10n.failedToDeleteItems),
+                              backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
                     }
                   : null,
               child: Container(
@@ -292,6 +331,74 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _addSelectedToAppleReminders(ActionItemsProvider provider) async {
+    HapticFeedback.mediumImpact();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+            ),
+            const SizedBox(width: 12),
+            Text(context.l10n.addingToService('Apple Reminders')),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+    final result = await provider.exportSelectedItemsToAppleReminders();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    final bool isSuccess = result.addedAny && result.failedCount == 0;
+    final Color backgroundColor;
+    final IconData icon;
+    final String message;
+
+    if (result.permissionDenied) {
+      backgroundColor = Colors.red;
+      icon = Icons.error;
+      message = context.l10n.permissionDeniedForAppleReminders;
+    } else if (isSuccess) {
+      backgroundColor = Colors.green;
+      icon = Icons.check_circle;
+      message = context.l10n.addedToService('Apple Reminders');
+    } else if (result.addedAny) {
+      backgroundColor = Colors.orange;
+      icon = Icons.warning_rounded;
+      message = context.l10n.selectedActionItemsPartiallyAddedToAppleReminders;
+    } else if (result.skippedCount > 0) {
+      backgroundColor = Colors.orange;
+      icon = Icons.info;
+      message = context.l10n.selectedActionItemsAlreadyExported;
+    } else {
+      backgroundColor = Colors.red;
+      icon = Icons.error;
+      message = context.l10n.failedToAddToService('Apple Reminders');
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -1078,7 +1185,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(color: Colors.deepPurple, borderRadius: BorderRadius.circular(1)),
               ),
-            _buildDraggableTaskItem(item, provider, indentLevel, indentWidth),
+            _buildDraggableTaskItem(item, provider, indentLevel, indentWidth, categoryItems),
             // Drop indicator below
             if (isHovered && !_hoverAbove && candidateData.isNotEmpty)
               Container(
@@ -1097,8 +1204,9 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
     ActionItemsProvider provider,
     int indentLevel,
     double indentWidth,
+    List<ActionItemWithMetadata> categoryItems,
   ) {
-    final taskContent = _buildTaskItemContent(item, provider, indentWidth);
+    final taskContent = _buildTaskItemContent(item, provider, indentWidth, categoryItems);
 
     // In selection mode: no drag, no swipe — just tappable content.
     if (provider.isSelectionMode) {
@@ -1217,6 +1325,18 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
     );
   }
 
+  List<String> _visibleDescendantIds(ActionItemWithMetadata parent, List<ActionItemWithMetadata> categoryItems) {
+    final idx = categoryItems.indexWhere((item) => item.id == parent.id);
+    if (idx < 0) return const [];
+
+    final ids = <String>[];
+    for (int i = idx + 1; i < categoryItems.length; i++) {
+      if (categoryItems[i].indentLevel <= parent.indentLevel) break;
+      ids.add(categoryItems[i].id);
+    }
+    return ids;
+  }
+
   TaskCategory _getCategoryForItem(ActionItemWithMetadata item) {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
@@ -1242,7 +1362,12 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
     }
   }
 
-  Widget _buildTaskItemContent(ActionItemWithMetadata item, ActionItemsProvider provider, double indentWidth) {
+  Widget _buildTaskItemContent(
+    ActionItemWithMetadata item,
+    ActionItemsProvider provider,
+    double indentWidth,
+    List<ActionItemWithMetadata> categoryItems,
+  ) {
     final indentLevel = _getIndentLevel(item);
     final goalTitle = _getGoalTitleForTask(item);
     final isSelected = provider.isSelectionMode && provider.isItemSelected(item.id);
@@ -1252,7 +1377,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
       onTap: () {
         if (provider.isSelectionMode) {
           HapticFeedback.selectionClick();
-          provider.toggleItemSelection(item.id);
+          provider.toggleItemSelection(item.id, cascadeIds: _visibleDescendantIds(item, categoryItems));
         } else {
           _showEditSheet(item);
         }
@@ -1285,7 +1410,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                 onTap: () async {
                   if (provider.isSelectionMode) {
                     HapticFeedback.selectionClick();
-                    provider.toggleItemSelection(item.id);
+                    provider.toggleItemSelection(item.id, cascadeIds: _visibleDescendantIds(item, categoryItems));
                   } else {
                     HapticFeedback.lightImpact();
                     await provider.updateActionItemState(item, !item.completed);

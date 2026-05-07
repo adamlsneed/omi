@@ -3000,5 +3000,29 @@
     "recordWithPhoneMic": "Grabar con el micrófono del teléfono",
     "recordWithPhoneMicSubtitle": "Captura el audio a tu alrededor",
     "phoneCall": "Llamada telefónica",
-    "phoneCallSubtitle": "Graba una llamada con transcripción en vivo"
+    "phoneCallSubtitle": "Graba una llamada con transcripción en vivo",
+    "autoAddTasksToAppleReminders": "Añadir tareas automáticamente a Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Cuando está activado, las tareas que crea Omi se añaden automáticamente a Recordatorios. Aún puedes añadir tareas manualmente cuando esto está desactivado.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Añadir seleccionadas a Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "No se pudieron añadir algunas tareas seleccionadas.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Las tareas seleccionadas ya están exportadas.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Iniciar grabación de llamada",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Iniciar grabación de voz",
+    "@startVoiceRecording": {}
 }

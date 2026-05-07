@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "Снимај со микрофон на телефонот",
     "recordWithPhoneMicSubtitle": "Снимајте звук околу вас",
     "phoneCall": "Телефонски повик",
-    "phoneCallSubtitle": "Снимајте повик со транскрипција во живо"
+    "phoneCallSubtitle": "Снимајте повик со транскрипција во живо",
+    "autoAddTasksToAppleReminders": "Автоматски додавај задачи во Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Кога е вклучено, задачите што ги создава Omi автоматски се додаваат во Потсетници. Сè уште можете рачно да додавате задачи кога ова е исклучено.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Додај избрани во Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Некои избрани задачи не можеа да се додадат.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Избраните задачи веќе се извезени.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Започни снимање повик",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Започни гласовно снимање",
+    "@startVoiceRecording": {}
 }

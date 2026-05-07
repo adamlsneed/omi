@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "ఫోన్ మైక్‌తో రికార్డ్ చేయండి",
     "recordWithPhoneMicSubtitle": "మీ చుట్టూ ఉన్న ఆడియోను క్యాప్చర్ చేయండి",
     "phoneCall": "ఫోన్ కాల్",
-    "phoneCallSubtitle": "లైవ్ ట్రాన్స్‌క్రిప్షన్‌తో కాల్‌ను రికార్డ్ చేయండి"
+    "phoneCallSubtitle": "లైవ్ ట్రాన్స్‌క్రిప్షన్‌తో కాల్‌ను రికార్డ్ చేయండి",
+    "autoAddTasksToAppleReminders": "Apple Reminders కు పనులను స్వయంచాలకంగా జోడించండి",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "ఇది ఆన్‌లో ఉన్నప్పుడు, Omi సృష్టించే పనులు స్వయంచాలకంగా Reminders కు జోడించబడతాయి. ఇది ఆఫ్‌లో ఉన్నప్పుడు కూడా మీరు పనులను చేతితో జోడించవచ్చు.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "ఎంచుకున్నవాటిని Apple Reminders కు జోడించండి",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "ఎంచుకున్న కొన్ని పనులను జోడించలేకపోయాం.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "ఎంచుకున్న పనులు ఇప్పటికే ఎగుమతి చేయబడ్డాయి.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "కాల్ రికార్డింగ్ ప్రారంభించండి",
+    "@startCallRecording": {},
+    "startVoiceRecording": "వాయిస్ రికార్డింగ్ ప్రారంభించండి",
+    "@startVoiceRecording": {}
 }

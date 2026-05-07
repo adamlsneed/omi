@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Ta opp med telefonmikrofon",
     "recordWithPhoneMicSubtitle": "Fang opp lyden rundt deg",
     "phoneCall": "Telefonsamtale",
-    "phoneCallSubtitle": "Ta opp en samtale med direkte transkripsjon"
+    "phoneCallSubtitle": "Ta opp en samtale med direkte transkripsjon",
+    "autoAddTasksToAppleReminders": "Legg automatisk til oppgaver i Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Når dette er slått på, legges oppgaver Omi oppretter automatisk til i Påminnelser. Du kan fortsatt legge til oppgaver manuelt når dette er av.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Legg valgte til i Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Noen valgte oppgaver kunne ikke legges til.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "De valgte oppgavene er allerede eksportert.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Start samtaleopptak",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Start taleopptak",
+    "@startVoiceRecording": {}
 }

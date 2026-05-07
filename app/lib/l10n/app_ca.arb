@@ -2968,5 +2968,29 @@
     "recordWithPhoneMic": "Grava amb el micròfon del telèfon",
     "recordWithPhoneMicSubtitle": "Captura l'àudio que t'envolta",
     "phoneCall": "Trucada",
-    "phoneCallSubtitle": "Enregistra una trucada amb transcripció en directe"
+    "phoneCallSubtitle": "Enregistra una trucada amb transcripció en directe",
+    "autoAddTasksToAppleReminders": "Afegeix automàticament tasques a Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Quan està activat, les tasques que crea Omi s'afegeixen automàticament als Recordatoris. Encara pots afegir tasques manualment quan això està desactivat.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Afegeix la selecció a Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "No s’han pogut afegir algunes tasques seleccionades.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Les tasques seleccionades ja s’han exportat.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Inicia l’enregistrament de trucada",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Inicia l’enregistrament de veu",
+    "@startVoiceRecording": {}
 }

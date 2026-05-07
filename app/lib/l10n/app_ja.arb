@@ -3000,5 +3000,29 @@
     "recordWithPhoneMic": "電話のマイクで録音",
     "recordWithPhoneMicSubtitle": "周囲の音声を録音",
     "phoneCall": "電話",
-    "phoneCallSubtitle": "ライブ文字起こしで通話を録音"
+    "phoneCallSubtitle": "ライブ文字起こしで通話を録音",
+    "autoAddTasksToAppleReminders": "タスクをAppleリマインダーに自動追加",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "オンにすると、Omiが作成したタスクが自動的にリマインダーに追加されます。オフの場合でも、手動でタスクを追加できます。",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "選択項目をApple Remindersに追加",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "一部の選択したタスクを追加できませんでした。",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "選択したタスクはすでにエクスポートされています。",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "通話録音を開始",
+    "@startCallRecording": {},
+    "startVoiceRecording": "音声録音を開始",
+    "@startVoiceRecording": {}
 }

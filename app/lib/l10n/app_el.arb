@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Εγγραφή με μικρόφωνο τηλεφώνου",
     "recordWithPhoneMicSubtitle": "Καταγράψτε ήχο γύρω σας",
     "phoneCall": "Τηλεφωνική κλήση",
-    "phoneCallSubtitle": "Καταγράψτε κλήση με ζωντανή μεταγραφή"
+    "phoneCallSubtitle": "Καταγράψτε κλήση με ζωντανή μεταγραφή",
+    "autoAddTasksToAppleReminders": "Αυτόματη προσθήκη εργασιών στις Υπενθυμίσεις Apple",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Όταν είναι ενεργό, οι εργασίες που δημιουργεί το Omi προστίθενται αυτόματα στις Υπενθυμίσεις. Μπορείτε ακόμη να προσθέτετε εργασίες χειροκίνητα όταν αυτό είναι απενεργοποιημένο.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Προσθήκη επιλεγμένων στο Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Δεν ήταν δυνατή η προσθήκη ορισμένων επιλεγμένων εργασιών.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Οι επιλεγμένες εργασίες έχουν ήδη εξαχθεί.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Έναρξη εγγραφής κλήσης",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Έναρξη φωνητικής εγγραφής",
+    "@startVoiceRecording": {}
 }

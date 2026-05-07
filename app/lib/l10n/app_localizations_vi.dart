@@ -9155,10 +9155,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get agreeAndContinue => 'Đồng ý và tiếp tục';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Bắt đầu ghi âm giọng nói';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Bắt đầu ghi âm cuộc gọi';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9186,4 +9186,20 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Ghi âm cuộc gọi với phiên âm trực tiếp';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Tự động thêm tác vụ vào Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Khi bật, các tác vụ Omi tạo sẽ tự động được thêm vào Nhắc nhở. Bạn vẫn có thể thêm tác vụ thủ công khi tùy chọn này tắt.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Thêm mục đã chọn vào Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Không thể thêm một số công việc đã chọn.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Các công việc đã chọn đã được xuất.';
 }

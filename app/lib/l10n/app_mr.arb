@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "फोन माइकने रेकॉर्ड करा",
     "recordWithPhoneMicSubtitle": "तुमच्या आजूबाजूचा ऑडिओ कॅप्चर करा",
     "phoneCall": "फोन कॉल",
-    "phoneCallSubtitle": "लाइव्ह ट्रान्स्क्रिप्शनसह कॉल रेकॉर्ड करा"
+    "phoneCallSubtitle": "लाइव्ह ट्रान्स्क्रिप्शनसह कॉल रेकॉर्ड करा",
+    "autoAddTasksToAppleReminders": "Apple Reminders मध्ये कामे आपोआप जोडा",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "चालू असताना, Omi तयार करत असलेली कामे आपोआप Reminders मध्ये जोडली जातात. हे बंद असतानाही तुम्ही कामे हाताने जोडू शकता.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "निवडलेले Apple Reminders मध्ये जोडा",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "काही निवडलेली कामे जोडता आली नाहीत.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "निवडलेली कामे आधीच निर्यात केली आहेत.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "कॉल रेकॉर्डिंग सुरू करा",
+    "@startCallRecording": {},
+    "startVoiceRecording": "आवाज रेकॉर्डिंग सुरू करा",
+    "@startVoiceRecording": {}
 }

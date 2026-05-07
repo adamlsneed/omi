@@ -9164,10 +9164,10 @@ class AppLocalizationsLt extends AppLocalizations {
   String get agreeAndContinue => 'Sutinku ir tęsti';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Pradėti balso įrašymą';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Pradėti skambučio įrašymą';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9195,4 +9195,20 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Įrašykite skambutį su tiesiogine transkripcija';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automatiškai pridėti užduotis į Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Įjungus, Omi sukurtos užduotys automatiškai pridedamos prie priminimų. Kai ši parinktis išjungta, užduotis vis tiek galite pridėti rankiniu būdu.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Pridėti pasirinktus į Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Kai kurių pasirinktų užduočių nepavyko pridėti.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Pasirinktos užduotys jau eksportuotos.';
 }

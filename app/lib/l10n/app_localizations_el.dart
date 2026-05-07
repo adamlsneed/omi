@@ -9220,10 +9220,10 @@ class AppLocalizationsEl extends AppLocalizations {
   String get agreeAndContinue => 'Συμφωνώ και Συνέχεια';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Έναρξη φωνητικής εγγραφής';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Έναρξη εγγραφής κλήσης';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9251,4 +9251,21 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Καταγράψτε κλήση με ζωντανή μεταγραφή';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Αυτόματη προσθήκη εργασιών στις Υπενθυμίσεις Apple';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Όταν είναι ενεργό, οι εργασίες που δημιουργεί το Omi προστίθενται αυτόματα στις Υπενθυμίσεις. Μπορείτε ακόμη να προσθέτετε εργασίες χειροκίνητα όταν αυτό είναι απενεργοποιημένο.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Προσθήκη επιλεγμένων στο Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Δεν ήταν δυνατή η προσθήκη ορισμένων επιλεγμένων εργασιών.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Οι επιλεγμένες εργασίες έχουν ήδη εξαχθεί.';
 }

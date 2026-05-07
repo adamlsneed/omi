@@ -9194,10 +9194,10 @@ class AppLocalizationsHu extends AppLocalizations {
   String get agreeAndContinue => 'Elfogadom és folytatom';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Hangrögzítés indítása';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Hívásrögzítés indítása';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9225,4 +9225,20 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Hívás rögzítése élő átirattal';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Feladatok automatikus hozzáadása az Apple Remindershez';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Kijelöltek hozzáadása az Apple Remindershez';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Néhány kijelölt feladatot nem sikerült hozzáadni.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'A kijelölt feladatok már exportálva vannak.';
 }

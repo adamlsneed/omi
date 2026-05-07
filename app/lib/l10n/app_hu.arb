@@ -3095,5 +3095,29 @@
     "recordWithPhoneMic": "Felvétel a telefon mikrofonjával",
     "recordWithPhoneMicSubtitle": "Rögzítse a környezete hangját",
     "phoneCall": "Telefonhívás",
-    "phoneCallSubtitle": "Hívás rögzítése élő átirattal"
+    "phoneCallSubtitle": "Hívás rögzítése élő átirattal",
+    "autoAddTasksToAppleReminders": "Feladatok automatikus hozzáadása az Apple Remindershez",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Kijelöltek hozzáadása az Apple Remindershez",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Néhány kijelölt feladatot nem sikerült hozzáadni.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "A kijelölt feladatok már exportálva vannak.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Hívásrögzítés indítása",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Hangrögzítés indítása",
+    "@startVoiceRecording": {}
 }

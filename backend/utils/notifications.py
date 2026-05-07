@@ -2,6 +2,9 @@ import asyncio
 import hashlib
 import json
 import math
+import uuid
+from typing import List
+
 from firebase_admin import messaging, auth
 import database.notifications as notification_db
 from database.redis_db import (
@@ -504,6 +507,24 @@ def send_action_item_deletion_message(user_id: str, action_item_id: str):
     }
     tag = _generate_tag(f"{user_id}:action_item_delete:{action_item_id}")
     _send_to_user(user_id, tag, data=data, is_background=True, priority='high')
+
+
+def send_action_items_batch_deletion_message(user_id: str, action_item_ids: List[str]):
+    """Send chunked data-only FCM messages for bulk action-item notification cancellation."""
+    if not action_item_ids:
+        return
+
+    chunk_size = 100
+    nonce = uuid.uuid4().hex[:8]
+    for start in range(0, len(action_item_ids), chunk_size):
+        chunk = action_item_ids[start : start + chunk_size]
+        data = {
+            'type': 'action_item_batch_delete',
+            'ids': ','.join(chunk),
+        }
+        tag = _generate_tag(f"{user_id}:action_item_batch_delete:{nonce}:{start}")
+        _send_to_user(user_id, tag, data=data, is_background=True, priority='high')
+    logger.info(f'send_action_items_batch_deletion_message to user {user_id} count={len(action_item_ids)}')
 
 
 def send_action_item_created_notification(user_id: str, action_item_description: str):

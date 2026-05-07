@@ -9007,10 +9007,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get agreeAndContinue => '동의하고 계속';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => '음성 녹음 시작';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => '통화 녹음 시작';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9038,4 +9038,20 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => '실시간 전사로 통화 녹음';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple 미리 알림에 작업 자동 추가';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      '켜져 있으면 Omi가 만든 작업이 미리 알림에 자동으로 추가됩니다. 이 옵션이 꺼져 있어도 작업을 수동으로 추가할 수 있습니다.';
+
+  @override
+  String get addSelectedToAppleReminders => '선택 항목을 Apple Reminders에 추가';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '일부 선택한 작업을 추가하지 못했습니다.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '선택한 작업은 이미 내보냈습니다.';
 }

@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "Snimaj telefonskim mikrofonom",
     "recordWithPhoneMicSubtitle": "Snimite zvuk oko vas",
     "phoneCall": "Telefonski poziv",
-    "phoneCallSubtitle": "Snimajte poziv s transkripcijom uživo"
+    "phoneCallSubtitle": "Snimajte poziv s transkripcijom uživo",
+    "autoAddTasksToAppleReminders": "Automatski dodaj zadatke u Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kada je uključeno, zadaci koje Omi stvori automatski se dodaju u Podsjetnike. I dalje možete ručno dodavati zadatke kada je ovo isključeno.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Dodaj odabrano u Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Neke odabrane zadatke nije bilo moguće dodati.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Odabrani zadaci već su izvezeni.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Pokreni snimanje poziva",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Pokreni glasovno snimanje",
+    "@startVoiceRecording": {}
 }

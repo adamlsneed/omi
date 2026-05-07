@@ -9179,10 +9179,10 @@ class AppLocalizationsSl extends AppLocalizations {
   String get agreeAndContinue => 'Strinjam se in nadaljuj';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Začni glasovno snemanje';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Začni snemanje klica';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9210,4 +9210,20 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Posnemite klic s prepisom v živo';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Samodejno dodaj opravila v Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Ko je vklopljeno, se opravila, ki jih ustvari Omi, samodejno dodajo v Opomnike. Ko je to izklopljeno, lahko opravila še vedno dodate ročno.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Dodaj izbrano v Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Nekaterih izbranih opravil ni bilo mogoče dodati.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Izbrana opravila so že izvožena.';
 }

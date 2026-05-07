@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Salvesta telefoni mikrofoniga",
     "recordWithPhoneMicSubtitle": "Salvesta enda ümbruse heli",
     "phoneCall": "Telefonikõne",
-    "phoneCallSubtitle": "Salvesta kõne reaalajas transkriptsiooniga"
+    "phoneCallSubtitle": "Salvesta kõne reaalajas transkriptsiooniga",
+    "autoAddTasksToAppleReminders": "Lisa ülesanded automaatselt Apple Remindersisse",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kui see on lubatud, lisatakse Omi loodud ülesanded automaatselt meeldetuletustesse. Kui see on välja lülitatud, saad ülesandeid endiselt käsitsi lisada.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Lisa valitud Apple Remindersisse",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Mõnda valitud ülesannet ei saanud lisada.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Valitud ülesanded on juba eksporditud.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Alusta kõne salvestamist",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Alusta häälsalvestust",
+    "@startVoiceRecording": {}
 }

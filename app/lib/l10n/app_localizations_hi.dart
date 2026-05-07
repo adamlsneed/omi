@@ -9135,10 +9135,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get agreeAndContinue => 'सहमत हूँ और जारी रखें';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'वॉइस रिकॉर्डिंग शुरू करें';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'कॉल रिकॉर्डिंग शुरू करें';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9166,4 +9166,20 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'लाइव ट्रांसक्रिप्शन के साथ कॉल रिकॉर्ड करें';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple Reminders में कार्य अपने-आप जोड़ें';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'चालू होने पर, Omi द्वारा बनाए गए कार्य अपने-आप Reminders में जुड़ जाते हैं। यह बंद होने पर भी आप कार्य मैन्युअल रूप से जोड़ सकते हैं।';
+
+  @override
+  String get addSelectedToAppleReminders => 'चयनित को Apple Reminders में जोड़ें';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'कुछ चयनित कार्य जोड़े नहीं जा सके।';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'चयनित कार्य पहले ही निर्यात किए जा चुके हैं।';
 }

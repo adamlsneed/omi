@@ -2968,5 +2968,29 @@
     "recordWithPhoneMic": "Nahrát mikrofonem telefonu",
     "recordWithPhoneMicSubtitle": "Zaznamenávejte zvuk kolem vás",
     "phoneCall": "Telefonní hovor",
-    "phoneCallSubtitle": "Nahrávejte hovor s živým přepisem"
+    "phoneCallSubtitle": "Nahrávejte hovor s živým přepisem",
+    "autoAddTasksToAppleReminders": "Automaticky přidávat úkoly do Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Přidat vybrané do Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Některé vybrané úkoly se nepodařilo přidat.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Vybrané úkoly už byly exportovány.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Spustit nahrávání hovoru",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Spustit hlasové nahrávání",
+    "@startVoiceRecording": {}
 }

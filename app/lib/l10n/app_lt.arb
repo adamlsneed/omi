@@ -2999,5 +2999,29 @@
     "recordWithPhoneMic": "Įrašyti telefono mikrofonu",
     "recordWithPhoneMicSubtitle": "Užfiksuokite garsą aplink jus",
     "phoneCall": "Telefono skambutis",
-    "phoneCallSubtitle": "Įrašykite skambutį su tiesiogine transkripcija"
+    "phoneCallSubtitle": "Įrašykite skambutį su tiesiogine transkripcija",
+    "autoAddTasksToAppleReminders": "Automatiškai pridėti užduotis į Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Įjungus, Omi sukurtos užduotys automatiškai pridedamos prie priminimų. Kai ši parinktis išjungta, užduotis vis tiek galite pridėti rankiniu būdu.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Pridėti pasirinktus į Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Kai kurių pasirinktų užduočių nepavyko pridėti.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Pasirinktos užduotys jau eksportuotos.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "Pradėti skambučio įrašymą",
+    "@startCallRecording": {},
+    "startVoiceRecording": "Pradėti balso įrašymą",
+    "@startVoiceRecording": {}
 }

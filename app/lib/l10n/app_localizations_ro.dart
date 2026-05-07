@@ -9198,10 +9198,10 @@ class AppLocalizationsRo extends AppLocalizations {
   String get agreeAndContinue => 'Accept și continuă';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Pornește înregistrarea vocală';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Pornește înregistrarea apelului';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9229,4 +9229,20 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Înregistrează un apel cu transcriere în direct';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Adaugă automat sarcini în Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Când este activat, sarcinile create de Omi sunt adăugate automat în Mementouri. Poți adăuga în continuare sarcini manual când opțiunea este dezactivată.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Adaugă selecția în Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Unele sarcini selectate nu au putut fi adăugate.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Sarcinile selectate sunt deja exportate.';
 }

@@ -9173,10 +9173,10 @@ class AppLocalizationsLv extends AppLocalizations {
   String get agreeAndContinue => 'Piekrītu un turpināt';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Sākt balss ierakstīšanu';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Sākt zvana ierakstīšanu';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9204,4 +9204,20 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Ierakstiet zvanu ar tiešraides transkripciju';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automātiski pievienot uzdevumus Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kad ieslēgts, Omi izveidotie uzdevumi automātiski tiek pievienoti atgādinājumiem. Kad tas ir izslēgts, uzdevumus joprojām var pievienot manuāli.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Pievienot atlasītos Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Dažus atlasītos uzdevumus neizdevās pievienot.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Atlasītie uzdevumi jau ir eksportēti.';
 }

@@ -9109,10 +9109,10 @@ class AppLocalizationsTh extends AppLocalizations {
   String get agreeAndContinue => 'ยอมรับและดำเนินการต่อ';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'เริ่มบันทึกเสียง';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'เริ่มบันทึกการโทร';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9140,4 +9140,20 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'บันทึกการโทรพร้อมถอดเสียงสด';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'เพิ่มงานไปยัง Apple Reminders โดยอัตโนมัติ';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'เมื่อเปิดใช้ งานที่ Omi สร้างจะถูกเพิ่มไปยังเตือนความจำโดยอัตโนมัติ คุณยังสามารถเพิ่มงานด้วยตนเองได้เมื่อปิดตัวเลือกนี้';
+
+  @override
+  String get addSelectedToAppleReminders => 'เพิ่มรายการที่เลือกไปยัง Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ไม่สามารถเพิ่มงานที่เลือกบางรายการได้';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'งานที่เลือกถูกส่งออกแล้ว';
 }

@@ -9152,10 +9152,10 @@ class AppLocalizationsEt extends AppLocalizations {
   String get agreeAndContinue => 'Nõustun ja jätka';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Alusta häälsalvestust';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Alusta kõne salvestamist';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9183,4 +9183,20 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Salvesta kõne reaalajas transkriptsiooniga';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lisa ülesanded automaatselt Apple Remindersisse';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kui see on lubatud, lisatakse Omi loodud ülesanded automaatselt meeldetuletustesse. Kui see on välja lülitatud, saad ülesandeid endiselt käsitsi lisada.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lisa valitud Apple Remindersisse';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Mõnda valitud ülesannet ei saanud lisada.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Valitud ülesanded on juba eksporditud.';
 }

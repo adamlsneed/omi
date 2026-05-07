@@ -9151,10 +9151,10 @@ class AppLocalizationsNo extends AppLocalizations {
   String get agreeAndContinue => 'Godta og fortsett';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Start taleopptak';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Start samtaleopptak';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9182,4 +9182,20 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Ta opp en samtale med direkte transkripsjon';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Legg automatisk til oppgaver i Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Når dette er slått på, legges oppgaver Omi oppretter automatisk til i Påminnelser. Du kan fortsatt legge til oppgaver manuelt når dette er av.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Legg valgte til i Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Noen valgte oppgaver kunne ikke legges til.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'De valgte oppgavene er allerede eksportert.';
 }

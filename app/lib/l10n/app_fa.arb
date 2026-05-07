@@ -10707,5 +10707,29 @@
     "recordWithPhoneMic": "ضبط با میکروفون تلفن",
     "recordWithPhoneMicSubtitle": "صدای اطراف خود را ضبط کنید",
     "phoneCall": "تماس تلفنی",
-    "phoneCallSubtitle": "یک تماس را با رونویسی زنده ضبط کنید"
+    "phoneCallSubtitle": "یک تماس را با رونویسی زنده ضبط کنید",
+    "autoAddTasksToAppleReminders": "افزودن خودکار وظایف به Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "وقتی فعال باشد، وظایفی که Omi ایجاد می‌کند به‌طور خودکار به Reminders اضافه می‌شوند. وقتی این گزینه خاموش است همچنان می‌توانید وظایف را دستی اضافه کنید.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "افزودن موارد انتخاب‌شده به Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "برخی کارهای انتخاب‌شده اضافه نشدند.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "کارهای انتخاب‌شده قبلاً صادر شده‌اند.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "startCallRecording": "شروع ضبط تماس",
+    "@startCallRecording": {},
+    "startVoiceRecording": "شروع ضبط صدا",
+    "@startVoiceRecording": {}
 }

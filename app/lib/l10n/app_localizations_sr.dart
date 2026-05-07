@@ -9168,10 +9168,10 @@ class AppLocalizationsSr extends AppLocalizations {
   String get agreeAndContinue => 'Slažem se i nastavi';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Започни гласовно снимање';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Започни снимање позива';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9199,4 +9199,20 @@ class AppLocalizationsSr extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Снимајте позив са транскрипцијом уживо';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Аутоматски додај задатке у Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Када је укључено, задаци које Omi направи аутоматски се додају у Подсетнике. И даље можете ручно да додајете задатке када је ово искључено.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Додај изабрано у Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Неке изабране задатке није могуће додати.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Изабрани задаци су већ извезени.';
 }

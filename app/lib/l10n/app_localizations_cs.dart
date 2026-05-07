@@ -9151,10 +9151,10 @@ class AppLocalizationsCs extends AppLocalizations {
   String get agreeAndContinue => 'Souhlasím a pokračovat';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Spustit hlasové nahrávání';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Spustit nahrávání hovoru';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9182,4 +9182,20 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Nahrávejte hovor s živým přepisem';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automaticky přidávat úkoly do Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Přidat vybrané do Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Některé vybrané úkoly se nepodařilo přidat.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Vybrané úkoly už byly exportovány.';
 }

@@ -58,6 +58,8 @@ class ActionItemsProvider extends ChangeNotifier {
   Set<String> get selectedItems => _selectedItems;
   int get selectedCount => _selectedItems.length;
   bool get hasSelection => _selectedItems.isNotEmpty;
+  List<ActionItemWithMetadata> get selectedActionItems =>
+      _actionItems.where((item) => _selectedItems.contains(item.id)).toList();
 
   // Group action items by completion status
   List<ActionItemWithMetadata> get incompleteItems => _actionItems.where((item) => item.completed == false).toList();
@@ -448,6 +450,7 @@ class ActionItemsProvider extends ChangeNotifier {
   /// Fire-and-forget — doesn't block the UI.
   void _syncToAppleRemindersIfNeeded(ActionItemWithMetadata item) {
     if (!PlatformService.isApple) return;
+    if (!SharedPreferencesUtil().appleRemindersAutoExportEnabled) return;
 
     final service = AppleRemindersService();
     if (!service.isAvailable) return;
@@ -634,11 +637,14 @@ class ActionItemsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleItemSelection(String itemId) {
-    if (_selectedItems.contains(itemId)) {
+  void toggleItemSelection(String itemId, {Iterable<String> cascadeIds = const []}) {
+    final wasSelected = _selectedItems.contains(itemId);
+    if (wasSelected) {
       _selectedItems.remove(itemId);
+      _selectedItems.removeAll(cascadeIds);
     } else {
       _selectedItems.add(itemId);
+      _selectedItems.addAll(cascadeIds);
     }
     notifyListeners();
   }
@@ -709,6 +715,11 @@ class ActionItemsProvider extends ChangeNotifier {
     if (_selectedItems.isEmpty) return false;
 
     final itemsToDelete = _actionItems.where((item) => _selectedItems.contains(item.id)).toList();
+    final ids = itemsToDelete.map((item) => item.id).toList(growable: false);
+    final snapshot = <int, ActionItemWithMetadata>{
+      for (final item in itemsToDelete) _actionItems.indexOf(item): item,
+    };
+    final wasInSelection = _isSelectionMode;
 
     // Dismiss UI immediately — don't wait for API
     _actionItems.removeWhere((item) => _selectedItems.contains(item.id));
@@ -716,8 +727,24 @@ class ActionItemsProvider extends ChangeNotifier {
     _isSelectionMode = false;
     notifyListeners();
 
-    final results = await Future.wait(itemsToDelete.map((item) => deleteActionItem(item)));
-    return results.every((success) => success);
+    final deleted = await api.bulkDeleteActionItems(ids);
+    if (deleted == null || deleted.length != ids.length) {
+      Logger.debug('bulkDeleteActionItems failed — rolling back local list');
+      final entries = snapshot.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+      for (final entry in entries) {
+        final idx = entry.key.clamp(0, _actionItems.length);
+        _actionItems.insert(idx, entry.value);
+      }
+      _isSelectionMode = wasInSelection;
+      _selectedItems = ids.toSet();
+      notifyListeners();
+      return false;
+    }
+
+    for (final item in itemsToDelete) {
+      _deleteAppleReminderIfLinked(item);
+    }
+    return true;
   }
 
   Future<bool> clearCompletedItems() async {
@@ -726,6 +753,91 @@ class ActionItemsProvider extends ChangeNotifier {
 
     final results = await Future.wait(completed.map((item) => deleteActionItem(item)));
     return results.every((success) => success);
+  }
+
+  Future<AppleRemindersBulkExportResult> exportSelectedItemsToAppleReminders() async {
+    if (!PlatformService.isApple || _selectedItems.isEmpty) {
+      return const AppleRemindersBulkExportResult();
+    }
+
+    final service = AppleRemindersService();
+    if (!service.isAvailable) {
+      return const AppleRemindersBulkExportResult();
+    }
+
+    var hasPermission = await service.hasPermission();
+    if (!hasPermission) {
+      hasPermission = await service.requestPermission();
+      if (!hasPermission) {
+        return const AppleRemindersBulkExportResult(permissionDenied: true);
+      }
+    }
+
+    var addedCount = 0;
+    var failedCount = 0;
+    var skippedCount = 0;
+    final itemsToExport = selectedActionItems;
+
+    for (final item in itemsToExport) {
+      if (item.exported) {
+        skippedCount++;
+        continue;
+      }
+
+      try {
+        final calendarItemId = await service.addReminder(
+          title: item.description,
+          notes: 'From Omi',
+          dueDate: item.dueAt,
+          listName: 'Reminders',
+        );
+
+        if (calendarItemId == null) {
+          failedCount++;
+          continue;
+        }
+
+        final exportTime = DateTime.now();
+        final updatedItem = await api.updateActionItem(
+          item.id,
+          exported: true,
+          exportDate: exportTime,
+          exportPlatform: 'apple_reminders',
+          appleReminderId: calendarItemId,
+        );
+
+        final index = _actionItems.indexWhere((candidate) => candidate.id == item.id);
+        if (index != -1) {
+          _actionItems[index] = updatedItem ??
+              item.copyWith(
+                exported: true,
+                exportDate: exportTime,
+                exportPlatform: 'apple_reminders',
+                appleReminderId: calendarItemId,
+              );
+        }
+
+        addedCount++;
+        MixpanelManager().actionItemExported(
+          actionItemId: item.id,
+          appName: 'Apple Reminders',
+          timestamp: exportTime,
+        );
+      } catch (e) {
+        failedCount++;
+        Logger.debug('Selected Apple Reminders export failed: $e');
+      }
+    }
+
+    _selectedItems.clear();
+    _isSelectionMode = false;
+    notifyListeners();
+
+    return AppleRemindersBulkExportResult(
+      addedCount: addedCount,
+      failedCount: failedCount,
+      skippedCount: skippedCount,
+    );
   }
 
   void startSelectionWithItem(String itemId) {
@@ -743,4 +855,20 @@ class ActionItemsProvider extends ChangeNotifier {
     _flushIndentUpdates();
     super.dispose();
   }
+}
+
+class AppleRemindersBulkExportResult {
+  final int addedCount;
+  final int failedCount;
+  final int skippedCount;
+  final bool permissionDenied;
+
+  const AppleRemindersBulkExportResult({
+    this.addedCount = 0,
+    this.failedCount = 0,
+    this.skippedCount = 0,
+    this.permissionDenied = false,
+  });
+
+  bool get addedAny => addedCount > 0;
 }
