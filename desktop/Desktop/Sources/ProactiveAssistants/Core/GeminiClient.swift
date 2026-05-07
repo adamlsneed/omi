@@ -1,5 +1,21 @@
 import Foundation
 
+// MARK: - Thinking Budget Configuration
+
+/// Controls how many tokens Gemini 2.5 spends on internal reasoning.
+/// Budget 0 disables thinking for Flash. Pro requires a minimum of 128.
+struct ThinkingConfig: Encodable {
+  let thinkingBudget: Int
+
+  enum CodingKeys: String, CodingKey {
+    case thinkingBudget = "thinking_budget"
+  }
+
+  static func minimumBudget(for model: String) -> Int {
+    model.contains("pro") ? 128 : 0
+  }
+}
+
 // MARK: - Gemini API Request/Response Types
 
 struct GeminiRequest: Encodable {
@@ -56,12 +72,14 @@ struct GeminiRequest: Encodable {
   }
 
   struct GenerationConfig: Encodable {
-    let responseMimeType: String
+    let responseMimeType: String?
     let responseSchema: ResponseSchema?
+    let thinkingConfig: ThinkingConfig?
 
     enum CodingKeys: String, CodingKey {
       case responseMimeType = "response_mime_type"
       case responseSchema = "response_schema"
+      case thinkingConfig = "thinking_config"
     }
 
     struct ResponseSchema: Encodable {
@@ -334,7 +352,8 @@ actor GeminiClient {
     prompt: String,
     imageData: Data,
     systemPrompt: String,
-    responseSchema: GeminiRequest.GenerationConfig.ResponseSchema
+    responseSchema: GeminiRequest.GenerationConfig.ResponseSchema,
+    thinkingBudget: Int = 0
   ) async throws -> String {
     let maxRetries = 2
     var lastError: Error?
@@ -359,7 +378,8 @@ actor GeminiClient {
             ),
             generationConfig: GeminiRequest.GenerationConfig(
               responseMimeType: "application/json",
-              responseSchema: responseSchema
+              responseSchema: responseSchema,
+              thinkingConfig: ThinkingConfig(thinkingBudget: max(thinkingBudget, ThinkingConfig.minimumBudget(for: model)))
             )
           )
 
@@ -417,7 +437,8 @@ actor GeminiClient {
     prompt: String,
     systemPrompt: String,
     maxRetries: Int = 2,
-    timeout: TimeInterval = 300
+    timeout: TimeInterval = 300,
+    thinkingBudget: Int = 0
   ) async throws -> String {
     var lastError: Error?
 
@@ -432,7 +453,11 @@ actor GeminiClient {
           systemInstruction: GeminiRequest.SystemInstruction(
             parts: [GeminiRequest.SystemInstruction.TextPart(text: systemPrompt)]
           ),
-          generationConfig: nil
+          generationConfig: GeminiRequest.GenerationConfig(
+            responseMimeType: nil,
+            responseSchema: nil,
+            thinkingConfig: ThinkingConfig(thinkingBudget: max(thinkingBudget, ThinkingConfig.minimumBudget(for: model)))
+          )
         )
 
         let url = proxyURL(action: "generateContent")
@@ -482,7 +507,8 @@ actor GeminiClient {
   func sendRequest(
     prompt: String,
     systemPrompt: String,
-    responseSchema: GeminiRequest.GenerationConfig.ResponseSchema
+    responseSchema: GeminiRequest.GenerationConfig.ResponseSchema,
+    thinkingBudget: Int = 0
   ) async throws -> String {
     let maxRetries = 2
     var lastError: Error?
@@ -500,7 +526,8 @@ actor GeminiClient {
           ),
           generationConfig: GeminiRequest.GenerationConfig(
             responseMimeType: "application/json",
-            responseSchema: responseSchema
+            responseSchema: responseSchema,
+            thinkingConfig: ThinkingConfig(thinkingBudget: max(thinkingBudget, ThinkingConfig.minimumBudget(for: model)))
           )
         )
 
@@ -1103,14 +1130,24 @@ extension GeminiClient {
 struct GeminiImageToolRequest: Encodable {
   let contents: [Content]
   let systemInstruction: SystemInstruction?
+  let generationConfig: GenerationConfig?
   let tools: [GeminiTool]?
   let toolConfig: ToolConfig?
 
   enum CodingKeys: String, CodingKey {
     case contents
     case systemInstruction = "system_instruction"
+    case generationConfig = "generation_config"
     case tools
     case toolConfig = "tool_config"
+  }
+
+  struct GenerationConfig: Encodable {
+    let thinkingConfig: ThinkingConfig?
+
+    enum CodingKeys: String, CodingKey {
+      case thinkingConfig = "thinking_config"
+    }
   }
 
   struct Content: Encodable {
@@ -1253,6 +1290,9 @@ extension GeminiClient {
             systemInstruction: GeminiImageToolRequest.SystemInstruction(
               parts: [.init(text: systemPrompt)]
             ),
+            generationConfig: GeminiImageToolRequest.GenerationConfig(
+              thinkingConfig: ThinkingConfig(thinkingBudget: ThinkingConfig.minimumBudget(for: model))
+            ),
             tools: tools,
             toolConfig: toolConfig
           )
@@ -1320,11 +1360,14 @@ extension GeminiClient {
 
   /// Send image + tool loop request: takes pre-built contents array for multi-turn tool calling.
   /// Retries up to 2 times for transient errors.
+  /// - Parameter thinkingBudget: Token budget for model reasoning. Tool-calling features that need
+  ///   multi-step reasoning should pass a budget such as 1024. Default 0 minimizes thinking.
   func sendImageToolLoop(
     contents: [GeminiImageToolRequest.Content],
     systemPrompt: String,
     tools: [GeminiTool],
-    forceToolCall: Bool = false
+    forceToolCall: Bool = false,
+    thinkingBudget: Int = 0
   ) async throws -> ToolChatResult {
     let maxRetries = 2
     var lastError: Error?
@@ -1344,6 +1387,9 @@ extension GeminiClient {
             contents: contents,
             systemInstruction: GeminiImageToolRequest.SystemInstruction(
               parts: [.init(text: systemPrompt)]
+            ),
+            generationConfig: GeminiImageToolRequest.GenerationConfig(
+              thinkingConfig: ThinkingConfig(thinkingBudget: max(thinkingBudget, ThinkingConfig.minimumBudget(for: model)))
             ),
             tools: tools,
             toolConfig: toolConfig
@@ -1465,6 +1511,9 @@ extension GeminiClient {
             contents: contents,
             systemInstruction: GeminiImageToolRequest.SystemInstruction(
               parts: [.init(text: systemPrompt)]
+            ),
+            generationConfig: GeminiImageToolRequest.GenerationConfig(
+              thinkingConfig: ThinkingConfig(thinkingBudget: ThinkingConfig.minimumBudget(for: model))
             ),
             tools: nil,
             toolConfig: nil
