@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Force C locale for numeric formatting so `printf %f` accepts the
+# dot-decimal values produced by `bc` even when the user's shell runs in
+# a non-English locale.
+export LC_NUMERIC=C
+
 # ─── Help ──────────────────────────────────────────────────────────────
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     cat <<'USAGE'
@@ -392,6 +397,22 @@ if [ -d "$SPARKLE_FRAMEWORK" ]; then
     cp -R "$SPARKLE_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/"
 fi
 
+# Copy Sentry framework
+SENTRY_FRAMEWORK="Desktop/.build/arm64-apple-macosx/debug/Sentry.framework"
+if [ -d "$SENTRY_FRAMEWORK" ]; then
+    substep "Copying Sentry framework"
+    rm -rf "$APP_BUNDLE/Contents/Frameworks/Sentry.framework"
+    cp -R "$SENTRY_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/"
+fi
+
+# Copy onnxruntime framework
+ONNX_FRAMEWORK="Desktop/.build/arm64-apple-macosx/debug/onnxruntime.framework"
+if [ -d "$ONNX_FRAMEWORK" ]; then
+    substep "Copying onnxruntime framework"
+    rm -rf "$APP_BUNDLE/Contents/Frameworks/onnxruntime.framework"
+    cp -R "$ONNX_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/"
+fi
+
 # Copy libwebp dylibs and rewrite load paths
 WEBP_LIB=""
 if command -v pkg-config >/dev/null 2>&1; then
@@ -574,6 +595,14 @@ if [ -n "$SIGN_IDENTITY" ]; then
     if [ -d "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" ]; then
         substep "Signing Sparkle framework"
         codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+    fi
+    if [ -d "$APP_BUNDLE/Contents/Frameworks/Sentry.framework" ]; then
+        substep "Signing Sentry framework"
+        codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/Sentry.framework"
+    fi
+    if [ -d "$APP_BUNDLE/Contents/Frameworks/onnxruntime.framework" ]; then
+        substep "Signing onnxruntime framework"
+        codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/onnxruntime.framework"
     fi
     if [ -f "$APP_BUNDLE/Contents/Frameworks/libsharpyuv.0.dylib" ]; then
         substep "Signing libsharpyuv"
