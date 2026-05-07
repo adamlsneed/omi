@@ -64,6 +64,12 @@ class AppLocalizationsCs extends AppLocalizations {
   String get copySummary => 'Kopírovat shrnutí';
 
   @override
+  String get copyConversationId => 'Kopírovat ID konverzace';
+
+  @override
+  String get conversationIdCopied => 'ID konverzace zkopírováno do schránky';
+
+  @override
   String get testPrompt => 'Testovat výzvu';
 
   @override
@@ -4517,12 +4523,12 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Váš plán skončil $date.\\nZnovu se přihlaste nyní - budete okamžitě účtováni za nové fakturační období.';
+    return 'Váš plán skončil $date.\nZnovu se přihlaste nyní - budete okamžitě účtováni za nové fakturační období.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Váš plán je nastaven na zrušení $date.\\nZnovu se přihlaste nyní, abyste si zachovali výhody - bez poplatku do $date.';
+    return 'Váš plán je nastaven na zrušení $date.\nZnovu se přihlaste nyní, abyste si zachovali výhody - bez poplatku do $date.';
   }
 
   @override
@@ -6529,7 +6535,7 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Nastavit $appName jako výchozí aplikaci pro shrnutí?\\n\\nTato aplikace bude automaticky použita pro všechna budoucí shrnutí konverzací.';
+    return 'Nastavit $appName jako výchozí aplikaci pro shrnutí?\n\nTato aplikace bude automaticky použita pro všechna budoucí shrnutí konverzací.';
   }
 
   @override
@@ -9151,10 +9157,10 @@ class AppLocalizationsCs extends AppLocalizations {
   String get agreeAndContinue => 'Souhlasím a pokračovat';
 
   @override
-  String get startVoiceRecording => 'Spustit hlasové nahrávání';
+  String get startVoiceRecording => 'Zahájit hlasový záznam';
 
   @override
-  String get startCallRecording => 'Spustit nahrávání hovoru';
+  String get startCallRecording => 'Zahájit nahrávání hovoru';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9182,6 +9188,54 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Nahrávejte hovor s živým přepisem';
+
+  @override
+  String get searchActionItems => 'Hledat akční položky';
+
+  @override
+  String get selectActionItems => 'Vybrat více';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Exportovat $count položek do…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Exportování…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Exportováno $count do $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Exportováno $success z $total do $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Zobrazit dokončené';
+
+  @override
+  String get hideCompletedTasks => 'Skrýt dokončené';
+
+  @override
+  String get selectAllTasksMenu => 'Vybrat vše';
+
+  @override
+  String get connectTaskAppToExport => 'Pro export připojte aplikaci úkolů v Nastavení';
+
+  @override
+  String get connectAction => 'Připojit';
+
+  @override
+  String get deselectAllTasksMenu => 'Zrušit výběr všech';
+
+  @override
+  String get bulkExportAlreadyExported => 'Všechny vybrané úkoly už byly exportovány';
+
+  @override
+  String get bulkDeleteFailed => 'Úkoly se nepodařilo odstranit. Zkuste to znovu.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Automaticky přidávat úkoly do Apple Reminders';

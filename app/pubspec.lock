@@ -1510,24 +1510,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  mixpanel_analytics:
-    dependency: "direct main"
-    description:
-      path: "."
-      ref: master
-      resolved-ref: "2f1e6278d5174672b17e84e38b883f66422daf17"
-      url: "https://github.com/mdmohsin7/mixpanel_analytics.git"
-    source: git
-    version: "2.1.1"
-  mixpanel_flutter:
-    dependency: "direct main"
-    description:
-      path: "."
-      ref: f9234e9
-      resolved-ref: f9234e9e4f94f9f24b88f3775230c11a734ed7cd
-      url: "https://github.com/beastoin/mixpanel-flutter.git"
-    source: git
-    version: "2.4.4"
   nested:
     dependency: transitive
     description:
@@ -1859,6 +1841,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.3"
+  posthog_flutter:
+    dependency: "direct main"
+    description:
+      name: posthog_flutter
+      sha256: "55a46ecf63411a6ede4a85e9d31dd251223c375fa85c18b78a134e62e11dcd6b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.24.2"
   process:
     dependency: transitive
     description:

@@ -153,7 +153,6 @@ Future<bool> deleteActionItem(String actionItemId) async {
 
 Future<List<String>?> bulkDeleteActionItems(List<String> ids) async {
   if (ids.isEmpty) return const [];
-
   final response = await makeApiCall(
     url: '${Env.apiBaseUrl}v1/action-items/batch-delete',
     headers: {'Content-Type': 'application/json'},
@@ -168,7 +167,8 @@ Future<List<String>?> bulkDeleteActionItems(List<String> ids) async {
   }
 
   final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-  return (body['deleted_ids'] as List?)?.cast<String>() ?? const [];
+  final deleted = (body['deleted_ids'] as List?)?.cast<String>() ?? const [];
+  return deleted;
 }
 
 // Task sharing

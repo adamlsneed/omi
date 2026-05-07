@@ -138,6 +138,17 @@ Future<bool> updateConversationSegmentText(String conversationId, String segment
   return response.statusCode == 200;
 }
 
+Future<bool> updateConversationSummary(String conversationId, String? appId, String content) async {
+  var response = await makeApiCall(
+    url: '${Env.apiBaseUrl}v1/conversations/$conversationId/summary',
+    headers: {'Content-Type': 'application/json'},
+    method: 'PATCH',
+    body: jsonEncode({'app_id': appId, 'content': content}),
+  );
+  if (response == null) return false;
+  return response.statusCode == 200;
+}
+
 class TranscriptsResponse {
   List<TranscriptSegment> deepgram;
   List<TranscriptSegment> soniox;
@@ -230,7 +241,11 @@ Future<bool> setConversationStarred(String conversationId, bool starred) async {
 }
 
 Future<bool> setConversationActionItemState(String conversationId, List<int> actionItemsIdx, List<bool> values) async {
-  print(jsonEncode({'items_idx': actionItemsIdx, 'values': values, 'conversation_id': conversationId}));
+  Logger.debug('setConversationActionItemState: ${jsonEncode({
+        'items_idx': actionItemsIdx,
+        'values': values,
+        'conversation_id': conversationId,
+      })}');
   var response = await makeApiCall(
     url: '${Env.apiBaseUrl}v1/conversations/$conversationId/action-items',
     headers: {},
@@ -272,40 +287,6 @@ Future<bool> deleteConversationActionItem(String conversationId, ActionItem item
   return response.statusCode == 204;
 }
 
-Future<SyncLocalFilesResponse> syncLocalFiles(List<File> files, {UploadProgressCallback? onUploadProgress}) async {
-  try {
-    var response = await makeMultipartApiCall(
-      url: '${Env.apiBaseUrl}v1/sync-local-files',
-      files: files,
-      onUploadProgress: onUploadProgress,
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 207) {
-      var result = SyncLocalFilesResponse.fromJson(jsonDecode(response.body));
-      if (response.statusCode == 207) {
-        Logger.debug(
-          'syncLocalFiles partial failure: ${result.failedSegments}/${result.totalSegments} segments failed, '
-          'errors: ${result.errors}',
-        );
-      } else {
-        Logger.debug('syncLocalFile Response body: ${jsonDecode(response.body)}');
-      }
-      return result;
-    } else if (response.statusCode == 400) {
-      throw Exception('Audio file could not be processed by server');
-    } else if (response.statusCode == 413) {
-      throw Exception('Audio file is too large to upload');
-    } else if (response.statusCode >= 500) {
-      throw Exception('Server is temporarily unavailable');
-    } else {
-      throw Exception('Upload failed unexpectedly');
-    }
-  } catch (e) {
-    Logger.debug('syncLocalFiles error: $e');
-    rethrow;
-  }
-}
-
 /// v2 async sync: POST files → 202 with job_id, then poll until terminal.
 /// Returns the same SyncLocalFilesResponse as v1 once processing is confirmed complete.
 typedef SyncJobPollCallback = void Function(SyncJobStatusResponse status);
@@ -325,7 +306,7 @@ Future<SyncLocalFilesResponse> syncLocalFilesV2(
     var response = await makeMultipartApiCall(url: url, files: files, onUploadProgress: onUploadProgress);
 
     // Fast-path responses (no async job created)
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 207) {
       return SyncLocalFilesResponse.fromJson(jsonDecode(response.body));
     }
 

@@ -11,7 +11,7 @@ class _TestEnvFields implements EnvFields {
   @override
   String? get openAIAPIKey => null;
   @override
-  String? get mixpanelProjectToken => null;
+  String? get posthogApiKey => null;
   @override
   String? get apiBaseUrl => 'https://api.prod.example.com/';
   @override

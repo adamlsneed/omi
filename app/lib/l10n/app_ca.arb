@@ -18,6 +18,8 @@
     "clear": "Neteja",
     "copyTranscript": "Copiar transcripció",
     "copySummary": "Copiar resum",
+    "copyConversationId": "Copia l'ID de la conversa",
+    "conversationIdCopied": "ID de la conversa copiat al porta-retalls",
     "testPrompt": "Provar indicació",
     "reprocessConversation": "Reprocessar conversa",
     "deleteConversation": "Suprimir conversa",
@@ -1391,8 +1393,8 @@
     "upgradeAlreadyScheduled": "La teva actualització al pla anual ja està programada",
     "youAreOnUnlimitedPlan": "Estàs al pla Il·limitat.",
     "yourOmiUnleashed": "El teu Omi, deslliurat. Fes-te il·limitat per a possibilitats infinites.",
-    "planEndedOn": "El teu pla va acabar el {date}.\\nTorna a subscriure't ara - se't cobrarà immediatament per un nou període de facturació.",
-    "planSetToCancelOn": "El teu pla està configurat per cancel·lar-se el {date}.\\nTorna a subscriure't ara per mantenir els teus beneficis - sense càrrec fins {date}.",
+    "planEndedOn": "El teu pla va acabar el {date}.\nTorna a subscriure't ara - se't cobrarà immediatament per un nou període de facturació.",
+    "planSetToCancelOn": "El teu pla està configurat per cancel·lar-se el {date}.\nTorna a subscriure't ara per mantenir els teus beneficis - sense càrrec fins {date}.",
     "annualPlanStartsAutomatically": "El teu pla anual començarà automàticament quan acabi el teu pla mensual.",
     "planRenewsOn": "El teu pla es renova el {date}.",
     "unlimitedConversations": "Converses il·limitades",
@@ -2031,7 +2033,7 @@
     "defaultLabel": "Predeterminada",
     "lastUsedLabel": "Últim ús",
     "setDefaultApp": "Establir aplicació predeterminada",
-    "setDefaultAppContent": "Establir {appName} com la teva aplicació de resum predeterminada?\\n\\nAquesta aplicació s'utilitzarà automàticament per a tots els resums de converses futures.",
+    "setDefaultAppContent": "Establir {appName} com la teva aplicació de resum predeterminada?\n\nAquesta aplicació s'utilitzarà automàticament per a tots els resums de converses futures.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -2969,6 +2971,20 @@
     "recordWithPhoneMicSubtitle": "Captura l'àudio que t'envolta",
     "phoneCall": "Trucada",
     "phoneCallSubtitle": "Enregistra una trucada amb transcripció en directe",
+    "bulkExportInProgress": "S'està exportant…",
+    "bulkExportPartial": "S'han exportat {success} de {total} a {platform}",
+    "bulkExportSuccess": "S'han exportat {count} a {platform}",
+    "chooseExportDestination": "Exporta {count} element(s) a…",
+    "connectAction": "Connecta",
+    "connectTaskAppToExport": "Connecta una aplicació de tasques a Configuració per exportar",
+    "deselectAllTasksMenu": "Desselecciona tot",
+    "hideCompletedTasks": "Amaga les completades",
+    "searchActionItems": "Cerca elements d'acció",
+    "selectActionItems": "Selecció múltiple",
+    "selectAllTasksMenu": "Selecciona tot",
+    "showCompletedTasks": "Mostra les completades",
+    "startCallRecording": "Inicia l'enregistrament de trucada",
+    "startVoiceRecording": "Inicia l'enregistrament de veu",
     "autoAddTasksToAppleReminders": "Afegeix automàticament tasques a Apple Reminders",
     "@autoAddTasksToAppleReminders": {
         "description": "Setting title for Apple Reminders automatic task export"
@@ -2989,8 +3005,12 @@
     "@selectedActionItemsAlreadyExported": {
         "description": "Message shown when selected tasks have already been exported"
     },
-    "startCallRecording": "Inicia l’enregistrament de trucada",
-    "@startCallRecording": {},
-    "startVoiceRecording": "Inicia l’enregistrament de veu",
-    "@startVoiceRecording": {}
+    "bulkExportAlreadyExported": "Totes les tasques seleccionades ja s'han exportat",
+    "bulkDeleteFailed": "No s'han pogut suprimir les tasques. Torna-ho a provar.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

@@ -64,6 +64,12 @@ class AppLocalizationsBg extends AppLocalizations {
   String get copySummary => 'Копирай обобщение';
 
   @override
+  String get copyConversationId => 'Копиране на ID на разговора';
+
+  @override
+  String get conversationIdCopied => 'ID на разговора е копирано в клипборда';
+
+  @override
   String get testPrompt => 'Тествай подсказка';
 
   @override
@@ -4536,12 +4542,12 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Планът ви приключи на $date.\\nАбонирайте се отново сега - ще бъдете таксувани незабавно за нов период на фактуриране.';
+    return 'Планът ви приключи на $date.\nАбонирайте се отново сега - ще бъдете таксувани незабавно за нов период на фактуриране.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Планът ви е настроен да се отмени на $date.\\nАбонирайте се отново сега, за да запазите предимствата си - без такса до $date.';
+    return 'Планът ви е настроен да се отмени на $date.\nАбонирайте се отново сега, за да запазите предимствата си - без такса до $date.';
   }
 
   @override
@@ -6562,7 +6568,7 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Да зададем $appName като ваше приложение за обобщаване по подразбиране?\\n\\nТова приложение ще се използва автоматично за всички бъдещи резюмета на разговори.';
+    return 'Да зададем $appName като ваше приложение за обобщаване по подразбиране?\n\nТова приложение ще се използва автоматично за всички бъдещи резюмета на разговори.';
   }
 
   @override
@@ -9190,10 +9196,10 @@ class AppLocalizationsBg extends AppLocalizations {
   String get agreeAndContinue => 'Приемам и продължавам';
 
   @override
-  String get startVoiceRecording => 'Започване на гласов запис';
+  String get startVoiceRecording => 'Стартиране на гласов запис';
 
   @override
-  String get startCallRecording => 'Започване на запис на обаждане';
+  String get startCallRecording => 'Стартиране на запис на разговор';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9221,6 +9227,54 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Записвайте обаждане с транскрипция в реално време';
+
+  @override
+  String get searchActionItems => 'Търсене на действия';
+
+  @override
+  String get selectActionItems => 'Избиране на няколко';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Експортиране на $count елемент(а) в…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Експортиране…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Експортирани $count в $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Експортирани $success от $total в $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Показване на завършените';
+
+  @override
+  String get hideCompletedTasks => 'Скриване на завършените';
+
+  @override
+  String get selectAllTasksMenu => 'Избиране на всички';
+
+  @override
+  String get connectTaskAppToExport => 'Свържете приложение за задачи в Настройки, за да експортирате';
+
+  @override
+  String get connectAction => 'Свързване';
+
+  @override
+  String get deselectAllTasksMenu => 'Премахване на избора';
+
+  @override
+  String get bulkExportAlreadyExported => 'Всички избрани задачи вече са експортирани';
+
+  @override
+  String get bulkDeleteFailed => 'Задачите не можаха да бъдат изтрити. Опитайте отново.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Автоматично добавяне на задачи в Apple Reminders';

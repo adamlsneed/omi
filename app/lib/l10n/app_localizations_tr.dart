@@ -64,6 +64,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get copySummary => 'Özeti kopyala';
 
   @override
+  String get copyConversationId => 'Konuşma kimliğini kopyala';
+
+  @override
+  String get conversationIdCopied => 'Konuşma kimliği panoya kopyalandı';
+
+  @override
   String get testPrompt => 'İstemi Test Et';
 
   @override
@@ -4532,12 +4538,12 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Planınız $date tarihinde sona erdi.\\nŞimdi yeniden abone olun - yeni fatura dönemi için hemen ücretlendirileceksiniz.';
+    return 'Planınız $date tarihinde sona erdi.\nŞimdi yeniden abone olun - yeni fatura dönemi için hemen ücretlendirileceksiniz.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Planınız $date tarihinde iptal edilecek şekilde ayarlandı.\\nAvantajlarınızı korumak için şimdi yeniden abone olun - $date tarihine kadar ücret yok.';
+    return 'Planınız $date tarihinde iptal edilecek şekilde ayarlandı.\nAvantajlarınızı korumak için şimdi yeniden abone olun - $date tarihine kadar ücret yok.';
   }
 
   @override
@@ -6550,7 +6556,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return '$appName varsayılan özet uygulamanız olarak ayarlansın mı?\\n\\nBu uygulama gelecekteki tüm konuşma özetleri için otomatik olarak kullanılacaktır.';
+    return '$appName varsayılan özet uygulamanız olarak ayarlansın mı?\n\nBu uygulama gelecekteki tüm konuşma özetleri için otomatik olarak kullanılacaktır.';
   }
 
   @override
@@ -9199,6 +9205,54 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Canlı transkripsiyonla bir aramayı kaydedin';
+
+  @override
+  String get searchActionItems => 'Eylem öğelerini ara';
+
+  @override
+  String get selectActionItems => 'Birden fazla seç';
+
+  @override
+  String chooseExportDestination(int count) {
+    return '$count öğeyi dışa aktar…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Dışa aktarılıyor…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return '$count öğe $platform uygulamasına aktarıldı';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return '$total öğeden $success tanesi $platform uygulamasına aktarıldı';
+  }
+
+  @override
+  String get showCompletedTasks => 'Tamamlananları göster';
+
+  @override
+  String get hideCompletedTasks => 'Tamamlananları gizle';
+
+  @override
+  String get selectAllTasksMenu => 'Tümünü seç';
+
+  @override
+  String get connectTaskAppToExport => 'Dışa aktarmak için Ayarlar\'da bir görev uygulaması bağlayın';
+
+  @override
+  String get connectAction => 'Bağla';
+
+  @override
+  String get deselectAllTasksMenu => 'Tümünün seçimini kaldır';
+
+  @override
+  String get bulkExportAlreadyExported => 'Seçilen tüm görevler zaten dışa aktarıldı';
+
+  @override
+  String get bulkDeleteFailed => 'Görevler silinemedi. Lütfen tekrar deneyin.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Görevleri Apple Reminders\'a otomatik ekle';

@@ -64,6 +64,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String get copySummary => 'Összefoglaló másolása';
 
   @override
+  String get copyConversationId => 'Társalgás azonosítójának másolása';
+
+  @override
+  String get conversationIdCopied => 'A társalgás azonosítója vágólapra másolva';
+
+  @override
   String get testPrompt => 'Prompt tesztelése';
 
   @override
@@ -4546,12 +4552,12 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'A csomagja $date-án lejárt.\\nIratkozzon fel újra most - azonnal felszámítjuk az új számlázási időszakot.';
+    return 'A csomagja $date-án lejárt.\nIratkozzon fel újra most - azonnal felszámítjuk az új számlázási időszakot.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'A csomagja $date-án törlésre van beállítva.\\nIratkozzon fel újra most, hogy megtartsa előnyeit - nincs díj $date-ig.';
+    return 'A csomagja $date-án törlésre van beállítva.\nIratkozzon fel újra most, hogy megtartsa előnyeit - nincs díj $date-ig.';
   }
 
   @override
@@ -6569,7 +6575,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Beállítja a(z) $appName alkalmazást alapértelmezett összefoglaló alkalmazásként?\\n\\nEz az alkalmazás automatikusan használva lesz minden jövőbeli beszélgetés összefoglalásához.';
+    return 'Beállítja a(z) $appName alkalmazást alapértelmezett összefoglaló alkalmazásként?\n\nEz az alkalmazás automatikusan használva lesz minden jövőbeli beszélgetés összefoglalásához.';
   }
 
   @override
@@ -9194,10 +9200,10 @@ class AppLocalizationsHu extends AppLocalizations {
   String get agreeAndContinue => 'Elfogadom és folytatom';
 
   @override
-  String get startVoiceRecording => 'Hangrögzítés indítása';
+  String get startVoiceRecording => 'Hangfelvétel indítása';
 
   @override
-  String get startCallRecording => 'Hívásrögzítés indítása';
+  String get startCallRecording => 'Hívásfelvétel indítása';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9225,6 +9231,54 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Hívás rögzítése élő átirattal';
+
+  @override
+  String get searchActionItems => 'Teendők keresése';
+
+  @override
+  String get selectActionItems => 'Több kijelölése';
+
+  @override
+  String chooseExportDestination(int count) {
+    return '$count elem exportálása ide…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Exportálás…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return '$count exportálva ide: $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return '$success/$total exportálva ide: $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Befejezettek megjelenítése';
+
+  @override
+  String get hideCompletedTasks => 'Befejezettek elrejtése';
+
+  @override
+  String get selectAllTasksMenu => 'Összes kijelölése';
+
+  @override
+  String get connectTaskAppToExport => 'Csatlakoztasson egy feladatalkalmazást a Beállításokban az exportáláshoz';
+
+  @override
+  String get connectAction => 'Csatlakoztatás';
+
+  @override
+  String get deselectAllTasksMenu => 'Összes kijelölés törlése';
+
+  @override
+  String get bulkExportAlreadyExported => 'Az összes kijelölt feladat már exportálva van';
+
+  @override
+  String get bulkDeleteFailed => 'Nem sikerült törölni a feladatokat. Próbálja újra.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Feladatok automatikus hozzáadása az Apple Remindershez';

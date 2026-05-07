@@ -64,6 +64,12 @@ class AppLocalizationsBe extends AppLocalizations {
   String get copySummary => 'Скапіяваць рэзюмэ';
 
   @override
+  String get copyConversationId => 'Скапіраваць ID размовы';
+
+  @override
+  String get conversationIdCopied => 'ID размовы скапіраваны ў буфер абмену';
+
+  @override
   String get testPrompt => 'Тэставаць запыт';
 
   @override
@@ -9184,7 +9190,7 @@ class AppLocalizationsBe extends AppLocalizations {
   String get startVoiceRecording => 'Пачаць галасавы запіс';
 
   @override
-  String get startCallRecording => 'Пачаць запіс выкліку';
+  String get startCallRecording => 'Пачаць запіс званка';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9212,6 +9218,54 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Запіс званка з жывой транскрыпцыяй';
+
+  @override
+  String get searchActionItems => 'Шукаць элементы дзеянняў';
+
+  @override
+  String get selectActionItems => 'Выбраць некалькі';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Экспартаваць $count элемент(аў) у…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Экспарт…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Экспартавана $count у $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Экспартавана $success з $total у $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Паказаць завершаныя';
+
+  @override
+  String get hideCompletedTasks => 'Схаваць завершаныя';
+
+  @override
+  String get selectAllTasksMenu => 'Выбраць усе';
+
+  @override
+  String get connectTaskAppToExport => 'Падключыце праграму задач у Наладах для экспарту';
+
+  @override
+  String get connectAction => 'Злучыць';
+
+  @override
+  String get deselectAllTasksMenu => 'Зняць выбар усіх';
+
+  @override
+  String get bulkExportAlreadyExported => 'Усе выбраныя задачы ўжо экспартаваны';
+
+  @override
+  String get bulkDeleteFailed => 'Не ўдалося выдаліць задачы. Паспрабуйце яшчэ раз.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Аўтаматычна дадаваць задачы ў Apple Reminders';

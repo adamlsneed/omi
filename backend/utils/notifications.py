@@ -4,7 +4,6 @@ import json
 import math
 import uuid
 from typing import List
-
 from firebase_admin import messaging, auth
 import database.notifications as notification_db
 from database.redis_db import (
@@ -510,11 +509,21 @@ def send_action_item_deletion_message(user_id: str, action_item_id: str):
 
 
 def send_action_items_batch_deletion_message(user_id: str, action_item_ids: List[str]):
-    """Send chunked data-only FCM messages for bulk action-item notification cancellation."""
+    """
+    Bulk equivalent of send_action_item_deletion_message — one FCM data
+    message per chunk of ids (chunked to stay under FCM's 4KB data payload
+    ceiling) instead of one message per id. The app splits the comma-joined
+    ids and cancels each scheduled local notification client-side.
+    """
     if not action_item_ids:
         return
 
+    # Action item ids are UUID-shaped (~36 chars); 100 per chunk keeps the
+    # serialized payload comfortably under FCM's 4KB limit.
     chunk_size = 100
+    # Per-invocation nonce so concurrent bulk-delete calls that happen to
+    # share a leading id don't collide on FCM tags (which would let the
+    # second dispatch silently replace the first).
     nonce = uuid.uuid4().hex[:8]
     for start in range(0, len(action_item_ids), chunk_size):
         chunk = action_item_ids[start : start + chunk_size]

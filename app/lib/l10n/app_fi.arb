@@ -18,6 +18,8 @@
     "clear": "Tyhjennä",
     "copyTranscript": "Kopioi litterointi",
     "copySummary": "Kopioi tiivistelmä",
+    "copyConversationId": "Kopioi keskustelun tunnus",
+    "conversationIdCopied": "Keskustelun tunnus kopioitu leikepöydälle",
     "testPrompt": "Testaa kehotetta",
     "reprocessConversation": "Käsittele keskustelu uudelleen",
     "deleteConversation": "Poista keskustelu",
@@ -1389,8 +1391,8 @@
     "upgradeAlreadyScheduled": "Päivityksesi vuositilaukseen on jo ajoitettu",
     "youAreOnUnlimitedPlan": "Sinulla on Rajoittamaton tilaus.",
     "yourOmiUnleashed": "Omi vapaana. Siirry rajoittamattomaan loputtomien mahdollisuuksien saavuttamiseksi.",
-    "planEndedOn": "Tilauksesi päättyi {date}.\\nTilaa uudelleen nyt - sinulta veloitetaan välittömästi uudesta laskutusjaksosta.",
-    "planSetToCancelOn": "Tilauksesi on asetettu peruuntumaan {date}.\\nTilaa uudelleen nyt säilyttääksesi edut - ei veloitusta ennen {date}.",
+    "planEndedOn": "Tilauksesi päättyi {date}.\nTilaa uudelleen nyt - sinulta veloitetaan välittömästi uudesta laskutusjaksosta.",
+    "planSetToCancelOn": "Tilauksesi on asetettu peruuntumaan {date}.\nTilaa uudelleen nyt säilyttääksesi edut - ei veloitusta ennen {date}.",
     "annualPlanStartsAutomatically": "Vuositilauksesi alkaa automaattisesti, kun kuukausitilauksesi päättyy.",
     "planRenewsOn": "Tilauksesi uusitaan {date}.",
     "unlimitedConversations": "Rajoittamattomat keskustelut",
@@ -2048,7 +2050,7 @@
     "defaultLabel": "Oletus",
     "lastUsedLabel": "Viimeksi käytetty",
     "setDefaultApp": "Aseta oletussovellus",
-    "setDefaultAppContent": "Asetetaanko {appName} oletusyhteenvetosovellukseksi?\\n\\nTätä sovellusta käytetään automaattisesti kaikkiin tuleviin keskusteluyhteenvetoihin.",
+    "setDefaultAppContent": "Asetetaanko {appName} oletusyhteenvetosovellukseksi?\n\nTätä sovellusta käytetään automaattisesti kaikkiin tuleviin keskusteluyhteenvetoihin.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -3000,6 +3002,20 @@
     "recordWithPhoneMicSubtitle": "Tallenna ympärilläsi olevaa ääntä",
     "phoneCall": "Puhelu",
     "phoneCallSubtitle": "Tallenna puhelu reaaliaikaisella tekstityksellä",
+    "bulkExportInProgress": "Viedään…",
+    "bulkExportPartial": "Viety {success}/{total} kohteeseen {platform}",
+    "bulkExportSuccess": "Viety {count} kohteeseen {platform}",
+    "chooseExportDestination": "Vie {count} kohde(tta) kohteeseen…",
+    "connectAction": "Yhdistä",
+    "connectTaskAppToExport": "Yhdistä tehtäväsovellus Asetuksissa vientiä varten",
+    "deselectAllTasksMenu": "Poista kaikkien valinta",
+    "hideCompletedTasks": "Piilota valmiit",
+    "searchActionItems": "Hae toimintakohteita",
+    "selectActionItems": "Valitse useita",
+    "selectAllTasksMenu": "Valitse kaikki",
+    "showCompletedTasks": "Näytä valmiit",
+    "startCallRecording": "Aloita puhelun nauhoitus",
+    "startVoiceRecording": "Aloita ääninauhoitus",
     "autoAddTasksToAppleReminders": "Lisää tehtävät automaattisesti Apple Remindersiin",
     "@autoAddTasksToAppleReminders": {
         "description": "Setting title for Apple Reminders automatic task export"
@@ -3020,8 +3036,12 @@
     "@selectedActionItemsAlreadyExported": {
         "description": "Message shown when selected tasks have already been exported"
     },
-    "startCallRecording": "Aloita puhelun tallennus",
-    "@startCallRecording": {},
-    "startVoiceRecording": "Aloita äänitallennus",
-    "@startVoiceRecording": {}
+    "bulkExportAlreadyExported": "Kaikki valitut tehtävät on jo viety",
+    "bulkDeleteFailed": "Tehtäviä ei voitu poistaa. Yritä uudelleen.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

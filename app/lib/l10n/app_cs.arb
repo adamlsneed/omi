@@ -18,6 +18,8 @@
     "clear": "Vymazat",
     "copyTranscript": "Kopírovat přepis",
     "copySummary": "Kopírovat shrnutí",
+    "copyConversationId": "Kopírovat ID konverzace",
+    "conversationIdCopied": "ID konverzace zkopírováno do schránky",
     "testPrompt": "Testovat výzvu",
     "reprocessConversation": "Znovu zpracovat konverzaci",
     "deleteConversation": "Smazat konverzaci",
@@ -1391,8 +1393,8 @@
     "upgradeAlreadyScheduled": "Váš upgrade na roční plán je již naplánován",
     "youAreOnUnlimitedPlan": "Jste na plánu Unlimited.",
     "yourOmiUnleashed": "Váš Omi, uvolněný. Přejděte na neomezený pro nekonečné možnosti.",
-    "planEndedOn": "Váš plán skončil {date}.\\nZnovu se přihlaste nyní - budete okamžitě účtováni za nové fakturační období.",
-    "planSetToCancelOn": "Váš plán je nastaven na zrušení {date}.\\nZnovu se přihlaste nyní, abyste si zachovali výhody - bez poplatku do {date}.",
+    "planEndedOn": "Váš plán skončil {date}.\nZnovu se přihlaste nyní - budete okamžitě účtováni za nové fakturační období.",
+    "planSetToCancelOn": "Váš plán je nastaven na zrušení {date}.\nZnovu se přihlaste nyní, abyste si zachovali výhody - bez poplatku do {date}.",
     "annualPlanStartsAutomatically": "Váš roční plán začne automaticky, když skončí váš měsíční plán.",
     "planRenewsOn": "Váš plán se obnovuje {date}.",
     "unlimitedConversations": "Neomezené konverzace",
@@ -2008,7 +2010,7 @@
     "defaultLabel": "Výchozí",
     "lastUsedLabel": "Naposledy použito",
     "setDefaultApp": "Nastavit výchozí aplikaci",
-    "setDefaultAppContent": "Nastavit {appName} jako výchozí aplikaci pro shrnutí?\\n\\nTato aplikace bude automaticky použita pro všechna budoucí shrnutí konverzací.",
+    "setDefaultAppContent": "Nastavit {appName} jako výchozí aplikaci pro shrnutí?\n\nTato aplikace bude automaticky použita pro všechna budoucí shrnutí konverzací.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -2969,6 +2971,20 @@
     "recordWithPhoneMicSubtitle": "Zaznamenávejte zvuk kolem vás",
     "phoneCall": "Telefonní hovor",
     "phoneCallSubtitle": "Nahrávejte hovor s živým přepisem",
+    "bulkExportInProgress": "Exportování…",
+    "bulkExportPartial": "Exportováno {success} z {total} do {platform}",
+    "bulkExportSuccess": "Exportováno {count} do {platform}",
+    "chooseExportDestination": "Exportovat {count} položek do…",
+    "connectAction": "Připojit",
+    "connectTaskAppToExport": "Pro export připojte aplikaci úkolů v Nastavení",
+    "deselectAllTasksMenu": "Zrušit výběr všech",
+    "hideCompletedTasks": "Skrýt dokončené",
+    "searchActionItems": "Hledat akční položky",
+    "selectActionItems": "Vybrat více",
+    "selectAllTasksMenu": "Vybrat vše",
+    "showCompletedTasks": "Zobrazit dokončené",
+    "startCallRecording": "Zahájit nahrávání hovoru",
+    "startVoiceRecording": "Zahájit hlasový záznam",
     "autoAddTasksToAppleReminders": "Automaticky přidávat úkoly do Apple Reminders",
     "@autoAddTasksToAppleReminders": {
         "description": "Setting title for Apple Reminders automatic task export"
@@ -2989,8 +3005,12 @@
     "@selectedActionItemsAlreadyExported": {
         "description": "Message shown when selected tasks have already been exported"
     },
-    "startCallRecording": "Spustit nahrávání hovoru",
-    "@startCallRecording": {},
-    "startVoiceRecording": "Spustit hlasové nahrávání",
-    "@startVoiceRecording": {}
+    "bulkExportAlreadyExported": "Všechny vybrané úkoly už byly exportovány",
+    "bulkDeleteFailed": "Úkoly se nepodařilo odstranit. Zkuste to znovu.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

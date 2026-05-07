@@ -63,6 +63,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get copySummary => '复制摘要';
 
   @override
+  String get copyConversationId => '复制对话 ID';
+
+  @override
+  String get conversationIdCopied => '对话 ID 已复制到剪贴板';
+
+  @override
   String get testPrompt => '测试提示词';
 
   @override
@@ -4436,12 +4442,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return '您的计划于$date结束。\\n立即重新订阅 - 您将立即被收取新计费周期的费用。';
+    return '您的计划于$date结束。\n立即重新订阅 - 您将立即被收取新计费周期的费用。';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return '您的计划将于$date取消。\\n立即重新订阅以保留您的权益 - $date之前不收费。';
+    return '您的计划将于$date取消。\n立即重新订阅以保留您的权益 - $date之前不收费。';
   }
 
   @override
@@ -6415,7 +6421,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return '将 $appName 设为您的默认摘要应用？\\n\\n此应用将自动用于所有未来的对话摘要。';
+    return '将 $appName 设为您的默认摘要应用？\n\n此应用将自动用于所有未来的对话摘要。';
   }
 
   @override
@@ -9023,6 +9029,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => '录制带实时转录的通话';
+
+  @override
+  String get searchActionItems => '搜索操作项';
+
+  @override
+  String get selectActionItems => '多选';
+
+  @override
+  String chooseExportDestination(int count) {
+    return '导出 $count 个项目到…';
+  }
+
+  @override
+  String get bulkExportInProgress => '正在导出…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return '已将 $count 项导出到 $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return '已将 $success/$total 导出到 $platform';
+  }
+
+  @override
+  String get showCompletedTasks => '显示已完成';
+
+  @override
+  String get hideCompletedTasks => '隐藏已完成';
+
+  @override
+  String get selectAllTasksMenu => '全选';
+
+  @override
+  String get connectTaskAppToExport => '在设置中连接任务应用以导出';
+
+  @override
+  String get connectAction => '连接';
+
+  @override
+  String get deselectAllTasksMenu => '取消全选';
+
+  @override
+  String get bulkExportAlreadyExported => '所有选中的任务都已导出';
+
+  @override
+  String get bulkDeleteFailed => '无法删除任务。请重试。';
 
   @override
   String get autoAddTasksToAppleReminders => '自动将任务添加到 Apple 提醒事项';

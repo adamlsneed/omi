@@ -420,7 +420,19 @@ def delete_action_item(uid: str, action_item_id: str) -> bool:
 
 
 def delete_action_items_batch(uid: str, action_item_ids: List[str]) -> List[str]:
-    """Delete multiple action items by id in a single Firestore batch."""
+    """
+    Delete multiple action items by id in a single atomic Firestore batch.
+
+    Caller must keep the input under Firestore's 500-op batch limit (the
+    HTTP route caps at 500 to match). One commit call gives all-or-nothing
+    semantics — either every id is deleted or the commit raises and nothing
+    is — so the client's optimistic-with-rollback flow never has to deal
+    with a partially-applied state.
+
+    Skips per-id existence reads: batch.delete() is a no-op for missing
+    docs, and downstream vector + FCM cleanup are both idempotent for
+    unknown ids.
+    """
     if not action_item_ids:
         return []
     if len(action_item_ids) > 500:

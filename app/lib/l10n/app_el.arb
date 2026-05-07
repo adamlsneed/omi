@@ -18,6 +18,8 @@
     "clear": "Εκκαθάριση",
     "copyTranscript": "Αντιγραφή απομαγνητοφώνησης",
     "copySummary": "Αντιγραφή σύνοψης",
+    "copyConversationId": "Αντιγραφή ID συνομιλίας",
+    "conversationIdCopied": "Το ID συνομιλίας αντιγράφηκε στο πρόχειρο",
     "testPrompt": "Δοκιμή Εντολής",
     "reprocessConversation": "Επανεπεξεργασία Συνομιλίας",
     "deleteConversation": "Διαγραφή συνομιλίας",
@@ -1389,8 +1391,8 @@
     "upgradeAlreadyScheduled": "Η αναβάθμισή σας στο ετήσιο πρόγραμμα έχει ήδη προγραμματιστεί",
     "youAreOnUnlimitedPlan": "Είστε στο Απεριόριστο Πρόγραμμα.",
     "yourOmiUnleashed": "Το Omi σας, απελευθερωμένο. Γίνετε απεριόριστοι για ατελείωτες δυνατότητες.",
-    "planEndedOn": "Το πρόγραμμά σας έληξε στις {date}.\\nΕπανεγγραφείτε τώρα - θα χρεωθείτε αμέσως για μια νέα περίοδο χρέωσης.",
-    "planSetToCancelOn": "Το πρόγραμμά σας έχει ρυθμιστεί να ακυρωθεί στις {date}.\\nΕπανεγγραφείτε τώρα για να διατηρήσετε τα οφέλη σας - χωρίς χρέωση μέχρι {date}.",
+    "planEndedOn": "Το πρόγραμμά σας έληξε στις {date}.\nΕπανεγγραφείτε τώρα - θα χρεωθείτε αμέσως για μια νέα περίοδο χρέωσης.",
+    "planSetToCancelOn": "Το πρόγραμμά σας έχει ρυθμιστεί να ακυρωθεί στις {date}.\nΕπανεγγραφείτε τώρα για να διατηρήσετε τα οφέλη σας - χωρίς χρέωση μέχρι {date}.",
     "annualPlanStartsAutomatically": "Το ετήσιο πρόγραμμά σας θα ξεκινήσει αυτόματα όταν λήξει το μηνιαίο σας πρόγραμμα.",
     "planRenewsOn": "Το πρόγραμμά σας ανανεώνεται στις {date}.",
     "unlimitedConversations": "Απεριόριστες συνομιλίες",
@@ -2048,7 +2050,7 @@
     "defaultLabel": "Προεπιλογή",
     "lastUsedLabel": "Τελευταία χρήση",
     "setDefaultApp": "Ορισμός προεπιλεγμένης εφαρμογής",
-    "setDefaultAppContent": "Να οριστεί το {appName} ως προεπιλεγμένη εφαρμογή σύνοψης;\\n\\nΑυτή η εφαρμογή θα χρησιμοποιείται αυτόματα για όλες τις μελλοντικές συνόψεις συνομιλιών.",
+    "setDefaultAppContent": "Να οριστεί το {appName} ως προεπιλεγμένη εφαρμογή σύνοψης;\n\nΑυτή η εφαρμογή θα χρησιμοποιείται αυτόματα για όλες τις μελλοντικές συνόψεις συνομιλιών.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -3000,6 +3002,20 @@
     "recordWithPhoneMicSubtitle": "Καταγράψτε ήχο γύρω σας",
     "phoneCall": "Τηλεφωνική κλήση",
     "phoneCallSubtitle": "Καταγράψτε κλήση με ζωντανή μεταγραφή",
+    "bulkExportInProgress": "Εξαγωγή…",
+    "bulkExportPartial": "Εξήχθησαν {success} από {total} στο {platform}",
+    "bulkExportSuccess": "Εξήχθησαν {count} στο {platform}",
+    "chooseExportDestination": "Εξαγωγή {count} στοιχείου/ων σε…",
+    "connectAction": "Σύνδεση",
+    "connectTaskAppToExport": "Συνδέστε μια εφαρμογή εργασιών στις Ρυθμίσεις για εξαγωγή",
+    "deselectAllTasksMenu": "Αποεπιλογή όλων",
+    "hideCompletedTasks": "Απόκρυψη ολοκληρωμένων",
+    "searchActionItems": "Αναζήτηση ενεργειών",
+    "selectActionItems": "Πολλαπλή επιλογή",
+    "selectAllTasksMenu": "Επιλογή όλων",
+    "showCompletedTasks": "Εμφάνιση ολοκληρωμένων",
+    "startCallRecording": "Έναρξη εγγραφής κλήσης",
+    "startVoiceRecording": "Έναρξη ηχογράφησης",
     "autoAddTasksToAppleReminders": "Αυτόματη προσθήκη εργασιών στις Υπενθυμίσεις Apple",
     "@autoAddTasksToAppleReminders": {
         "description": "Setting title for Apple Reminders automatic task export"
@@ -3020,8 +3036,12 @@
     "@selectedActionItemsAlreadyExported": {
         "description": "Message shown when selected tasks have already been exported"
     },
-    "startCallRecording": "Έναρξη εγγραφής κλήσης",
-    "@startCallRecording": {},
-    "startVoiceRecording": "Έναρξη φωνητικής εγγραφής",
-    "@startVoiceRecording": {}
+    "bulkExportAlreadyExported": "Όλες οι επιλεγμένες εργασίες έχουν ήδη εξαχθεί",
+    "bulkDeleteFailed": "Δεν ήταν δυνατή η διαγραφή των εργασιών. Δοκιμάστε ξανά.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

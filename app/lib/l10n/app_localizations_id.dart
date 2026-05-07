@@ -64,6 +64,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get copySummary => 'Salin ringkasan';
 
   @override
+  String get copyConversationId => 'Salin ID percakapan';
+
+  @override
+  String get conversationIdCopied => 'ID percakapan disalin ke papan klip';
+
+  @override
   String get testPrompt => 'Uji Prompt';
 
   @override
@@ -4535,12 +4541,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Paket Anda berakhir pada $date.\\nBerlangganan lagi sekarang - Anda akan dikenakan biaya segera untuk periode penagihan baru.';
+    return 'Paket Anda berakhir pada $date.\nBerlangganan lagi sekarang - Anda akan dikenakan biaya segera untuk periode penagihan baru.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Paket Anda diatur untuk dibatalkan pada $date.\\nBerlangganan lagi sekarang untuk mempertahankan manfaat Anda - tidak ada biaya hingga $date.';
+    return 'Paket Anda diatur untuk dibatalkan pada $date.\nBerlangganan lagi sekarang untuk mempertahankan manfaat Anda - tidak ada biaya hingga $date.';
   }
 
   @override
@@ -6556,7 +6562,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Atur $appName sebagai aplikasi ringkasan default Anda?\\n\\nAplikasi ini akan otomatis digunakan untuk semua ringkasan percakapan di masa depan.';
+    return 'Atur $appName sebagai aplikasi ringkasan default Anda?\n\nAplikasi ini akan otomatis digunakan untuk semua ringkasan percakapan di masa depan.';
   }
 
   @override
@@ -9165,10 +9171,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get agreeAndContinue => 'Setuju & Lanjutkan';
 
   @override
-  String get startVoiceRecording => 'Mulai perekaman suara';
+  String get startVoiceRecording => 'Mulai rekaman suara';
 
   @override
-  String get startCallRecording => 'Mulai perekaman panggilan';
+  String get startCallRecording => 'Mulai rekaman panggilan';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9196,6 +9202,54 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Rekam panggilan dengan transkripsi langsung';
+
+  @override
+  String get searchActionItems => 'Cari item tindakan';
+
+  @override
+  String get selectActionItems => 'Pilih beberapa';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Ekspor $count item ke…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Mengekspor…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Diekspor $count ke $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Diekspor $success dari $total ke $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Tampilkan selesai';
+
+  @override
+  String get hideCompletedTasks => 'Sembunyikan selesai';
+
+  @override
+  String get selectAllTasksMenu => 'Pilih semua';
+
+  @override
+  String get connectTaskAppToExport => 'Hubungkan aplikasi tugas di Pengaturan untuk mengekspor';
+
+  @override
+  String get connectAction => 'Hubungkan';
+
+  @override
+  String get deselectAllTasksMenu => 'Batalkan pilihan semua';
+
+  @override
+  String get bulkExportAlreadyExported => 'Semua tugas yang dipilih sudah diekspor';
+
+  @override
+  String get bulkDeleteFailed => 'Tidak dapat menghapus tugas. Coba lagi.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Tambahkan tugas otomatis ke Apple Reminders';

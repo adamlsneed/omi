@@ -64,6 +64,12 @@ class AppLocalizationsEl extends AppLocalizations {
   String get copySummary => 'Αντιγραφή σύνοψης';
 
   @override
+  String get copyConversationId => 'Αντιγραφή ID συνομιλίας';
+
+  @override
+  String get conversationIdCopied => 'Το ID συνομιλίας αντιγράφηκε στο πρόχειρο';
+
+  @override
   String get testPrompt => 'Δοκιμή Εντολής';
 
   @override
@@ -4559,12 +4565,12 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Το πρόγραμμά σας έληξε στις $date.\\nΕπανεγγραφείτε τώρα - θα χρεωθείτε αμέσως για μια νέα περίοδο χρέωσης.';
+    return 'Το πρόγραμμά σας έληξε στις $date.\nΕπανεγγραφείτε τώρα - θα χρεωθείτε αμέσως για μια νέα περίοδο χρέωσης.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Το πρόγραμμά σας έχει ρυθμιστεί να ακυρωθεί στις $date.\\nΕπανεγγραφείτε τώρα για να διατηρήσετε τα οφέλη σας - χωρίς χρέωση μέχρι $date.';
+    return 'Το πρόγραμμά σας έχει ρυθμιστεί να ακυρωθεί στις $date.\nΕπανεγγραφείτε τώρα για να διατηρήσετε τα οφέλη σας - χωρίς χρέωση μέχρι $date.';
   }
 
   @override
@@ -6585,7 +6591,7 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Να οριστεί το $appName ως προεπιλεγμένη εφαρμογή σύνοψης;\\n\\nΑυτή η εφαρμογή θα χρησιμοποιείται αυτόματα για όλες τις μελλοντικές συνόψεις συνομιλιών.';
+    return 'Να οριστεί το $appName ως προεπιλεγμένη εφαρμογή σύνοψης;\n\nΑυτή η εφαρμογή θα χρησιμοποιείται αυτόματα για όλες τις μελλοντικές συνόψεις συνομιλιών.';
   }
 
   @override
@@ -9220,7 +9226,7 @@ class AppLocalizationsEl extends AppLocalizations {
   String get agreeAndContinue => 'Συμφωνώ και Συνέχεια';
 
   @override
-  String get startVoiceRecording => 'Έναρξη φωνητικής εγγραφής';
+  String get startVoiceRecording => 'Έναρξη ηχογράφησης';
 
   @override
   String get startCallRecording => 'Έναρξη εγγραφής κλήσης';
@@ -9251,6 +9257,54 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Καταγράψτε κλήση με ζωντανή μεταγραφή';
+
+  @override
+  String get searchActionItems => 'Αναζήτηση ενεργειών';
+
+  @override
+  String get selectActionItems => 'Πολλαπλή επιλογή';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Εξαγωγή $count στοιχείου/ων σε…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Εξαγωγή…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Εξήχθησαν $count στο $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Εξήχθησαν $success από $total στο $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Εμφάνιση ολοκληρωμένων';
+
+  @override
+  String get hideCompletedTasks => 'Απόκρυψη ολοκληρωμένων';
+
+  @override
+  String get selectAllTasksMenu => 'Επιλογή όλων';
+
+  @override
+  String get connectTaskAppToExport => 'Συνδέστε μια εφαρμογή εργασιών στις Ρυθμίσεις για εξαγωγή';
+
+  @override
+  String get connectAction => 'Σύνδεση';
+
+  @override
+  String get deselectAllTasksMenu => 'Αποεπιλογή όλων';
+
+  @override
+  String get bulkExportAlreadyExported => 'Όλες οι επιλεγμένες εργασίες έχουν ήδη εξαχθεί';
+
+  @override
+  String get bulkDeleteFailed => 'Δεν ήταν δυνατή η διαγραφή των εργασιών. Δοκιμάστε ξανά.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Αυτόματη προσθήκη εργασιών στις Υπενθυμίσεις Apple';

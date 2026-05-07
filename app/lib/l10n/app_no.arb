@@ -18,6 +18,8 @@
     "clear": "Tøm",
     "copyTranscript": "Kopier transkripsjon",
     "copySummary": "Kopier oppsummering",
+    "copyConversationId": "Kopier samtale-ID",
+    "conversationIdCopied": "Samtale-ID kopiert til utklippstavle",
     "testPrompt": "Test prompt",
     "reprocessConversation": "Behandle samtale på nytt",
     "deleteConversation": "Slett samtale",
@@ -1389,8 +1391,8 @@
     "upgradeAlreadyScheduled": "Oppgraderingen din til årsabonnementet er allerede planlagt",
     "youAreOnUnlimitedPlan": "Du er på det ubegrensede abonnementet.",
     "yourOmiUnleashed": "Din Omi, frigjort. Bli ubegrenset for uendelige muligheter.",
-    "planEndedOn": "Abonnementet ditt ble avsluttet {date}.\\nAbonner på nytt nå - du blir belastet umiddelbart for en ny faktureringsperiode.",
-    "planSetToCancelOn": "Abonnementet ditt er satt til å bli kansellert {date}.\\nAbonner på nytt nå for å beholde fordelene - ingen belastning til {date}.",
+    "planEndedOn": "Abonnementet ditt ble avsluttet {date}.\nAbonner på nytt nå - du blir belastet umiddelbart for en ny faktureringsperiode.",
+    "planSetToCancelOn": "Abonnementet ditt er satt til å bli kansellert {date}.\nAbonner på nytt nå for å beholde fordelene - ingen belastning til {date}.",
     "annualPlanStartsAutomatically": "Ditt årlige abonnement starter automatisk når ditt månedlige abonnement avsluttes.",
     "planRenewsOn": "Abonnementet ditt fornyes {date}.",
     "unlimitedConversations": "Ubegrensede samtaler",
@@ -2048,7 +2050,7 @@
     "defaultLabel": "Standard",
     "lastUsedLabel": "Sist brukt",
     "setDefaultApp": "Angi standardapp",
-    "setDefaultAppContent": "Angi {appName} som din standardapp for oppsummeringer?\\n\\nDenne appen vil automatisk bli brukt for alle fremtidige samtaleoppsummeringer.",
+    "setDefaultAppContent": "Angi {appName} som din standardapp for oppsummeringer?\n\nDenne appen vil automatisk bli brukt for alle fremtidige samtaleoppsummeringer.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -3000,6 +3002,20 @@
     "recordWithPhoneMicSubtitle": "Fang opp lyden rundt deg",
     "phoneCall": "Telefonsamtale",
     "phoneCallSubtitle": "Ta opp en samtale med direkte transkripsjon",
+    "bulkExportInProgress": "Eksporterer…",
+    "bulkExportPartial": "Eksporterte {success} av {total} til {platform}",
+    "bulkExportSuccess": "Eksporterte {count} til {platform}",
+    "chooseExportDestination": "Eksporter {count} element(er) til…",
+    "connectAction": "Koble til",
+    "connectTaskAppToExport": "Koble til en oppgaveapp i Innstillinger for å eksportere",
+    "deselectAllTasksMenu": "Fjern alle valg",
+    "hideCompletedTasks": "Skjul fullførte",
+    "searchActionItems": "Søk i handlingspunkter",
+    "selectActionItems": "Velg flere",
+    "selectAllTasksMenu": "Velg alle",
+    "showCompletedTasks": "Vis fullførte",
+    "startCallRecording": "Start samtaleopptak",
+    "startVoiceRecording": "Start stemmeopptak",
     "autoAddTasksToAppleReminders": "Legg automatisk til oppgaver i Apple Reminders",
     "@autoAddTasksToAppleReminders": {
         "description": "Setting title for Apple Reminders automatic task export"
@@ -3020,8 +3036,12 @@
     "@selectedActionItemsAlreadyExported": {
         "description": "Message shown when selected tasks have already been exported"
     },
-    "startCallRecording": "Start samtaleopptak",
-    "@startCallRecording": {},
-    "startVoiceRecording": "Start taleopptak",
-    "@startVoiceRecording": {}
+    "bulkExportAlreadyExported": "Alle valgte oppgaver er allerede eksportert",
+    "bulkDeleteFailed": "Kunne ikke slette oppgaver. Prøv igjen.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

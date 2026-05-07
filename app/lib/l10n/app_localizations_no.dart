@@ -64,6 +64,12 @@ class AppLocalizationsNo extends AppLocalizations {
   String get copySummary => 'Kopier oppsummering';
 
   @override
+  String get copyConversationId => 'Kopier samtale-ID';
+
+  @override
+  String get conversationIdCopied => 'Samtale-ID kopiert til utklippstavle';
+
+  @override
   String get testPrompt => 'Test prompt';
 
   @override
@@ -4524,12 +4530,12 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Abonnementet ditt ble avsluttet $date.\\nAbonner på nytt nå - du blir belastet umiddelbart for en ny faktureringsperiode.';
+    return 'Abonnementet ditt ble avsluttet $date.\nAbonner på nytt nå - du blir belastet umiddelbart for en ny faktureringsperiode.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Abonnementet ditt er satt til å bli kansellert $date.\\nAbonner på nytt nå for å beholde fordelene - ingen belastning til $date.';
+    return 'Abonnementet ditt er satt til å bli kansellert $date.\nAbonner på nytt nå for å beholde fordelene - ingen belastning til $date.';
   }
 
   @override
@@ -6536,7 +6542,7 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Angi $appName som din standardapp for oppsummeringer?\\n\\nDenne appen vil automatisk bli brukt for alle fremtidige samtaleoppsummeringer.';
+    return 'Angi $appName som din standardapp for oppsummeringer?\n\nDenne appen vil automatisk bli brukt for alle fremtidige samtaleoppsummeringer.';
   }
 
   @override
@@ -9151,7 +9157,7 @@ class AppLocalizationsNo extends AppLocalizations {
   String get agreeAndContinue => 'Godta og fortsett';
 
   @override
-  String get startVoiceRecording => 'Start taleopptak';
+  String get startVoiceRecording => 'Start stemmeopptak';
 
   @override
   String get startCallRecording => 'Start samtaleopptak';
@@ -9182,6 +9188,54 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Ta opp en samtale med direkte transkripsjon';
+
+  @override
+  String get searchActionItems => 'Søk i handlingspunkter';
+
+  @override
+  String get selectActionItems => 'Velg flere';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Eksporter $count element(er) til…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Eksporterer…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Eksporterte $count til $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Eksporterte $success av $total til $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Vis fullførte';
+
+  @override
+  String get hideCompletedTasks => 'Skjul fullførte';
+
+  @override
+  String get selectAllTasksMenu => 'Velg alle';
+
+  @override
+  String get connectTaskAppToExport => 'Koble til en oppgaveapp i Innstillinger for å eksportere';
+
+  @override
+  String get connectAction => 'Koble til';
+
+  @override
+  String get deselectAllTasksMenu => 'Fjern alle valg';
+
+  @override
+  String get bulkExportAlreadyExported => 'Alle valgte oppgaver er allerede eksportert';
+
+  @override
+  String get bulkDeleteFailed => 'Kunne ikke slette oppgaver. Prøv igjen.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Legg automatisk til oppgaver i Apple Reminders';

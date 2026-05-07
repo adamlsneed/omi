@@ -428,7 +428,12 @@ class BatchDeleteActionItemsRequest(BaseModel):
 
 @router.post("/v1/action-items/batch-delete", tags=['action-items'])
 def batch_delete_action_items(request: BatchDeleteActionItemsRequest, uid: str = Depends(auth.get_current_user_uid)):
-    """Delete multiple action items in one request."""
+    """Delete multiple action items in one request.
+
+    Firestore deletes go through chunked batched commits in the DB layer; the
+    vector store delete and the FCM cancellation message both use their batch
+    helpers — no per-id loop on this hot path.
+    """
     deleted_ids = action_items_db.delete_action_items_batch(uid, request.ids)
 
     if deleted_ids:

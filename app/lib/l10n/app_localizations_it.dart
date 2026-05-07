@@ -64,6 +64,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get copySummary => 'Copia riepilogo';
 
   @override
+  String get copyConversationId => 'Copia ID conversazione';
+
+  @override
+  String get conversationIdCopied => 'ID conversazione copiato negli appunti';
+
+  @override
   String get testPrompt => 'Prova Prompt';
 
   @override
@@ -4550,12 +4556,12 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Il tuo piano è terminato il $date.\\nRiabbonati ora - ti verrà addebitato immediatamente per un nuovo periodo di fatturazione.';
+    return 'Il tuo piano è terminato il $date.\nRiabbonati ora - ti verrà addebitato immediatamente per un nuovo periodo di fatturazione.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Il tuo piano è impostato per essere annullato il $date.\\nRiabbonati ora per mantenere i tuoi benefici - nessun addebito fino al $date.';
+    return 'Il tuo piano è impostato per essere annullato il $date.\nRiabbonati ora per mantenere i tuoi benefici - nessun addebito fino al $date.';
   }
 
   @override
@@ -6578,7 +6584,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Impostare $appName come app di riepilogo predefinita?\\n\\nQuesta app verrà utilizzata automaticamente per tutti i futuri riepiloghi delle conversazioni.';
+    return 'Impostare $appName come app di riepilogo predefinita?\n\nQuesta app verrà utilizzata automaticamente per tutti i futuri riepiloghi delle conversazioni.';
   }
 
   @override
@@ -9241,6 +9247,54 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Registra una chiamata con trascrizione live';
+
+  @override
+  String get searchActionItems => 'Cerca azioni';
+
+  @override
+  String get selectActionItems => 'Selezione multipla';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Esporta $count elemento/i su…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Esportazione…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Esportati $count su $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Esportati $success di $total su $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Mostra completate';
+
+  @override
+  String get hideCompletedTasks => 'Nascondi completate';
+
+  @override
+  String get selectAllTasksMenu => 'Seleziona tutto';
+
+  @override
+  String get connectTaskAppToExport => 'Collega un\'app attività nelle Impostazioni per esportare';
+
+  @override
+  String get connectAction => 'Connetti';
+
+  @override
+  String get deselectAllTasksMenu => 'Deseleziona tutto';
+
+  @override
+  String get bulkExportAlreadyExported => 'Tutte le attività selezionate sono già state esportate';
+
+  @override
+  String get bulkDeleteFailed => 'Impossibile eliminare le attività. Riprova.';
 
   @override
   String get autoAddTasksToAppleReminders => 'Aggiungi automaticamente attività a Apple Reminders';

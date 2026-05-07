@@ -1,13 +1,16 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import 'package:omi/backend/http/api/action_items.dart' as api;
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/schema.dart';
+import 'package:omi/pages/action_items/services/action_item_export_service.dart';
+import 'package:omi/pages/settings/task_integrations_page.dart';
 import 'package:omi/services/apple_reminders_service.dart';
 import 'package:omi/services/notifications/action_item_notification_handler.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
+import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 
@@ -42,6 +45,11 @@ class ActionItemsProvider extends ChangeNotifier {
   bool _isSelectionMode = false;
   Set<String> _selectedItems = {};
 
+  // Search state — lexical client-side filter over already-loaded items.
+  // Backend vector search will replace the filter implementation behind
+  // the same getters in a follow-up PR.
+  String _searchQuery = '';
+
   // Getters
   List<ActionItemWithMetadata> get actionItems => _actionItems;
   bool get isLoading => _isLoading;
@@ -58,8 +66,18 @@ class ActionItemsProvider extends ChangeNotifier {
   Set<String> get selectedItems => _selectedItems;
   int get selectedCount => _selectedItems.length;
   bool get hasSelection => _selectedItems.isNotEmpty;
-  List<ActionItemWithMetadata> get selectedActionItems =>
-      _actionItems.where((item) => _selectedItems.contains(item.id)).toList();
+
+  // Search getters
+  String get searchQuery => _searchQuery;
+  bool get isSearching => _searchQuery.isNotEmpty;
+
+  /// Items matching the active search query, or all items when no query is set.
+  /// Lexical case-insensitive substring match on description.
+  List<ActionItemWithMetadata> get filteredActionItems {
+    if (_searchQuery.isEmpty) return _actionItems;
+    final q = _searchQuery.toLowerCase();
+    return _actionItems.where((i) => i.description.toLowerCase().contains(q)).toList();
+  }
 
   // Group action items by completion status
   List<ActionItemWithMetadata> get incompleteItems => _actionItems.where((item) => item.completed == false).toList();
@@ -637,6 +655,9 @@ class ActionItemsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cascades the toggle to [cascadeIds] — typically the parent's visible
+  /// descendants computed at the call site (the page has the category-grouped
+  /// display order; the provider does not). Pass an empty list for a leaf row.
   void toggleItemSelection(String itemId, {Iterable<String> cascadeIds = const []}) {
     final wasSelected = _selectedItems.contains(itemId);
     if (wasSelected) {
@@ -664,10 +685,9 @@ class ActionItemsProvider extends ChangeNotifier {
   }
 
   void selectAllItems() {
-    _selectedItems.clear();
-    for (final item in _actionItems) {
-      _selectedItems.add(item.id);
-    }
+    _selectedItems
+      ..clear()
+      ..addAll(_actionItems.map((i) => i.id));
     notifyListeners();
   }
 
@@ -687,9 +707,7 @@ class ActionItemsProvider extends ChangeNotifier {
         break;
     }
 
-    for (final item in itemsToSelect) {
-      _selectedItems.add(item.id);
-    }
+    _selectedItems.addAll(itemsToSelect.map((i) => i.id));
     notifyListeners();
   }
 
@@ -711,11 +729,13 @@ class ActionItemsProvider extends ChangeNotifier {
   }
 
   // Bulk operations
-  Future<bool> deleteSelectedItems() async {
+  Future<bool> deleteSelectedItems({BuildContext? context}) async {
     if (_selectedItems.isEmpty) return false;
 
     final itemsToDelete = _actionItems.where((item) => _selectedItems.contains(item.id)).toList();
     final ids = itemsToDelete.map((item) => item.id).toList(growable: false);
+    // Snapshot positions so a failed bulk delete can re-insert the rows
+    // back where the user expected them, instead of dumping them at the end.
     final snapshot = <int, ActionItemWithMetadata>{
       for (final item in itemsToDelete) _actionItems.indexOf(item): item,
     };
@@ -730,6 +750,7 @@ class ActionItemsProvider extends ChangeNotifier {
     final deleted = await api.bulkDeleteActionItems(ids);
     if (deleted == null || deleted.length != ids.length) {
       Logger.debug('bulkDeleteActionItems failed — rolling back local list');
+      // Re-insert rows at their original positions, oldest index first.
       final entries = snapshot.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
       for (final entry in entries) {
         final idx = entry.key.clamp(0, _actionItems.length);
@@ -738,9 +759,24 @@ class ActionItemsProvider extends ChangeNotifier {
       _isSelectionMode = wasInSelection;
       _selectedItems = ids.toSet();
       notifyListeners();
+
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(context.l10n.bulkDeleteFailed),
+              backgroundColor: const Color(0xFFB3261E),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+      }
       return false;
     }
 
+    // Apple Reminders mirror lives client-side, so it still has to fan out
+    // per-item. Do this only after the backend delete succeeds so a transient
+    // server failure does not orphan-delete the user's linked reminders.
     for (final item in itemsToDelete) {
       _deleteAppleReminderIfLinked(item);
     }
@@ -755,95 +791,81 @@ class ActionItemsProvider extends ChangeNotifier {
     return results.every((success) => success);
   }
 
-  Future<AppleRemindersBulkExportResult> exportSelectedItemsToAppleReminders() async {
-    if (!PlatformService.isApple || _selectedItems.isEmpty) {
-      return const AppleRemindersBulkExportResult();
-    }
-
-    final service = AppleRemindersService();
-    if (!service.isAvailable) {
-      return const AppleRemindersBulkExportResult();
-    }
-
-    var hasPermission = await service.hasPermission();
-    if (!hasPermission) {
-      hasPermission = await service.requestPermission();
-      if (!hasPermission) {
-        return const AppleRemindersBulkExportResult(permissionDenied: true);
-      }
-    }
-
-    var addedCount = 0;
-    var failedCount = 0;
-    var skippedCount = 0;
-    final itemsToExport = selectedActionItems;
-
-    for (final item in itemsToExport) {
-      if (item.exported) {
-        skippedCount++;
-        continue;
-      }
-
-      try {
-        final calendarItemId = await service.addReminder(
-          title: item.description,
-          notes: 'From Omi',
-          dueDate: item.dueAt,
-          listName: 'Reminders',
-        );
-
-        if (calendarItemId == null) {
-          failedCount++;
-          continue;
-        }
-
-        final exportTime = DateTime.now();
-        final updatedItem = await api.updateActionItem(
-          item.id,
-          exported: true,
-          exportDate: exportTime,
-          exportPlatform: 'apple_reminders',
-          appleReminderId: calendarItemId,
-        );
-
-        final index = _actionItems.indexWhere((candidate) => candidate.id == item.id);
-        if (index != -1) {
-          _actionItems[index] = updatedItem ??
-              item.copyWith(
-                exported: true,
-                exportDate: exportTime,
-                exportPlatform: 'apple_reminders',
-                appleReminderId: calendarItemId,
-              );
-        }
-
-        addedCount++;
-        MixpanelManager().actionItemExported(
-          actionItemId: item.id,
-          appName: 'Apple Reminders',
-          timestamp: exportTime,
-        );
-      } catch (e) {
-        failedCount++;
-        Logger.debug('Selected Apple Reminders export failed: $e');
-      }
-    }
-
-    _selectedItems.clear();
-    _isSelectionMode = false;
-    notifyListeners();
-
-    return AppleRemindersBulkExportResult(
-      addedCount: addedCount,
-      failedCount: failedCount,
-      skippedCount: skippedCount,
-    );
-  }
-
   void startSelectionWithItem(String itemId) {
     _isSelectionMode = true;
     _selectedItems = {itemId};
     notifyListeners();
+  }
+
+  // Search methods
+  void setSearchQuery(String query) {
+    final next = query.trim();
+    if (next == _searchQuery) return;
+    _searchQuery = next;
+    notifyListeners();
+  }
+
+  void clearSearchQuery() {
+    if (_searchQuery.isEmpty) return;
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  /// Fan-out export of every currently selected item to [platform].
+  /// Snackbar feedback is posted via [context]; selection mode exits when done.
+  Future<void> bulkExportSelected(BuildContext context, TaskIntegrationApp platform) async {
+    if (_selectedItems.isEmpty) return;
+
+    final ids = _selectedItems.toList(growable: false);
+    final selected = _actionItems.where((i) => ids.contains(i.id)).toList(growable: false);
+    // Exported items can now be selected (Delete shares the bar), but Export
+    // itself silently no-ops on them so the user doesn't double-create on the
+    // integration side.
+    final items = selected.where((i) => !i.exported).toList(growable: false);
+    final total = items.length;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+
+    if (total == 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.bulkExportAlreadyExported),
+          backgroundColor: const Color(0xFF2C2C2E),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      endSelection();
+      return;
+    }
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.bulkExportInProgress),
+        duration: const Duration(seconds: 30),
+        backgroundColor: Colors.blue,
+      ),
+    );
+
+    final results = await Future.wait(items.map((i) => ActionItemExportService.export(i, platform)));
+    final successCount = results.where((r) => r == ExportResult.success).length;
+
+    // Refresh from server so newly-flipped `exported`/`exportPlatform` fields surface.
+    await fetchActionItems();
+    endSelection();
+
+    if (!context.mounted) return;
+    messenger.clearSnackBars();
+    final message = successCount == total
+        ? context.l10n.bulkExportSuccess(successCount, platform.displayName)
+        : context.l10n.bulkExportPartial(successCount, total, platform.displayName);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: successCount == total ? Colors.green : Colors.orange,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -855,20 +877,4 @@ class ActionItemsProvider extends ChangeNotifier {
     _flushIndentUpdates();
     super.dispose();
   }
-}
-
-class AppleRemindersBulkExportResult {
-  final int addedCount;
-  final int failedCount;
-  final int skippedCount;
-  final bool permissionDenied;
-
-  const AppleRemindersBulkExportResult({
-    this.addedCount = 0,
-    this.failedCount = 0,
-    this.skippedCount = 0,
-    this.permissionDenied = false,
-  });
-
-  bool get addedAny => addedCount > 0;
 }

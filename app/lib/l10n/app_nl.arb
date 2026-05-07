@@ -18,6 +18,8 @@
     "clear": "Wissen",
     "copyTranscript": "Kopieer transcript",
     "copySummary": "Kopieer samenvatting",
+    "copyConversationId": "Gesprek-ID kopiëren",
+    "conversationIdCopied": "Gesprek-ID gekopieerd naar klembord",
     "testPrompt": "Prompt testen",
     "reprocessConversation": "Gesprek opnieuw verwerken",
     "deleteConversation": "Gesprek verwijderen",
@@ -1389,8 +1391,8 @@
     "upgradeAlreadyScheduled": "Uw upgrade naar het jaarabonnement is al gepland",
     "youAreOnUnlimitedPlan": "U bent op het Unlimited-abonnement.",
     "yourOmiUnleashed": "Uw Omi, ontketend. Ga unlimited voor eindeloze mogelijkheden.",
-    "planEndedOn": "Uw plan eindigde op {date}.\\nAbonneer nu opnieuw - u wordt direct belast voor een nieuwe factureringsperiode.",
-    "planSetToCancelOn": "Uw plan wordt geannuleerd op {date}.\\nAbonneer nu opnieuw om uw voordelen te behouden - geen kosten tot {date}.",
+    "planEndedOn": "Uw plan eindigde op {date}.\nAbonneer nu opnieuw - u wordt direct belast voor een nieuwe factureringsperiode.",
+    "planSetToCancelOn": "Uw plan wordt geannuleerd op {date}.\nAbonneer nu opnieuw om uw voordelen te behouden - geen kosten tot {date}.",
     "annualPlanStartsAutomatically": "Uw jaarabonnement start automatisch wanneer uw maandabonnement eindigt.",
     "planRenewsOn": "Uw plan wordt verlengd op {date}.",
     "unlimitedConversations": "Onbeperkte gesprekken",
@@ -2048,7 +2050,7 @@
     "defaultLabel": "Standaard",
     "lastUsedLabel": "Laatst gebruikt",
     "setDefaultApp": "Standaardapp instellen",
-    "setDefaultAppContent": "{appName} instellen als je standaard samenvattingsapp?\\n\\nDeze app wordt automatisch gebruikt voor alle toekomstige gesprekssamenvattingen.",
+    "setDefaultAppContent": "{appName} instellen als je standaard samenvattingsapp?\n\nDeze app wordt automatisch gebruikt voor alle toekomstige gesprekssamenvattingen.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -3000,6 +3002,20 @@
     "recordWithPhoneMicSubtitle": "Leg het geluid om je heen vast",
     "phoneCall": "Telefoongesprek",
     "phoneCallSubtitle": "Neem een gesprek op met live transcriptie",
+    "bulkExportInProgress": "Exporteren…",
+    "bulkExportPartial": "{success} van {total} geëxporteerd naar {platform}",
+    "bulkExportSuccess": "{count} geëxporteerd naar {platform}",
+    "chooseExportDestination": "{count} item(s) exporteren naar…",
+    "connectAction": "Verbinden",
+    "connectTaskAppToExport": "Verbind een taken-app in Instellingen om te exporteren",
+    "deselectAllTasksMenu": "Alles deselecteren",
+    "hideCompletedTasks": "Voltooide verbergen",
+    "searchActionItems": "Actiepunten zoeken",
+    "selectActionItems": "Meerdere selecteren",
+    "selectAllTasksMenu": "Alles selecteren",
+    "showCompletedTasks": "Voltooide tonen",
+    "startCallRecording": "Gespreksopname starten",
+    "startVoiceRecording": "Spraakopname starten",
     "autoAddTasksToAppleReminders": "Taken automatisch toevoegen aan Apple Reminders",
     "@autoAddTasksToAppleReminders": {
         "description": "Setting title for Apple Reminders automatic task export"
@@ -3020,8 +3036,12 @@
     "@selectedActionItemsAlreadyExported": {
         "description": "Message shown when selected tasks have already been exported"
     },
-    "startCallRecording": "Gespreksopname starten",
-    "@startCallRecording": {},
-    "startVoiceRecording": "Spraakopname starten",
-    "@startVoiceRecording": {}
+    "bulkExportAlreadyExported": "Alle geselecteerde taken zijn al geëxporteerd",
+    "bulkDeleteFailed": "Taken konden niet worden verwijderd. Probeer het opnieuw.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }
