@@ -14,6 +14,7 @@ import re
 import sys
 import threading
 import time
+import types
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -782,6 +783,11 @@ class TestBackgroundWorkerBehavioral:
             saved_modules[mod] = sys.modules.get(mod)
             sys.modules[mod] = MagicMock()
 
+        analytics_mod = types.ModuleType('utils.analytics')
+        analytics_mod.record_usage = MagicMock()
+        saved_modules['utils.analytics'] = sys.modules.get('utils.analytics')
+        sys.modules['utils.analytics'] = analytics_mod
+
         # Provide a working critical_executor stub (submit runs the function synchronously)
         from concurrent.futures import ThreadPoolExecutor
 
@@ -1237,6 +1243,10 @@ class TestV2EndpointExecution:
         for mod_name in heavy_deps:
             saved_modules[mod_name] = sys.modules.get(mod_name)
             sys.modules[mod_name] = MagicMock()
+        analytics_mod = types.ModuleType('utils.analytics')
+        analytics_mod.record_usage = MagicMock()
+        saved_modules['utils.analytics'] = sys.modules.get('utils.analytics')
+        sys.modules['utils.analytics'] = analytics_mod
         sys.modules['models'].__path__ = []
         sys.modules['utils'].__path__ = []
         sys.modules['utils.conversations'].__path__ = []

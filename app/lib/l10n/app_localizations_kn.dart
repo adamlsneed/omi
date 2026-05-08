@@ -9268,8 +9268,24 @@ class AppLocalizationsKn extends AppLocalizations {
   String get deselectAllTasksMenu => 'ಎಲ್ಲವನ್ನೂ ಆಯ್ಕೆ ರದ್ದು ಮಾಡಿ';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'ಆಯ್ಕೆ ಮಾಡಿದ ಎಲ್ಲಾ ಕಾರ್ಯಗಳನ್ನು ಈಗಾಗಲೇ ರಫ್ತು ಮಾಡಲಾಗಿದೆ';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'ಕಾರ್ಯಗಳನ್ನು ಅಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'ಕಾರ್ಯಗಳನ್ನು Apple Reminders ಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸಿ';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'ಸಕ್ರಿಯವಾಗಿದ್ದರೆ, Omi ರಚಿಸುವ ಕಾರ್ಯಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ Reminders ಗೆ ಸೇರುತ್ತವೆ. ಇದು ಆಫ್ ಆಗಿದ್ದರೂ ನೀವು ಕಾರ್ಯಗಳನ್ನು ಕೈಯಾರೆ ಸೇರಿಸಬಹುದು.';
+
+  @override
+  String get addSelectedToAppleReminders => 'ಆಯ್ದವುಗಳನ್ನು Apple Reminders ಗೆ ಸೇರಿಸಿ';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ಕೆಲವು ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಸೇರಿಸಲಾಗಲಿಲ್ಲ.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಈಗಾಗಲೇ ರಫ್ತು ಮಾಡಲಾಗಿದೆ.';
 }

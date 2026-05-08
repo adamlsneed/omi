@@ -17246,6 +17246,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not delete tasks. Please try again.'**
   String get bulkDeleteFailed;
+
+  /// Setting title for Apple Reminders automatic task export
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-add tasks to Apple Reminders'**
+  String get autoAddTasksToAppleReminders;
+
+  /// Setting description for Apple Reminders automatic task export
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, tasks Omi creates are automatically added to Reminders. You can still add tasks manually when this is off.'**
+  String get autoAddTasksToAppleRemindersDescription;
+
+  /// Tooltip for adding selected tasks to Apple Reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Add selected to Apple Reminders'**
+  String get addSelectedToAppleReminders;
+
+  /// Message shown when only some selected tasks were added to Apple Reminders
+  ///
+  /// In en, this message translates to:
+  /// **'Some selected tasks could not be added.'**
+  String get selectedActionItemsPartiallyAddedToAppleReminders;
+
+  /// Message shown when selected tasks have already been exported
+  ///
+  /// In en, this message translates to:
+  /// **'Selected tasks are already exported.'**
+  String get selectedActionItemsAlreadyExported;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

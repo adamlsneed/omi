@@ -9291,8 +9291,25 @@ class AppLocalizationsIt extends AppLocalizations {
   String get deselectAllTasksMenu => 'Deseleziona tutto';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Tutte le attività selezionate sono già state esportate';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Impossibile eliminare le attività. Riprova.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Aggiungi automaticamente attività a Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Quando è attivo, le attività create da Omi vengono aggiunte automaticamente ai Promemoria. Puoi comunque aggiungere attività manualmente quando questa opzione è disattivata.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Aggiungi selezionati ad Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Alcune attività selezionate non sono state aggiunte.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Le attività selezionate sono già state esportate.';
 }

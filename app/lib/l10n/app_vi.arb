@@ -3020,5 +3020,33 @@
     "selectAllTasksMenu": "Chọn tất cả",
     "showCompletedTasks": "Hiện đã hoàn thành",
     "startCallRecording": "Bắt đầu ghi âm cuộc gọi",
-    "startVoiceRecording": "Bắt đầu ghi âm giọng nói"
+    "startVoiceRecording": "Bắt đầu ghi âm giọng nói",
+    "autoAddTasksToAppleReminders": "Tự động thêm tác vụ vào Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Khi bật, các tác vụ Omi tạo sẽ tự động được thêm vào Nhắc nhở. Bạn vẫn có thể thêm tác vụ thủ công khi tùy chọn này tắt.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Thêm mục đã chọn vào Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Không thể thêm một số công việc đã chọn.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Các công việc đã chọn đã được xuất.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Tất cả tác vụ đã chọn đã được xuất",
+    "bulkDeleteFailed": "Không thể xóa tác vụ. Vui lòng thử lại.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

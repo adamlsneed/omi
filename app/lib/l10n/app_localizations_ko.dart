@@ -9088,8 +9088,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get deselectAllTasksMenu => '모두 선택 해제';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => '선택한 모든 작업이 이미 내보내졌습니다';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => '작업을 삭제할 수 없습니다. 다시 시도하세요.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple 미리 알림에 작업 자동 추가';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      '켜져 있으면 Omi가 만든 작업이 미리 알림에 자동으로 추가됩니다. 이 옵션이 꺼져 있어도 작업을 수동으로 추가할 수 있습니다.';
+
+  @override
+  String get addSelectedToAppleReminders => '선택 항목을 Apple Reminders에 추가';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '일부 선택한 작업을 추가하지 못했습니다.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '선택한 작업은 이미 내보냈습니다.';
 }

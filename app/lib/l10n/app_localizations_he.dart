@@ -9164,8 +9164,24 @@ class AppLocalizationsHe extends AppLocalizations {
   String get deselectAllTasksMenu => 'בטל בחירת הכל';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'כל המשימות שנבחרו כבר יוצאו';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'לא ניתן למחוק את המשימות. נסה שוב.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'הוספה אוטומטית של משימות ל-Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'כאשר האפשרות מופעלת, משימות ש-Omi יוצר מתווספות אוטומטית לתזכורות. עדיין ניתן להוסיף משימות ידנית כשהאפשרות כבויה.';
+
+  @override
+  String get addSelectedToAppleReminders => 'הוסף את הנבחרים ל-Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'לא ניתן היה להוסיף חלק מהמשימות שנבחרו.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'המשימות שנבחרו כבר יוצאו.';
 }

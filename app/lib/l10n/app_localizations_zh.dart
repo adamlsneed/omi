@@ -9073,8 +9073,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deselectAllTasksMenu => '取消全选';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => '所有选中的任务都已导出';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => '无法删除任务。请重试。';
+
+  @override
+  String get autoAddTasksToAppleReminders => '自动将任务添加到 Apple 提醒事项';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription => '启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。';
+
+  @override
+  String get addSelectedToAppleReminders => '将所选项添加到 Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '部分所选任务无法添加。';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '所选任务已导出。';
 }

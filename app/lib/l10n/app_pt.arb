@@ -3051,5 +3051,33 @@
     "selectAllTasksMenu": "Selecionar todos",
     "showCompletedTasks": "Mostrar concluídas",
     "startCallRecording": "Iniciar gravação de chamada",
-    "startVoiceRecording": "Iniciar gravação de voz"
+    "startVoiceRecording": "Iniciar gravação de voz",
+    "autoAddTasksToAppleReminders": "Adicionar tarefas automaticamente ao Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Quando ativado, as tarefas criadas pelo Omi são adicionadas automaticamente aos Lembretes. Você ainda pode adicionar tarefas manualmente quando isso estiver desativado.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Adicionar selecionadas ao Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Algumas tarefas selecionadas não puderam ser adicionadas.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "As tarefas selecionadas já foram exportadas.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Todas as tarefas selecionadas já foram exportadas",
+    "bulkDeleteFailed": "Não foi possível excluir as tarefas. Tente novamente.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

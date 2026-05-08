@@ -7,6 +7,7 @@ import 'package:omi/pages/settings/task_integrations_page.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/task_integration_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
+import 'package:omi/utils/platform/platform_service.dart';
 
 /// Bottom-anchored selection action bar for the action items page.
 /// Same visual language as `MergeActionBar` for the conversations page —
@@ -15,9 +16,7 @@ import 'package:omi/utils/l10n_extensions.dart';
 ///
 /// Mounted at the home page's outer Stack so it paints above the bottom
 /// nav bar (mirrors `MergeActionBar`). Selection state lives in
-/// `ActionItemsProvider`. Bulk-delete is intentionally not part of the bar:
-/// per-row swipe-left handles individual delete, and the section header's
-/// clear-completed path covers bulk-delete of completed tasks.
+/// `ActionItemsProvider`.
 class TaskSelectionActionBar extends StatefulWidget {
   const TaskSelectionActionBar({super.key});
 
@@ -128,6 +127,11 @@ class _TaskSelectionActionBarState extends State<TaskSelectionActionBar> with Si
     // Settings; otherwise export directly to the connected app.
     final integrations = Provider.of<TaskIntegrationProvider>(context, listen: false);
     final connected = TaskIntegrationApp.values.where(integrations.isAppConnected).toList(growable: false);
+
+    if (connected.isEmpty && PlatformService.isApple) {
+      await provider.bulkExportSelected(context, TaskIntegrationApp.appleReminders);
+      return;
+    }
 
     if (connected.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(

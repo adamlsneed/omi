@@ -9245,8 +9245,24 @@ class AppLocalizationsLt extends AppLocalizations {
   String get deselectAllTasksMenu => 'Atžymėti viską';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Visos pasirinktos užduotys jau eksportuotos';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Nepavyko ištrinti užduočių. Bandykite dar kartą.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automatiškai pridėti užduotis į Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Įjungus, Omi sukurtos užduotys automatiškai pridedamos prie priminimų. Kai ši parinktis išjungta, užduotis vis tiek galite pridėti rankiniu būdu.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Pridėti pasirinktus į Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Kai kurių pasirinktų užduočių nepavyko pridėti.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Pasirinktos užduotys jau eksportuotos.';
 }

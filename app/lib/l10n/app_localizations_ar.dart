@@ -9175,8 +9175,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deselectAllTasksMenu => 'إلغاء تحديد الكل';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'تم تصدير كل المهام المحددة بالفعل';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'تعذر حذف المهام. يُرجى المحاولة مرة أخرى.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'إضافة المهام تلقائيًا إلى تذكيرات Apple';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'عند التفعيل، تُضاف المهام التي ينشئها Omi تلقائيًا إلى التذكيرات. لا يزال بإمكانك إضافة المهام يدويًا عند إيقاف هذا الخيار.';
+
+  @override
+  String get addSelectedToAppleReminders => 'إضافة المحدد إلى Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'تعذرت إضافة بعض المهام المحددة.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'المهام المحددة مصدّرة بالفعل.';
 }

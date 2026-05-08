@@ -9262,8 +9262,24 @@ class AppLocalizationsBe extends AppLocalizations {
   String get deselectAllTasksMenu => 'Зняць выбар усіх';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Усе выбраныя задачы ўжо экспартаваны';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Не ўдалося выдаліць задачы. Паспрабуйце яшчэ раз.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Аўтаматычна дадаваць задачы ў Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Калі ўключана, задачы, створаныя Omi, аўтаматычна дадаюцца ў напаміны. Калі гэта выключана, вы ўсё яшчэ можаце дадаваць задачы ўручную.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Дадаць выбранае ў Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Некаторыя выбраныя задачы не ўдалося дадаць.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Выбраныя задачы ўжо экспартаваныя.';
 }

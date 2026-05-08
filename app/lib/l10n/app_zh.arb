@@ -3037,5 +3037,33 @@
     "selectAllTasksMenu": "全选",
     "showCompletedTasks": "显示已完成",
     "startCallRecording": "开始通话录音",
-    "startVoiceRecording": "开始语音录音"
+    "startVoiceRecording": "开始语音录音",
+    "autoAddTasksToAppleReminders": "自动将任务添加到 Apple 提醒事项",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "将所选项添加到 Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "部分所选任务无法添加。",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "所选任务已导出。",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "所有选中的任务都已导出",
+    "bulkDeleteFailed": "无法删除任务。请重试。",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

@@ -9237,4 +9237,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Auto-add tasks to Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'When enabled, tasks Omi creates are automatically added to Reminders. You can still add tasks manually when this is off.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Add selected to Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Some selected tasks could not be added.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Selected tasks are already exported.';
 }

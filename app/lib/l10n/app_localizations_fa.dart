@@ -9239,8 +9239,24 @@ class AppLocalizationsFa extends AppLocalizations {
   String get deselectAllTasksMenu => 'لغو انتخاب همه';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'همه کارهای انتخاب‌شده قبلاً صادر شده‌اند';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'حذف کارها ممکن نشد. دوباره تلاش کنید.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'افزودن خودکار وظایف به Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'وقتی فعال باشد، وظایفی که Omi ایجاد می‌کند به‌طور خودکار به Reminders اضافه می‌شوند. وقتی این گزینه خاموش است همچنان می‌توانید وظایف را دستی اضافه کنید.';
+
+  @override
+  String get addSelectedToAppleReminders => 'افزودن موارد انتخاب‌شده به Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'برخی کارهای انتخاب‌شده اضافه نشدند.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'کارهای انتخاب‌شده قبلاً صادر شده‌اند.';
 }

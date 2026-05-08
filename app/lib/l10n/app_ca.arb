@@ -2984,5 +2984,33 @@
     "selectAllTasksMenu": "Selecciona tot",
     "showCompletedTasks": "Mostra les completades",
     "startCallRecording": "Inicia l'enregistrament de trucada",
-    "startVoiceRecording": "Inicia l'enregistrament de veu"
+    "startVoiceRecording": "Inicia l'enregistrament de veu",
+    "autoAddTasksToAppleReminders": "Afegeix automàticament tasques a Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Quan està activat, les tasques que crea Omi s'afegeixen automàticament als Recordatoris. Encara pots afegir tasques manualment quan això està desactivat.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Afegeix la selecció a Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "No s’han pogut afegir algunes tasques seleccionades.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Les tasques seleccionades ja s’han exportat.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Totes les tasques seleccionades ja s'han exportat",
+    "bulkDeleteFailed": "No s'han pogut suprimir les tasques. Torna-ho a provar.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

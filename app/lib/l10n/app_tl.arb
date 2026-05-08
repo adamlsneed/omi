@@ -10723,5 +10723,33 @@
     "selectAllTasksMenu": "Piliin lahat",
     "showCompletedTasks": "Ipakita ang tapos na",
     "startCallRecording": "Simulan ang pag-record ng tawag",
-    "startVoiceRecording": "Simulan ang voice recording"
+    "startVoiceRecording": "Simulan ang voice recording",
+    "autoAddTasksToAppleReminders": "Awtomatikong idagdag ang mga gawain sa Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kapag naka-on, awtomatikong idaragdag sa Mga Paalala ang mga gawaing ginagawa ng Omi. Maaari ka pa ring magdagdag ng mga gawain nang manu-mano kapag naka-off ito.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Idagdag ang napili sa Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Hindi naidagdag ang ilang napiling gawain.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Na-export na ang mga napiling gawain.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Na-export na ang lahat ng napiling gawain",
+    "bulkDeleteFailed": "Hindi matanggal ang mga gawain. Subukan muli.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

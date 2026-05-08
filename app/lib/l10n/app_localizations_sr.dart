@@ -9249,8 +9249,24 @@ class AppLocalizationsSr extends AppLocalizations {
   String get deselectAllTasksMenu => 'Поништи избор свих';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Сви изабрани задаци су већ извезени';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Задаци нису могли да се избришу. Покушајте поново.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Аутоматски додај задатке у Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Када је укључено, задаци које Omi направи аутоматски се додају у Подсетнике. И даље можете ручно да додајете задатке када је ово искључено.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Додај изабрано у Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Неке изабране задатке није могуће додати.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Изабрани задаци су већ извезени.';
 }

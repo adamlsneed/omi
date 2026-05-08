@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 
 import 'package:omi/backend/http/api/action_items.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 
@@ -52,6 +53,7 @@ class AppleRemindersService {
   /// Trigger native sync from foreground when FCM data message is received.
   Future<void> triggerSyncFromFCM(Map<String, dynamic> data) async {
     if (!isAvailable) return;
+    if (!SharedPreferencesUtil().appleRemindersAutoExportEnabled) return;
     try {
       final result = await _channel.invokeMethod('syncFromFCM', data);
       final mappings = (result as List?)?.cast<Map>() ?? [];
@@ -67,6 +69,18 @@ class AppleRemindersService {
       );
     } catch (e) {
       Logger.debug('Error triggering sync from FCM: $e');
+    }
+  }
+
+  Future<bool> setAutoExportEnabled(bool enabled) async {
+    if (!isAvailable) return false;
+
+    try {
+      final result = await _channel.invokeMethod('setAutoExportEnabled', {'enabled': enabled});
+      return result == true;
+    } catch (e) {
+      Logger.debug('Error setting Apple Reminders auto-export preference: $e');
+      return false;
     }
   }
 

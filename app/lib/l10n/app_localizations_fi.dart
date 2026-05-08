@@ -9235,8 +9235,24 @@ class AppLocalizationsFi extends AppLocalizations {
   String get deselectAllTasksMenu => 'Poista kaikkien valinta';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Kaikki valitut tehtävät on jo viety';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Tehtäviä ei voitu poistaa. Yritä uudelleen.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lisää tehtävät automaattisesti Apple Remindersiin';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kun tämä on käytössä, Omin luomat tehtävät lisätään automaattisesti Muistutuksiin. Voit silti lisätä tehtäviä manuaalisesti, kun tämä on pois päältä.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lisää valitut Apple Remindersiin';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Joitakin valittuja tehtäviä ei voitu lisätä.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Valitut tehtävät on jo viety.';
 }

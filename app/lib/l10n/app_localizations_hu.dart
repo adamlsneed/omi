@@ -9275,8 +9275,24 @@ class AppLocalizationsHu extends AppLocalizations {
   String get deselectAllTasksMenu => 'Összes kijelölés törlése';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Az összes kijelölt feladat már exportálva van';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Nem sikerült törölni a feladatokat. Próbálja újra.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Feladatok automatikus hozzáadása az Apple Remindershez';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Kijelöltek hozzáadása az Apple Remindershez';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Néhány kijelölt feladatot nem sikerült hozzáadni.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'A kijelölt feladatok már exportálva vannak.';
 }

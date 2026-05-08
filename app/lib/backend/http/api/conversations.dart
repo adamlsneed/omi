@@ -241,7 +241,11 @@ Future<bool> setConversationStarred(String conversationId, bool starred) async {
 }
 
 Future<bool> setConversationActionItemState(String conversationId, List<int> actionItemsIdx, List<bool> values) async {
-  print(jsonEncode({'items_idx': actionItemsIdx, 'values': values, 'conversation_id': conversationId}));
+  Logger.debug('setConversationActionItemState: ${jsonEncode({
+        'items_idx': actionItemsIdx,
+        'values': values,
+        'conversation_id': conversationId,
+      })}');
   var response = await makeApiCall(
     url: '${Env.apiBaseUrl}v1/conversations/$conversationId/action-items',
     headers: {},
@@ -302,7 +306,7 @@ Future<SyncLocalFilesResponse> syncLocalFilesV2(
     var response = await makeMultipartApiCall(url: url, files: files, onUploadProgress: onUploadProgress);
 
     // Fast-path responses (no async job created)
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 207) {
       return SyncLocalFilesResponse.fromJson(jsonDecode(response.body));
     }
 

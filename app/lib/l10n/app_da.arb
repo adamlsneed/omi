@@ -3024,5 +3024,33 @@
     "selectAllTasksMenu": "Vælg alle",
     "showCompletedTasks": "Vis fuldførte",
     "startCallRecording": "Start opkaldsoptagelse",
-    "startVoiceRecording": "Start stemmeoptagelse"
+    "startVoiceRecording": "Start stemmeoptagelse",
+    "autoAddTasksToAppleReminders": "Føj automatisk opgaver til Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Når det er slået til, føjes opgaver, som Omi opretter, automatisk til Påmindelser. Du kan stadig tilføje opgaver manuelt, når dette er slået fra.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Føj valgte til Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Nogle valgte opgaver kunne ikke tilføjes.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "De valgte opgaver er allerede eksporteret.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Alle valgte opgaver er allerede eksporteret",
+    "bulkDeleteFailed": "Opgaverne kunne ikke slettes. Prøv igen.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

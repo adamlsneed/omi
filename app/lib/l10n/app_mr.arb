@@ -10723,5 +10723,33 @@
     "selectAllTasksMenu": "सर्व निवडा",
     "showCompletedTasks": "पूर्ण झालेले दाखवा",
     "startCallRecording": "कॉल रेकॉर्डिंग सुरू करा",
-    "startVoiceRecording": "व्हॉइस रेकॉर्डिंग सुरू करा"
+    "startVoiceRecording": "व्हॉइस रेकॉर्डिंग सुरू करा",
+    "autoAddTasksToAppleReminders": "Apple Reminders मध्ये कामे आपोआप जोडा",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "चालू असताना, Omi तयार करत असलेली कामे आपोआप Reminders मध्ये जोडली जातात. हे बंद असतानाही तुम्ही कामे हाताने जोडू शकता.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "निवडलेले Apple Reminders मध्ये जोडा",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "काही निवडलेली कामे जोडता आली नाहीत.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "निवडलेली कामे आधीच निर्यात केली आहेत.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "निवडलेली सर्व कामे आधीच निर्यात केली आहेत",
+    "bulkDeleteFailed": "कामे हटवता आली नाहीत. पुन्हा प्रयत्न करा.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

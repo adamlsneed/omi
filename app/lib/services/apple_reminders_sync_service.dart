@@ -1,4 +1,5 @@
 import 'package:omi/backend/http/api/action_items.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/action_item.dart';
 import 'package:omi/services/apple_reminders_service.dart';
 import 'package:omi/utils/analytics/mixpanel.dart';
@@ -18,6 +19,7 @@ class AppleRemindersSyncService {
 
   Future<void> syncOnForegroundResume() async {
     if (!_remindersService.isAvailable) return;
+    if (!SharedPreferencesUtil().appleRemindersAutoExportEnabled) return;
     if (_isSyncing) return;
     if (_lastSyncTime != null && DateTime.now().difference(_lastSyncTime!) < _syncCooldown) return;
     if (!await _remindersService.hasPermission()) return;

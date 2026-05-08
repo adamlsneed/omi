@@ -139,6 +139,7 @@ class TaskIntegrationData(BaseModel):
     connected: bool = True
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
+    auto_export_enabled: Optional[bool] = None
 
     # Asana-specific fields
     user_gid: Optional[str] = None

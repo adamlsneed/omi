@@ -3015,5 +3015,33 @@
     "selectAllTasksMenu": "Atlasīt visus",
     "showCompletedTasks": "Rādīt pabeigtās",
     "startCallRecording": "Sākt zvana ierakstīšanu",
-    "startVoiceRecording": "Sākt balss ierakstīšanu"
+    "startVoiceRecording": "Sākt balss ierakstīšanu",
+    "autoAddTasksToAppleReminders": "Automātiski pievienot uzdevumus Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Kad ieslēgts, Omi izveidotie uzdevumi automātiski tiek pievienoti atgādinājumiem. Kad tas ir izslēgts, uzdevumus joprojām var pievienot manuāli.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Pievienot atlasītos Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Dažus atlasītos uzdevumus neizdevās pievienot.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Atlasītie uzdevumi jau ir eksportēti.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Visi atlasītie uzdevumi jau ir eksportēti",
+    "bulkDeleteFailed": "Neizdevās dzēst uzdevumus. Mēģiniet vēlreiz.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

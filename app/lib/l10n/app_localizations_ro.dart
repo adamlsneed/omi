@@ -9279,8 +9279,24 @@ class AppLocalizationsRo extends AppLocalizations {
   String get deselectAllTasksMenu => 'Deselectați tot';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Toate sarcinile selectate au fost deja exportate';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Sarcinile nu au putut fi șterse. Încearcă din nou.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Adaugă automat sarcini în Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Când este activat, sarcinile create de Omi sunt adăugate automat în Mementouri. Poți adăuga în continuare sarcini manual când opțiunea este dezactivată.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Adaugă selecția în Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Unele sarcini selectate nu au putut fi adăugate.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Sarcinile selectate sunt deja exportate.';
 }

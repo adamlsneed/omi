@@ -468,6 +468,7 @@ class ActionItemsProvider extends ChangeNotifier {
   /// Fire-and-forget — doesn't block the UI.
   void _syncToAppleRemindersIfNeeded(ActionItemWithMetadata item) {
     if (!PlatformService.isApple) return;
+    if (!SharedPreferencesUtil().appleRemindersAutoExportEnabled) return;
 
     final service = AppleRemindersService();
     if (!service.isAvailable) return;
@@ -746,15 +747,9 @@ class ActionItemsProvider extends ChangeNotifier {
     _isSelectionMode = false;
     notifyListeners();
 
-    // Apple Reminders mirror lives client-side, so it still has to fan out
-    // per-item. The action-item record itself goes through the bulk endpoint.
-    for (final item in itemsToDelete) {
-      _deleteAppleReminderIfLinked(item);
-    }
-
     final deleted = await api.bulkDeleteActionItems(ids);
-    if (deleted == null) {
-      Logger.debug('bulkDeleteActionItems returned null — rolling back local list');
+    if (deleted == null || deleted.length != ids.length) {
+      Logger.debug('bulkDeleteActionItems failed — rolling back local list');
       // Re-insert rows at their original positions, oldest index first.
       final entries = snapshot.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
       for (final entry in entries) {
@@ -778,7 +773,14 @@ class ActionItemsProvider extends ChangeNotifier {
       }
       return false;
     }
-    return deleted.length == ids.length;
+
+    // Apple Reminders mirror lives client-side, so it still has to fan out
+    // per-item. Do this only after the backend delete succeeds so a transient
+    // server failure does not orphan-delete the user's linked reminders.
+    for (final item in itemsToDelete) {
+      _deleteAppleReminderIfLinked(item);
+    }
+    return true;
   }
 
   Future<bool> clearCompletedItems() async {

@@ -3111,5 +3111,33 @@
     "selectAllTasksMenu": "Összes kijelölése",
     "showCompletedTasks": "Befejezettek megjelenítése",
     "startCallRecording": "Hívásfelvétel indítása",
-    "startVoiceRecording": "Hangfelvétel indítása"
+    "startVoiceRecording": "Hangfelvétel indítása",
+    "autoAddTasksToAppleReminders": "Feladatok automatikus hozzáadása az Apple Remindershez",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Kijelöltek hozzáadása az Apple Remindershez",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Néhány kijelölt feladatot nem sikerült hozzáadni.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "A kijelölt feladatok már exportálva vannak.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Az összes kijelölt feladat már exportálva van",
+    "bulkDeleteFailed": "Nem sikerült törölni a feladatokat. Próbálja újra.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

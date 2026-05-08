@@ -3015,5 +3015,33 @@
     "selectAllTasksMenu": "Selectați tot",
     "showCompletedTasks": "Afișați finalizate",
     "startCallRecording": "Porniți înregistrarea apelului",
-    "startVoiceRecording": "Porniți înregistrarea vocală"
+    "startVoiceRecording": "Porniți înregistrarea vocală",
+    "autoAddTasksToAppleReminders": "Adaugă automat sarcini în Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Când este activat, sarcinile create de Omi sunt adăugate automat în Mementouri. Poți adăuga în continuare sarcini manual când opțiunea este dezactivată.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Adaugă selecția în Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Unele sarcini selectate nu au putut fi adăugate.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Sarcinile selectate sunt deja exportate.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Toate sarcinile selectate au fost deja exportate",
+    "bulkDeleteFailed": "Sarcinile nu au putut fi șterse. Încearcă din nou.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

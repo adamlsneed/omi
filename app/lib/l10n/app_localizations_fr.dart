@@ -9319,8 +9319,25 @@ class AppLocalizationsFr extends AppLocalizations {
   String get deselectAllTasksMenu => 'Tout désélectionner';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Toutes les tâches sélectionnées ont déjà été exportées';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Impossible de supprimer les tâches. Réessayez.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Ajouter automatiquement les tâches à Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Lorsque cette option est activée, les tâches créées par Omi sont ajoutées automatiquement aux Rappels. Vous pouvez toujours ajouter des tâches manuellement lorsqu\'elle est désactivée.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Ajouter la sélection à Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Certaines tâches sélectionnées n’ont pas pu être ajoutées.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Les tâches sélectionnées sont déjà exportées.';
 }

@@ -9260,8 +9260,24 @@ class AppLocalizationsSl extends AppLocalizations {
   String get deselectAllTasksMenu => 'Prekliči izbor vseh';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Vsa izbrana opravila so že izvožena';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Opravil ni bilo mogoče izbrisati. Poskusite znova.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Samodejno dodaj opravila v Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Ko je vklopljeno, se opravila, ki jih ustvari Omi, samodejno dodajo v Opomnike. Ko je to izklopljeno, lahko opravila še vedno dodate ročno.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Dodaj izbrano v Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Nekaterih izbranih opravil ni bilo mogoče dodati.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Izbrana opravila so že izvožena.';
 }

@@ -11,6 +11,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _auto_export_enabled(integration: dict) -> bool:
+    """Return whether automatic task export is enabled for an integration."""
+    return integration.get("auto_export_enabled", True) is not False
+
+
 async def auto_sync_action_item(uid: str, action_item: dict, skip_apple_reminders: bool = False) -> dict:
     """
     Auto-sync a single action item to user's default integration.
@@ -39,6 +44,8 @@ async def auto_sync_action_item(uid: str, action_item: dict, skip_apple_reminder
         if default_app == "apple_reminders":
             if skip_apple_reminders:
                 return {"synced": False, "reason": "client_handles_sync"}
+            if not _auto_export_enabled(integration):
+                return {"synced": False, "platform": "apple_reminders", "reason": "auto_export_disabled"}
             return _sync_to_apple_reminders(uid, [action_item])
         else:
             return await _sync_to_cloud_service(uid, default_app, integration, action_item)
@@ -115,6 +122,10 @@ async def auto_sync_action_items_batch(uid: str, action_items: list) -> list:
 
         # Apple Reminders: send all items in a single push
         if default_app == "apple_reminders":
+            if not _auto_export_enabled(integration):
+                return [{"synced": False, "platform": "apple_reminders", "reason": "auto_export_disabled"}] * len(
+                    action_items
+                )
             result = _sync_to_apple_reminders(uid, action_items)
             return [result] * len(action_items)
 

@@ -3057,5 +3057,33 @@
     "selectAllTasksMenu": "Pilih semua",
     "showCompletedTasks": "Tampilkan selesai",
     "startCallRecording": "Mulai rekaman panggilan",
-    "startVoiceRecording": "Mulai rekaman suara"
+    "startVoiceRecording": "Mulai rekaman suara",
+    "autoAddTasksToAppleReminders": "Tambahkan tugas otomatis ke Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Saat aktif, tugas yang dibuat Omi otomatis ditambahkan ke Pengingat. Anda tetap dapat menambahkan tugas secara manual saat opsi ini nonaktif.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Tambahkan pilihan ke Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Beberapa tugas yang dipilih tidak dapat ditambahkan.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Tugas yang dipilih sudah diekspor.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Semua tugas yang dipilih sudah diekspor",
+    "bulkDeleteFailed": "Tidak dapat menghapus tugas. Coba lagi.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

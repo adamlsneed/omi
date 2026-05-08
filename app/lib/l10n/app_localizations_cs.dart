@@ -9232,8 +9232,24 @@ class AppLocalizationsCs extends AppLocalizations {
   String get deselectAllTasksMenu => 'Zrušit výběr všech';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Všechny vybrané úkoly už byly exportovány';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Úkoly se nepodařilo odstranit. Zkuste to znovu.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automaticky přidávat úkoly do Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Přidat vybrané do Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Některé vybrané úkoly se nepodařilo přidat.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Vybrané úkoly už byly exportovány.';
 }

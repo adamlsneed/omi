@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:omi/backend/http/api/task_integrations.dart';
+import 'package:omi/backend/preferences.dart';
 import 'package:omi/pages/settings/task_integrations_page.dart';
 import 'package:omi/services/apple_reminders_service.dart';
 import 'package:omi/services/asana_service.dart';
@@ -17,6 +18,7 @@ class TaskIntegrationProvider extends ChangeNotifier {
   bool _hasLoaded = false;
   bool _appleRemindersPermission = false;
   bool _appleRemindersPermissionManuallySet = false;
+  bool _appleRemindersAutoExportEnabled = SharedPreferencesUtil().appleRemindersAutoExportEnabled;
 
   TaskIntegrationProvider()
       : _selectedApp = PlatformService.isApple ? TaskIntegrationApp.appleReminders : TaskIntegrationApp.googleTasks;
@@ -25,6 +27,7 @@ class TaskIntegrationProvider extends ChangeNotifier {
   Map<String, dynamic> get connectionDetails => _connectionDetails;
   bool get isLoading => _isLoading;
   bool get hasLoaded => _hasLoaded;
+  bool get appleRemindersAutoExportEnabled => _appleRemindersAutoExportEnabled;
 
   /// Load default app and connection details from backend
   Future<void> loadFromBackend() async {
@@ -54,10 +57,23 @@ class TaskIntegrationProvider extends ChangeNotifier {
         );
 
         if (PlatformService.isApple && !_appleRemindersPermissionManuallySet) {
+          final appleDetails = _connectionDetails['apple_reminders'];
+          final remoteAutoExportEnabled = appleDetails is Map ? appleDetails['auto_export_enabled'] : null;
+          if (remoteAutoExportEnabled is bool) {
+            _appleRemindersAutoExportEnabled = remoteAutoExportEnabled;
+            SharedPreferencesUtil().appleRemindersAutoExportEnabled = remoteAutoExportEnabled;
+          } else {
+            _appleRemindersAutoExportEnabled = SharedPreferencesUtil().appleRemindersAutoExportEnabled;
+          }
+          await AppleRemindersService().setAutoExportEnabled(_appleRemindersAutoExportEnabled);
+
           _appleRemindersPermission = await AppleRemindersService().hasPermission();
           // Ensure backend has connected status for Apple Reminders if permission is granted
           if (_appleRemindersPermission && _connectionDetails['apple_reminders']?['connected'] != true) {
-            await saveConnectionDetails('apple_reminders', {'connected': true});
+            await saveConnectionDetails('apple_reminders', {
+              'connected': true,
+              'auto_export_enabled': _appleRemindersAutoExportEnabled,
+            });
           }
         }
         _appleRemindersPermissionManuallySet = false;
@@ -95,7 +111,10 @@ class TaskIntegrationProvider extends ChangeNotifier {
     try {
       final success = await saveTaskIntegration(appKey, details);
       if (success) {
-        _connectionDetails[appKey] = details;
+        final existing = _connectionDetails[appKey];
+        final merged = existing is Map ? Map<String, dynamic>.from(existing) : <String, dynamic>{};
+        merged.addAll(details);
+        _connectionDetails[appKey] = merged;
         notifyListeners();
         return true;
       }
@@ -150,6 +169,18 @@ class TaskIntegrationProvider extends ChangeNotifier {
       }
       notifyListeners();
     }
+  }
+
+  Future<bool> setAppleRemindersAutoExportEnabled(bool enabled) async {
+    _appleRemindersAutoExportEnabled = enabled;
+    SharedPreferencesUtil().appleRemindersAutoExportEnabled = enabled;
+    await AppleRemindersService().setAutoExportEnabled(enabled);
+    notifyListeners();
+
+    return saveConnectionDetails('apple_reminders', {
+      'connected': _appleRemindersPermission,
+      'auto_export_enabled': enabled,
+    });
   }
 
   /// Get connection details for a specific app

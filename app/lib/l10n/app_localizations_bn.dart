@@ -9245,8 +9245,24 @@ class AppLocalizationsBn extends AppLocalizations {
   String get deselectAllTasksMenu => 'সমস্ত নির্বাচন বাতিল';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'নির্বাচিত সব কাজ ইতিমধ্যেই এক্সপোর্ট করা হয়েছে';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'কাজগুলো মুছতে পারেনি। আবার চেষ্টা করুন।';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple Reminders-এ স্বয়ংক্রিয়ভাবে কাজ যোগ করুন';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'চালু থাকলে, Omi তৈরি করা কাজগুলো স্বয়ংক্রিয়ভাবে Reminders-এ যোগ হবে। এটি বন্ধ থাকলেও আপনি হাতে কাজ যোগ করতে পারবেন।';
+
+  @override
+  String get addSelectedToAppleReminders => 'নির্বাচিতগুলো Apple Reminders-এ যোগ করুন';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'কিছু নির্বাচিত কাজ যোগ করা যায়নি।';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'নির্বাচিত কাজগুলো ইতিমধ্যে রপ্তানি করা হয়েছে।';
 }

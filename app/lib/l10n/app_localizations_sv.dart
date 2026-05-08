@@ -9240,8 +9240,24 @@ class AppLocalizationsSv extends AppLocalizations {
   String get deselectAllTasksMenu => 'Avmarkera alla';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Alla valda uppgifter har redan exporterats';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Det gick inte att ta bort uppgifterna. Försök igen.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lägg automatiskt till uppgifter i Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'När detta är aktiverat läggs uppgifter som Omi skapar automatiskt till i Påminnelser. Du kan fortfarande lägga till uppgifter manuellt när detta är avstängt.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lägg till valda i Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Vissa valda uppgifter kunde inte läggas till.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'De valda uppgifterna har redan exporterats.';
 }

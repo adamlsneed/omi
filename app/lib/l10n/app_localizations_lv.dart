@@ -9254,8 +9254,24 @@ class AppLocalizationsLv extends AppLocalizations {
   String get deselectAllTasksMenu => 'Noņemt visu atlasi';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Visi atlasītie uzdevumi jau ir eksportēti';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Neizdevās dzēst uzdevumus. Mēģiniet vēlreiz.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automātiski pievienot uzdevumus Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kad ieslēgts, Omi izveidotie uzdevumi automātiski tiek pievienoti atgādinājumiem. Kad tas ir izslēgts, uzdevumus joprojām var pievienot manuāli.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Pievienot atlasītos Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Dažus atlasītos uzdevumus neizdevās pievienot.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Atlasītie uzdevumi jau ir eksportēti.';
 }

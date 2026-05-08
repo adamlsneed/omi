@@ -2984,5 +2984,33 @@
     "selectAllTasksMenu": "Vybrat vše",
     "showCompletedTasks": "Zobrazit dokončené",
     "startCallRecording": "Zahájit nahrávání hovoru",
-    "startVoiceRecording": "Zahájit hlasový záznam"
+    "startVoiceRecording": "Zahájit hlasový záznam",
+    "autoAddTasksToAppleReminders": "Automaticky přidávat úkoly do Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Přidat vybrané do Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Některé vybrané úkoly se nepodařilo přidat.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Vybrané úkoly už byly exportovány.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Všechny vybrané úkoly už byly exportovány",
+    "bulkDeleteFailed": "Úkoly se nepodařilo odstranit. Zkuste to znovu.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

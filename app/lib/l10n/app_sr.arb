@@ -10723,5 +10723,33 @@
     "selectAllTasksMenu": "Изабери све",
     "showCompletedTasks": "Прикажи завршене",
     "startCallRecording": "Покрени снимање позива",
-    "startVoiceRecording": "Покрени гласовно снимање"
+    "startVoiceRecording": "Покрени гласовно снимање",
+    "autoAddTasksToAppleReminders": "Аутоматски додај задатке у Apple Reminders",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Када је укључено, задаци које Omi направи аутоматски се додају у Подсетнике. И даље можете ручно да додајете задатке када је ово искључено.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Додај изабрано у Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Неке изабране задатке није могуће додати.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Изабрани задаци су већ извезени.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Сви изабрани задаци су већ извезени",
+    "bulkDeleteFailed": "Задаци нису могли да се избришу. Покушајте поново.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

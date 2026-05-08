@@ -2983,5 +2983,33 @@
     "selectAllTasksMenu": "Alle auswählen",
     "showCompletedTasks": "Erledigte anzeigen",
     "startCallRecording": "Anrufaufnahme starten",
-    "startVoiceRecording": "Sprachaufnahme starten"
+    "startVoiceRecording": "Sprachaufnahme starten",
+    "autoAddTasksToAppleReminders": "Aufgaben automatisch zu Apple Erinnerungen hinzufügen",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "Wenn aktiviert, werden von Omi erstellte Aufgaben automatisch zu Erinnerungen hinzugefügt. Du kannst Aufgaben weiterhin manuell hinzufügen, wenn dies deaktiviert ist.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "Ausgewählte zu Apple Reminders hinzufügen",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "Einige ausgewählte Aufgaben konnten nicht hinzugefügt werden.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "Die ausgewählten Aufgaben wurden bereits exportiert.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "Alle ausgewählten Aufgaben wurden bereits exportiert",
+    "bulkDeleteFailed": "Aufgaben konnten nicht gelöscht werden. Bitte versuche es erneut.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

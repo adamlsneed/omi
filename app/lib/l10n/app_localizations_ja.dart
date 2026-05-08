@@ -9087,8 +9087,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deselectAllTasksMenu => 'すべて選択解除';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => '選択したすべてのタスクはすでにエクスポート済みです';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'タスクを削除できませんでした。もう一度お試しください。';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'タスクをAppleリマインダーに自動追加';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription => 'オンにすると、Omiが作成したタスクが自動的にリマインダーに追加されます。オフの場合でも、手動でタスクを追加できます。';
+
+  @override
+  String get addSelectedToAppleReminders => '選択項目をApple Remindersに追加';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '一部の選択したタスクを追加できませんでした。';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '選択したタスクはすでにエクスポートされています。';
 }

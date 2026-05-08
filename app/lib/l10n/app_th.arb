@@ -3015,5 +3015,33 @@
     "selectAllTasksMenu": "เลือกทั้งหมด",
     "showCompletedTasks": "แสดงที่เสร็จแล้ว",
     "startCallRecording": "เริ่มบันทึกการโทร",
-    "startVoiceRecording": "เริ่มบันทึกเสียง"
+    "startVoiceRecording": "เริ่มบันทึกเสียง",
+    "autoAddTasksToAppleReminders": "เพิ่มงานไปยัง Apple Reminders โดยอัตโนมัติ",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "เมื่อเปิดใช้ งานที่ Omi สร้างจะถูกเพิ่มไปยังเตือนความจำโดยอัตโนมัติ คุณยังสามารถเพิ่มงานด้วยตนเองได้เมื่อปิดตัวเลือกนี้",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "เพิ่มรายการที่เลือกไปยัง Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "ไม่สามารถเพิ่มงานที่เลือกบางรายการได้",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "งานที่เลือกถูกส่งออกแล้ว",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "งานที่เลือกทั้งหมดถูกส่งออกแล้ว",
+    "bulkDeleteFailed": "ไม่สามารถลบงานได้ โปรดลองอีกครั้ง",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }

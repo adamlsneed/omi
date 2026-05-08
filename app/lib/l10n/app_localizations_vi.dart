@@ -9236,8 +9236,24 @@ class AppLocalizationsVi extends AppLocalizations {
   String get deselectAllTasksMenu => 'Bỏ chọn tất cả';
 
   @override
-  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+  String get bulkExportAlreadyExported => 'Tất cả tác vụ đã chọn đã được xuất';
 
   @override
-  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
+  String get bulkDeleteFailed => 'Không thể xóa tác vụ. Vui lòng thử lại.';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Tự động thêm tác vụ vào Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Khi bật, các tác vụ Omi tạo sẽ tự động được thêm vào Nhắc nhở. Bạn vẫn có thể thêm tác vụ thủ công khi tùy chọn này tắt.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Thêm mục đã chọn vào Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Không thể thêm một số công việc đã chọn.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Các công việc đã chọn đã được xuất.';
 }

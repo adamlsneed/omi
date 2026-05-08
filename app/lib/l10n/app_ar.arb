@@ -2982,5 +2982,33 @@
     "selectAllTasksMenu": "تحديد الكل",
     "showCompletedTasks": "إظهار المكتملة",
     "startCallRecording": "بدء تسجيل المكالمة",
-    "startVoiceRecording": "بدء التسجيل الصوتي"
+    "startVoiceRecording": "بدء التسجيل الصوتي",
+    "autoAddTasksToAppleReminders": "إضافة المهام تلقائيًا إلى تذكيرات Apple",
+    "@autoAddTasksToAppleReminders": {
+        "description": "Setting title for Apple Reminders automatic task export"
+    },
+    "autoAddTasksToAppleRemindersDescription": "عند التفعيل، تُضاف المهام التي ينشئها Omi تلقائيًا إلى التذكيرات. لا يزال بإمكانك إضافة المهام يدويًا عند إيقاف هذا الخيار.",
+    "@autoAddTasksToAppleRemindersDescription": {
+        "description": "Setting description for Apple Reminders automatic task export"
+    },
+    "addSelectedToAppleReminders": "إضافة المحدد إلى Apple Reminders",
+    "@addSelectedToAppleReminders": {
+        "description": "Tooltip for adding selected tasks to Apple Reminders"
+    },
+    "selectedActionItemsPartiallyAddedToAppleReminders": "تعذرت إضافة بعض المهام المحددة.",
+    "@selectedActionItemsPartiallyAddedToAppleReminders": {
+        "description": "Message shown when only some selected tasks were added to Apple Reminders"
+    },
+    "selectedActionItemsAlreadyExported": "المهام المحددة مصدّرة بالفعل.",
+    "@selectedActionItemsAlreadyExported": {
+        "description": "Message shown when selected tasks have already been exported"
+    },
+    "bulkExportAlreadyExported": "تم تصدير كل المهام المحددة بالفعل",
+    "bulkDeleteFailed": "تعذر حذف المهام. يُرجى المحاولة مرة أخرى.",
+    "@bulkExportAlreadyExported": {
+        "description": "Snackbar shown when every selected task is already exported and Export is tapped"
+    },
+    "@bulkDeleteFailed": {
+        "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
+    }
 }
