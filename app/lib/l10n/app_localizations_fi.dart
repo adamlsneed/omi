@@ -64,6 +64,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get copySummary => 'Kopioi tiivistelmä';
 
   @override
+  String get copyConversationId => 'Kopioi keskustelun tunnus';
+
+  @override
+  String get conversationIdCopied => 'Keskustelun tunnus kopioitu leikepöydälle';
+
+  @override
   String get testPrompt => 'Testaa kehotetta';
 
   @override
@@ -4523,12 +4529,12 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String planEndedOn(String date) {
-    return 'Tilauksesi päättyi $date.\\nTilaa uudelleen nyt - sinulta veloitetaan välittömästi uudesta laskutusjaksosta.';
+    return 'Tilauksesi päättyi $date.\nTilaa uudelleen nyt - sinulta veloitetaan välittömästi uudesta laskutusjaksosta.';
   }
 
   @override
   String planSetToCancelOn(String date) {
-    return 'Tilauksesi on asetettu peruuntumaan $date.\\nTilaa uudelleen nyt säilyttääksesi edut - ei veloitusta ennen $date.';
+    return 'Tilauksesi on asetettu peruuntumaan $date.\nTilaa uudelleen nyt säilyttääksesi edut - ei veloitusta ennen $date.';
   }
 
   @override
@@ -6540,7 +6546,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String setDefaultAppContent(String appName) {
-    return 'Asetetaanko $appName oletusyhteenvetosovellukseksi?\\n\\nTätä sovellusta käytetään automaattisesti kaikkiin tuleviin keskusteluyhteenvetoihin.';
+    return 'Asetetaanko $appName oletusyhteenvetosovellukseksi?\n\nTätä sovellusta käytetään automaattisesti kaikkiin tuleviin keskusteluyhteenvetoihin.';
   }
 
   @override
@@ -9154,10 +9160,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get agreeAndContinue => 'Hyväksy ja jatka';
 
   @override
-  String get startVoiceRecording => 'Start voice recording';
+  String get startVoiceRecording => 'Aloita ääninauhoitus';
 
   @override
-  String get startCallRecording => 'Start call recording';
+  String get startCallRecording => 'Aloita puhelun nauhoitus';
 
   @override
   String get mindMap => 'Mind Map';
@@ -9185,4 +9191,52 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get phoneCallSubtitle => 'Tallenna puhelu reaaliaikaisella tekstityksellä';
+
+  @override
+  String get searchActionItems => 'Hae toimintakohteita';
+
+  @override
+  String get selectActionItems => 'Valitse useita';
+
+  @override
+  String chooseExportDestination(int count) {
+    return 'Vie $count kohde(tta) kohteeseen…';
+  }
+
+  @override
+  String get bulkExportInProgress => 'Viedään…';
+
+  @override
+  String bulkExportSuccess(int count, String platform) {
+    return 'Viety $count kohteeseen $platform';
+  }
+
+  @override
+  String bulkExportPartial(int success, int total, String platform) {
+    return 'Viety $success/$total kohteeseen $platform';
+  }
+
+  @override
+  String get showCompletedTasks => 'Näytä valmiit';
+
+  @override
+  String get hideCompletedTasks => 'Piilota valmiit';
+
+  @override
+  String get selectAllTasksMenu => 'Valitse kaikki';
+
+  @override
+  String get connectTaskAppToExport => 'Yhdistä tehtäväsovellus Asetuksissa vientiä varten';
+
+  @override
+  String get connectAction => 'Yhdistä';
+
+  @override
+  String get deselectAllTasksMenu => 'Poista kaikkien valinta';
+
+  @override
+  String get bulkExportAlreadyExported => 'All selected tasks already exported';
+
+  @override
+  String get bulkDeleteFailed => 'Could not delete tasks. Please try again.';
 }

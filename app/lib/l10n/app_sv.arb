@@ -18,6 +18,8 @@
     "clear": "Rensa",
     "copyTranscript": "Kopiera transkription",
     "copySummary": "Kopiera sammanfattning",
+    "copyConversationId": "Kopiera konversations-ID",
+    "conversationIdCopied": "Konversations-ID kopierat till urklipp",
     "testPrompt": "Testa prompt",
     "reprocessConversation": "Bearbeta konversation igen",
     "deleteConversation": "Radera konversation",
@@ -1389,8 +1391,8 @@
     "upgradeAlreadyScheduled": "Din uppgradering till årsplanen är redan schemalagd",
     "youAreOnUnlimitedPlan": "Du har den obegränsade planen.",
     "yourOmiUnleashed": "Din Omi, frigjord. Bli obegränsad för oändliga möjligheter.",
-    "planEndedOn": "Din plan avslutades {date}.\\nPrenumerera igen nu - du debiteras omedelbart för en ny faktureringsperiod.",
-    "planSetToCancelOn": "Din plan är inställd på att avbrytas {date}.\\nPrenumerera igen nu för att behålla dina fördelar - ingen avgift till {date}.",
+    "planEndedOn": "Din plan avslutades {date}.\nPrenumerera igen nu - du debiteras omedelbart för en ny faktureringsperiod.",
+    "planSetToCancelOn": "Din plan är inställd på att avbrytas {date}.\nPrenumerera igen nu för att behålla dina fördelar - ingen avgift till {date}.",
     "annualPlanStartsAutomatically": "Din årsplan startar automatiskt när din månadsplan avslutas.",
     "planRenewsOn": "Din plan förnyas {date}.",
     "unlimitedConversations": "Obegränsade samtal",
@@ -2048,7 +2050,7 @@
     "defaultLabel": "Standard",
     "lastUsedLabel": "Senast använd",
     "setDefaultApp": "Ange standardapp",
-    "setDefaultAppContent": "Ange {appName} som din standardapp för sammanfattningar?\\n\\nDenna app kommer automatiskt att användas för alla framtida konversationssammanfattningar.",
+    "setDefaultAppContent": "Ange {appName} som din standardapp för sammanfattningar?\n\nDenna app kommer automatiskt att användas för alla framtida konversationssammanfattningar.",
     "@setDefaultAppContent": {
         "placeholders": {
             "appName": {
@@ -2999,5 +3001,19 @@
     "recordWithPhoneMic": "Spela in med telefonmikrofon",
     "recordWithPhoneMicSubtitle": "Fånga ljudet runt dig",
     "phoneCall": "Telefonsamtal",
-    "phoneCallSubtitle": "Spela in samtal med live-transkribering"
+    "phoneCallSubtitle": "Spela in samtal med live-transkribering",
+    "bulkExportInProgress": "Exporterar…",
+    "bulkExportPartial": "Exporterade {success} av {total} till {platform}",
+    "bulkExportSuccess": "Exporterade {count} till {platform}",
+    "chooseExportDestination": "Exportera {count} objekt till…",
+    "connectAction": "Anslut",
+    "connectTaskAppToExport": "Anslut en uppgiftsapp i Inställningar för att exportera",
+    "deselectAllTasksMenu": "Avmarkera alla",
+    "hideCompletedTasks": "Dölj slutförda",
+    "searchActionItems": "Sök åtgärdspunkter",
+    "selectActionItems": "Välj flera",
+    "selectAllTasksMenu": "Välj alla",
+    "showCompletedTasks": "Visa slutförda",
+    "startCallRecording": "Starta samtalsinspelning",
+    "startVoiceRecording": "Starta röstinspelning"
 }
