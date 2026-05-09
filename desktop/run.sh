@@ -582,11 +582,14 @@ step "Signing app with hardened runtime..."
 # Ad-hoc signing (--sign -) generates a new CDHash each build, causing macOS to
 # reset Screen Recording, Accessibility, and Notification permissions every time.
 if [ -z "$SIGN_IDENTITY" ]; then
-    # For dev builds: prefer Apple Development (matches Mac Development provisioning profile,
-    # required for native Sign In with Apple). Fall back to Developer ID if unavailable.
-    SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -1 | sed 's/.*"\(.*\)"/\1/')
+    # Prefer Developer ID when available. Its designated requirement stays stable
+    # across local rebuilds and keeps macOS TCC grants (Screen Recording,
+    # Accessibility, Notifications) attached to the dev app. Use
+    # OMI_SIGN_IDENTITY="Apple Development: ..." when testing a matching
+    # provisioning profile / native Sign In with Apple flow.
+    SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
     if [ -z "$SIGN_IDENTITY" ]; then
-        SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
+        SIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -1 | sed 's/.*"\(.*\)"/\1/')
     fi
 fi
 
@@ -660,9 +663,9 @@ else
     echo "ERROR: No signing identity found. Ad-hoc signing causes macOS to reset"
     echo "       Screen Recording permissions for ALL Omi apps (including prod/beta)."
     echo ""
-    echo "  Fix: Install an Apple Development certificate in Keychain Access,"
+    echo "  Fix: Install a Developer ID or Apple Development certificate in Keychain Access,"
     echo "       or set OMI_SIGN_IDENTITY to a valid identity:"
-    echo "       OMI_SIGN_IDENTITY=\"Apple Development: you@example.com\" ./run.sh"
+    echo "       OMI_SIGN_IDENTITY=\"Developer ID Application: Your Name\" ./run.sh"
     echo ""
     exit 1
 fi
@@ -683,12 +686,52 @@ step "Clearing stale LaunchServices registration..."
 # fail with "Notifications are not allowed for this application" because
 # the launch-disabled flag prevents notification center registration.
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+unregister_stale_launchservices_entries() {
+    # TCC permission prompts can follow a stale LaunchServices entry when old
+    # worktree/build/staging copies share this bundle ID. Keep /Applications as
+    # the only registered dev app before launch.
+    local registered_paths
+    registered_paths=$("$LSREGISTER" -dump 2>/dev/null | awk -v bundle_id="$BUNDLE_ID" '
+        /^path:[[:space:]]/ {
+            path = $0
+            sub(/^path:[[:space:]]+/, "", path)
+            sub(/[[:space:]]+\(0x[0-9A-Fa-f]+\)$/, "", path)
+        }
+        /^identifier:[[:space:]]/ {
+            if ($2 == bundle_id && path != "") {
+                print path
+            }
+        }
+    ' || true)
+
+    local removed_count=0
+    while IFS= read -r registered_app; do
+        [ -z "$registered_app" ] && continue
+        [ "$registered_app" = "$APP_PATH" ] && continue
+
+        case "$registered_app" in
+            *"/$APP_NAME.app")
+                $LSREGISTER -u "$registered_app" 2>/dev/null || true
+                removed_count=$((removed_count + 1))
+                ;;
+        esac
+    done <<< "$registered_paths"
+
+    if [ "$removed_count" -eq 1 ]; then
+        substep "Unregistered 1 stale $APP_NAME LaunchServices entry"
+    elif [ "$removed_count" -gt 1 ]; then
+        substep "Unregistered $removed_count stale $APP_NAME LaunchServices entries"
+    fi
+}
+
 $LSREGISTER -u "$APP_BUNDLE" 2>/dev/null || true
 $LSREGISTER -u "$APP_PATH" 2>/dev/null || true
+unregister_stale_launchservices_entries
 # Purge stale registrations from old DMG staging dirs and unmounted volumes
 # These create ghost entries that can cause notification icons to show a
 # generic folder instead of the app icon
-for stale in /private/tmp/omi-dmg-staging-*/Omi\ Beta.app; do
+for stale in /private/tmp/omi-dmg-staging-*/Omi\ Beta.app /private/tmp/omi-dmg-staging-*/Omi\ Dev.app; do
     if [ -d "$stale" ]; then
         $LSREGISTER -u "$stale" 2>/dev/null || true
     fi
