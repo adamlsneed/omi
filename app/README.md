@@ -32,6 +32,18 @@ Before getting started, make sure your device is connected and unlocked. If you'
    flutter run --flavor dev
    ```
 
+### Local Hosted Omi Auth
+
+Use this configuration when testing against the paid Omi backend subscription:
+
+```bash
+API_BASE_URL=https://api.omi.me/
+USE_WEB_AUTH=true
+USE_AUTH_CUSTOM_TOKEN=true
+```
+
+Do not point this mode at a ScoutPulse/NarraMind Firebase project yet. The hosted Omi backend returns Firebase custom tokens, and those tokens must match the Firebase project initialized by the app. If Google browser auth succeeds but the app reports login failure, check Firebase project alignment before changing backend URLs.
+
 
 ### Building and Deploying to iPhone
 

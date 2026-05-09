@@ -49,7 +49,7 @@ echo "- bash setup.sh android"
 echo ""
 
 
-API_BASE_URL=https://api.omiapi.com/
+API_BASE_URL=https://api.omi.me/
 
 ######################################
 # Generate device suffix from hostname
@@ -64,7 +64,7 @@ function generate_device_suffix() {
 # Generate custom configs for iOS
 ######################################
 function generate_ios_custom_config() {
-  bash scripts/generate_ios_custom_config.sh ios/Config/Dev/GoogleService-Info.plist ios/Flutter \
+  bash scripts/generate_ios_custom_config.sh ios/Config/Dev/GoogleService-Info.plist ios/Flutter
 
   # Custom bundle identifier
   SUFFIX=$(generate_device_suffix)

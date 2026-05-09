@@ -5,8 +5,8 @@ Inherits all rules from the root `../CLAUDE.md`. This file adds app-specific ope
 ## Build Bootstrap
 
 ### Flavors
-- **dev**: `com.friend.ios.dev` — uses `.dev.env`, Firebase project `based-hardware-dev`
-- **prod**: `com.friend.ios` — uses `.prod.env`, Firebase project `based-hardware-prod`
+- **dev**: `com.friend-app-with-wearable.ios12.development` — uses `.dev.env`, `ios/Config/Dev/`, and `lib/firebase_options_dev.dart`
+- **prod**: `com.friend-app-with-wearable.ios12` — uses `.prod.env`, `ios/Config/Prod/`, and `lib/firebase_options_prod.dart`
 
 ### Generated Files (never edit manually)
 | Generator | Source | Output | Command |
@@ -108,6 +108,12 @@ All API requests include: X-Request-Start-Time, X-App-Platform, X-Device-Id-Hash
 - Prod: configured in `.prod.env` → `Env.apiBaseUrl`
 - Agent proxy WS: derived from apiBaseUrl (api.omi.me → agent.omi.me)
 
+### Hosted Omi Auth Guardrail
+
+- For local builds against the user's paid Omi subscription, use `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, and `USE_AUTH_CUSTOM_TOKEN=true`.
+- A Firebase custom token is valid only for the Firebase project that minted it. Keep Firebase config compatible with the hosted Omi backend while using `api.omi.me`; do not switch to ScoutPulse/NarraMind Firebase until the backend token issuer can support that project.
+- Google browser auth can return successfully even when the app-side Firebase sign-in will fail. In that case, inspect Firebase project/config before changing API endpoints.
+
 ## Codegen Rules
 
 - Run `flutter pub run build_runner build` after changing: env files, model annotations, pigeon contracts, or pubspec assets
@@ -120,4 +126,3 @@ All API requests include: X-Request-Start-Time, X-App-Platform, X-Device-Id-Hash
 - See `e2e/SKILL.md` for navigation architecture, screen map, widget patterns, and 34 reference flows
 - See `e2e/flows/*.yaml` for individual flow definitions
 - agent-flutter (Marionette) for programmatic UI interaction — see root CLAUDE.md for setup
-

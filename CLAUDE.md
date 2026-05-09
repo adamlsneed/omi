@@ -85,6 +85,7 @@ Never run `flutterfire configure` — it overwrites prod credentials. Prod confi
 - Local/dev builds should use Omi's hosted backend when the user is testing against their paid Omi subscription.
 - Do not commit personal custom API endpoints, private backend URLs, or user-specific API credentials into the app. Keep those in local ignored env files or runtime configuration only.
 - When testing hosted auth locally, prefer the Omi auth exchange (`API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`) over direct dev Firebase tokens unless explicitly testing a local backend.
+- Hosted custom-token auth depends on Firebase project compatibility with the Omi backend token issuer. Do not switch a build that uses `API_BASE_URL=https://api.omi.me/` and `USE_AUTH_CUSTOM_TOKEN=true` to a ScoutPulse/NarraMind Firebase project unless the hosted backend can issue custom tokens for that Firebase project; otherwise browser auth can succeed and the app-side Firebase sign-in will still fail.
 
 ### Verifying UI Changes (agent-flutter)
 After editing Flutter UI code, **verify programmatically** — don't just hot restart and hope.

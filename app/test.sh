@@ -36,7 +36,7 @@ if [[ ${#missing_files[@]} -gt 0 ]]; then
   cp setup/prebuilt/GoogleService-Info.plist ios/Config/Prod/
   cp setup/prebuilt/GoogleService-Info.plist macos/Config/Prod/
 
-  echo "API_BASE_URL=https://api.omiapi.com/" > .dev.env
+  echo "API_BASE_URL=https://api.omi.me/" > .dev.env
   echo "USE_WEB_AUTH=true" >> .dev.env
   echo "USE_AUTH_CUSTOM_TOKEN=true" >> .dev.env
   echo "STAGING_API_URL=" >> .dev.env
