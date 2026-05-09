@@ -26,7 +26,9 @@ struct ConversationRowView: View {
   @State private var editedTitle: String = ""
   @State private var isDeleting = false
   @State private var isUpdatingTitle = false
-  @State private var isCopyingLink = false
+  @State private var isSharingLink = false
+  @State private var didCopyLink = false
+  @State private var copyLinkFeedbackID = UUID()
 
   /// The timestamp to display (prefer startedAt, fall back to createdAt)
   private var displayDate: Date {
@@ -133,32 +135,46 @@ struct ConversationRowView: View {
     log("Copied transcript to clipboard")
   }
 
-  private func copyLink() async {
-    guard !isCopyingLink else { return }
-    isCopyingLink = true
+  private var conversationShareLink: String {
+    "https://h.omi.me/conversations/\(conversation.id)"
+  }
 
-    do {
-      // First, make the conversation public/shared so the link works
-      try await APIClient.shared.setConversationVisibility(
-        id: conversation.id, visibility: "shared")
+  private func copyLink() {
+    let shouldShare = !isSharingLink
+    if shouldShare {
+      isSharingLink = true
+    }
+    didCopyLink = true
+    let feedbackID = UUID()
+    copyLinkFeedbackID = feedbackID
 
-      // Then copy the link
-      let link = "https://h.omi.me/conversations/\(conversation.id)"
-      let pasteboard = NSPasteboard.general
-      pasteboard.clearContents()
-      pasteboard.setString(link, forType: .string)
-      log("Copied conversation link to clipboard (visibility set to shared)")
-    } catch {
-      log("Failed to set conversation visibility: \(error)")
-      // Still copy the link even if visibility fails - user might have shared it before
-      let link = "https://h.omi.me/conversations/\(conversation.id)"
-      let pasteboard = NSPasteboard.general
-      pasteboard.clearContents()
-      pasteboard.setString(link, forType: .string)
-      log("Copied conversation link to clipboard (visibility API failed)")
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(conversationShareLink, forType: .string)
+    log("Copied conversation link to clipboard")
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+      if copyLinkFeedbackID == feedbackID {
+        didCopyLink = false
+      }
     }
 
-    isCopyingLink = false
+    guard shouldShare else { return }
+
+    let conversationID = conversation.id
+    Task {
+      do {
+        try await APIClient.shared.setConversationVisibility(
+          id: conversationID, visibility: "shared")
+        log("Conversation visibility set to shared")
+      } catch {
+        log("Failed to set conversation visibility: \(error)")
+      }
+
+      await MainActor.run {
+        isSharingLink = false
+      }
+    }
   }
 
   private func deleteConversation() async {
@@ -226,16 +242,16 @@ struct ConversationRowView: View {
       .help("Edit title")
 
       // Copy link
-      Button(action: { Task { await copyLink() } }) {
-        Image(systemName: isCopyingLink ? "arrow.triangle.2.circlepath" : "link")
+      Button(action: copyLink) {
+        Image(systemName: didCopyLink ? "checkmark" : "link")
           .scaledFont(size: 11)
-          .foregroundColor(OmiColors.textTertiary)
+          .foregroundColor(didCopyLink ? OmiColors.success : OmiColors.textTertiary)
           .frame(width: 22, height: 22)
           .background(Circle().fill(OmiColors.backgroundRaised))
       }
       .buttonStyle(.plain)
-      .disabled(isCopyingLink)
-      .help("Copy link")
+      .help(didCopyLink ? "Link copied" : "Copy link")
+      .accessibilityLabel(didCopyLink ? "Link copied" : "Copy link")
 
       // Move to folder (if folders exist)
       if !folders.isEmpty {
@@ -485,12 +501,11 @@ struct ConversationRowView: View {
         Label("Copy Transcript", systemImage: "doc.on.doc")
       }
 
-      Button(action: { Task { await copyLink() } }) {
+      Button(action: copyLink) {
         Label(
-          isCopyingLink ? "Generating Link..." : "Copy Link",
-          systemImage: isCopyingLink ? "arrow.triangle.2.circlepath" : "link")
+          didCopyLink ? "Link Copied" : "Copy Link",
+          systemImage: didCopyLink ? "checkmark" : "link")
       }
-      .disabled(isCopyingLink)
 
       Divider()
 
