@@ -44,6 +44,8 @@ USE_AUTH_CUSTOM_TOKEN=true
 
 Do not point this mode at a ScoutPulse/NarraMind Firebase project yet. The hosted Omi backend returns Firebase custom tokens, and those tokens must match the Firebase project initialized by the app. If Google browser auth succeeds but the app reports login failure, check Firebase project alignment before changing backend URLs.
 
+See [iOS development notes](IOS_DEVELOPMENT_NOTES.md) for the current local iOS state, deployment details, auth guardrails, and ScoutPulse/NarraMind migration plan.
+
 
 ### Building and Deploying to iPhone
 
