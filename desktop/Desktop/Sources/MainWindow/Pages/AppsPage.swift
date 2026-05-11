@@ -105,6 +105,27 @@ struct DismissButton: View {
     }
 }
 
+struct AppsPageFilterState {
+    let searchText: String
+    let selectedCategory: String?
+    let selectedCapability: String?
+    let showInstalledOnly: Bool
+    let viewAllSection: String?
+
+    var hasActiveFilters: Bool {
+        selectedCategory != nil ||
+        selectedCapability != nil ||
+        showInstalledOnly ||
+        viewAllSection != nil
+    }
+
+    var usesSearchBackedResults: Bool {
+        !searchText.isEmpty ||
+        selectedCapability != nil ||
+        showInstalledOnly
+    }
+}
+
 struct AppsPage: View {
     @ObservedObject var appProvider: AppProvider
     var appState: AppState? = nil
@@ -417,7 +438,17 @@ struct AppsPage: View {
     }
 
     private var hasActiveFilters: Bool {
-        appProvider.selectedCategory != nil || viewAllSection != nil
+        filterState.hasActiveFilters
+    }
+
+    private var filterState: AppsPageFilterState {
+        AppsPageFilterState(
+            searchText: searchText,
+            selectedCategory: appProvider.selectedCategory,
+            selectedCapability: appProvider.selectedCapability,
+            showInstalledOnly: appProvider.showInstalledOnly,
+            viewAllSection: viewAllSection
+        )
     }
 
     private var selectedCategoryLabel: String {
@@ -439,8 +470,11 @@ struct AppsPage: View {
             default: return []
             }
         }
+        if filterState.usesSearchBackedResults {
+            return appProvider.apps
+        }
         if appProvider.selectedCategory != nil {
-            return appProvider.categoryFilteredApps ?? []
+            return appProvider.categoryFilteredApps ?? appProvider.apps
         }
         return appProvider.apps
     }
@@ -460,9 +494,16 @@ struct AppsPage: View {
         if !searchText.isEmpty {
             return "Search Results (\(apps.count))"
         }
+        if appProvider.showInstalledOnly {
+            return "Installed Apps (\(apps.count))"
+        }
         if let categoryId = appProvider.selectedCategory,
            let category = appProvider.categories.first(where: { $0.id == categoryId }) {
             return "\(category.title) (\(apps.count))"
+        }
+        if let capabilityId = appProvider.selectedCapability,
+           let capability = appProvider.capabilities.first(where: { $0.id == capabilityId }) {
+            return "\(capability.title) (\(apps.count))"
         }
         return "Results (\(apps.count))"
     }
