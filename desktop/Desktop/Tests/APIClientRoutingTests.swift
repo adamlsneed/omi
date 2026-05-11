@@ -357,6 +357,42 @@ final class APIClientRoutingTests: XCTestCase {
                      label: "getApps")
     }
 
+    func testUpdateAppRoutesMultipartPatchToPython() async throws {
+        let client = await makeTestClient()
+        let request = AppUpdateRequest(
+            id: "app-123",
+            uid: "user-1",
+            name: "Updated App",
+            author: "Adam",
+            category: "productivity",
+            description: "Updated description",
+            isPrivate: true,
+            capabilities: ["chat"],
+            chatPrompt: "Help with chat",
+            memoryPrompt: nil,
+            personaPrompt: nil,
+            isPaid: false,
+            price: nil,
+            paymentPlan: nil
+        )
+
+        try? await client.updateApp(request)
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v1/apps/app-123", method: "PATCH",
+                     label: "updateApp")
+
+        let captured = try XCTUnwrap(URLCapture.capturedRequests.first)
+        XCTAssertTrue(captured.headers["Content-Type"]?.hasPrefix("multipart/form-data; boundary=") == true)
+
+        let body = try XCTUnwrap(captured.body)
+        let bodyText = String(decoding: body, as: UTF8.self)
+        XCTAssertTrue(bodyText.contains("name=\"app_data\""))
+        XCTAssertTrue(bodyText.contains("\"id\":\"app-123\""))
+        XCTAssertTrue(bodyText.contains("\"private\":true"))
+        XCTAssertTrue(bodyText.contains("\"chat_prompt\":\"Help with chat\""))
+    }
+
     // -- Personas (GET → Python) --
 
     func testGetPersonaRoutesToPython() async {
