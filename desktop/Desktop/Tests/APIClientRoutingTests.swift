@@ -311,9 +311,9 @@ final class APIClientRoutingTests: XCTestCase {
 
     func testUpdateConversationTitleRoutesToPython() async {
         let client = await makeTestClient()
-        try? await client.updateConversationTitle(id: "c2", title: "New")
+        try? await client.updateConversationTitle(id: "c2", title: "New Title")
         assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
-                     pathContains: "v1/conversations/c2", method: "PATCH",
+                     pathContains: "v1/conversations/c2/title?title=New%20Title", method: "PATCH",
                      label: "updateConversationTitle")
     }
 
@@ -391,6 +391,16 @@ final class APIClientRoutingTests: XCTestCase {
         XCTAssertTrue(bodyText.contains("\"id\":\"app-123\""))
         XCTAssertTrue(bodyText.contains("\"private\":true"))
         XCTAssertTrue(bodyText.contains("\"chat_prompt\":\"Help with chat\""))
+    }
+
+    func testSetPreferredSummarizationAppRoutesPutToPython() async {
+        let client = await makeTestClient()
+
+        try? await client.setPreferredSummarizationApp(appId: "summary-app-123")
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v1/users/preferences/app?app_id=summary-app-123", method: "PUT",
+                     label: "setPreferredSummarizationApp")
     }
 
     // -- Personas (GET → Python) --

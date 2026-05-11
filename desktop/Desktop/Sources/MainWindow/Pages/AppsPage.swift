@@ -159,6 +159,46 @@ struct AppDetailOwnershipPolicy {
     }
 }
 
+enum AppDetailSummaryPreferenceActionKind {
+    case setDefault
+    case currentDefault
+    case installRequired
+}
+
+struct AppDetailSummaryPreferenceAction {
+    let kind: AppDetailSummaryPreferenceActionKind
+    let label: String
+    let isInteractive: Bool
+
+    static func resolve(
+        appId: String,
+        preferredAppId: String,
+        isInstalled: Bool,
+        worksWithMemories: Bool
+    ) -> AppDetailSummaryPreferenceAction? {
+        guard worksWithMemories else { return nil }
+        if preferredAppId == appId {
+            return AppDetailSummaryPreferenceAction(
+                kind: .currentDefault,
+                label: "Default summary app",
+                isInteractive: false
+            )
+        }
+        if !isInstalled {
+            return AppDetailSummaryPreferenceAction(
+                kind: .installRequired,
+                label: "Install to set default",
+                isInteractive: false
+            )
+        }
+        return AppDetailSummaryPreferenceAction(
+            kind: .setDefault,
+            label: "Set as default summary app",
+            isInteractive: true
+        )
+    }
+}
+
 struct AppsPage: View {
     @ObservedObject var appProvider: AppProvider
     var appState: AppState? = nil
@@ -2269,6 +2309,9 @@ struct AppDetailSheet: View {
     @State private var isSetupCompleted = false
     @State private var setupCheckTask: Task<Void, Never>?
     @State private var showManageApp = false
+    @State private var isSettingDefaultSummaryApp = false
+    @State private var summaryPreferenceError: String?
+    @AppStorage("preferredSummarizationAppId") private var preferredSummarizationAppId = ""
 
     /// Always read live from appProvider so state survives tab switches and sheet recreations
     var isEnabled: Bool {
@@ -2292,6 +2335,16 @@ struct AppDetailSheet: View {
     private var displayImage: String { appDetails?.image ?? app.image }
     private var displayCategory: String { appDetails?.category ?? app.category }
     private var displayCapabilities: [String] { appDetails?.capabilities ?? app.capabilities }
+    private var worksWithMemories: Bool { displayCapabilities.contains("memories") }
+
+    private var summaryPreferenceAction: AppDetailSummaryPreferenceAction? {
+        AppDetailSummaryPreferenceAction.resolve(
+            appId: app.id,
+            preferredAppId: preferredSummarizationAppId,
+            isInstalled: isEnabled,
+            worksWithMemories: worksWithMemories
+        )
+    }
 
     private func dismissSheet() {
         if let onDismiss = onDismiss {
@@ -2449,6 +2502,13 @@ struct AppDetailSheet: View {
 
                     Divider()
                         .background(OmiColors.backgroundTertiary)
+
+                    if let summaryPreferenceAction {
+                        summaryPreferenceSection(summaryPreferenceAction)
+
+                        Divider()
+                            .background(OmiColors.backgroundTertiary)
+                    }
 
                     // Description
                     VStack(alignment: .leading, spacing: 8) {
@@ -2663,6 +2723,78 @@ struct AppDetailSheet: View {
             appDetails = try await APIClient.shared.getAppDetails(appId: app.id)
         } catch {
             // Silently fail - details are optional, setup flow will just skip if unavailable
+        }
+    }
+
+    @ViewBuilder
+    private func summaryPreferenceSection(_ action: AppDetailSummaryPreferenceAction) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Summary Default")
+                .scaledFont(size: 16, weight: .semibold)
+                .foregroundColor(OmiColors.textPrimary)
+
+            Text("Use this summary app automatically for future conversation summaries.")
+                .scaledFont(size: 13)
+                .foregroundColor(OmiColors.textSecondary)
+
+            HStack(spacing: 10) {
+                Button(action: {
+                    guard action.isInteractive else { return }
+                    Task { await setDefaultSummaryApp() }
+                }) {
+                    HStack(spacing: 8) {
+                        if isSettingDefaultSummaryApp {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                        } else {
+                            Image(systemName: action.kind == .currentDefault ? "checkmark.circle.fill" : "star")
+                                .scaledFont(size: 13, weight: .semibold)
+                        }
+
+                        Text(isSettingDefaultSummaryApp ? "Saving..." : action.label)
+                            .scaledFont(size: 13, weight: .semibold)
+                    }
+                    .foregroundColor(action.isInteractive ? .black : OmiColors.textSecondary)
+                    .frame(minWidth: 190, minHeight: 34)
+                    .padding(.horizontal, 12)
+                    .background(action.isInteractive ? Color.white : OmiColors.backgroundSecondary)
+                    .cornerRadius(17)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 17)
+                            .stroke(OmiColors.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!action.isInteractive || isSettingDefaultSummaryApp)
+
+                if action.kind == .installRequired {
+                    Text("Install the app first.")
+                        .scaledFont(size: 12)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+            }
+
+            if let summaryPreferenceError {
+                Text(summaryPreferenceError)
+                    .scaledFont(size: 12)
+                    .foregroundColor(OmiColors.error)
+            }
+        }
+    }
+
+    private func setDefaultSummaryApp() async {
+        guard summaryPreferenceAction?.kind == .setDefault else { return }
+
+        isSettingDefaultSummaryApp = true
+        summaryPreferenceError = nil
+        defer { isSettingDefaultSummaryApp = false }
+
+        do {
+            try await APIClient.shared.setPreferredSummarizationApp(appId: app.id)
+            preferredSummarizationAppId = app.id
+        } catch {
+            summaryPreferenceError = "Could not set the default summary app."
+            logError("Failed to set default summary app", error: error)
         }
     }
 

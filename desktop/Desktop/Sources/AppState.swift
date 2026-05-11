@@ -2243,7 +2243,7 @@ class AppState: ObservableObject {
   /// Update a conversation title locally (after successful API call)
   func updateConversationTitle(_ conversationId: String, title: String) {
     if let index = conversations.firstIndex(where: { $0.id == conversationId }) {
-      conversations[index].structured.title = title
+      conversations[index] = ConversationTitleUpdatePolicy.updatedConversation(conversations[index], title: title)
     }
   }
 

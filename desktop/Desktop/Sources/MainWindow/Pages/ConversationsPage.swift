@@ -79,7 +79,10 @@ struct ConversationsPage: View {
               await appState.refreshConversations()
             }
           },
-          onTitleUpdated: { _ in
+          onTitleUpdated: { title in
+            selectedConversation = ConversationTitleUpdatePolicy.updatedConversation(selected, title: title)
+            appState.updateConversationTitle(selected.id, title: title)
+
             // Refresh to get updated data if conversation still exists
             if appState.conversations.contains(where: { $0.id == selected.id }) {
               Task {

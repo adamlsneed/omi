@@ -157,6 +157,20 @@ actor APIClient {
     return try await performRequest(request)
   }
 
+  func put<T: Decodable>(
+    _ endpoint: String,
+    requireAuth: Bool = true,
+    customBaseURL: String? = nil
+  ) async throws -> T {
+    let base = customBaseURL ?? baseURL
+    let url = try makeURL(base: base, endpoint: endpoint)
+    var request = URLRequest(url: url)
+    request.httpMethod = "PUT"
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
+
+    return try await performRequest(request)
+  }
+
   func multipartForm<T: Decodable>(
     _ endpoint: String,
     method: String = "POST",
@@ -412,15 +426,18 @@ extension APIClient {
 
   /// Updates the title of a conversation
   func updateConversationTitle(id: String, title: String) async throws {
-    struct TitleUpdate: Encodable {
-      let title: String
-    }
+    var queryAllowed = CharacterSet.urlQueryAllowed
+    queryAllowed.remove(charactersIn: "&+=?")
 
-    let url = URL(string: baseURL + "v1/conversations/\(id)")!
+    let encodedId = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+    let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? title
+    let url = try makeURL(
+      base: baseURL,
+      endpoint: "v1/conversations/\(encodedId)/title?title=\(encodedTitle)"
+    )
     var request = URLRequest(url: url)
     request.httpMethod = "PATCH"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
-    request.httpBody = try JSONEncoder().encode(TitleUpdate(title: title))
 
     let (_, response) = try await session.data(for: request)
     guard let httpResponse = response as? HTTPURLResponse,
@@ -3165,6 +3182,20 @@ extension APIClient {
       method: "PATCH",
       fields: ["app_data": appData]
     )
+  }
+
+  /// Sets the current user's default summarization app using the hosted Omi backend.
+  func setPreferredSummarizationApp(appId: String) async throws {
+    struct PreferenceResponse: Decodable {
+      let status: String?
+      let message: String?
+    }
+
+    var queryAllowed = CharacterSet.urlQueryAllowed
+    queryAllowed.remove(charactersIn: "&+=?")
+
+    let encodedAppId = appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
+    let _: PreferenceResponse = try await put("v1/users/preferences/app?app_id=\(encodedAppId)")
   }
 
   /// Checks if an external integration app's setup is complete
