@@ -23,6 +23,42 @@ class SearchDebouncer: ObservableObject {
   }
 }
 
+enum ConversationsRecordingControlAction: Equatable {
+  case start
+  case stop
+
+  static func current(isTranscribing: Bool) -> ConversationsRecordingControlAction {
+    isTranscribing ? .stop : .start
+  }
+
+  var title: String {
+    switch self {
+    case .start:
+      return "Start Recording"
+    case .stop:
+      return "Stop Recording"
+    }
+  }
+
+  var systemImage: String {
+    switch self {
+    case .start:
+      return "mic.fill"
+    case .stop:
+      return "stop.fill"
+    }
+  }
+
+  var helpText: String {
+    switch self {
+    case .start:
+      return "Start a new recording"
+    case .stop:
+      return "Stop and save the current recording"
+    }
+  }
+}
+
 // MARK: - Conversations Page
 
 struct ConversationsPage: View {
@@ -199,9 +235,7 @@ struct ConversationsPage: View {
 
         quickNoteButton
 
-        if !appState.isTranscribing {
-          startRecordingButton
-        }
+        recordingControlButton
       }
       .padding(.horizontal, 24)
       .padding(.top, 18)
@@ -734,23 +768,54 @@ struct ConversationsPage: View {
 
   // MARK: - Buttons
 
-  private var startRecordingButton: some View {
-    Button(action: {
-      appState.startTranscription()
+  private var recordingControlButton: some View {
+    let action = ConversationsRecordingControlAction.current(isTranscribing: appState.isTranscribing)
+
+    return Button(action: {
+      handleRecordingControl(action)
     }) {
       HStack(spacing: 6) {
-        Image(systemName: "mic.fill")
+        Image(systemName: action.systemImage)
           .scaledFont(size: 12)
-        Text("Start Recording")
+        Text(action.title)
           .scaledFont(size: 13, weight: .medium)
       }
-      .foregroundColor(.black)
+      .foregroundColor(recordingControlForeground(for: action))
       .padding(.horizontal, 14)
       .padding(.vertical, 9)
       .omiControlSurface(
-        fill: OmiColors.textPrimary, radius: 18, stroke: OmiColors.border.opacity(0.2))
+        fill: recordingControlFill(for: action), radius: 18, stroke: OmiColors.border.opacity(0.2))
     }
     .buttonStyle(.plain)
+    .help(action.helpText)
+    .accessibilityLabel(action.title)
+  }
+
+  private func handleRecordingControl(_ action: ConversationsRecordingControlAction) {
+    switch action {
+    case .start:
+      appState.startTranscription()
+    case .stop:
+      appState.stopTranscription()
+    }
+  }
+
+  private func recordingControlForeground(for action: ConversationsRecordingControlAction) -> Color {
+    switch action {
+    case .start:
+      return .black
+    case .stop:
+      return .white
+    }
+  }
+
+  private func recordingControlFill(for action: ConversationsRecordingControlAction) -> Color {
+    switch action {
+    case .start:
+      return OmiColors.textPrimary
+    case .stop:
+      return OmiColors.error
+    }
   }
 
 }
