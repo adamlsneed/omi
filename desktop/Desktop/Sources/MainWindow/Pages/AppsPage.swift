@@ -141,14 +141,61 @@ struct AppDetailPrimaryAction {
         kind == .install
     }
 
-    static func resolve(isInstalled: Bool, worksExternally: Bool) -> AppDetailPrimaryAction {
+    static func resolve(
+        isInstalled: Bool,
+        worksExternally: Bool,
+        externalOpenTargetAvailable: Bool = false
+    ) -> AppDetailPrimaryAction {
         if !isInstalled {
             return AppDetailPrimaryAction(kind: .install, label: "Install", isInteractive: true)
         }
-        if worksExternally {
+        if worksExternally && externalOpenTargetAvailable {
             return AppDetailPrimaryAction(kind: .openExternal, label: "Open", isInteractive: true)
         }
         return AppDetailPrimaryAction(kind: .installed, label: "Installed", isInteractive: false)
+    }
+}
+
+struct AppDetailExternalOpenTarget {
+    static func url(for integration: ExternalIntegration?, userId: String?) -> URL? {
+        if let homeUrl = integration?.appHomeUrl, !homeUrl.isEmpty {
+            return url(from: homeUrl, userId: userId)
+        }
+
+        if let firstAuthStep = integration?.authSteps.first, !firstAuthStep.url.isEmpty {
+            return url(from: firstAuthStep.url, userId: userId)
+        }
+
+        if let instructionsPath = integration?.setupInstructionsFilePath, !instructionsPath.isEmpty {
+            return URL(string: instructionsPath)
+        }
+
+        return nil
+    }
+
+    static func setupURL(for integration: ExternalIntegration?, userId: String?) -> URL? {
+        if let firstAuthStep = integration?.authSteps.first, !firstAuthStep.url.isEmpty {
+            return url(from: firstAuthStep.url, userId: userId)
+        }
+
+        if let instructionsPath = integration?.setupInstructionsFilePath, !instructionsPath.isEmpty {
+            return URL(string: instructionsPath)
+        }
+
+        return nil
+    }
+
+    private static func url(from rawUrl: String, userId: String?) -> URL? {
+        guard var components = URLComponents(string: rawUrl) else { return URL(string: rawUrl) }
+        guard let userId, !userId.isEmpty else { return components.url }
+
+        var queryItems = components.queryItems ?? []
+        if !queryItems.contains(where: { $0.name == "uid" }) {
+            queryItems.append(URLQueryItem(name: "uid", value: userId))
+            components.queryItems = queryItems
+        }
+
+        return components.url
     }
 }
 
@@ -2319,7 +2366,11 @@ struct AppDetailSheet: View {
     }
 
     private var primaryAction: AppDetailPrimaryAction {
-        AppDetailPrimaryAction.resolve(isInstalled: isEnabled, worksExternally: app.worksExternally)
+        AppDetailPrimaryAction.resolve(
+            isInstalled: isEnabled,
+            worksExternally: app.worksExternally,
+            externalOpenTargetAvailable: externalOpenTarget != nil
+        )
     }
 
     private var canManageApp: Bool {
@@ -2336,6 +2387,12 @@ struct AppDetailSheet: View {
     private var displayCategory: String { appDetails?.category ?? app.category }
     private var displayCapabilities: [String] { appDetails?.capabilities ?? app.capabilities }
     private var worksWithMemories: Bool { displayCapabilities.contains("memories") }
+    private var externalOpenTarget: URL? {
+        AppDetailExternalOpenTarget.url(
+            for: appDetails?.externalIntegration,
+            userId: AuthState.shared.userId
+        )
+    }
 
     private var summaryPreferenceAction: AppDetailSummaryPreferenceAction? {
         AppDetailSummaryPreferenceAction.resolve(
@@ -2443,7 +2500,7 @@ struct AppDetailSheet: View {
                                 Task {
                                     switch primaryAction.kind {
                                     case .openExternal:
-                                        openExternalApp()
+                                        await openExternalApp()
                                     case .install:
                                         if app.worksExternally {
                                             await handleInstall()
@@ -2829,15 +2886,15 @@ struct AppDetailSheet: View {
         startSetupPolling(completionUrl: completionUrl, uid: uid)
     }
 
-    private func openExternalApp() {
-        guard let uid = AuthState.shared.userId else { return }
-        let integration = appDetails?.externalIntegration
-        // Prefer appHomeUrl, then first auth step URL
-        if let homeUrl = integration?.appHomeUrl, !homeUrl.isEmpty, let url = URL(string: homeUrl) {
+    private func openExternalApp() async {
+        if appDetails == nil {
+            await loadAppDetails()
+        }
+
+        if let url = externalOpenTarget {
             NSWorkspace.shared.open(url)
-        } else if let authSteps = integration?.authSteps, !authSteps.isEmpty,
-                  let url = URL(string: "\(authSteps[0].url)?uid=\(uid)") {
-            NSWorkspace.shared.open(url)
+        } else {
+            log("No external open target configured for app \(app.id)")
         }
     }
 
@@ -2859,15 +2916,8 @@ struct AppDetailSheet: View {
         let integration = appDetails?.externalIntegration
 
         // Open auth step or setup instructions URL in browser
-        if let authSteps = integration?.authSteps, !authSteps.isEmpty {
-            let rawUrl = "\(authSteps[0].url)?uid=\(uid)"
-            if let url = URL(string: rawUrl) {
-                NSWorkspace.shared.open(url)
-            }
-        } else if let instructionsPath = integration?.setupInstructionsFilePath, !instructionsPath.isEmpty {
-            if let url = URL(string: instructionsPath) {
-                NSWorkspace.shared.open(url)
-            }
+        if let url = AppDetailExternalOpenTarget.setupURL(for: integration, userId: uid) {
+            NSWorkspace.shared.open(url)
         }
 
         // Poll for completion only if there is a setup_completed_url to check

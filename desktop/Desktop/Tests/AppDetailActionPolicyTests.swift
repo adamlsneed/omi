@@ -21,12 +21,29 @@ final class AppDetailActionPolicyTests: XCTestCase {
     }
 
     func testInstalledExternalAppPrimaryActionOpensExternalApp() {
-        let action = AppDetailPrimaryAction.resolve(isInstalled: true, worksExternally: true)
+        let action = AppDetailPrimaryAction.resolve(
+            isInstalled: true,
+            worksExternally: true,
+            externalOpenTargetAvailable: true
+        )
 
         XCTAssertEqual(action.kind, .openExternal)
         XCTAssertEqual(action.label, "Open")
         XCTAssertFalse(action.mutatesInstallation)
         XCTAssertTrue(action.isInteractive)
+    }
+
+    func testInstalledExternalAppWithoutOpenTargetIsNotInteractive() {
+        let action = AppDetailPrimaryAction.resolve(
+            isInstalled: true,
+            worksExternally: true,
+            externalOpenTargetAvailable: false
+        )
+
+        XCTAssertEqual(action.kind, .installed)
+        XCTAssertEqual(action.label, "Installed")
+        XCTAssertFalse(action.mutatesInstallation)
+        XCTAssertFalse(action.isInteractive)
     }
 
     func testOnlyOwnerCanManageApp() {
