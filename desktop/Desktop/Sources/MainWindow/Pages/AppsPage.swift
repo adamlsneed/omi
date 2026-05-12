@@ -126,6 +126,35 @@ struct AppsPageFilterState {
     }
 }
 
+enum AppDetailPrimaryAction: Equatable {
+    case install
+    case openExternal
+    case none
+}
+
+struct AppDetailPrimaryActionState {
+    let isEnabled: Bool
+    let worksExternally: Bool
+
+    var title: String {
+        if !isEnabled {
+            return "Install"
+        }
+        return worksExternally ? "Open" : "Installed"
+    }
+
+    var action: AppDetailPrimaryAction {
+        if !isEnabled {
+            return .install
+        }
+        return worksExternally ? .openExternal : .none
+    }
+
+    var isDisabled: Bool {
+        action == .none
+    }
+}
+
 struct AppsPage: View {
     @ObservedObject var appProvider: AppProvider
     var appState: AppState? = nil
@@ -2248,6 +2277,10 @@ struct AppDetailSheet: View {
         appProvider.apps.first(where: { $0.id == app.id })?.enabled ?? app.enabled
     }
 
+    private var primaryActionState: AppDetailPrimaryActionState {
+        AppDetailPrimaryActionState(isEnabled: isEnabled, worksExternally: app.worksExternally)
+    }
+
     private func dismissSheet() {
         if let onDismiss = onDismiss {
             onDismiss()
@@ -2321,13 +2354,17 @@ struct AppDetailSheet: View {
                         HStack(spacing: 8) {
                             Button(action: {
                                 Task {
-                                    if isEnabled && app.worksExternally {
-                                        // Open the external integration in browser
+                                    switch primaryActionState.action {
+                                    case .openExternal:
                                         openExternalApp()
-                                    } else if !isEnabled && app.worksExternally {
-                                        await handleInstall()
-                                    } else {
-                                        await appProvider.toggleApp(app)
+                                    case .install:
+                                        if app.worksExternally {
+                                            await handleInstall()
+                                        } else {
+                                            await appProvider.enableApp(app)
+                                        }
+                                    case .none:
+                                        break
                                     }
                                 }
                             }) {
@@ -2344,11 +2381,11 @@ struct AppDetailSheet: View {
                                     .foregroundColor(OmiColors.textSecondary)
                                     .frame(width: 120, height: 36)
                                 } else {
-                                    Text(isEnabled ? "Open" : "Install")
+                                    Text(primaryActionState.title)
                                         .scaledFont(size: 14, weight: .semibold)
-                                        .foregroundColor(.black)
+                                        .foregroundColor(primaryActionState.isDisabled ? OmiColors.textSecondary : .black)
                                         .frame(width: 100, height: 36)
-                                        .background(Color.white)
+                                        .background(primaryActionState.isDisabled ? OmiColors.backgroundSecondary : Color.white)
                                         .cornerRadius(18)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 18)
@@ -2357,6 +2394,7 @@ struct AppDetailSheet: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            .disabled(appProvider.isAppLoading(app.id) || isSettingUp || primaryActionState.isDisabled)
 
                             // Disable button shown only when app is enabled
                             if isEnabled && !appProvider.isAppLoading(app.id) && !isSettingUp {
