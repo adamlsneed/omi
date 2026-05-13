@@ -3275,7 +3275,11 @@ struct TasksPage: View {
                             .padding(.vertical, 8)
                         } else if !viewModel.isInFilteredMode && viewModel.hasMoreTasks {
                             Button {
-                                Task { await viewModel.loadMoreIfNeeded(currentTask: viewModel.displayTasks.last!) }
+                                if let lastTask = viewModel.displayTasks.last {
+                                    Task { await viewModel.loadMoreIfNeeded(currentTask: lastTask) }
+                                } else {
+                                    Task { await viewModel.loadTasks() }
+                                }
                             } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "arrow.down.circle")

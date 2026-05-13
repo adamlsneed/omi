@@ -837,8 +837,11 @@ class ChatToolExecutor {
     {
       return json
     }
-    return
-      "screen_recording: \(statuses["screen_recording"]!), microphone: \(statuses["microphone"]!), accessibility: \(statuses["accessibility"]!), automation: \(statuses["automation"]!)"
+    let fallback = statuses
+      .sorted { $0.key < $1.key }
+      .map { "\($0.key): \($0.value)" }
+      .joined(separator: ", ")
+    return fallback
   }
 
   /// Scan files BLOCKING — triggers folder access dialogs, waits for scan, returns results

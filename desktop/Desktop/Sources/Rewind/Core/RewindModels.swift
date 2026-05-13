@@ -244,22 +244,24 @@ extension Array where Element == Screenshot {
 
         for screenshot in self {
             let key = "\(screenshot.appName)|\(screenshot.windowTitle ?? "")"
+            var sessions = contextSessions[key] ?? []
 
-            if contextSessions[key] == nil {
+            if sessions.isEmpty {
                 // First screenshot for this context - create new session
                 let session = ScreenshotSession(
                     screenshots: [screenshot],
                     minTime: screenshot.timestamp,
                     maxTime: screenshot.timestamp
                 )
-                contextSessions[key] = [session]
+                sessions = [session]
+                contextSessions[key] = sessions
                 groupOrder.append((key: key, sessionIndex: 0))
             } else {
                 // Check if this screenshot fits in an existing session
                 var foundSession = false
-                for i in 0..<contextSessions[key]!.count {
-                    if contextSessions[key]![i].contains(timestamp: screenshot.timestamp, within: timeWindowSeconds) {
-                        contextSessions[key]![i].add(screenshot)
+                for index in sessions.indices {
+                    if sessions[index].contains(timestamp: screenshot.timestamp, within: timeWindowSeconds) {
+                        sessions[index].add(screenshot)
                         foundSession = true
                         break
                     }
@@ -272,10 +274,12 @@ extension Array where Element == Screenshot {
                         minTime: screenshot.timestamp,
                         maxTime: screenshot.timestamp
                     )
-                    let newIndex = contextSessions[key]!.count
-                    contextSessions[key]!.append(session)
+                    let newIndex = sessions.count
+                    sessions.append(session)
                     groupOrder.append((key: key, sessionIndex: newIndex))
                 }
+
+                contextSessions[key] = sessions
             }
         }
 
