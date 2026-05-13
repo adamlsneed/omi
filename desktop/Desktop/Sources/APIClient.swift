@@ -3025,33 +3025,33 @@ extension APIClient {
       let data: [OmiApp]
     }
 
-    var queryItems: [String] = [
-      "limit=\(limit)",
-      "offset=\(offset)",
+    var components = URLComponents()
+    components.queryItems = [
+      URLQueryItem(name: "limit", value: String(limit)),
+      URLQueryItem(name: "offset", value: String(offset)),
     ]
 
     if let query = query, !query.isEmpty {
-      queryItems.append(
-        "query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)")
+      components.queryItems?.append(URLQueryItem(name: "q", value: query))
     }
 
     if let category = category {
-      queryItems.append("category=\(category)")
+      components.queryItems?.append(URLQueryItem(name: "category", value: category))
     }
 
     if let capability = capability {
-      queryItems.append("capability=\(capability)")
+      components.queryItems?.append(URLQueryItem(name: "capability", value: capability))
     }
 
     if let minRating = minRating {
-      queryItems.append("rating=\(minRating)")
+      components.queryItems?.append(URLQueryItem(name: "rating", value: String(minRating)))
     }
 
     if installedOnly {
-      queryItems.append("installed_apps=true")
+      components.queryItems?.append(URLQueryItem(name: "installed_apps", value: "true"))
     }
 
-    let endpoint = "v2/apps/search?\(queryItems.joined(separator: "&"))"
+    let endpoint = "v2/apps/search?\(components.percentEncodedQuery ?? "")"
     let response: SearchResponse = try await get(endpoint)
     return response.data
   }
@@ -3066,8 +3066,8 @@ extension APIClient {
     return try await get("v1/apps/\(appId)/reviews")
   }
 
-  /// Fetches user's enabled apps
-  func getEnabledApps() async throws -> [OmiApp] {
+  /// Fetches user's enabled app IDs
+  func getEnabledAppIds() async throws -> [String] {
     return try await get("v1/apps/enabled")
   }
 
@@ -3092,7 +3092,13 @@ extension APIClient {
   /// Checks if an external integration app's setup is complete
   func isAppSetupCompleted(url: String, uid: String) async -> Bool {
     guard !url.isEmpty else { return true }
-    guard let fullUrl = URL(string: "\(url)?uid=\(uid)") else { return false }
+    guard var components = URLComponents(string: url) else { return false }
+    var queryItems = components.queryItems ?? []
+    if !queryItems.contains(where: { $0.name == "uid" }) {
+      queryItems.append(URLQueryItem(name: "uid", value: uid))
+    }
+    components.queryItems = queryItems
+    guard let fullUrl = components.url else { return false }
     var request = URLRequest(url: fullUrl)
     request.httpMethod = "GET"
     do {

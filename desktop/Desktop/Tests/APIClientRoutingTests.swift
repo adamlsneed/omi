@@ -357,6 +357,31 @@ final class APIClientRoutingTests: XCTestCase {
                      label: "getApps")
     }
 
+    func testSearchAppsUsesHostedSearchQueryContract() async {
+        let client = await makeTestClient()
+        _ = try? await client.searchApps(
+            query: "spotify playlists",
+            category: "entertainment-and-fun",
+            capability: "external_integration",
+            installedOnly: true
+        ) as [OmiApp]
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v2/apps/search", method: "GET",
+                     label: "searchApps")
+
+        let components = URLComponents(url: URLCapture.capturedRequests[0].url, resolvingAgainstBaseURL: false)
+        let queryItems = Dictionary(uniqueKeysWithValues: (components?.queryItems ?? []).compactMap { item in
+            item.value.map { (item.name, $0) }
+        })
+
+        XCTAssertEqual(queryItems["q"], "spotify playlists")
+        XCTAssertNil(queryItems["query"])
+        XCTAssertEqual(queryItems["category"], "entertainment-and-fun")
+        XCTAssertEqual(queryItems["capability"], "external_integration")
+        XCTAssertEqual(queryItems["installed_apps"], "true")
+    }
+
     // -- Personas (GET → Python) --
 
     func testGetPersonaRoutesToPython() async {

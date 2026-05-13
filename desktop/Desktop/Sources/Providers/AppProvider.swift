@@ -152,6 +152,7 @@ class AppProvider: ObservableObject {
             return
         }
 
+        resetCategoryPagination()
         isSearching = true
         errorMessage = nil
         defer { isSearching = false }
@@ -217,15 +218,21 @@ class AppProvider: ObservableObject {
     /// Clear category filter results
     func clearCategoryFilter() {
         selectedCategory = nil
+        resetCategoryPagination()
+    }
+
+    private func resetCategoryPagination() {
         categoryFilteredApps = nil
         categoryFilterOffset = 0
         hasMoreCategoryApps = false
+        isLoadingMore = false
     }
 
     /// Fetch user's enabled apps
     func fetchEnabledApps() async {
         do {
-            enabledApps = try await apiClient.getEnabledApps()
+            let enabledAppIds = Set(try await apiClient.getEnabledAppIds())
+            enabledApps = apps.filter { enabledAppIds.contains($0.id) }
             chatApps = enabledApps.filter { $0.worksWithChat }
         } catch {
             logError("Failed to fetch enabled apps", error: error)
@@ -236,59 +243,60 @@ class AppProvider: ObservableObject {
 
     /// Toggle app enabled state
     func toggleApp(_ app: OmiApp) async {
-        appLoadingStates[app.id] = true
-        defer { appLoadingStates[app.id] = false }
-
-        do {
-            if app.enabled {
-                try await apiClient.disableApp(appId: app.id)
-                // Track app disabled
-                AnalyticsManager.shared.appDisabled(appId: app.id, appName: app.name)
-            } else {
-                try await apiClient.enableApp(appId: app.id)
-                // Track app enabled
-                AnalyticsManager.shared.appEnabled(appId: app.id, appName: app.name)
-            }
-
-            // Update local state across all lists
-            if let index = apps.firstIndex(where: { $0.id == app.id }) {
-                apps[index].enabled.toggle()
-            }
-            if let index = popularApps.firstIndex(where: { $0.id == app.id }) {
-                popularApps[index].enabled.toggle()
-            }
-            if let index = integrationApps.firstIndex(where: { $0.id == app.id }) {
-                integrationApps[index].enabled.toggle()
-            }
-            if let index = chatApps.firstIndex(where: { $0.id == app.id }) {
-                chatApps[index].enabled.toggle()
-            }
-            if let index = summaryApps.firstIndex(where: { $0.id == app.id }) {
-                summaryApps[index].enabled.toggle()
-            }
-            if let index = notificationApps.firstIndex(where: { $0.id == app.id }) {
-                notificationApps[index].enabled.toggle()
-            }
-
-            updateDerivedLists()
-
-            log("Toggled app \(app.id) to enabled=\(!app.enabled)")
-        } catch {
-            logError("Failed to toggle app", error: error)
-            errorMessage = "Failed to \(app.enabled ? "disable" : "enable") app"
-        }
+        await setApp(app, enabled: !isAppEnabled(app))
     }
 
     /// Enable an app
     func enableApp(_ app: OmiApp) async {
-        guard !app.enabled else { return }
-        await toggleApp(app)
+        await setApp(app, enabled: true)
     }
 
     /// Disable an app
     func disableApp(_ app: OmiApp) async {
-        guard app.enabled else { return }
-        await toggleApp(app)
+        await setApp(app, enabled: false)
+    }
+
+    /// Check the provider's latest enabled state for an app value that may be stale.
+    func isAppEnabled(_ app: OmiApp) -> Bool {
+        currentApp(withId: app.id)?.enabled ?? app.enabled
+    }
+
+    /// Set app enabled state explicitly, so stale model values cannot invert the UI/backend state.
+    @discardableResult
+    func setApp(_ app: OmiApp, enabled desiredState: Bool) async -> Bool {
+        if appLoadingStates[app.id] == true {
+            return isAppEnabled(app) == desiredState
+        }
+
+        let currentState = isAppEnabled(app)
+        guard currentState != desiredState else {
+            setLocalEnabledState(for: app.id, enabled: desiredState)
+            return true
+        }
+
+        appLoadingStates[app.id] = true
+        defer { appLoadingStates[app.id] = false }
+
+        do {
+            if desiredState {
+                try await apiClient.enableApp(appId: app.id)
+                // Track app enabled
+                AnalyticsManager.shared.appEnabled(appId: app.id, appName: app.name)
+            } else {
+                try await apiClient.disableApp(appId: app.id)
+                // Track app disabled
+                AnalyticsManager.shared.appDisabled(appId: app.id, appName: app.name)
+            }
+
+            setLocalEnabledState(for: app.id, enabled: desiredState)
+
+            log("Set app \(app.id) enabled=\(desiredState)")
+            return true
+        } catch {
+            logError("Failed to set app enabled=\(desiredState)", error: error)
+            errorMessage = "Failed to \(desiredState ? "enable" : "disable") app"
+            return false
+        }
     }
 
     // MARK: - Helpers
@@ -296,6 +304,44 @@ class AppProvider: ObservableObject {
     /// Check if an app is currently loading
     func isAppLoading(_ appId: String) -> Bool {
         appLoadingStates[appId] ?? false
+    }
+
+    private func currentApp(withId appId: String) -> OmiApp? {
+        if let app = apps.first(where: { $0.id == appId }) { return app }
+        if let app = categoryFilteredApps?.first(where: { $0.id == appId }) { return app }
+        if let app = popularApps.first(where: { $0.id == appId }) { return app }
+        if let app = integrationApps.first(where: { $0.id == appId }) { return app }
+        if let app = chatApps.first(where: { $0.id == appId }) { return app }
+        if let app = summaryApps.first(where: { $0.id == appId }) { return app }
+        if let app = notificationApps.first(where: { $0.id == appId }) { return app }
+        if let app = enabledApps.first(where: { $0.id == appId }) { return app }
+        return nil
+    }
+
+    private func setLocalEnabledState(for appId: String, enabled: Bool) {
+        func update(_ list: inout [OmiApp]) {
+            for index in list.indices where list[index].id == appId {
+                list[index].enabled = enabled
+            }
+        }
+
+        update(&apps)
+        update(&popularApps)
+        update(&integrationApps)
+        update(&chatApps)
+        update(&summaryApps)
+        update(&notificationApps)
+        update(&enabledApps)
+        if var filteredApps = categoryFilteredApps {
+            update(&filteredApps)
+            categoryFilteredApps = filteredApps
+        }
+        if !enabled && showInstalledOnly {
+            apps.removeAll { $0.id == appId }
+            categoryFilteredApps?.removeAll { $0.id == appId }
+        }
+
+        updateDerivedLists()
     }
 
     /// Update derived lists from main apps list
@@ -337,5 +383,6 @@ class AppProvider: ObservableObject {
         selectedCategory = nil
         selectedCapability = nil
         showInstalledOnly = false
+        resetCategoryPagination()
     }
 }

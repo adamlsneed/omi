@@ -132,6 +132,35 @@ enum AppDetailPrimaryAction: Equatable {
     case none
 }
 
+enum AppCardPrimaryAction: Equatable {
+    case install
+    case openSettings
+}
+
+struct AppCardPrimaryActionState {
+    let isEnabled: Bool
+    let worksExternally: Bool
+
+    init(isEnabled: Bool, worksExternally: Bool = false) {
+        self.isEnabled = isEnabled
+        self.worksExternally = worksExternally
+    }
+
+    var title: String {
+        if isEnabled {
+            return "Settings"
+        }
+        return worksExternally ? "Setup" : "Install"
+    }
+
+    var action: AppCardPrimaryAction {
+        if isEnabled || worksExternally {
+            return .openSettings
+        }
+        return .install
+    }
+}
+
 struct AppDetailPrimaryActionState {
     let isEnabled: Bool
     let worksExternally: Bool
@@ -228,7 +257,9 @@ struct AppsPage: View {
                                 )
 
                                 // Infinite scroll: load more when reaching bottom
-                                if appProvider.hasMoreCategoryApps {
+                                if appProvider.hasMoreCategoryApps &&
+                                    appProvider.selectedCategory != nil &&
+                                    !filterState.usesSearchBackedResults {
                                     HStack {
                                         Spacer()
                                         if appProvider.isLoadingMore {
@@ -1804,62 +1835,67 @@ struct CompactAppCard: View {
     @State private var isHovering = false
 
     var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .center, spacing: 8) {
-                // App icon
-                AsyncImage(url: URL(string: app.image)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    default:
-                        appIconPlaceholder
-                    }
-                }
-                .frame(width: 60, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-
-                VStack(spacing: 2) {
-                    Text(app.name)
-                        .scaledFont(size: 12, weight: .medium)
-                        .foregroundColor(OmiColors.textPrimary)
-                        .lineLimit(1)
-
-                    // Rating and installs
-                    HStack(spacing: 3) {
-                        if let rating = app.formattedRating {
-                            Image(systemName: "star.fill")
-                                .scaledFont(size: 8)
-                                .foregroundColor(.yellow)
-                            Text(rating)
-                                .scaledFont(size: 10)
-                                .foregroundColor(OmiColors.textTertiary)
-                        }
-                        if let installs = app.formattedInstalls {
-                            if app.formattedRating != nil {
-                                Text("·")
-                                    .scaledFont(size: 10)
-                                    .foregroundColor(OmiColors.textTertiary)
-                            }
-                            Text(installs)
-                                .scaledFont(size: 10)
-                                .foregroundColor(OmiColors.textTertiary)
+        VStack(alignment: .center, spacing: 8) {
+            Button(action: onSelect) {
+                VStack(alignment: .center, spacing: 8) {
+                    // App icon
+                    AsyncImage(url: URL(string: app.image)) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        default:
+                            appIconPlaceholder
                         }
                     }
-                }
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
 
-                // Get/Open button
-                SmallAppButton(app: app, appProvider: appProvider, onOpen: onSelect)
+                    appSummary
+                }
             }
-            .frame(width: 90)
-            .padding(.vertical, 8)
-            .background(isHovering ? OmiColors.backgroundSecondary.opacity(0.5) : Color.clear)
-            .cornerRadius(12)
+            .buttonStyle(.plain)
+
+            SmallAppButton(app: app, appProvider: appProvider, onOpen: onSelect)
         }
-        .buttonStyle(.plain)
+        .frame(width: 90)
+        .padding(.vertical, 8)
+        .background(isHovering ? OmiColors.backgroundSecondary.opacity(0.5) : Color.clear)
+        .cornerRadius(12)
         .onHover { isHovering = $0 }
+    }
+
+    private var appSummary: some View {
+        VStack(spacing: 2) {
+            Text(app.name)
+                .scaledFont(size: 12, weight: .medium)
+                .foregroundColor(OmiColors.textPrimary)
+                .lineLimit(1)
+
+            // Rating and installs
+            HStack(spacing: 3) {
+                if let rating = app.formattedRating {
+                    Image(systemName: "star.fill")
+                        .scaledFont(size: 8)
+                        .foregroundColor(.yellow)
+                    Text(rating)
+                        .scaledFont(size: 10)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+                if let installs = app.formattedInstalls {
+                    if app.formattedRating != nil {
+                        Text("·")
+                            .scaledFont(size: 10)
+                            .foregroundColor(OmiColors.textTertiary)
+                    }
+                    Text(installs)
+                        .scaledFont(size: 10)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+            }
+        }
     }
 
     private var appIconPlaceholder: some View {
@@ -1880,13 +1916,15 @@ struct SmallAppButton: View {
     var onOpen: (() -> Void)? = nil
 
     var body: some View {
+        let isEnabled = appProvider.isAppEnabled(app)
+        let actionState = AppCardPrimaryActionState(isEnabled: isEnabled, worksExternally: app.worksExternally)
+
         Button(action: {
-            if app.enabled {
-                // If already enabled, open the app detail
+            switch actionState.action {
+            case .openSettings:
                 onOpen?()
-            } else {
-                // If not enabled, enable it
-                Task { await appProvider.toggleApp(app) }
+            case .install:
+                Task { await appProvider.enableApp(app) }
             }
         }) {
             if appProvider.isAppLoading(app.id) {
@@ -1894,10 +1932,10 @@ struct SmallAppButton: View {
                     .scaleEffect(0.6)
                     .frame(width: 50, height: 22)
             } else {
-                Text(app.enabled ? "Open" : "Install")
+                Text(actionState.title)
                     .scaledFont(size: 11, weight: .medium)
                     .foregroundColor(.black)
-                    .frame(width: 50, height: 22)
+                    .frame(width: 62, height: 22)
                     .background(Color.white)
                     .cornerRadius(11)
                     .overlay(
@@ -1921,86 +1959,93 @@ struct AppCard: View {
     @State private var isHovering = false
 
     var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 12) {
-                    // App icon
-                    AsyncImage(url: URL(string: app.image)) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        default:
-                            appIconPlaceholder
-                        }
-                    }
-                    .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(app.name)
-                            .scaledFont(size: 14, weight: .medium)
-                            .foregroundColor(OmiColors.textPrimary)
-                            .lineLimit(1)
-
-                        Text(app.author)
-                            .scaledFont(size: 12)
-                            .foregroundColor(OmiColors.textTertiary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer()
-                }
-
-                Text(app.description)
-                    .scaledFont(size: 12)
-                    .foregroundColor(OmiColors.textSecondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                HStack {
-                    // Rating and installs
-                    HStack(spacing: 6) {
-                        if let rating = app.formattedRating {
-                            HStack(spacing: 3) {
-                                Image(systemName: "star.fill")
-                                    .scaledFont(size: 10)
-                                    .foregroundColor(.yellow)
-                                Text(rating)
-                                    .scaledFont(size: 11)
-                                    .foregroundColor(OmiColors.textTertiary)
-                            }
-                        }
-                        if let installs = app.formattedInstalls {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.down.circle")
-                                    .scaledFont(size: 10)
-                                    .foregroundColor(OmiColors.textTertiary)
-                                Text(installs)
-                                    .scaledFont(size: 11)
-                                    .foregroundColor(OmiColors.textTertiary)
-                            }
-                        }
-                    }
-
-                    Spacer()
-
-                    // Get/Open button
-                    AppActionButton(app: app, appProvider: appProvider, onOpen: onSelect)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            Button(action: onSelect) {
+                appCardContent
             }
-            .padding(14)
-            .background(isHovering ? OmiColors.backgroundSecondary : OmiColors.backgroundPrimary)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
-            )
+            .buttonStyle(.plain)
+
+            HStack {
+                Spacer()
+
+                AppActionButton(app: app, appProvider: appProvider, onOpen: onSelect)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(isHovering ? OmiColors.backgroundSecondary : OmiColors.backgroundPrimary)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
+        )
         .onHover { hovering in
             isHovering = hovering
+        }
+    }
+
+    private var appCardContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                // App icon
+                AsyncImage(url: URL(string: app.image)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    default:
+                        appIconPlaceholder
+                    }
+                }
+                .frame(width: 50, height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(app.name)
+                        .scaledFont(size: 14, weight: .medium)
+                        .foregroundColor(OmiColors.textPrimary)
+                        .lineLimit(1)
+
+                    Text(app.author)
+                        .scaledFont(size: 12)
+                        .foregroundColor(OmiColors.textTertiary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+            }
+
+            Text(app.description)
+                .scaledFont(size: 12)
+                .foregroundColor(OmiColors.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            // Rating and installs
+            HStack(spacing: 6) {
+                if let rating = app.formattedRating {
+                    HStack(spacing: 3) {
+                        Image(systemName: "star.fill")
+                            .scaledFont(size: 10)
+                            .foregroundColor(.yellow)
+                        Text(rating)
+                            .scaledFont(size: 11)
+                            .foregroundColor(OmiColors.textTertiary)
+                    }
+                }
+                if let installs = app.formattedInstalls {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.down.circle")
+                            .scaledFont(size: 10)
+                            .foregroundColor(OmiColors.textTertiary)
+                        Text(installs)
+                            .scaledFont(size: 11)
+                            .foregroundColor(OmiColors.textTertiary)
+                    }
+                }
+
+                Spacer()
+            }
         }
     }
 
@@ -2022,24 +2067,26 @@ struct AppActionButton: View {
     var onOpen: (() -> Void)? = nil
 
     var body: some View {
+        let isEnabled = appProvider.isAppEnabled(app)
+        let actionState = AppCardPrimaryActionState(isEnabled: isEnabled, worksExternally: app.worksExternally)
+
         Button(action: {
-            if app.enabled {
-                // If already enabled, open the app detail
+            switch actionState.action {
+            case .openSettings:
                 onOpen?()
-            } else {
-                // If not enabled, enable it
-                Task { await appProvider.toggleApp(app) }
+            case .install:
+                Task { await appProvider.enableApp(app) }
             }
         }) {
             if appProvider.isAppLoading(app.id) {
                 ProgressView()
                     .scaleEffect(0.7)
-                    .frame(width: 60, height: 28)
+                    .frame(width: 76, height: 28)
             } else {
-                Text(app.enabled ? "Open" : "Install")
+                Text(actionState.title)
                     .scaledFont(size: 12, weight: .medium)
                     .foregroundColor(.black)
-                    .frame(width: 60, height: 28)
+                    .frame(width: 76, height: 28)
                     .background(Color.white)
                     .cornerRadius(14)
                     .overlay(
@@ -2356,7 +2403,7 @@ struct AppDetailSheet: View {
                                 Task {
                                     switch primaryActionState.action {
                                     case .openExternal:
-                                        openExternalApp()
+                                        await openExternalApp()
                                     case .install:
                                         if app.worksExternally {
                                             await handleInstall()
@@ -2399,7 +2446,7 @@ struct AppDetailSheet: View {
                             // Disable button shown only when app is enabled
                             if isEnabled && !appProvider.isAppLoading(app.id) && !isSettingUp {
                                 Button(action: {
-                                    Task { await appProvider.toggleApp(app) }
+                                    Task { await appProvider.disableApp(app) }
                                 }) {
                                     Image(systemName: "trash")
                                         .scaledFont(size: 14)
@@ -2429,12 +2476,14 @@ struct AppDetailSheet: View {
                     }
 
                     // Setup steps (external integration)
-                    if let integration = appDetails?.externalIntegration, !integration.authSteps.isEmpty {
+                    if let integration = appDetails?.externalIntegration,
+                       !integration.authSteps.isEmpty ||
+                           !(integration.setupInstructionsFilePath?.isEmpty ?? true) {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(integration.authSteps.enumerated()), id: \.offset) { index, step in
                                 Button(action: {
                                     if let uid = AuthState.shared.userId,
-                                       let url = URL(string: "\(step.url)?uid=\(uid)") {
+                                       let url = urlByAppendingUserId(to: step.url, uid: uid) {
                                         NSWorkspace.shared.open(url)
                                     }
                                 }) {
@@ -2462,6 +2511,46 @@ struct AppDetailSheet: View {
                                             Text(isSetupCompleted ? "Completed" : "Click to complete")
                                                 .scaledFont(size: 12)
                                                 .foregroundColor(isSetupCompleted ? .green : OmiColors.textTertiary)
+                                        }
+
+                                        Spacer()
+
+                                        Image(systemName: "arrow.up.right.square")
+                                            .scaledFont(size: 14)
+                                            .foregroundColor(OmiColors.textTertiary)
+                                    }
+                                    .padding(12)
+                                    .background(OmiColors.backgroundSecondary)
+                                    .cornerRadius(12)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            if let instructionsPath = integration.setupInstructionsFilePath,
+                               !instructionsPath.isEmpty {
+                                Button(action: {
+                                    if let uid = AuthState.shared.userId,
+                                       let url = urlByAppendingUserId(to: instructionsPath, uid: uid) {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }) {
+                                    HStack(spacing: 12) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(OmiColors.backgroundTertiary)
+                                                .frame(width: 40, height: 40)
+                                            Image(systemName: "gearshape")
+                                                .scaledFont(size: 14, weight: .semibold)
+                                                .foregroundColor(OmiColors.textSecondary)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Setup instructions")
+                                                .scaledFont(size: 14, weight: .medium)
+                                                .foregroundColor(OmiColors.textPrimary)
+                                            Text("Open configuration")
+                                                .scaledFont(size: 12)
+                                                .foregroundColor(OmiColors.textTertiary)
                                         }
 
                                         Spacer()
@@ -2573,8 +2662,8 @@ struct AppDetailSheet: View {
         .frame(width: 500, height: 600)
         .background(OmiColors.backgroundPrimary)
         .task {
-            await loadReviews()
             await loadAppDetails()
+            await loadReviews()
             // Resume polling if user completed setup in browser and returned to this sheet
             await resumeSetupPollingIfNeeded()
         }
@@ -2650,21 +2739,30 @@ struct AppDetailSheet: View {
         startSetupPolling(completionUrl: completionUrl, uid: uid)
     }
 
-    private func openExternalApp() {
+    private func openExternalApp() async {
         guard let uid = AuthState.shared.userId else { return }
+        if appDetails == nil {
+            await loadAppDetails()
+        }
         let integration = appDetails?.externalIntegration
         // Prefer appHomeUrl, then first auth step URL
-        if let homeUrl = integration?.appHomeUrl, !homeUrl.isEmpty, let url = URL(string: homeUrl) {
+        if let homeUrl = integration?.appHomeUrl,
+           !homeUrl.isEmpty,
+           let url = urlByAppendingUserId(to: homeUrl, uid: uid) {
             NSWorkspace.shared.open(url)
         } else if let authSteps = integration?.authSteps, !authSteps.isEmpty,
-                  let url = URL(string: "\(authSteps[0].url)?uid=\(uid)") {
+                  let url = urlByAppendingUserId(to: authSteps[0].url, uid: uid) {
+            NSWorkspace.shared.open(url)
+        } else if let instructionsPath = integration?.setupInstructionsFilePath,
+                  !instructionsPath.isEmpty,
+                  let url = urlByAppendingUserId(to: instructionsPath, uid: uid) {
             NSWorkspace.shared.open(url)
         }
     }
 
     private func handleInstall() async {
         // Step 1: Try to enable. Backend returns 400 if setup is not yet complete.
-        await appProvider.enableApp(app)
+        _ = await appProvider.setApp(app, enabled: true)
 
         // Step 2: If enable succeeded (no setup required), we're done.
         if isEnabled { return }
@@ -2681,12 +2779,11 @@ struct AppDetailSheet: View {
 
         // Open auth step or setup instructions URL in browser
         if let authSteps = integration?.authSteps, !authSteps.isEmpty {
-            let rawUrl = "\(authSteps[0].url)?uid=\(uid)"
-            if let url = URL(string: rawUrl) {
+            if let url = urlByAppendingUserId(to: authSteps[0].url, uid: uid) {
                 NSWorkspace.shared.open(url)
             }
         } else if let instructionsPath = integration?.setupInstructionsFilePath, !instructionsPath.isEmpty {
-            if let url = URL(string: instructionsPath) {
+            if let url = urlByAppendingUserId(to: instructionsPath, uid: uid) {
                 NSWorkspace.shared.open(url)
             }
         }
@@ -2720,6 +2817,16 @@ struct AppDetailSheet: View {
             }
             await MainActor.run { isSettingUp = false }
         }
+    }
+
+    private func urlByAppendingUserId(to rawUrl: String, uid: String) -> URL? {
+        guard var components = URLComponents(string: rawUrl) else { return nil }
+        var queryItems = components.queryItems ?? []
+        if !queryItems.contains(where: { $0.name == "uid" }) {
+            queryItems.append(URLQueryItem(name: "uid", value: uid))
+        }
+        components.queryItems = queryItems
+        return components.url
     }
 }
 
@@ -3099,7 +3206,8 @@ struct FlowLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) -> CGSize {
-        let width = proposal.width ?? 0
+        let fallbackWidth = subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 1
+        let width = max(proposal.width ?? fallbackWidth, fallbackWidth, 1)
         let result = FlowResult(in: width, subviews: subviews, spacing: spacing)
         cache.result = result
         cache.width = width
@@ -3184,13 +3292,10 @@ struct DismissableSheetModifier<SheetContent: View>: ViewModifier {
                             .transition(.opacity)
                             .zIndex(0)
 
-                        // Force the sheet into a centered full-size overlay so it
-                        // does not end up clipped or visually hidden behind the scrim.
                         sheetContent()
                             .background(OmiColors.backgroundPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                             .zIndex(1)
                     }
@@ -3242,13 +3347,10 @@ struct DismissableSheetItemModifier<Item: Identifiable, SheetContent: View>: Vie
                             .transition(.opacity)
                             .zIndex(0)
 
-                        // Force the sheet into a centered full-size overlay so it
-                        // does not end up clipped or visually hidden behind the scrim.
                         sheetContent(presentedItem)
                             .background(OmiColors.backgroundPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                             .zIndex(1)
                     }
