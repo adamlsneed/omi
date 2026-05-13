@@ -101,6 +101,47 @@ class AudioCaptureService: @unchecked Sendable {
 
     // MARK: - Public Methods
 
+    /// Pre-warms the CoreAudio HAL so the first real `startCapture` returns promptly.
+    /// This only reads device metadata; it does not open the input stream or trigger
+    /// the menu-bar microphone indicator.
+    static func warmupCoreAudio() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            var deviceID: AudioDeviceID = kAudioObjectUnknown
+            var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+            var address = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyDefaultInputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            _ = AudioObjectGetPropertyData(
+                AudioObjectID(kAudioObjectSystemObject),
+                &address,
+                0,
+                nil,
+                &size,
+                &deviceID
+            )
+            guard deviceID != kAudioObjectUnknown else { return }
+
+            var streamAddress = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyStreamFormat,
+                mScope: kAudioObjectPropertyScopeInput,
+                mElement: 0
+            )
+            var asbd = AudioStreamBasicDescription()
+            var asbdSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+            _ = AudioObjectGetPropertyData(
+                deviceID,
+                &streamAddress,
+                0,
+                nil,
+                &asbdSize,
+                &asbd
+            )
+            log("AudioCapture: CoreAudio HAL warmed up (sampleRate=\(asbd.mSampleRate))")
+        }
+    }
+
     /// Check if microphone permission is granted
     static func checkPermission() -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {

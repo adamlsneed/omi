@@ -94,7 +94,11 @@ final class FloatingBarVoicePlaybackService: NSObject, AVAudioPlayerDelegate {
     guard let message else { return }
 
     if currentResponseID != message.id {
-      resetPlaybackPipeline(clearMode: false)
+      let incomingText = Self.cleanedPlaybackText(from: message)
+      let isBackendIdSwap = !streamedText.isEmpty && incomingText.hasPrefix(streamedText)
+      if !isBackendIdSwap {
+        resetPlaybackPipeline(clearMode: false)
+      }
       currentResponseID = message.id
       interruptedResponseID = shouldInterruptNextResponse ? message.id : nil
       shouldInterruptNextResponse = false
@@ -302,10 +306,8 @@ final class FloatingBarVoicePlaybackService: NSObject, AVAudioPlayerDelegate {
   func interruptCurrentResponse() {
     if let currentResponseID {
       interruptedResponseID = currentResponseID
-      shouldInterruptNextResponse = false
-    } else {
-      shouldInterruptNextResponse = true
     }
+    shouldInterruptNextResponse = false
     resetPlaybackPipeline(clearMode: false)
   }
 

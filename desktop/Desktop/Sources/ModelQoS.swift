@@ -37,7 +37,7 @@ struct ModelQoS {
         static var chat: String { "claude-sonnet-4-6" }
 
         /// Floating bar responses
-        static var floatingBar: String { "claude-sonnet-4-6" }
+        static var floatingBar: String { "claude-haiku-4-5-20251001" }
 
         /// Synthesis extraction tasks (calendar, gmail, notes, memory import)
         static var synthesis: String { "claude-haiku-4-5-20251001" }
@@ -50,11 +50,14 @@ struct ModelQoS {
 
         /// Available models shown in the UI picker
         static var availableModels: [(id: String, label: String)] {
-            [("claude-sonnet-4-6", "Sonnet")]
+            [
+                ("claude-haiku-4-5-20251001", "Haiku (fastest)"),
+                ("claude-sonnet-4-6", "Sonnet"),
+            ]
         }
 
         /// Default model for user selection (floating bar / shortcut picker)
-        static var defaultSelection: String { "claude-sonnet-4-6" }
+        static var defaultSelection: String { "claude-haiku-4-5-20251001" }
 
         /// Sanitize a persisted model ID against the current tier's allowed list.
         /// Returns the saved model if it's still available, otherwise falls back to defaultSelection.

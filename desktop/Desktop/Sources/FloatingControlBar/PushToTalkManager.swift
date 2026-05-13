@@ -63,6 +63,9 @@ class PushToTalkManager: ObservableObject {
     self.barState = barState
     hasMicPermission = AudioCaptureService.checkPermission()
     installEventMonitors()
+    // Wake coreaudiod before the first PTT press so short holds do not lose
+    // their audio while HAL device enumeration is still starting up.
+    AudioCaptureService.warmupCoreAudio()
     log("PushToTalkManager: setup complete, micPermission=\(hasMicPermission)")
   }
 
