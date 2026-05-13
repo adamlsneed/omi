@@ -95,10 +95,9 @@ class AppleHealthService {
         }
     }
 
-    // Apple does not reveal read-authorization status for privacy reasons — requestAuthorization's
-    // `success` flag only means the prompt was shown, not that the user allowed it. To detect a
-    // denial we probe multiple common data types over the last 90 days; if any returns at least one
-    // sample, read access is confirmed.
+    // Apple does not reveal read-authorization status for privacy reasons. This is only a
+    // best-effort sample probe: a positive result confirms readable data exists, but a negative
+    // result may also mean there is no recent data for these categories.
     private func probeAccess(result: @escaping FlutterResult) {
         let endDate = Date()
         let startDate = Calendar.current.date(byAdding: .day, value: -90, to: endDate)!
