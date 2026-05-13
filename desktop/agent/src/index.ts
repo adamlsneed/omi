@@ -628,6 +628,14 @@ interface WarmupSessionConfig {
   systemPrompt?: string;
 }
 
+/**
+ * Session keys whose Anthropic-side prompt cache we proactively write at
+ * startup. Floating bar is latency-sensitive and has the largest cached
+ * system prompt, so priming it trades one cheap Haiku call at launch for
+ * lower first-query latency.
+ */
+const CACHE_WARM_KEYS = new Set(["floating"]);
+
 async function preWarmSession(cwd?: string, sessionConfigs?: WarmupSessionConfig[], models?: string[]): Promise<void> {
   const warmCwd = cwd || process.env.HOME || "/";
 
@@ -682,6 +690,35 @@ async function preWarmSession(cwd?: string, sessionConfigs?: WarmupSessionConfig
     );
   } catch (err) {
     logErr(`Pre-warm failed (will create on first query): ${err}`);
+  }
+
+  void warmAnthropicCache(warmCwd, toWarm);
+}
+
+async function warmAnthropicCache(
+  warmCwd: string,
+  configs: WarmupSessionConfig[]
+): Promise<void> {
+  for (const cfg of configs) {
+    if (!cfg.systemPrompt) continue;
+    if (!CACHE_WARM_KEYS.has(cfg.key)) continue;
+    try {
+      const warmupSessionKey = `${cfg.key}-cache-warm`;
+      const sessionParams: Record<string, unknown> = {
+        cwd: warmCwd,
+        mcpServers: buildMcpServers("act", warmCwd, warmupSessionKey),
+        _meta: { systemPrompt: cfg.systemPrompt },
+      };
+      const created = (await acpRequest("session/new", sessionParams)) as { sessionId: string };
+      await acpRequest("session/set_model", { sessionId: created.sessionId, modelId: cfg.model });
+      await acpRequest("session/prompt", {
+        sessionId: created.sessionId,
+        prompt: [{ type: "text", text: "ready" }],
+      });
+      logErr(`Anthropic cache primed: key=${cfg.key} model=${cfg.model}`);
+    } catch (err) {
+      logErr(`Anthropic cache warmup failed for ${cfg.key}: ${err}`);
+    }
   }
 }
 

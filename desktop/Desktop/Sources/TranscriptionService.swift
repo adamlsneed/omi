@@ -260,12 +260,18 @@ class TranscriptionService {
         disconnect()
     }
 
-    /// Send audio data to the backend (buffered for efficiency)
+    /// Send audio data to the backend (buffered for efficiency).
+    ///
+    /// Pre-connection audio is retained and flushed when the WebSocket handshake
+    /// completes so the first part of a short PTT utterance is not dropped.
     func sendAudio(_ data: Data) {
-        guard isConnected else { return }
-
         audioBufferLock.lock()
         audioBuffer.append(data)
+
+        guard isConnected else {
+            audioBufferLock.unlock()
+            return
+        }
 
         // Send when buffer is full enough
         if audioBuffer.count >= audioBufferSize {
@@ -431,6 +437,7 @@ class TranscriptionService {
             self.reconnectAttempts = 0
             self.lastDataReceivedAt = Date()
             log("TranscriptionService: Connected to Python backend")
+            self.flushAudioBuffer()
             self.startWatchdog()
             self.onConnected?()
         }

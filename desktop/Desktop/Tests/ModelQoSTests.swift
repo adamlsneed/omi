@@ -41,11 +41,11 @@ final class ModelQoSTests: XCTestCase {
         for tier in ModelTier.allCases {
             ModelQoS.activeTier = tier
             XCTAssertEqual(ModelQoS.Claude.chat, "claude-sonnet-4-6")
-            XCTAssertEqual(ModelQoS.Claude.floatingBar, "claude-sonnet-4-6")
+            XCTAssertEqual(ModelQoS.Claude.floatingBar, "claude-haiku-4-5-20251001")
             XCTAssertEqual(ModelQoS.Claude.synthesis, "claude-haiku-4-5-20251001")
             XCTAssertEqual(ModelQoS.Claude.chatLabQuery, "claude-sonnet-4-20250514")
             XCTAssertEqual(ModelQoS.Claude.chatLabGrade, "claude-haiku-4-5-20251001")
-            XCTAssertEqual(ModelQoS.Claude.defaultSelection, "claude-sonnet-4-6")
+            XCTAssertEqual(ModelQoS.Claude.defaultSelection, "claude-haiku-4-5-20251001")
         }
     }
 
@@ -61,13 +61,13 @@ final class ModelQoSTests: XCTestCase {
         XCTAssertEqual(ModelQoS.Claude.chat, "claude-sonnet-4-6")
     }
 
-    // MARK: - Available models (Sonnet only, both tiers)
+    // MARK: - Available models (Haiku + Sonnet, both tiers)
 
-    func testAvailableModelsSonnetOnlyBothTiers() {
+    func testAvailableModelsBothTiers() {
         for tier in ModelTier.allCases {
             ModelQoS.activeTier = tier
             let ids = ModelQoS.Claude.availableModels.map(\.id)
-            XCTAssertEqual(ids, ["claude-sonnet-4-6"])
+            XCTAssertEqual(ids, ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"])
         }
     }
 
@@ -111,15 +111,15 @@ final class ModelQoSTests: XCTestCase {
     }
 
     func testSanitizedSelectionFallsBackForUnknownModel() {
-        XCTAssertEqual(ModelQoS.Claude.sanitizedSelection("claude-opus-4-6"), "claude-sonnet-4-6")
+        XCTAssertEqual(ModelQoS.Claude.sanitizedSelection("claude-opus-4-6"), "claude-haiku-4-5-20251001")
     }
 
     func testSanitizedSelectionHandlesNil() {
-        XCTAssertEqual(ModelQoS.Claude.sanitizedSelection(nil), "claude-sonnet-4-6")
+        XCTAssertEqual(ModelQoS.Claude.sanitizedSelection(nil), "claude-haiku-4-5-20251001")
     }
 
     func testSanitizedSelectionHandlesUnknownModel() {
-        XCTAssertEqual(ModelQoS.Claude.sanitizedSelection("gpt-4o"), "claude-sonnet-4-6")
+        XCTAssertEqual(ModelQoS.Claude.sanitizedSelection("gpt-4o"), "claude-haiku-4-5-20251001")
     }
 
     // MARK: - Tier change notification
