@@ -157,6 +157,50 @@ actor APIClient {
     return try await performRequest(request)
   }
 
+  func put<T: Decodable>(
+    _ endpoint: String,
+    requireAuth: Bool = true,
+    customBaseURL: String? = nil
+  ) async throws -> T {
+    let base = customBaseURL ?? baseURL
+    let url = try makeURL(base: base, endpoint: endpoint)
+    var request = URLRequest(url: url)
+    request.httpMethod = "PUT"
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
+
+    return try await performRequest(request)
+  }
+
+  func multipartForm<T: Decodable>(
+    _ endpoint: String,
+    method: String = "POST",
+    fields: [String: String],
+    requireAuth: Bool = true,
+    customBaseURL: String? = nil
+  ) async throws -> T {
+    let base = customBaseURL ?? baseURL
+    let url = try makeURL(base: base, endpoint: endpoint)
+    let boundary = "Boundary-\(UUID().uuidString)"
+
+    var request = URLRequest(url: url)
+    request.httpMethod = method
+
+    var headers = try await buildHeaders(requireAuth: requireAuth)
+    headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
+    request.allHTTPHeaderFields = headers
+
+    var body = Data()
+    for (name, value) in fields {
+      body.append(Data("--\(boundary)\r\n".utf8))
+      body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
+      body.append(Data("\(value)\r\n".utf8))
+    }
+    body.append(Data("--\(boundary)--\r\n".utf8))
+    request.httpBody = body
+
+    return try await performRequest(request)
+  }
+
   func delete(
     _ endpoint: String,
     requireAuth: Bool = true,
@@ -382,15 +426,18 @@ extension APIClient {
 
   /// Updates the title of a conversation
   func updateConversationTitle(id: String, title: String) async throws {
-    struct TitleUpdate: Encodable {
-      let title: String
-    }
+    var queryAllowed = CharacterSet.urlQueryAllowed
+    queryAllowed.remove(charactersIn: "&+=?")
 
-    let url = URL(string: baseURL + "v1/conversations/\(id)")!
+    let encodedId = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+    let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? title
+    let url = try makeURL(
+      base: baseURL,
+      endpoint: "v1/conversations/\(encodedId)/title?title=\(encodedTitle)"
+    )
     var request = URLRequest(url: url)
     request.httpMethod = "PATCH"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
-    request.httpBody = try JSONEncoder().encode(TitleUpdate(title: title))
 
     let (_, response) = try await session.data(for: request)
     guard let httpResponse = response as? HTTPURLResponse,
@@ -2850,6 +2897,33 @@ struct OmiAppDetails: Codable, Identifiable {
   }
 }
 
+struct AppUpdateRequest: Encodable {
+  let id: String
+  let uid: String?
+  let name: String
+  let author: String
+  let category: String
+  let description: String
+  let isPrivate: Bool
+  let capabilities: [String]
+  let chatPrompt: String?
+  let memoryPrompt: String?
+  let personaPrompt: String?
+  let isPaid: Bool?
+  let price: Double?
+  let paymentPlan: String?
+
+  enum CodingKeys: String, CodingKey {
+    case id, uid, name, author, category, description, capabilities, price
+    case isPrivate = "private"
+    case chatPrompt = "chat_prompt"
+    case memoryPrompt = "memory_prompt"
+    case personaPrompt = "persona_prompt"
+    case isPaid = "is_paid"
+    case paymentPlan = "payment_plan"
+  }
+}
+
 /// App category
 struct OmiAppCategory: Codable, Identifiable, Sendable {
   let id: String
@@ -3025,33 +3099,33 @@ extension APIClient {
       let data: [OmiApp]
     }
 
-    var queryItems: [String] = [
-      "limit=\(limit)",
-      "offset=\(offset)",
+    var components = URLComponents()
+    components.queryItems = [
+      URLQueryItem(name: "limit", value: String(limit)),
+      URLQueryItem(name: "offset", value: String(offset)),
     ]
 
     if let query = query, !query.isEmpty {
-      queryItems.append(
-        "query=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query)")
+      components.queryItems?.append(URLQueryItem(name: "q", value: query))
     }
 
     if let category = category {
-      queryItems.append("category=\(category)")
+      components.queryItems?.append(URLQueryItem(name: "category", value: category))
     }
 
     if let capability = capability {
-      queryItems.append("capability=\(capability)")
+      components.queryItems?.append(URLQueryItem(name: "capability", value: capability))
     }
 
     if let minRating = minRating {
-      queryItems.append("rating=\(minRating)")
+      components.queryItems?.append(URLQueryItem(name: "rating", value: String(minRating)))
     }
 
     if installedOnly {
-      queryItems.append("installed_apps=true")
+      components.queryItems?.append(URLQueryItem(name: "installed_apps", value: "true"))
     }
 
-    let endpoint = "v2/apps/search?\(queryItems.joined(separator: "&"))"
+    let endpoint = "v2/apps/search?\(components.percentEncodedQuery ?? "")"
     let response: SearchResponse = try await get(endpoint)
     return response.data
   }
@@ -3066,8 +3140,8 @@ extension APIClient {
     return try await get("v1/apps/\(appId)/reviews")
   }
 
-  /// Fetches user's enabled apps
-  func getEnabledApps() async throws -> [OmiApp] {
+  /// Fetches user's enabled app IDs
+  func getEnabledAppIds() async throws -> [String] {
     return try await get("v1/apps/enabled")
   }
 
@@ -3089,10 +3163,51 @@ extension APIClient {
     let _: ToggleResponse = try await post("v1/apps/disable?app_id=\(appId)")
   }
 
+  /// Updates an app owned by the current user.
+  func updateApp(_ update: AppUpdateRequest) async throws {
+    struct UpdateResponse: Decodable {
+      let status: String?
+    }
+
+    guard let appData = try String(
+      data: JSONEncoder().encode(update),
+      encoding: .utf8
+    ) else {
+      throw APIError.invalidResponse
+    }
+    let encodedAppId = update.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? update.id
+
+    let _: UpdateResponse = try await multipartForm(
+      "v1/apps/\(encodedAppId)",
+      method: "PATCH",
+      fields: ["app_data": appData]
+    )
+  }
+
+  /// Sets the current user's preferred summary app using the hosted Omi backend.
+  func setPreferredSummarizationApp(appId: String) async throws {
+    struct PreferenceResponse: Decodable {
+      let status: String?
+      let message: String?
+    }
+
+    var queryAllowed = CharacterSet.urlQueryAllowed
+    queryAllowed.remove(charactersIn: "&+=?")
+
+    let encodedAppId = appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
+    let _: PreferenceResponse = try await put("v1/users/preferences/app?app_id=\(encodedAppId)")
+  }
+
   /// Checks if an external integration app's setup is complete
   func isAppSetupCompleted(url: String, uid: String) async -> Bool {
     guard !url.isEmpty else { return true }
-    guard let fullUrl = URL(string: "\(url)?uid=\(uid)") else { return false }
+    guard var components = URLComponents(string: url) else { return false }
+    var queryItems = components.queryItems ?? []
+    if !queryItems.contains(where: { $0.name == "uid" }) {
+      queryItems.append(URLQueryItem(name: "uid", value: uid))
+    }
+    components.queryItems = queryItems
+    guard let fullUrl = components.url else { return false }
     var request = URLRequest(url: fullUrl)
     request.httpMethod = "GET"
     do {
@@ -3129,16 +3244,12 @@ extension APIClient {
 
   /// Reprocess a conversation with a specific app
   func reprocessConversation(conversationId: String, appId: String) async throws {
-    struct ReprocessRequest: Encodable {
-      let app_id: String
-    }
-    struct ReprocessResponse: Decodable {
-      let success: Bool
-      let message: String
-    }
-    let body = ReprocessRequest(app_id: appId)
-    let _: ReprocessResponse = try await post(
-      "v1/conversations/\(conversationId)/reprocess", body: body)
+    var queryAllowed = CharacterSet.urlQueryAllowed
+    queryAllowed.remove(charactersIn: "&+=?")
+    let encodedAppId = appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
+    let _: ServerConversation = try await post(
+      "v1/conversations/\(conversationId)/reprocess?app_id=\(encodedAppId)"
+    )
   }
 }
 
@@ -3669,11 +3780,25 @@ enum SubscriptionPlanType: String, Codable {
   case architect  // display "Architect" ($400/mo, cost_usd quota)
   case pro        // backward compat: old Firestore docs may still say "pro"
   case `operator` // new — display "Operator"
+  case unknown
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    let raw = try container.decode(String.self)
+    self = SubscriptionPlanType(rawValue: raw) ?? .unknown
+  }
 }
 
 enum SubscriptionStatusType: String, Codable {
   case active
   case inactive
+  case unknown
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    let raw = try container.decode(String.self)
+    self = SubscriptionStatusType(rawValue: raw) ?? .unknown
+  }
 }
 
 struct SubscriptionLimitsResponse: Codable {

@@ -105,6 +105,176 @@ struct DismissButton: View {
     }
 }
 
+struct AppsPageFilterState {
+    let searchText: String
+    let selectedCategory: String?
+    let selectedCapability: String?
+    let showInstalledOnly: Bool
+    let viewAllSection: String?
+
+    var hasActiveFilters: Bool {
+        selectedCategory != nil ||
+            selectedCapability != nil ||
+            showInstalledOnly ||
+            viewAllSection != nil
+    }
+
+    var usesSearchBackedResults: Bool {
+        !searchText.isEmpty ||
+            selectedCapability != nil ||
+            showInstalledOnly
+    }
+}
+
+enum AppDetailPrimaryAction: Equatable {
+    case install
+    case openExternal
+    case none
+}
+
+enum AppCardPrimaryAction: Equatable {
+    case install
+    case openSettings
+}
+
+struct AppCardPrimaryActionState {
+    let isEnabled: Bool
+    let worksExternally: Bool
+
+    init(isEnabled: Bool, worksExternally: Bool = false) {
+        self.isEnabled = isEnabled
+        self.worksExternally = worksExternally
+    }
+
+    var title: String {
+        if isEnabled {
+            return "Settings"
+        }
+        return worksExternally ? "Setup" : "Install"
+    }
+
+    var action: AppCardPrimaryAction {
+        if isEnabled || worksExternally {
+            return .openSettings
+        }
+        return .install
+    }
+}
+
+struct AppDetailPrimaryActionState {
+    let isEnabled: Bool
+    let worksExternally: Bool
+    let externalOpenTargetAvailable: Bool
+
+    init(isEnabled: Bool, worksExternally: Bool = false, externalOpenTargetAvailable: Bool = true) {
+        self.isEnabled = isEnabled
+        self.worksExternally = worksExternally
+        self.externalOpenTargetAvailable = externalOpenTargetAvailable
+    }
+
+    var title: String {
+        if !isEnabled {
+            return "Install"
+        }
+        return worksExternally && externalOpenTargetAvailable ? "Open" : "Installed"
+    }
+
+    var action: AppDetailPrimaryAction {
+        if !isEnabled {
+            return .install
+        }
+        return worksExternally && externalOpenTargetAvailable ? .openExternal : .none
+    }
+
+    var isDisabled: Bool {
+        action == .none
+    }
+}
+
+struct AppDetailExternalOpenTarget {
+    static func url(for integration: ExternalIntegration?, userId: String?) -> URL? {
+        if let homeUrl = integration?.appHomeUrl, !homeUrl.isEmpty {
+            return url(from: homeUrl, userId: userId)
+        }
+
+        if let firstAuthStep = integration?.authSteps.first, !firstAuthStep.url.isEmpty {
+            return url(from: firstAuthStep.url, userId: userId)
+        }
+
+        if let instructionsPath = integration?.setupInstructionsFilePath, !instructionsPath.isEmpty {
+            return url(from: instructionsPath, userId: userId)
+        }
+
+        return nil
+    }
+
+    private static func url(from rawUrl: String, userId: String?) -> URL? {
+        guard var components = URLComponents(string: rawUrl) else { return URL(string: rawUrl) }
+        guard let userId, !userId.isEmpty else { return components.url }
+
+        var queryItems = components.queryItems ?? []
+        if !queryItems.contains(where: { $0.name == "uid" }) {
+            queryItems.append(URLQueryItem(name: "uid", value: userId))
+        }
+        components.queryItems = queryItems
+
+        return components.url
+    }
+}
+
+struct AppDetailOwnershipPolicy {
+    static func canManage(appOwnerId: String?, currentUserId: String?) -> Bool {
+        guard let appOwnerId, let currentUserId else { return false }
+        return appOwnerId == currentUserId
+    }
+}
+
+enum AppDetailSummaryPreferenceActionKind {
+    case setDefault
+    case currentDefault
+    case installRequired
+}
+
+struct AppDetailSummaryPreferenceAction {
+    let kind: AppDetailSummaryPreferenceActionKind
+    let label: String
+    let isInteractive: Bool
+
+    static func resolve(
+        appId: String,
+        preferredAppId: String,
+        isInstalled: Bool,
+        worksWithMemories: Bool
+    ) -> AppDetailSummaryPreferenceAction? {
+        guard worksWithMemories else { return nil }
+        if preferredAppId == appId {
+            return AppDetailSummaryPreferenceAction(
+                kind: .currentDefault,
+                label: "Default summary app",
+                isInteractive: false
+            )
+        }
+        if !isInstalled {
+            return AppDetailSummaryPreferenceAction(
+                kind: .installRequired,
+                label: "Install to set default",
+                isInteractive: false
+            )
+        }
+        return AppDetailSummaryPreferenceAction(
+            kind: .setDefault,
+            label: "Set as default summary app",
+            isInteractive: true
+        )
+    }
+}
+
+struct AppPromptDisplayItem: Identifiable {
+    let id: String
+    let title: String
+    let text: String
+}
+
 struct AppsPage: View {
     @ObservedObject var appProvider: AppProvider
     var appState: AppState? = nil
@@ -178,7 +348,9 @@ struct AppsPage: View {
                                 )
 
                                 // Infinite scroll: load more when reaching bottom
-                                if appProvider.hasMoreCategoryApps {
+                                if appProvider.hasMoreCategoryApps &&
+                                    appProvider.selectedCategory != nil &&
+                                    !filterState.usesSearchBackedResults {
                                     HStack {
                                         Spacer()
                                         if appProvider.isLoadingMore {
@@ -352,6 +524,7 @@ struct AppsPage: View {
                 Button(action: {
                     viewAllSection = nil
                     appProvider.clearCategoryFilter()
+                    Task { await appProvider.searchApps() }
                 }) {
                     HStack {
                         Text("All Categories")
@@ -367,7 +540,13 @@ struct AppsPage: View {
                     Button(action: {
                         viewAllSection = nil
                         appProvider.selectedCategory = category.id
-                        Task { await appProvider.fetchAppsForCategory(category.id) }
+                        Task {
+                            if filterState.usesSearchBackedResults {
+                                await appProvider.searchApps()
+                            } else {
+                                await appProvider.fetchAppsForCategory(category.id)
+                            }
+                        }
                     }) {
                         HStack {
                             Text(category.title)
@@ -417,7 +596,17 @@ struct AppsPage: View {
     }
 
     private var hasActiveFilters: Bool {
-        appProvider.selectedCategory != nil || viewAllSection != nil
+        filterState.hasActiveFilters
+    }
+
+    private var filterState: AppsPageFilterState {
+        AppsPageFilterState(
+            searchText: searchText,
+            selectedCategory: appProvider.selectedCategory,
+            selectedCapability: appProvider.selectedCapability,
+            showInstalledOnly: appProvider.showInstalledOnly,
+            viewAllSection: viewAllSection
+        )
     }
 
     private var selectedCategoryLabel: String {
@@ -439,8 +628,11 @@ struct AppsPage: View {
             default: return []
             }
         }
+        if filterState.usesSearchBackedResults {
+            return appProvider.apps
+        }
         if appProvider.selectedCategory != nil {
-            return appProvider.categoryFilteredApps ?? []
+            return appProvider.categoryFilteredApps ?? appProvider.apps
         }
         return appProvider.apps
     }
@@ -459,6 +651,13 @@ struct AppsPage: View {
         }
         if !searchText.isEmpty {
             return "Search Results (\(apps.count))"
+        }
+        if appProvider.showInstalledOnly {
+            return "Installed Apps (\(apps.count))"
+        }
+        if let capabilityId = appProvider.selectedCapability,
+           let capability = appProvider.capabilities.first(where: { $0.id == capabilityId }) {
+            return "\(capability.title) (\(apps.count))"
         }
         if let categoryId = appProvider.selectedCategory,
            let category = appProvider.categories.first(where: { $0.id == categoryId }) {
@@ -1727,62 +1926,67 @@ struct CompactAppCard: View {
     @State private var isHovering = false
 
     var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .center, spacing: 8) {
-                // App icon
-                AsyncImage(url: URL(string: app.image)) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    default:
-                        appIconPlaceholder
-                    }
-                }
-                .frame(width: 60, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-
-                VStack(spacing: 2) {
-                    Text(app.name)
-                        .scaledFont(size: 12, weight: .medium)
-                        .foregroundColor(OmiColors.textPrimary)
-                        .lineLimit(1)
-
-                    // Rating and installs
-                    HStack(spacing: 3) {
-                        if let rating = app.formattedRating {
-                            Image(systemName: "star.fill")
-                                .scaledFont(size: 8)
-                                .foregroundColor(.yellow)
-                            Text(rating)
-                                .scaledFont(size: 10)
-                                .foregroundColor(OmiColors.textTertiary)
-                        }
-                        if let installs = app.formattedInstalls {
-                            if app.formattedRating != nil {
-                                Text("·")
-                                    .scaledFont(size: 10)
-                                    .foregroundColor(OmiColors.textTertiary)
-                            }
-                            Text(installs)
-                                .scaledFont(size: 10)
-                                .foregroundColor(OmiColors.textTertiary)
+        VStack(alignment: .center, spacing: 8) {
+            Button(action: onSelect) {
+                VStack(alignment: .center, spacing: 8) {
+                    // App icon
+                    AsyncImage(url: URL(string: app.image)) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        default:
+                            appIconPlaceholder
                         }
                     }
-                }
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
 
-                // Get/Open button
-                SmallAppButton(app: app, appProvider: appProvider, onOpen: onSelect)
+                    appSummary
+                }
             }
-            .frame(width: 90)
-            .padding(.vertical, 8)
-            .background(isHovering ? OmiColors.backgroundSecondary.opacity(0.5) : Color.clear)
-            .cornerRadius(12)
+            .buttonStyle(.plain)
+
+            SmallAppButton(app: app, appProvider: appProvider, onOpen: onSelect)
         }
-        .buttonStyle(.plain)
+        .frame(width: 90)
+        .padding(.vertical, 8)
+        .background(isHovering ? OmiColors.backgroundSecondary.opacity(0.5) : Color.clear)
+        .cornerRadius(12)
         .onHover { isHovering = $0 }
+    }
+
+    private var appSummary: some View {
+        VStack(spacing: 2) {
+            Text(app.name)
+                .scaledFont(size: 12, weight: .medium)
+                .foregroundColor(OmiColors.textPrimary)
+                .lineLimit(1)
+
+            // Rating and installs
+            HStack(spacing: 3) {
+                if let rating = app.formattedRating {
+                    Image(systemName: "star.fill")
+                        .scaledFont(size: 8)
+                        .foregroundColor(.yellow)
+                    Text(rating)
+                        .scaledFont(size: 10)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+                if let installs = app.formattedInstalls {
+                    if app.formattedRating != nil {
+                        Text("·")
+                            .scaledFont(size: 10)
+                            .foregroundColor(OmiColors.textTertiary)
+                    }
+                    Text(installs)
+                        .scaledFont(size: 10)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+            }
+        }
     }
 
     private var appIconPlaceholder: some View {
@@ -1803,13 +2007,15 @@ struct SmallAppButton: View {
     var onOpen: (() -> Void)? = nil
 
     var body: some View {
+        let isEnabled = appProvider.isAppEnabled(app)
+        let actionState = AppCardPrimaryActionState(isEnabled: isEnabled, worksExternally: app.worksExternally)
+
         Button(action: {
-            if app.enabled {
-                // If already enabled, open the app detail
+            switch actionState.action {
+            case .openSettings:
                 onOpen?()
-            } else {
-                // If not enabled, enable it
-                Task { await appProvider.toggleApp(app) }
+            case .install:
+                Task { await appProvider.enableApp(app) }
             }
         }) {
             if appProvider.isAppLoading(app.id) {
@@ -1817,10 +2023,10 @@ struct SmallAppButton: View {
                     .scaleEffect(0.6)
                     .frame(width: 50, height: 22)
             } else {
-                Text(app.enabled ? "Open" : "Install")
+                Text(actionState.title)
                     .scaledFont(size: 11, weight: .medium)
                     .foregroundColor(.black)
-                    .frame(width: 50, height: 22)
+                    .frame(width: 62, height: 22)
                     .background(Color.white)
                     .cornerRadius(11)
                     .overlay(
@@ -1844,86 +2050,93 @@ struct AppCard: View {
     @State private var isHovering = false
 
     var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 12) {
-                    // App icon
-                    AsyncImage(url: URL(string: app.image)) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        default:
-                            appIconPlaceholder
-                        }
-                    }
-                    .frame(width: 50, height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(app.name)
-                            .scaledFont(size: 14, weight: .medium)
-                            .foregroundColor(OmiColors.textPrimary)
-                            .lineLimit(1)
-
-                        Text(app.author)
-                            .scaledFont(size: 12)
-                            .foregroundColor(OmiColors.textTertiary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer()
-                }
-
-                Text(app.description)
-                    .scaledFont(size: 12)
-                    .foregroundColor(OmiColors.textSecondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-
-                HStack {
-                    // Rating and installs
-                    HStack(spacing: 6) {
-                        if let rating = app.formattedRating {
-                            HStack(spacing: 3) {
-                                Image(systemName: "star.fill")
-                                    .scaledFont(size: 10)
-                                    .foregroundColor(.yellow)
-                                Text(rating)
-                                    .scaledFont(size: 11)
-                                    .foregroundColor(OmiColors.textTertiary)
-                            }
-                        }
-                        if let installs = app.formattedInstalls {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.down.circle")
-                                    .scaledFont(size: 10)
-                                    .foregroundColor(OmiColors.textTertiary)
-                                Text(installs)
-                                    .scaledFont(size: 11)
-                                    .foregroundColor(OmiColors.textTertiary)
-                            }
-                        }
-                    }
-
-                    Spacer()
-
-                    // Get/Open button
-                    AppActionButton(app: app, appProvider: appProvider, onOpen: onSelect)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            Button(action: onSelect) {
+                appCardContent
             }
-            .padding(14)
-            .background(isHovering ? OmiColors.backgroundSecondary : OmiColors.backgroundPrimary)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
-            )
+            .buttonStyle(.plain)
+
+            HStack {
+                Spacer()
+
+                AppActionButton(app: app, appProvider: appProvider, onOpen: onSelect)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(14)
+        .background(isHovering ? OmiColors.backgroundSecondary : OmiColors.backgroundPrimary)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
+        )
         .onHover { hovering in
             isHovering = hovering
+        }
+    }
+
+    private var appCardContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                // App icon
+                AsyncImage(url: URL(string: app.image)) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    default:
+                        appIconPlaceholder
+                    }
+                }
+                .frame(width: 50, height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(app.name)
+                        .scaledFont(size: 14, weight: .medium)
+                        .foregroundColor(OmiColors.textPrimary)
+                        .lineLimit(1)
+
+                    Text(app.author)
+                        .scaledFont(size: 12)
+                        .foregroundColor(OmiColors.textTertiary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+            }
+
+            Text(app.description)
+                .scaledFont(size: 12)
+                .foregroundColor(OmiColors.textSecondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            // Rating and installs
+            HStack(spacing: 6) {
+                if let rating = app.formattedRating {
+                    HStack(spacing: 3) {
+                        Image(systemName: "star.fill")
+                            .scaledFont(size: 10)
+                            .foregroundColor(.yellow)
+                        Text(rating)
+                            .scaledFont(size: 11)
+                            .foregroundColor(OmiColors.textTertiary)
+                    }
+                }
+                if let installs = app.formattedInstalls {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.down.circle")
+                            .scaledFont(size: 10)
+                            .foregroundColor(OmiColors.textTertiary)
+                        Text(installs)
+                            .scaledFont(size: 11)
+                            .foregroundColor(OmiColors.textTertiary)
+                    }
+                }
+
+                Spacer()
+            }
         }
     }
 
@@ -1945,24 +2158,26 @@ struct AppActionButton: View {
     var onOpen: (() -> Void)? = nil
 
     var body: some View {
+        let isEnabled = appProvider.isAppEnabled(app)
+        let actionState = AppCardPrimaryActionState(isEnabled: isEnabled, worksExternally: app.worksExternally)
+
         Button(action: {
-            if app.enabled {
-                // If already enabled, open the app detail
+            switch actionState.action {
+            case .openSettings:
                 onOpen?()
-            } else {
-                // If not enabled, enable it
-                Task { await appProvider.toggleApp(app) }
+            case .install:
+                Task { await appProvider.enableApp(app) }
             }
         }) {
             if appProvider.isAppLoading(app.id) {
                 ProgressView()
                     .scaleEffect(0.7)
-                    .frame(width: 60, height: 28)
+                    .frame(width: 76, height: 28)
             } else {
-                Text(app.enabled ? "Open" : "Install")
+                Text(actionState.title)
                     .scaledFont(size: 12, weight: .medium)
                     .foregroundColor(.black)
-                    .frame(width: 60, height: 28)
+                    .frame(width: 76, height: 28)
                     .background(Color.white)
                     .cornerRadius(14)
                     .overlay(
@@ -2194,10 +2409,74 @@ struct AppDetailSheet: View {
     @State private var isSettingUp = false
     @State private var isSetupCompleted = false
     @State private var setupCheckTask: Task<Void, Never>?
+    @State private var showManageApp = false
+    @State private var isSettingDefaultSummaryApp = false
+    @State private var summaryPreferenceError: String?
+    @AppStorage("preferredSummarizationAppId") private var preferredSummarizationAppId = ""
 
     /// Always read live from appProvider so state survives tab switches and sheet recreations
     var isEnabled: Bool {
         appProvider.apps.first(where: { $0.id == app.id })?.enabled ?? app.enabled
+    }
+
+    private var primaryActionState: AppDetailPrimaryActionState {
+        AppDetailPrimaryActionState(
+            isEnabled: isEnabled,
+            worksExternally: app.worksExternally,
+            externalOpenTargetAvailable: externalOpenTarget != nil
+        )
+    }
+
+    private var canManageApp: Bool {
+        AppDetailOwnershipPolicy.canManage(
+            appOwnerId: appDetails?.uid,
+            currentUserId: AuthState.shared.userId
+        )
+    }
+
+    private var displayName: String { appDetails?.name ?? app.name }
+    private var displayAuthor: String { appDetails?.author ?? app.author }
+    private var displayDescription: String { appDetails?.description ?? app.description }
+    private var displayImage: String { appDetails?.image ?? app.image }
+    private var displayCategory: String { appDetails?.category ?? app.category }
+    private var displayCapabilities: [String] { appDetails?.capabilities ?? app.capabilities }
+    private var worksWithMemories: Bool { displayCapabilities.contains("memories") }
+    private var externalOpenTarget: URL? {
+        AppDetailExternalOpenTarget.url(
+            for: appDetails?.externalIntegration,
+            userId: AuthState.shared.userId
+        )
+    }
+
+    private var summaryPreferenceAction: AppDetailSummaryPreferenceAction? {
+        AppDetailSummaryPreferenceAction.resolve(
+            appId: app.id,
+            preferredAppId: preferredSummarizationAppId,
+            isInstalled: isEnabled,
+            worksWithMemories: worksWithMemories
+        )
+    }
+
+    private var promptDisplayItems: [AppPromptDisplayItem] {
+        guard let appDetails else { return [] }
+
+        var items: [AppPromptDisplayItem] = []
+        if displayCapabilities.contains("chat"),
+           let prompt = appDetails.chatPrompt?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !prompt.isEmpty {
+            items.append(AppPromptDisplayItem(id: "chat", title: "Chat Prompt", text: prompt))
+        }
+        if displayCapabilities.contains("memories"),
+           let prompt = appDetails.memoryPrompt?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !prompt.isEmpty {
+            items.append(AppPromptDisplayItem(id: "memory", title: "Memory Prompt", text: prompt))
+        }
+        if displayCapabilities.contains("persona"),
+           let prompt = appDetails.personaPrompt?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !prompt.isEmpty {
+            items.append(AppPromptDisplayItem(id: "persona", title: "Persona Prompt", text: prompt))
+        }
+        return items
     }
 
     private func dismissSheet() {
@@ -2222,7 +2501,7 @@ struct AppDetailSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // App header
                     HStack(spacing: 16) {
-                        AsyncImage(url: URL(string: app.image)) { phase in
+                        AsyncImage(url: URL(string: displayImage)) { phase in
                             switch phase {
                             case .success(let image):
                                 image
@@ -2237,11 +2516,11 @@ struct AppDetailSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(app.name)
+                            Text(displayName)
                                 .scaledFont(size: 24, weight: .bold)
                                 .foregroundColor(OmiColors.textPrimary)
 
-                            Text(app.author)
+                            Text(displayAuthor)
                                 .scaledFont(size: 14)
                                 .foregroundColor(OmiColors.textTertiary)
 
@@ -2271,15 +2550,40 @@ struct AppDetailSheet: View {
 
                         // Action button
                         HStack(spacing: 8) {
+                            if canManageApp, let details = appDetails {
+                                Button(action: { showManageApp = true }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "pencil")
+                                            .scaledFont(size: 13, weight: .semibold)
+                                        Text("Manage")
+                                            .scaledFont(size: 14, weight: .semibold)
+                                    }
+                                    .foregroundColor(OmiColors.textPrimary)
+                                    .frame(width: 100, height: 36)
+                                    .background(OmiColors.backgroundSecondary)
+                                    .cornerRadius(18)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 18)
+                                            .stroke(OmiColors.border, lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(details.id.isEmpty)
+                            }
+
                             Button(action: {
                                 Task {
-                                    if isEnabled && app.worksExternally {
-                                        // Open the external integration in browser
-                                        openExternalApp()
-                                    } else if !isEnabled && app.worksExternally {
-                                        await handleInstall()
-                                    } else {
-                                        await appProvider.toggleApp(app)
+                                    switch primaryActionState.action {
+                                    case .openExternal:
+                                        await openExternalApp()
+                                    case .install:
+                                        if app.worksExternally {
+                                            await handleInstall()
+                                        } else {
+                                            await appProvider.enableApp(app)
+                                        }
+                                    case .none:
+                                        break
                                     }
                                 }
                             }) {
@@ -2296,11 +2600,11 @@ struct AppDetailSheet: View {
                                     .foregroundColor(OmiColors.textSecondary)
                                     .frame(width: 120, height: 36)
                                 } else {
-                                    Text(isEnabled ? "Open" : "Install")
+                                    Text(primaryActionState.title)
                                         .scaledFont(size: 14, weight: .semibold)
-                                        .foregroundColor(.black)
+                                        .foregroundColor(primaryActionState.isDisabled ? OmiColors.textSecondary : .black)
                                         .frame(width: 100, height: 36)
-                                        .background(Color.white)
+                                        .background(primaryActionState.isDisabled ? OmiColors.backgroundSecondary : Color.white)
                                         .cornerRadius(18)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 18)
@@ -2309,11 +2613,12 @@ struct AppDetailSheet: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            .disabled(appProvider.isAppLoading(app.id) || isSettingUp || primaryActionState.isDisabled)
 
                             // Disable button shown only when app is enabled
                             if isEnabled && !appProvider.isAppLoading(app.id) && !isSettingUp {
                                 Button(action: {
-                                    Task { await appProvider.toggleApp(app) }
+                                    Task { await appProvider.disableApp(app) }
                                 }) {
                                     Image(systemName: "trash")
                                         .scaledFont(size: 14)
@@ -2330,25 +2635,38 @@ struct AppDetailSheet: View {
                     Divider()
                         .background(OmiColors.backgroundTertiary)
 
+                    if let summaryPreferenceAction {
+                        summaryPreferenceSection(summaryPreferenceAction)
+
+                        Divider()
+                            .background(OmiColors.backgroundTertiary)
+                    }
+
                     // Description
                     VStack(alignment: .leading, spacing: 8) {
                         Text("About")
                             .scaledFont(size: 16, weight: .semibold)
                             .foregroundColor(OmiColors.textPrimary)
 
-                        Text(app.description)
+                        Text(displayDescription)
                             .scaledFont(size: 14)
                             .foregroundColor(OmiColors.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
+                    if !promptDisplayItems.isEmpty {
+                        promptSection
+                    }
+
                     // Setup steps (external integration)
-                    if let integration = appDetails?.externalIntegration, !integration.authSteps.isEmpty {
+                    if let integration = appDetails?.externalIntegration,
+                       !integration.authSteps.isEmpty ||
+                           !(integration.setupInstructionsFilePath?.isEmpty ?? true) {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(integration.authSteps.enumerated()), id: \.offset) { index, step in
                                 Button(action: {
                                     if let uid = AuthState.shared.userId,
-                                       let url = URL(string: "\(step.url)?uid=\(uid)") {
+                                       let url = urlByAppendingUserId(to: step.url, uid: uid) {
                                         NSWorkspace.shared.open(url)
                                     }
                                 }) {
@@ -2390,18 +2708,58 @@ struct AppDetailSheet: View {
                                 }
                                 .buttonStyle(.plain)
                             }
+
+                            if let instructionsPath = integration.setupInstructionsFilePath,
+                               !instructionsPath.isEmpty {
+                                Button(action: {
+                                    if let uid = AuthState.shared.userId,
+                                       let url = urlByAppendingUserId(to: instructionsPath, uid: uid) {
+                                        NSWorkspace.shared.open(url)
+                                    }
+                                }) {
+                                    HStack(spacing: 12) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(OmiColors.backgroundTertiary)
+                                                .frame(width: 40, height: 40)
+                                            Image(systemName: "gearshape")
+                                                .scaledFont(size: 14, weight: .semibold)
+                                                .foregroundColor(OmiColors.textSecondary)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Setup instructions")
+                                                .scaledFont(size: 14, weight: .medium)
+                                                .foregroundColor(OmiColors.textPrimary)
+                                            Text("Open configuration")
+                                                .scaledFont(size: 12)
+                                                .foregroundColor(OmiColors.textTertiary)
+                                        }
+
+                                        Spacer()
+
+                                        Image(systemName: "arrow.up.right.square")
+                                            .scaledFont(size: 14)
+                                            .foregroundColor(OmiColors.textTertiary)
+                                    }
+                                    .padding(12)
+                                    .background(OmiColors.backgroundSecondary)
+                                    .cornerRadius(12)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
 
                     // Capabilities
-                    if !app.capabilities.isEmpty {
+                    if !displayCapabilities.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Capabilities")
                                 .scaledFont(size: 16, weight: .semibold)
                                 .foregroundColor(OmiColors.textPrimary)
 
                             FlowLayout(spacing: 8) {
-                                ForEach(app.capabilities, id: \.self) { capability in
+                                ForEach(displayCapabilities, id: \.self) { capability in
                                     CapabilityBadge(capability: capability)
                                 }
                             }
@@ -2414,7 +2772,7 @@ struct AppDetailSheet: View {
                             .scaledFont(size: 16, weight: .semibold)
                             .foregroundColor(OmiColors.textPrimary)
 
-                        Text(app.category.replacingOccurrences(of: "-", with: " ").capitalized)
+                        Text(displayCategory.replacingOccurrences(of: "-", with: " ").capitalized)
                             .scaledFont(size: 14)
                             .foregroundColor(OmiColors.textSecondary)
                     }
@@ -2487,8 +2845,8 @@ struct AppDetailSheet: View {
         .frame(width: 500, height: 600)
         .background(OmiColors.backgroundPrimary)
         .task {
-            await loadReviews()
             await loadAppDetails()
+            await loadReviews()
             // Resume polling if user completed setup in browser and returned to this sheet
             await resumeSetupPollingIfNeeded()
         }
@@ -2507,6 +2865,19 @@ struct AppDetailSheet: View {
                 onDismiss: { showAddReview = false }
             )
             .frame(width: 400, height: 500)
+        }
+        .dismissableSheet(isPresented: $showManageApp) {
+            if let appDetails = appDetails {
+                AppManagementSheet(
+                    appDetails: appDetails,
+                    appProvider: appProvider,
+                    onSaved: { updatedAppDetails in
+                        self.appDetails = updatedAppDetails
+                    },
+                    onDismiss: { showManageApp = false }
+                )
+                .frame(width: 520, height: 640)
+            }
         }
     }
 
@@ -2530,6 +2901,140 @@ struct AppDetailSheet: View {
             appDetails = try await APIClient.shared.getAppDetails(appId: app.id)
         } catch {
             // Silently fail - details are optional, setup flow will just skip if unavailable
+        }
+    }
+
+    @ViewBuilder
+    private func summaryPreferenceSection(_ action: AppDetailSummaryPreferenceAction) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Summary Default")
+                .scaledFont(size: 16, weight: .semibold)
+                .foregroundColor(OmiColors.textPrimary)
+
+            Text("Use this summary app automatically for future conversation summaries.")
+                .scaledFont(size: 13)
+                .foregroundColor(OmiColors.textSecondary)
+
+            HStack(spacing: 10) {
+                Button(action: {
+                    guard action.isInteractive else { return }
+                    Task { await setDefaultSummaryApp() }
+                }) {
+                    HStack(spacing: 8) {
+                        if isSettingDefaultSummaryApp {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                        } else {
+                            Image(systemName: action.kind == .currentDefault ? "checkmark.circle.fill" : "star")
+                                .scaledFont(size: 13, weight: .semibold)
+                        }
+
+                        Text(isSettingDefaultSummaryApp ? "Saving..." : action.label)
+                            .scaledFont(size: 13, weight: .semibold)
+                    }
+                    .foregroundColor(action.isInteractive ? .black : OmiColors.textSecondary)
+                    .frame(minWidth: 190, minHeight: 34)
+                    .padding(.horizontal, 12)
+                    .background(action.isInteractive ? Color.white : OmiColors.backgroundSecondary)
+                    .cornerRadius(17)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 17)
+                            .stroke(OmiColors.border, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!action.isInteractive || isSettingDefaultSummaryApp)
+
+                if action.kind == .installRequired {
+                    Text("Install the app first.")
+                        .scaledFont(size: 12)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+            }
+
+            if let summaryPreferenceError {
+                Text(summaryPreferenceError)
+                    .scaledFont(size: 12)
+                    .foregroundColor(OmiColors.error)
+            }
+        }
+    }
+
+    private var promptSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Prompts")
+                    .scaledFont(size: 16, weight: .semibold)
+                    .foregroundColor(OmiColors.textPrimary)
+
+                Spacer()
+
+                if canManageApp {
+                    Text("Editable")
+                        .scaledFont(size: 12, weight: .medium)
+                        .foregroundColor(OmiColors.textTertiary)
+                } else {
+                    Text("Read-only")
+                        .scaledFont(size: 12, weight: .medium)
+                        .foregroundColor(OmiColors.textTertiary)
+                }
+            }
+
+            ForEach(promptDisplayItems) { prompt in
+                promptCard(prompt)
+            }
+        }
+    }
+
+    private func promptCard(_ prompt: AppPromptDisplayItem) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(prompt.title)
+                    .scaledFont(size: 13, weight: .semibold)
+                    .foregroundColor(OmiColors.textPrimary)
+
+                Spacer()
+
+                Button(action: { copyPrompt(prompt.text) }) {
+                    Image(systemName: "doc.on.doc")
+                        .scaledFont(size: 12, weight: .medium)
+                        .foregroundColor(OmiColors.textSecondary)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .help("Copy prompt")
+            }
+
+            Text(prompt.text)
+                .scaledFont(size: 12)
+                .foregroundColor(OmiColors.textSecondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(OmiColors.backgroundSecondary)
+                .cornerRadius(8)
+        }
+    }
+
+    private func copyPrompt(_ prompt: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(prompt, forType: .string)
+    }
+
+    private func setDefaultSummaryApp() async {
+        guard summaryPreferenceAction?.kind == .setDefault else { return }
+
+        isSettingDefaultSummaryApp = true
+        summaryPreferenceError = nil
+        defer { isSettingDefaultSummaryApp = false }
+
+        do {
+            try await APIClient.shared.setPreferredSummarizationApp(appId: app.id)
+            preferredSummarizationAppId = app.id
+        } catch {
+            summaryPreferenceError = "Could not set the default summary app."
+            logError("Failed to set default summary app", error: error)
         }
     }
 
@@ -2564,21 +3069,22 @@ struct AppDetailSheet: View {
         startSetupPolling(completionUrl: completionUrl, uid: uid)
     }
 
-    private func openExternalApp() {
-        guard let uid = AuthState.shared.userId else { return }
-        let integration = appDetails?.externalIntegration
-        // Prefer appHomeUrl, then first auth step URL
-        if let homeUrl = integration?.appHomeUrl, !homeUrl.isEmpty, let url = URL(string: homeUrl) {
-            NSWorkspace.shared.open(url)
-        } else if let authSteps = integration?.authSteps, !authSteps.isEmpty,
-                  let url = URL(string: "\(authSteps[0].url)?uid=\(uid)") {
+    private func openExternalApp() async {
+        if appDetails == nil {
+            await loadAppDetails()
+        }
+
+        if let url = AppDetailExternalOpenTarget.url(
+            for: appDetails?.externalIntegration,
+            userId: AuthState.shared.userId
+        ) {
             NSWorkspace.shared.open(url)
         }
     }
 
     private func handleInstall() async {
         // Step 1: Try to enable. Backend returns 400 if setup is not yet complete.
-        await appProvider.enableApp(app)
+        _ = await appProvider.setApp(app, enabled: true)
 
         // Step 2: If enable succeeded (no setup required), we're done.
         if isEnabled { return }
@@ -2595,12 +3101,11 @@ struct AppDetailSheet: View {
 
         // Open auth step or setup instructions URL in browser
         if let authSteps = integration?.authSteps, !authSteps.isEmpty {
-            let rawUrl = "\(authSteps[0].url)?uid=\(uid)"
-            if let url = URL(string: rawUrl) {
+            if let url = urlByAppendingUserId(to: authSteps[0].url, uid: uid) {
                 NSWorkspace.shared.open(url)
             }
         } else if let instructionsPath = integration?.setupInstructionsFilePath, !instructionsPath.isEmpty {
-            if let url = URL(string: instructionsPath) {
+            if let url = urlByAppendingUserId(to: instructionsPath, uid: uid) {
                 NSWorkspace.shared.open(url)
             }
         }
@@ -2633,6 +3138,304 @@ struct AppDetailSheet: View {
                 }
             }
             await MainActor.run { isSettingUp = false }
+        }
+    }
+
+    private func urlByAppendingUserId(to rawUrl: String, uid: String) -> URL? {
+        guard var components = URLComponents(string: rawUrl) else { return nil }
+        var queryItems = components.queryItems ?? []
+        if !queryItems.contains(where: { $0.name == "uid" }) {
+            queryItems.append(URLQueryItem(name: "uid", value: uid))
+        }
+        components.queryItems = queryItems
+        return components.url
+    }
+}
+
+// MARK: - App Management Sheet
+
+struct AppManagementSheet: View {
+    let appDetails: OmiAppDetails
+    @ObservedObject var appProvider: AppProvider
+    let onSaved: (OmiAppDetails) -> Void
+    var onDismiss: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var environmentDismiss
+    @State private var name: String
+    @State private var author: String
+    @State private var category: String
+    @State private var description: String
+    @State private var isPrivate: Bool
+    @State private var chatPrompt: String
+    @State private var memoryPrompt: String
+    @State private var personaPrompt: String
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    init(
+        appDetails: OmiAppDetails,
+        appProvider: AppProvider,
+        onSaved: @escaping (OmiAppDetails) -> Void,
+        onDismiss: (() -> Void)? = nil
+    ) {
+        self.appDetails = appDetails
+        self.appProvider = appProvider
+        self.onSaved = onSaved
+        self.onDismiss = onDismiss
+        _name = State(initialValue: appDetails.name)
+        _author = State(initialValue: appDetails.author)
+        _category = State(initialValue: appDetails.category)
+        _description = State(initialValue: appDetails.description)
+        _isPrivate = State(initialValue: appDetails.`private`)
+        _chatPrompt = State(initialValue: appDetails.chatPrompt ?? "")
+        _memoryPrompt = State(initialValue: appDetails.memoryPrompt ?? "")
+        _personaPrompt = State(initialValue: appDetails.personaPrompt ?? "")
+    }
+
+    private var hasChatPrompt: Bool {
+        appDetails.capabilities.contains("chat")
+    }
+
+    private var hasMemoryPrompt: Bool {
+        appDetails.capabilities.contains("memories")
+    }
+
+    private var hasPersonaPrompt: Bool {
+        appDetails.capabilities.contains("persona")
+    }
+
+    private var isFormValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !author.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func dismissSheet() {
+        if let onDismiss = onDismiss {
+            onDismiss()
+        } else {
+            environmentDismiss()
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Color.clear
+                    .frame(width: 28, height: 28)
+
+                Spacer()
+
+                Text("Manage App")
+                    .scaledFont(size: 16, weight: .semibold)
+                    .foregroundColor(OmiColors.textPrimary)
+
+                Spacer()
+
+                DismissButton(action: dismissSheet)
+            }
+            .padding()
+
+            Divider()
+                .background(OmiColors.backgroundTertiary)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    editableTextField("Name", text: $name)
+                    editableTextField("Author", text: $author)
+                    editableTextField("Category", text: $category)
+
+                    editableTextEditor(
+                        "Description",
+                        placeholder: "Describe what this app does...",
+                        text: $description,
+                        minHeight: 100
+                    )
+
+                    Toggle(isOn: $isPrivate) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Private")
+                                .scaledFont(size: 14, weight: .medium)
+                                .foregroundColor(OmiColors.textPrimary)
+                            Text("Only you can see this app while it is private.")
+                                .scaledFont(size: 12)
+                                .foregroundColor(OmiColors.textTertiary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+
+                    if hasChatPrompt {
+                        editableTextEditor(
+                            "Chat Prompt",
+                            placeholder: "Instructions for chat behavior...",
+                            text: $chatPrompt
+                        )
+                    }
+
+                    if hasMemoryPrompt {
+                        editableTextEditor(
+                            "Memory Prompt",
+                            placeholder: "Instructions for memory processing...",
+                            text: $memoryPrompt
+                        )
+                    }
+
+                    if hasPersonaPrompt {
+                        editableTextEditor(
+                            "Persona Prompt",
+                            placeholder: "Instructions for persona behavior...",
+                            text: $personaPrompt
+                        )
+                    }
+
+                    if let errorMessage = errorMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(OmiColors.error)
+                            Text(errorMessage)
+                                .scaledFont(size: 13)
+                                .foregroundColor(OmiColors.error)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(20)
+            }
+
+            Divider()
+                .background(OmiColors.backgroundTertiary)
+
+            HStack {
+                Button(action: dismissSheet) {
+                    Text("Cancel")
+                        .scaledFont(size: 14, weight: .medium)
+                        .foregroundColor(OmiColors.textSecondary)
+                        .frame(width: 96, height: 36)
+                        .background(OmiColors.backgroundSecondary)
+                        .cornerRadius(18)
+                }
+                .buttonStyle(.plain)
+                .disabled(isSaving)
+
+                Spacer()
+
+                Button(action: {
+                    Task { await saveApp() }
+                }) {
+                    if isSaving {
+                        ProgressView()
+                            .frame(width: 96, height: 36)
+                    } else {
+                        Text("Save")
+                            .scaledFont(size: 14, weight: .semibold)
+                            .foregroundColor(.black)
+                            .frame(width: 96, height: 36)
+                            .background(Color.white)
+                            .cornerRadius(18)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(!isFormValid || isSaving)
+                .opacity(isFormValid ? 1.0 : 0.5)
+            }
+            .padding()
+        }
+        .background(OmiColors.backgroundPrimary)
+    }
+
+    @ViewBuilder
+    private func editableTextField(_ title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .scaledFont(size: 14, weight: .medium)
+                .foregroundColor(OmiColors.textPrimary)
+
+            TextField(title, text: text)
+                .textFieldStyle(.plain)
+                .scaledFont(size: 14)
+                .foregroundColor(OmiColors.textPrimary)
+                .padding(12)
+                .background(OmiColors.backgroundSecondary)
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
+                )
+        }
+    }
+
+    @ViewBuilder
+    private func editableTextEditor(
+        _ title: String,
+        placeholder: String,
+        text: Binding<String>,
+        minHeight: CGFloat = 140
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .scaledFont(size: 14, weight: .medium)
+                .foregroundColor(OmiColors.textPrimary)
+
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: text)
+                    .scaledFont(size: 14)
+                    .foregroundColor(OmiColors.textPrimary)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: minHeight)
+                    .padding(12)
+                    .background(OmiColors.backgroundSecondary)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
+                    )
+
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .scaledFont(size: 14)
+                        .foregroundColor(OmiColors.textTertiary)
+                        .padding(.leading, 17)
+                        .padding(.top, 20)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func saveApp() async {
+        guard isFormValid else { return }
+
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        let update = AppUpdateRequest(
+            id: appDetails.id,
+            uid: appDetails.uid,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            author: author.trimmingCharacters(in: .whitespacesAndNewlines),
+            category: category.trimmingCharacters(in: .whitespacesAndNewlines),
+            description: description.trimmingCharacters(in: .whitespacesAndNewlines),
+            isPrivate: isPrivate,
+            capabilities: appDetails.capabilities,
+            chatPrompt: hasChatPrompt ? chatPrompt : nil,
+            memoryPrompt: hasMemoryPrompt ? memoryPrompt : nil,
+            personaPrompt: hasPersonaPrompt ? personaPrompt : nil,
+            isPaid: appDetails.isPaid,
+            price: appDetails.price,
+            paymentPlan: appDetails.paymentPlan
+        )
+
+        do {
+            try await APIClient.shared.updateApp(update)
+            let refreshedDetails = try await APIClient.shared.getAppDetails(appId: appDetails.id)
+            await appProvider.searchApps()
+            onSaved(refreshedDetails)
+            dismissSheet()
+        } catch {
+            errorMessage = "Failed to save app: \(error.localizedDescription)"
         }
     }
 }
@@ -3013,7 +3816,8 @@ struct FlowLayout: Layout {
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout CacheData) -> CGSize {
-        let width = proposal.width ?? 0
+        let fallbackWidth = subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 1
+        let width = max(proposal.width ?? fallbackWidth, fallbackWidth, 1)
         let result = FlowResult(in: width, subviews: subviews, spacing: spacing)
         cache.result = result
         cache.width = width
@@ -3098,13 +3902,10 @@ struct DismissableSheetModifier<SheetContent: View>: ViewModifier {
                             .transition(.opacity)
                             .zIndex(0)
 
-                        // Force the sheet into a centered full-size overlay so it
-                        // does not end up clipped or visually hidden behind the scrim.
                         sheetContent()
                             .background(OmiColors.backgroundPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                             .zIndex(1)
                     }
@@ -3156,13 +3957,10 @@ struct DismissableSheetItemModifier<Item: Identifiable, SheetContent: View>: Vie
                             .transition(.opacity)
                             .zIndex(0)
 
-                        // Force the sheet into a centered full-size overlay so it
-                        // does not end up clipped or visually hidden behind the scrim.
                         sheetContent(presentedItem)
                             .background(OmiColors.backgroundPrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                             .zIndex(1)
                     }

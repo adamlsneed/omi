@@ -311,10 +311,19 @@ final class APIClientRoutingTests: XCTestCase {
 
     func testUpdateConversationTitleRoutesToPython() async {
         let client = await makeTestClient()
-        try? await client.updateConversationTitle(id: "c2", title: "New")
+        try? await client.updateConversationTitle(id: "c2", title: "New Title")
         assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
-                     pathContains: "v1/conversations/c2", method: "PATCH",
+                     pathContains: "v1/conversations/c2/title?title=New%20Title", method: "PATCH",
                      label: "updateConversationTitle")
+    }
+
+    func testReprocessConversationRoutesAppIdAsQueryParameter() async {
+        let client = await makeTestClient()
+        try? await client.reprocessConversation(conversationId: "c2", appId: "summary app")
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v1/conversations/c2/reprocess?app_id=summary%20app", method: "POST",
+                     label: "reprocessConversation")
     }
 
     // -- Folders (GET → Python) --
@@ -355,6 +364,77 @@ final class APIClientRoutingTests: XCTestCase {
         assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
                      pathContains: "v1/apps", method: "GET",
                      label: "getApps")
+    }
+
+    func testSearchAppsUsesHostedSearchQueryContract() async {
+        let client = await makeTestClient()
+        _ = try? await client.searchApps(
+            query: "spotify playlists",
+            category: "entertainment-and-fun",
+            capability: "external_integration",
+            installedOnly: true
+        ) as [OmiApp]
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v2/apps/search", method: "GET",
+                     label: "searchApps")
+
+        let components = URLComponents(url: URLCapture.capturedRequests[0].url, resolvingAgainstBaseURL: false)
+        let queryItems = Dictionary(uniqueKeysWithValues: (components?.queryItems ?? []).compactMap { item in
+            item.value.map { (item.name, $0) }
+        })
+
+        XCTAssertEqual(queryItems["q"], "spotify playlists")
+        XCTAssertNil(queryItems["query"])
+        XCTAssertEqual(queryItems["category"], "entertainment-and-fun")
+        XCTAssertEqual(queryItems["capability"], "external_integration")
+        XCTAssertEqual(queryItems["installed_apps"], "true")
+    }
+
+    func testUpdateAppRoutesMultipartPatchToPython() async throws {
+        let client = await makeTestClient()
+        let request = AppUpdateRequest(
+            id: "app-123",
+            uid: "user-1",
+            name: "Updated App",
+            author: "Adam",
+            category: "productivity",
+            description: "Updated description",
+            isPrivate: true,
+            capabilities: ["chat"],
+            chatPrompt: "Help with chat",
+            memoryPrompt: nil,
+            personaPrompt: nil,
+            isPaid: false,
+            price: nil,
+            paymentPlan: nil
+        )
+
+        try? await client.updateApp(request)
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v1/apps/app-123", method: "PATCH",
+                     label: "updateApp")
+
+        let captured = try XCTUnwrap(URLCapture.capturedRequests.first)
+        XCTAssertTrue(captured.headers["Content-Type"]?.hasPrefix("multipart/form-data; boundary=") == true)
+
+        let body = try XCTUnwrap(captured.body)
+        let bodyText = String(decoding: body, as: UTF8.self)
+        XCTAssertTrue(bodyText.contains("name=\"app_data\""))
+        XCTAssertTrue(bodyText.contains("\"id\":\"app-123\""))
+        XCTAssertTrue(bodyText.contains("\"private\":true"))
+        XCTAssertTrue(bodyText.contains("\"chat_prompt\":\"Help with chat\""))
+    }
+
+    func testSetPreferredSummarizationAppRoutesPutToPython() async {
+        let client = await makeTestClient()
+
+        try? await client.setPreferredSummarizationApp(appId: "summary-app-123")
+
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v1/users/preferences/app?app_id=summary-app-123", method: "PUT",
+                     label: "setPreferredSummarizationApp")
     }
 
     // -- Personas (GET → Python) --

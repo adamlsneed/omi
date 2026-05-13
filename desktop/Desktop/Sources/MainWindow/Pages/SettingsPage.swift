@@ -58,17 +58,24 @@ struct SettingsPage: View {
 }
 
 struct SubscriptionPlanCatalogMerger {
+  /// Merge primary and fallback plan catalogs, preferring primary data.
+  /// Defensive filtering prevents dictionary crashes when the backend returns
+  /// incomplete plan or price records.
   static func merge(
     primary: [SubscriptionPlanOption],
     fallback: [SubscriptionPlanOption]
   ) -> [SubscriptionPlanOption] {
-    var mergedById: [String: SubscriptionPlanOption] = [:]
+    let validFallback = fallback.filter { !$0.id.isEmpty }
+    let validPrimary = primary.filter { !$0.id.isEmpty }
+    var mergedById: [String: SubscriptionPlanOption] = Dictionary(
+      minimumCapacity: validFallback.count + validPrimary.count
+    )
 
-    for plan in fallback {
-      mergedById[plan.id] = plan
+    for plan in validFallback {
+      mergedById[plan.id] = sanitizedPlan(plan)
     }
 
-    for plan in primary {
+    for plan in validPrimary {
       if let existing = mergedById[plan.id] {
         mergedById[plan.id] = SubscriptionPlanOption(
           id: plan.id,
@@ -80,7 +87,7 @@ struct SubscriptionPlanCatalogMerger {
           prices: mergePrices(primary: plan.prices, fallback: existing.prices)
         )
       } else {
-        mergedById[plan.id] = plan
+        mergedById[plan.id] = sanitizedPlan(plan)
       }
     }
 
@@ -91,13 +98,17 @@ struct SubscriptionPlanCatalogMerger {
     primary: [SubscriptionPriceOption],
     fallback: [SubscriptionPriceOption]
   ) -> [SubscriptionPriceOption] {
-    var mergedById: [String: SubscriptionPriceOption] = [:]
+    let validFallback = fallback.filter { !$0.id.isEmpty }
+    let validPrimary = primary.filter { !$0.id.isEmpty }
+    var mergedById: [String: SubscriptionPriceOption] = Dictionary(
+      minimumCapacity: validFallback.count + validPrimary.count
+    )
 
-    for price in fallback {
+    for price in validFallback {
       mergedById[price.id] = price
     }
 
-    for price in primary {
+    for price in validPrimary {
       mergedById[price.id] = price
     }
 
@@ -107,6 +118,18 @@ struct SubscriptionPlanCatalogMerger {
       }
       return lhs.id < rhs.id
     }
+  }
+
+  private static func sanitizedPlan(_ plan: SubscriptionPlanOption) -> SubscriptionPlanOption {
+    SubscriptionPlanOption(
+      id: plan.id,
+      title: plan.title,
+      subtitle: plan.subtitle,
+      description: plan.description,
+      eyebrow: plan.eyebrow,
+      features: plan.features,
+      prices: mergePrices(primary: plan.prices, fallback: [])
+    )
   }
 }
 
@@ -6156,6 +6179,8 @@ struct SettingsContentView: View {
       return "Architect"
     case .operator:
       return "Operator"
+    case .unknown:
+      return "Free"
     }
   }
 

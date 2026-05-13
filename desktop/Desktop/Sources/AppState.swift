@@ -1259,9 +1259,6 @@ class AppState: ObservableObject {
         "Transcription: Using language=\(effectiveLanguage) (autoDetect=\(AssistantSettings.shared.transcriptionAutoDetect), selected=\(AssistantSettings.shared.transcriptionLanguage))"
       )
 
-      // Always streaming via Python backend /v4/listen
-      transcriptionService = try TranscriptionService(language: effectiveLanguage)
-
       // Set conversation source based on audio source
       if effectiveSource == .bleDevice, let device = DeviceProvider.shared.connectedDevice {
         currentConversationSource = ConversationSource.from(deviceType: device.type)
@@ -1272,6 +1269,7 @@ class AppState: ObservableObject {
       }
 
       // Initialize audio services based on source
+      var useMultiChannel = false
       if effectiveSource == .microphone {
         // Initialize audio capture service
         audioCaptureService = AudioCaptureService()
@@ -1292,12 +1290,20 @@ class AppState: ObservableObject {
           )
         } else if #available(macOS 14.4, *) {
           systemAudioCaptureService = SystemAudioCaptureService()
-          log("Transcription: System audio capture initialized (macOS 14.4+)")
+          useMultiChannel = true
+          log("Transcription: System audio capture initialized (macOS 14.4+) — using multi-channel mode")
         } else {
           log("Transcription: System audio capture not available (requires macOS 14.4+)")
         }
       }
       // For BLE device, BleAudioService will be used in startAudioCapture
+
+      let channelCount = useMultiChannel ? 2 : 1
+      transcriptionService = try TranscriptionService(
+        language: effectiveLanguage,
+        mode: .conversation,
+        channels: channelCount
+      )
 
       // Streaming mode: start transcription service first, then audio on connect
       transcriptionService?.start(
@@ -1406,12 +1412,19 @@ class AppState: ObservableObject {
     }
   }
 
-  /// Start microphone + system audio capture — mixes mic and system audio into a single
-  /// mono stream (via AudioMixer) and sends it to the Python backend (`channels=1`).
-  /// This way anything playing through the Mac's speakers (YouTube, calls, music)
-  /// ends up in the conversation transcript alongside the user's voice.
+  /// Start microphone audio capture and stream to the Python backend.
+  ///
+  /// When system audio capture is active, mic audio is sent on channel 0x01 and
+  /// system audio on channel 0x02 so `/v4/listen` can preserve speaker identity
+  /// for call recordings. When system audio is unavailable, the mono mixer keeps
+  /// mic-only capture flowing.
   private func startMicrophoneAudioCapture() async {
     guard let audioCaptureService = audioCaptureService else { return }
+
+    var useMultiChannel = false
+    if #available(macOS 14.4, *) {
+      useMultiChannel = (systemAudioCaptureService as? SystemAudioCaptureService) != nil
+    }
 
     // Silent-mic watchdog: on A2DP profile conflict the Bluetooth input device returns
     // zero samples even though CoreAudio reports healthy capture. Fall back to the
@@ -1422,51 +1435,60 @@ class AppState: ObservableObject {
       }
     }
 
-    // Start the mixer — it sums mic + system into a mono stream and forwards it to
-    // the transcription WebSocket.
-    audioMixer?.start { [weak self] monoMixed in
-      self?.transcriptionService?.sendAudio(monoMixed)
+    if !useMultiChannel {
+      audioMixer?.start { [weak self] monoMixed in
+        self?.transcriptionService?.sendAudio(monoMixed)
+      }
     }
 
     do {
-      // Microphone capture → mixer (mic channel). Level still drives the UI.
+      // Microphone capture. Multi-channel streams directly to channel 0x01;
+      // mono fallback feeds the mixer.
       try await audioCaptureService.startCapture(
         onAudioChunk: { [weak self] audioData in
-          self?.audioMixer?.setMicAudio(audioData)
+          guard let self = self else { return }
+          if useMultiChannel {
+            self.transcriptionService?.sendAudio(audioData, channel: .mic)
+          } else {
+            self.audioMixer?.setMicAudio(audioData)
+          }
         },
         onAudioLevel: { level in
           // Use dedicated monitor to avoid triggering AppState re-renders
           AudioLevelMonitor.shared.updateMicrophoneLevel(level)
         }
       )
-      log("Transcription: Microphone capture started (→ mixer, Python backend mono)")
+      log(
+        "Transcription: Microphone capture started (\(useMultiChannel ? "multi-channel ch=0x01" : "mono"), Python backend)"
+      )
 
-      // Start system audio capture if available (macOS 14.4+). When present, its
-      // samples are mixed into the same mono stream so YouTube/calls/music end up
-      // in the transcript too. If unavailable or it fails, we simply keep mic-only
-      // audio flowing through the mixer.
       if #available(macOS 14.4, *) {
         if let systemService = systemAudioCaptureService as? SystemAudioCaptureService {
           do {
             try await systemService.startCapture(
               onAudioChunk: { [weak self] audioData in
-                self?.audioMixer?.setSystemAudio(audioData)
+                if useMultiChannel {
+                  self?.transcriptionService?.sendAudio(audioData, channel: .systemAudio)
+                } else {
+                  self?.audioMixer?.setSystemAudio(audioData)
+                }
               },
               onAudioLevel: { level in
                 AudioLevelMonitor.shared.updateSystemLevel(level)
               }
             )
-            log("Transcription: System audio capture started (→ mixer, mono sum)")
+            log(
+              "Transcription: System audio capture started (\(useMultiChannel ? "multi-channel ch=0x02" : "mono mixer"))"
+            )
           } catch {
-            // System audio is optional — continue with mic only (mixer will just
-            // emit mic samples summed with zero system samples).
+            // System audio is optional; keep mic capture running.
             logError(
               "Transcription: System audio capture failed (continuing with mic only)", error: error)
           }
         }
       }
 
-      log("Transcription: Audio capture started (mic + system → mono mix → Python backend)")
+      log("Transcription: Audio capture started (\(useMultiChannel ? "separate mic+system channels" : "mono mic") → Python backend)")
     } catch {
       logError("Transcription: Failed to start audio capture", error: error)
       stopTranscription()
@@ -1733,7 +1755,12 @@ class AppState: ObservableObject {
     // Reconnect transcription service for the next conversation
     do {
       let effectiveLanguage = AssistantSettings.shared.effectiveTranscriptionLanguage
-      transcriptionService = try TranscriptionService(language: effectiveLanguage)
+      let channelCount = (audioSource == .microphone && systemAudioCaptureService != nil) ? 2 : 1
+      transcriptionService = try TranscriptionService(
+        language: effectiveLanguage,
+        mode: .conversation,
+        channels: channelCount
+      )
       transcriptionService?.start(
         onSegments: { [weak self] segments in
           Task { @MainActor in
@@ -2243,7 +2270,7 @@ class AppState: ObservableObject {
   /// Update a conversation title locally (after successful API call)
   func updateConversationTitle(_ conversationId: String, title: String) {
     if let index = conversations.firstIndex(where: { $0.id == conversationId }) {
-      conversations[index].structured.title = title
+      conversations[index] = ConversationTitleUpdatePolicy.updatedConversation(conversations[index], title: title)
     }
   }
 

@@ -167,4 +167,10 @@ final class FloatingBarUsageLimiterTests: XCTestCase {
     limiter.applyPlan(plan: .operator, status: .inactive)
     XCTAssertFalse(limiter.hasPaidPlan)
   }
+
+  func testApplyPlanUnknownIsNotPaid() {
+    let limiter = FloatingBarUsageLimiter()
+    limiter.applyPlan(plan: .unknown, status: .active)
+    XCTAssertFalse(limiter.hasPaidPlan)
+  }
 }
