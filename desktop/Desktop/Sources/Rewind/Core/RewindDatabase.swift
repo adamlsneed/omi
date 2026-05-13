@@ -13,6 +13,11 @@ actor RewindDatabase {
     /// Track initialization state to prevent concurrent init attempts
     private var initializationTask: Task<Void, Error>?
 
+    /// Consecutive initialization failures, used for bounded retry recovery.
+    private var consecutiveInitFailures = 0
+    private let maxInitRetries = 3
+    private let baseRetryDelay: UInt64 = 500_000_000
+
     /// Path to the running flag file (used to detect unclean shutdown)
     private var runningFlagPath: String?
 
@@ -45,8 +50,15 @@ actor RewindDatabase {
     /// Whether the database has been successfully initialized
     var isInitialized: Bool { dbQueue != nil }
 
-    /// Get the database pool for other storage actors
+    /// Get the database pool for other storage actors.
+    /// If a transient startup error left the DB closed, opportunistically
+    /// start a bounded re-initialization so the app can recover on the next call.
     func getDatabaseQueue() -> DatabasePool? {
+        if dbQueue == nil && initializationTask == nil && consecutiveInitFailures < maxInitRetries {
+            Task {
+                try? await self.initialize()
+            }
+        }
         return dbQueue
     }
 
@@ -187,10 +199,10 @@ actor RewindDatabase {
             }
         }
 
-        // Start initialization
+        // Start initialization with bounded retry recovery for transient I/O errors.
         let myGeneration = initGeneration
         let task = Task {
-            try await performInitialization()
+            try await performInitializationWithRetry()
         }
         initializationTask = task
 
@@ -200,12 +212,43 @@ actor RewindDatabase {
             if initGeneration == myGeneration {
                 initializationTask = nil
             }
+            consecutiveInitFailures = 0
         } catch {
             if initGeneration == myGeneration {
                 initializationTask = nil
             }
+            consecutiveInitFailures += 1
             throw error
         }
+    }
+
+    /// Retry wrapper around the actual initialization. SQLite startup can fail
+    /// transiently when WAL files are locked or the disk is briefly busy.
+    private func performInitializationWithRetry() async throws {
+        var lastError: Error?
+
+        for attempt in 0..<maxInitRetries {
+            do {
+                try await performInitialization()
+                if attempt > 0 {
+                    log("RewindDatabase: Initialization succeeded on retry \(attempt)")
+                }
+                return
+            } catch {
+                lastError = error
+                let delay = baseRetryDelay * UInt64(1 << attempt)
+                let isFinalAttempt = attempt == maxInitRetries - 1
+                let message = isFinalAttempt
+                    ? "RewindDatabase: Init attempt \(attempt + 1)/\(maxInitRetries) failed"
+                    : "RewindDatabase: Init attempt \(attempt + 1)/\(maxInitRetries) failed, retrying in \(delay / 1_000_000)ms"
+                logError(message, error: error)
+                if dbQueue != nil { close() }
+                if isFinalAttempt { break }
+                try? await Task.sleep(nanoseconds: delay)
+            }
+        }
+
+        throw lastError ?? RewindError.databaseNotInitialized
     }
 
     /// Actual initialization logic (called only once at a time)

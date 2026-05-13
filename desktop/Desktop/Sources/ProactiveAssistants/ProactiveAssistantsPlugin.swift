@@ -38,6 +38,11 @@ public class ProactiveAssistantsPlugin: NSObject {
     // encoding is slower than the capture rate — the primary cause of multi-GB memory growth.
     private(set) var isProcessingRewindFrame = false
     private(set) var droppedFrameCount = 0
+    // Re-entrancy guard: prevents overlapping captureFrame calls from piling
+    // CGImages in memory while awaiting ScreenCaptureKit or image encoding.
+    private var isCapturing = false
+    private let maxPendingFrameDataBytes: Int = 50 * 1024 * 1024
+    private var pendingFrameDataBytes = 0
 
     /// Periodic screen recording permission recheck interval (60 seconds).
     /// Detects permission revocation while monitoring is active (issue #5792).
@@ -521,6 +526,8 @@ public class ProactiveAssistantsPlugin: NSObject {
         isMonitoring = false
         isStartingMonitoring = false  // Reset in case stop was called during startup
         isProcessingRewindFrame = false
+        isCapturing = false
+        pendingFrameDataBytes = 0
         if droppedFrameCount > 0 {
             log("RewindBackpressure: Session total dropped frames: \(droppedFrameCount)")
         }
@@ -632,6 +639,9 @@ public class ProactiveAssistantsPlugin: NSObject {
 
     private func captureFrame() async {
         guard isMonitoring, let screenCaptureService = screenCaptureService else { return }
+        guard !isCapturing else { return }
+        isCapturing = true
+        defer { isCapturing = false }
 
         // Periodic screen recording permission recheck (issue #5792).
         // Detects when the user revokes permission via System Settings while monitoring is active,
@@ -774,28 +784,33 @@ public class ProactiveAssistantsPlugin: NSObject {
                 frameCount += 1
                 let captureTime = Date()
 
-                // Encode JPEG off main actor — CGImageDestinationFinalize is CPU-heavy
+                // Encode JPEG off main actor — CGImageDestinationFinalize is CPU-heavy.
+                // Autorelease the CoreGraphics backing buffers as soon as encoding completes.
                 let captureService = screenCaptureService
                 let jpegData = await Task.detached(priority: .userInitiated) {
-                    captureService.encodeJPEG(from: cgImage)
+                    autoreleasepool {
+                        captureService.encodeJPEG(from: cgImage)
+                    }
                 }.value
-                if let jpegData = jpegData {
-                    let frame = CapturedFrame(
-                        jpegData: jpegData,
-                        appName: appName,
-                        windowTitle: currentWindowTitle,
-                        frameNumber: frameCount,
-                        captureTime: captureTime
-                    )
+                autoreleasepool {
+                    if let jpegData = jpegData {
+                        let frame = CapturedFrame(
+                            jpegData: jpegData,
+                            appName: appName,
+                            windowTitle: currentWindowTitle,
+                            frameNumber: frameCount,
+                            captureTime: captureTime
+                        )
 
-                    // Always track the frame for context switch detection (even during delay)
-                    AssistantCoordinator.shared.trackFrame(frame)
+                        // Always track the frame for context switch detection (even during delay)
+                        AssistantCoordinator.shared.trackFrame(frame)
 
-                    if !isInDelayPeriod {
-                        distributeFrameIfChanged(frame)
-                    } else {
-                        // During delay, still distribute to assistants that need it (e.g. refocus detection)
-                        AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                        if !isInDelayPeriod {
+                            distributeFrameIfChanged(frame)
+                        } else {
+                            // During delay, still distribute to assistants that need it (e.g. refocus detection)
+                            AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                        }
                     }
                 }
 
@@ -804,13 +819,19 @@ public class ProactiveAssistantsPlugin: NSObject {
                 // Without this, fire-and-forget Tasks queue up holding CGImages (~24MB each),
                 // causing multi-GB memory growth when encoding can't keep up with capture rate.
                 if !isRewindExcluded {
-                    if isProcessingRewindFrame {
+                    let frameBytes = cgImage.bytesPerRow * cgImage.height
+                    if isProcessingRewindFrame || pendingFrameDataBytes + frameBytes > maxPendingFrameDataBytes {
                         droppedFrameCount += 1
                         if droppedFrameCount == 1 || droppedFrameCount % 30 == 0 {
-                            log("RewindBackpressure: Dropped frame (encoder busy), total dropped: \(droppedFrameCount)")
+                            log("RewindBackpressure: Dropped frame (encoder busy, pending=\(pendingFrameDataBytes / 1024 / 1024)MB), total dropped: \(droppedFrameCount)")
+                        }
+                        if droppedFrameCount == 60 {
+                            log("RewindBackpressure: WARNING — 60+ consecutive frames dropped; RewindIndexer may be stalled")
                         }
                     } else {
+                        droppedFrameCount = 0
                         isProcessingRewindFrame = true
+                        pendingFrameDataBytes += frameBytes
                         let windowTitle = self.currentWindowTitle
                         Task { [weak self] in
                             await RewindIndexer.shared.processFrame(
@@ -820,6 +841,7 @@ public class ProactiveAssistantsPlugin: NSObject {
                                 captureTime: captureTime
                             )
                             await MainActor.run {
+                                self?.pendingFrameDataBytes = max(0, (self?.pendingFrameDataBytes ?? 0) - frameBytes)
                                 self?.isProcessingRewindFrame = false
                             }
                         }
@@ -849,34 +871,45 @@ public class ProactiveAssistantsPlugin: NSObject {
 
             frameCount += 1
 
-            let frame = CapturedFrame(
-                jpegData: jpegData,
-                appName: appName,
-                windowTitle: currentWindowTitle,
-                frameNumber: frameCount
-            )
+            let frame = autoreleasepool {
+                CapturedFrame(
+                    jpegData: jpegData,
+                    appName: appName,
+                    windowTitle: currentWindowTitle,
+                    frameNumber: frameCount
+                )
+            }
 
-            // Always track the frame for context switch detection (even during delay)
-            AssistantCoordinator.shared.trackFrame(frame)
+            autoreleasepool {
+                // Always track the frame for context switch detection (even during delay)
+                AssistantCoordinator.shared.trackFrame(frame)
 
-            if !isInDelayPeriod {
-                distributeFrameIfChanged(frame)
-            } else {
-                // During delay, still distribute to assistants that need it (e.g. refocus detection)
-                AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                if !isInDelayPeriod {
+                    distributeFrameIfChanged(frame)
+                } else {
+                    // During delay, still distribute to assistants that need it (e.g. refocus detection)
+                    AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                }
             }
 
             if !isRewindExcluded {
-                if isProcessingRewindFrame {
+                let frameBytes = jpegData.count
+                if isProcessingRewindFrame || pendingFrameDataBytes + frameBytes > maxPendingFrameDataBytes {
                     droppedFrameCount += 1
                     if droppedFrameCount == 1 || droppedFrameCount % 30 == 0 {
-                        log("RewindBackpressure: Dropped frame (encoder busy), total dropped: \(droppedFrameCount)")
+                        log("RewindBackpressure: Dropped frame (encoder busy, pending=\(pendingFrameDataBytes / 1024 / 1024)MB), total dropped: \(droppedFrameCount)")
+                    }
+                    if droppedFrameCount == 60 {
+                        log("RewindBackpressure: WARNING — 60+ consecutive frames dropped; RewindIndexer may be stalled")
                     }
                 } else {
+                    droppedFrameCount = 0
                     isProcessingRewindFrame = true
+                    pendingFrameDataBytes += frameBytes
                     Task { [weak self] in
                         await RewindIndexer.shared.processFrame(frame)
                         await MainActor.run {
+                            self?.pendingFrameDataBytes = max(0, (self?.pendingFrameDataBytes ?? 0) - frameBytes)
                             self?.isProcessingRewindFrame = false
                         }
                     }

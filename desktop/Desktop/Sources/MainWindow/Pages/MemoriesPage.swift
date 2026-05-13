@@ -1185,7 +1185,7 @@ struct MemoriesPage: View {
     if viewModel.selectedTags.isEmpty {
       return "All"
     } else if viewModel.selectedTags.count == 1 {
-      return viewModel.selectedTags.first!.displayName
+      return viewModel.selectedTags.first?.displayName ?? "All"
     } else {
       return "\(viewModel.selectedTags.count) selected"
     }

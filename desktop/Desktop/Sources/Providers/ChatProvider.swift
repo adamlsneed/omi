@@ -969,6 +969,12 @@ A screenshot may be attached — use it silently only if relevant. Never mention
         await agentBridge.stopAndWaitForExit()
         agentBridgeStarted = false
 
+        // Clear auth state from the previous mode so stale Claude auth prompts
+        // do not remain visible after switching back to an Omi-hosted mode.
+        isClaudeAuthRequired = false
+        claudeAuthUrl = nil
+        claudeAuthMethods = []
+
         // Switch mode and recreate bridge
         bridgeMode = resolvedMode.rawValue
         agentBridge = AgentBridge(harnessMode: newHarness)
