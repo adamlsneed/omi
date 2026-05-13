@@ -153,4 +153,27 @@ final class SubscriptionInfoDecoderTests: XCTestCase {
     let info = try JSONDecoder().decode(UserSubscriptionInfo.self, from: json.data(using: .utf8)!)
     XCTAssertEqual(info.plan, .pro)
   }
+
+  func testUnknownPlanAndStatusDecodeSafely() throws {
+    let json = """
+      {
+        "plan": "future_plan",
+        "status": "future_status",
+        "current_period_end": null,
+        "stripe_subscription_id": null,
+        "current_price_id": null,
+        "features": [],
+        "cancel_at_period_end": false,
+        "limits": {
+          "transcription_seconds": null,
+          "words_transcribed": null,
+          "insights_gained": null,
+          "memories_created": null
+        }
+      }
+      """
+    let info = try JSONDecoder().decode(UserSubscriptionInfo.self, from: json.data(using: .utf8)!)
+    XCTAssertEqual(info.plan, .unknown)
+    XCTAssertEqual(info.status, .unknown)
+  }
 }

@@ -55,4 +55,29 @@ final class SubscriptionPlanCatalogMergerTests: XCTestCase {
     let annual = try XCTUnwrap(merged[0].prices.first(where: { $0.id == "price_annual" }))
     XCTAssertEqual(annual.priceString, "$200")
   }
+
+  func testMergeFiltersEmptyPlanAndPriceIDs() throws {
+    let fallback = [
+      SubscriptionPlanOption(
+        id: "",
+        title: "Broken",
+        features: ["Bad"],
+        prices: []
+      ),
+      SubscriptionPlanOption(
+        id: "operator",
+        title: "Operator",
+        features: ["Good"],
+        prices: [
+          SubscriptionPriceOption(id: "", title: "Broken", description: nil, priceString: "$0"),
+          SubscriptionPriceOption(id: "price_operator", title: "Monthly", description: nil, priceString: "$20"),
+        ]
+      ),
+    ]
+
+    let merged = SubscriptionPlanCatalogMerger.merge(primary: [], fallback: fallback)
+
+    XCTAssertEqual(merged.map(\.id), ["operator"])
+    XCTAssertEqual(merged[0].prices.map(\.id), ["price_operator"])
+  }
 }

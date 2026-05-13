@@ -503,13 +503,16 @@ struct ConversationDetailView: View {
     }
 
     private func updateTitle() async {
-        guard !editedTitle.isEmpty else { return }
+        let newTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newTitle.isEmpty else { return }
         isUpdatingTitle = true
         defer { isUpdatingTitle = false }
 
         do {
-            try await APIClient.shared.updateConversationTitle(id: conversation.id, title: editedTitle)
-            onTitleUpdated?(editedTitle)
+            try await APIClient.shared.updateConversationTitle(id: conversation.id, title: newTitle)
+            loadedConversation = ConversationTitleUpdatePolicy.updatedConversation(displayConversation, title: newTitle)
+            try? await TranscriptionStorage.shared.updateTitleByBackendId(conversation.id, title: newTitle)
+            onTitleUpdated?(newTitle)
         } catch {
             logError("Failed to update title", error: error)
         }

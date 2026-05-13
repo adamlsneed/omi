@@ -19,11 +19,30 @@ final class AppDetailPrimaryActionStateTests: XCTestCase {
         XCTAssertFalse(state.isDisabled)
     }
 
+    func testEnabledExternalAppWithoutTargetDoesNotShowNoOpOpenAction() {
+        let state = AppDetailPrimaryActionState(
+            isEnabled: true,
+            worksExternally: true,
+            externalOpenTargetAvailable: false
+        )
+
+        XCTAssertEqual(state.title, "Installed")
+        XCTAssertEqual(state.action, .none)
+        XCTAssertTrue(state.isDisabled)
+    }
+
     func testDisabledAppPrimaryActionInstallsApp() {
         let state = AppDetailPrimaryActionState(isEnabled: false, worksExternally: false)
 
         XCTAssertEqual(state.title, "Install")
         XCTAssertEqual(state.action, .install)
         XCTAssertFalse(state.isDisabled)
+    }
+
+    func testOnlyOwnerCanManageApp() {
+        XCTAssertTrue(AppDetailOwnershipPolicy.canManage(appOwnerId: "user-1", currentUserId: "user-1"))
+        XCTAssertFalse(AppDetailOwnershipPolicy.canManage(appOwnerId: "user-1", currentUserId: "user-2"))
+        XCTAssertFalse(AppDetailOwnershipPolicy.canManage(appOwnerId: nil, currentUserId: "user-1"))
+        XCTAssertFalse(AppDetailOwnershipPolicy.canManage(appOwnerId: "user-1", currentUserId: nil))
     }
 }
