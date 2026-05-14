@@ -46,33 +46,36 @@ for Xcode builds is `66K48S8RD4`.
 
 1. Copy `ios/Flutter/LocalSigning.example.xcconfig` to
    `ios/Flutter/LocalSigning.xcconfig`.
-2. Keep `.dev.env` pointed at hosted Omi auth/backend:
+2. Keep `.env` and `.dev.env` pointed at hosted Omi auth/backend:
    `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`,
    `USE_AUTH_CUSTOM_TOKEN=true`.
 3. In a fresh worktree, restore the ignored local build inputs from the main
    checkout or existing working tree before building:
    - `.dev.env`
+   - `.env`
    - `lib/firebase_options_dev.dart`
    - `lib/firebase_options_prod.dart`
    - `ios/Config/Dev/GoogleService-Info.plist`
    - `ios/Config/Prod/GoogleService-Info.plist`
-   - `ios/Runner/GoogleService-Info.plist` (copy the dev plist here before
-     the first build, because Xcode expects the file to exist before its copy
-     script refreshes it)
+   - `ios/Runner/GoogleService-Info.plist` (copy the prod plist here before
+     the first Adam hosted-backend build, because Xcode expects the file to
+     exist before its copy script refreshes it)
 4. Refresh generated Flutter files and Xcode paths inside the current checkout.
-   Use Profile for standalone device installs; Debug iOS builds require Flutter
-   tooling or Xcode to be attached and will crash when launched from the home
-   screen:
+   Use the prod flavor for Adam's active hosted-backend phone app. The local
+   signing override keeps the installed bundle as `com.adam.omi.dev`, while the
+   prod flavor keeps Google auth on the matching `based-hardware` Firebase
+   project. Debug iOS builds require Flutter tooling or Xcode to be attached and
+   will crash when launched from the home screen:
    ```bash
    flutter pub get
    flutter pub run build_runner build --delete-conflicting-outputs
-   flutter build ios --profile --flavor dev --config-only --no-codesign
+   flutter build ios --profile --flavor prod --config-only --no-codesign
    ```
 5. Build with the local signing override:
    ```bash
    xcodebuild -workspace ios/Runner.xcworkspace \
-     -scheme dev \
-     -configuration Profile-dev \
+     -scheme prod \
+     -configuration Profile-prod \
      -destination 'id=00008150-001004D93E40401C' \
      -xcconfig ios/Flutter/LocalSigning.xcconfig \
      -allowProvisioningUpdates \
@@ -83,12 +86,16 @@ for Xcode builds is `66K48S8RD4`.
    ```bash
    xcrun devicectl device install app \
      --device 0AE733D7-AC04-58AB-B95A-B3D0486506F2 \
-     ~/Library/Developer/Xcode/DerivedData/Runner-*/Build/Products/Profile-dev-iphoneos/Runner.app
+     ~/Library/Developer/Xcode/DerivedData/Runner-*/Build/Products/Profile-prod-iphoneos/Runner.app
 
    xcrun devicectl device process launch \
      --device 0AE733D7-AC04-58AB-B95A-B3D0486506F2 \
      com.adam.omi.dev
    ```
+
+For the detailed troubleshooting notes from the local iPhone replacement issue
+where a `Debug-dev` build crashed from the home screen, see
+[`docs/local-ios-standalone-install.md`](docs/local-ios-standalone-install.md).
 
 Do not change the checked-in official bundle IDs just to satisfy local signing. The app
 group is build-setting driven through `APP_GROUP_IDENTIFIER`, so the official default
