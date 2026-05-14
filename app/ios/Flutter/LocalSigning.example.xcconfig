@@ -1,0 +1,15 @@
+// Copy this file to LocalSigning.xcconfig for local physical-device installs.
+// LocalSigning.xcconfig is gitignored because it contains developer-specific
+// Apple team and bundle identifiers.
+//
+// Adam's local Apple Development certificate currently has:
+//   Team identifier: 66K48S8RD4
+//   Certificate display suffix: M6V8W4X24Z
+// Use the team identifier, not the display suffix, as DEVELOPMENT_TEAM.
+
+DEVELOPMENT_TEAM=66K48S8RD4
+CODE_SIGN_STYLE=Automatic
+
+// These IDs must be unique to the Apple developer team used above.
+APP_BUNDLE_IDENTIFIER=com.adam.omi.dev
+APP_GROUP_IDENTIFIER=group.com.adam.omi.dev
