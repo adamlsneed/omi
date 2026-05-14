@@ -31,13 +31,15 @@ Never run `flutterfire configure` — it overwrites prod credentials. Config fil
 ### Adam Local iPhone Signing
 - The local Apple Development cert is displayed as `Apple Development: coralcaves@gmail.com (M6V8W4X24Z)`, but the usable Xcode team identifier is `66K48S8RD4`.
 - For physical-device installs on Adam's iPhone, copy `ios/Flutter/LocalSigning.example.xcconfig` to ignored `ios/Flutter/LocalSigning.xcconfig` and build with `-xcconfig ios/Flutter/LocalSigning.xcconfig -allowProvisioningUpdates -allowProvisioningDeviceRegistration`.
-- Keep hosted backend auth in `.dev.env`: `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`.
-- In fresh worktrees, restore ignored local inputs before building: `.dev.env`, `lib/firebase_options_dev.dart`, `lib/firebase_options_prod.dart`, `ios/Config/{Dev,Prod}/GoogleService-Info.plist`, and `ios/Runner/GoogleService-Info.plist` copied from the dev plist.
-- Always refresh generated files and paths in the active checkout before local device builds: `flutter pub get`, `flutter pub run build_runner build --delete-conflicting-outputs`, then `flutter build ios --profile --flavor dev --config-only --no-codesign`.
-- For standalone iPhone installs, build `Profile-dev` or `Release-dev`; never install a `Debug-dev` build for normal home-screen use because Flutter debug iOS apps require Flutter tooling or Xcode to be attached and will terminate on launch.
+- Keep hosted backend auth in `.env` and `.dev.env`: `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`.
+- Adam's active hosted-backend phone build uses local bundle `com.adam.omi.dev` but prod Firebase flavor/config (`based-hardware`). Do not deploy the dev Firebase flavor against hosted `api.omi.me` auth unless intentionally testing dev accounts.
+- In fresh worktrees, restore ignored local inputs before building: `.dev.env`, `.env`, `lib/firebase_options_dev.dart`, `lib/firebase_options_prod.dart`, `ios/Config/{Dev,Prod}/GoogleService-Info.plist`, and `ios/Runner/GoogleService-Info.plist` copied from the prod plist for Adam's hosted-backend phone build.
+- Always refresh generated files and paths in the active checkout before local device builds: `flutter pub get`, `flutter pub run build_runner build --delete-conflicting-outputs`, then `flutter build ios --profile --flavor prod --config-only --no-codesign`.
+- For standalone iPhone installs, build `Profile-prod` or `Release-prod` for Adam's active hosted-backend app; never install a `Debug-dev` build for normal home-screen use because Flutter debug iOS apps require Flutter tooling or Xcode to be attached and will terminate on launch.
 - Adam's known device IDs: Xcode destination `00008150-001004D93E40401C`; `devicectl` device `0AE733D7-AC04-58AB-B95A-B3D0486506F2`.
 - Local signing installs bundle `com.adam.omi.dev`. Replacing the official Omi bundle requires valid BasedHardware signing assets.
 - Do not commit generated `LocalSigning.xcconfig` files or provisioning profiles. The committed example intentionally documents Adam's default local bundle/app group; override only in the ignored local xcconfig if a future install needs different IDs.
+- Before replacing Adam's installed iPhone app, review `docs/local-ios-standalone-install.md`. It records the `Debug-dev` standalone crash, stale `Runner` process cleanup, entitlement checks, and hosted-backend/local-signing requirements from the May 2026 install issue.
 
 ## Native Bridge
 
