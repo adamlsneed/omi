@@ -59,17 +59,20 @@ for Xcode builds is `66K48S8RD4`.
    - `ios/Runner/GoogleService-Info.plist` (copy the dev plist here before
      the first build, because Xcode expects the file to exist before its copy
      script refreshes it)
-4. Refresh generated Flutter files and Xcode paths inside the current checkout:
+4. Refresh generated Flutter files and Xcode paths inside the current checkout.
+   Use Profile for standalone device installs; Debug iOS builds require Flutter
+   tooling or Xcode to be attached and will crash when launched from the home
+   screen:
    ```bash
    flutter pub get
    flutter pub run build_runner build --delete-conflicting-outputs
-   flutter build ios --debug --flavor dev --config-only --no-codesign
+   flutter build ios --profile --flavor dev --config-only --no-codesign
    ```
 5. Build with the local signing override:
    ```bash
    xcodebuild -workspace ios/Runner.xcworkspace \
      -scheme dev \
-     -configuration Debug-dev \
+     -configuration Profile-dev \
      -destination 'id=00008150-001004D93E40401C' \
      -xcconfig ios/Flutter/LocalSigning.xcconfig \
      -allowProvisioningUpdates \
@@ -80,7 +83,7 @@ for Xcode builds is `66K48S8RD4`.
    ```bash
    xcrun devicectl device install app \
      --device 0AE733D7-AC04-58AB-B95A-B3D0486506F2 \
-     ~/Library/Developer/Xcode/DerivedData/Runner-*/Build/Products/Debug-dev-iphoneos/Runner.app
+     ~/Library/Developer/Xcode/DerivedData/Runner-*/Build/Products/Profile-dev-iphoneos/Runner.app
 
    xcrun devicectl device process launch \
      --device 0AE733D7-AC04-58AB-B95A-B3D0486506F2 \
