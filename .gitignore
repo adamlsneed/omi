@@ -64,6 +64,7 @@ dist/
 **/ios/Config/*
 **/ios/Config/**/*
 **/ios/Flutter/Custom.xcconfig
+**/ios/Flutter/LocalSigning.xcconfig
 
 # macOS specific
 **/macos/**/Pods/

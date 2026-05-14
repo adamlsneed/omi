@@ -28,6 +28,16 @@ Never run `flutterfire configure` — it overwrites prod credentials. Config fil
 - Dev: `ios/Config/Dev/`, `android/app/src/dev/`, `lib/firebase_options_dev.dart`
 - Prod: `ios/Config/Prod/`, `android/app/src/prod/`, `lib/firebase_options_prod.dart`
 
+### Adam Local iPhone Signing
+- The local Apple Development cert is displayed as `Apple Development: coralcaves@gmail.com (M6V8W4X24Z)`, but the usable Xcode team identifier is `66K48S8RD4`.
+- For physical-device installs on Adam's iPhone, copy `ios/Flutter/LocalSigning.example.xcconfig` to ignored `ios/Flutter/LocalSigning.xcconfig` and build with `-xcconfig ios/Flutter/LocalSigning.xcconfig -allowProvisioningUpdates -allowProvisioningDeviceRegistration`.
+- Keep hosted backend auth in `.dev.env`: `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`.
+- In fresh worktrees, restore ignored local inputs before building: `.dev.env`, `lib/firebase_options_dev.dart`, `lib/firebase_options_prod.dart`, `ios/Config/{Dev,Prod}/GoogleService-Info.plist`, and `ios/Runner/GoogleService-Info.plist` copied from the dev plist.
+- Always refresh generated files and paths in the active checkout before local device builds: `flutter pub get`, `flutter pub run build_runner build --delete-conflicting-outputs`, then `flutter build ios --debug --flavor dev --config-only --no-codesign`.
+- Adam's known device IDs: Xcode destination `00008150-001004D93E40401C`; `devicectl` device `0AE733D7-AC04-58AB-B95A-B3D0486506F2`.
+- Local signing installs bundle `com.adam.omi.dev`. Replacing the official Omi bundle requires valid BasedHardware signing assets.
+- Do not commit generated `LocalSigning.xcconfig` files or provisioning profiles. The committed example intentionally documents Adam's default local bundle/app group; override only in the ignored local xcconfig if a future install needs different IDs.
+
 ## Native Bridge
 
 ### Pigeon Interface (bidirectional, iOS ↔ Dart)
@@ -120,4 +130,3 @@ All API requests include: X-Request-Start-Time, X-App-Platform, X-Device-Id-Hash
 - See `e2e/SKILL.md` for navigation architecture, screen map, widget patterns, and 34 reference flows
 - See `e2e/flows/*.yaml` for individual flow definitions
 - agent-flutter (Marionette) for programmatic UI interaction — see root CLAUDE.md for setup
-
