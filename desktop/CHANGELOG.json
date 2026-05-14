@@ -1,6 +1,7 @@
 {
   "unreleased": [
-    "Smarter task analyzer dedupe \u2014 per-chat/window throttle instead of one global 60s cooldown, so opening multiple chats in quick succession no longer drops tasks"
+    "Smarter task analyzer dedupe \u2014 per-chat/window throttle instead of one global 60s cooldown, so opening multiple chats in quick succession no longer drops tasks",
+    "Added file/screenshot attachments to chat (paperclip + drag-drop)"
   ],
   "releases": [
     {
