@@ -4104,11 +4104,9 @@ struct MemorySettingsResponse: Codable {
 
 struct FloatingBarSettingsResponse: Codable {
   var voiceAnswersEnabled: Bool?
-  var elevenLabsVoiceID: String?
 
   enum CodingKeys: String, CodingKey {
     case voiceAnswersEnabled = "voice_answers_enabled"
-    case elevenLabsVoiceID = "elevenlabs_voice_id"
   }
 }
 
@@ -4258,11 +4256,72 @@ extension APIClient {
     return try await post("v2/messages/share", body: body)
   }
 
+  /// Upload one or more files to be attached to a chat message.
+  /// Mirrors the Flutter app's `uploadFilesServer` (lib/backend/http/api/messages.dart) —
+  /// same `/v2/files` multipart endpoint, same response shape.
+  func uploadChatFiles(
+    _ uploads: [(data: Data, fileName: String, mimeType: String)],
+    appId: String? = nil
+  ) async throws -> [ChatFileResponse] {
+    var endpoint = "v2/files"
+    if let appId = appId, !appId.isEmpty, appId != "no_selected" {
+      endpoint += "?app_id=\(appId)"
+    }
+    let url = URL(string: baseURL + endpoint)!
+
+    let boundary = "Boundary-\(UUID().uuidString)"
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
+    request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+    var body = Data()
+    let lineBreak = "\r\n"
+    for upload in uploads {
+      body.append("--\(boundary)\(lineBreak)".data(using: .utf8)!)
+      body.append(
+        "Content-Disposition: form-data; name=\"files\"; filename=\"\(upload.fileName)\"\(lineBreak)"
+          .data(using: .utf8)!)
+      body.append("Content-Type: \(upload.mimeType)\(lineBreak)\(lineBreak)".data(using: .utf8)!)
+      body.append(upload.data)
+      body.append(lineBreak.data(using: .utf8)!)
+    }
+    body.append("--\(boundary)--\(lineBreak)".data(using: .utf8)!)
+    request.httpBody = body
+
+    let (data, response) = try await session.data(for: request)
+    guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
+    if http.statusCode == 401 { throw APIError.unauthorized }
+    guard (200...299).contains(http.statusCode) else {
+      throw APIError.httpError(statusCode: http.statusCode)
+    }
+    return try decoder.decode([ChatFileResponse].self, from: data)
+  }
+
 }
 
 /// Response from rating a message
 struct MessageStatusResponse: Codable {
   let status: String
+}
+
+/// Response shape for `POST /v2/files` — mirrors backend `FileChat` model.
+struct ChatFileResponse: Codable {
+  let id: String
+  let name: String?
+  let mimeType: String?
+  let thumbnail: String?
+  let thumbName: String?
+  let openaiFileId: String?
+
+  enum CodingKeys: String, CodingKey {
+    case id
+    case name
+    case thumbnail
+    case mimeType = "mime_type"
+    case thumbName = "thumb_name"
+    case openaiFileId = "openai_file_id"
+  }
 }
 
 /// Response from sharing chat messages
@@ -4414,9 +4473,11 @@ struct ChatMessageDB: Codable, Identifiable {
   let sessionId: String?
   let rating: Int?
   let reported: Bool
+  /// JSON string with extra info (attachments, etc.); see ChatMessage.decodeAttachments.
+  let metadata: String?
 
   enum CodingKeys: String, CodingKey {
-    case id, text, sender, rating, reported
+    case id, text, sender, rating, reported, metadata
     case createdAt = "created_at"
     case appId = "app_id"
     case sessionId = "session_id"
@@ -4432,6 +4493,7 @@ struct ChatMessageDB: Codable, Identifiable {
     sessionId = try container.decodeIfPresent(String.self, forKey: .sessionId)
     rating = try container.decodeIfPresent(Int.self, forKey: .rating)
     reported = try container.decodeIfPresent(Bool.self, forKey: .reported) ?? false
+    metadata = try container.decodeIfPresent(String.self, forKey: .metadata)
   }
 }
 
@@ -4765,43 +4827,27 @@ extension APIClient {
   struct TtsSynthesizeRequest: Encodable {
     let text: String
     let voiceId: String
-    let modelId: String
-    let outputFormat: String
-    let voiceSettings: TtsVoiceSettings
+    let instructions: String?
 
     enum CodingKeys: String, CodingKey {
       case text
       case voiceId = "voice_id"
-      case modelId = "model_id"
-      case outputFormat = "output_format"
-      case voiceSettings = "voice_settings"
+      case instructions
     }
   }
 
-  struct TtsVoiceSettings: Encodable {
-    let stability: Double
-    let similarityBoost: Double
-    let style: Double
-    let useSpeakerBoost: Bool
-
-    enum CodingKeys: String, CodingKey {
-      case stability
-      case similarityBoost = "similarity_boost"
-      case style
-      case useSpeakerBoost = "use_speaker_boost"
-    }
-  }
-
-  /// Synthesize speech via the backend TTS proxy (ElevenLabs key stays server-side).
+  /// Synthesize speech via the backend TTS proxy.
   /// Returns raw audio data (audio/mpeg).
   func synthesizeSpeech(request: TtsSynthesizeRequest) async throws -> Data {
     let base = rustBackendURL
-    let url = URL(string: base + "v1/tts/synthesize")!
+    guard !base.isEmpty, let url = URL(string: base + "v1/tts/synthesize") else {
+      throw APIError.invalidResponse
+    }
     var urlRequest = URLRequest(url: url)
     urlRequest.httpMethod = "POST"
-    urlRequest.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
-    urlRequest.httpBody = try JSONEncoder().encode(request)
     urlRequest.timeoutInterval = 60
+    urlRequest.allHTTPHeaderFields = try await buildHeaders()
+    urlRequest.httpBody = try JSONEncoder().encode(request)
 
     let (data, response) = try await session.data(for: urlRequest)
     guard let httpResponse = response as? HTTPURLResponse else {
@@ -4820,6 +4866,9 @@ extension APIClient {
       let (retryData, retryResponse) = try await session.data(for: retryRequest)
       guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
         throw APIError.invalidResponse
+      }
+      guard retryHttpResponse.statusCode != 401 else {
+        throw APIError.unauthorized
       }
       guard (200...299).contains(retryHttpResponse.statusCode) else {
         throw APIError.httpError(statusCode: retryHttpResponse.statusCode)
