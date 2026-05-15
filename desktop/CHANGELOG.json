@@ -4,7 +4,8 @@
     "Added file/screenshot attachments to chat (paperclip + drag-drop)",
     "Task analyzer now extracts every distinct commitment in a frame instead of stopping after the first \u2014 a chat asking for two unrelated deliverables in one message creates two tasks",
     "Fixed Tasks page \"+\" button doing nothing when the task list was empty",
-    "Task notifications fire within seconds instead of waiting up to 5 minutes \u2014 promote runs immediately on monitoring start and the safety-net cadence dropped from 5 min to 1 min"
+    "Task notifications fire within seconds instead of waiting up to 5 minutes \u2014 promote runs immediately on monitoring start and the safety-net cadence dropped from 5 min to 1 min",
+    "Rewind shows screenshots within ~5 seconds of launch instead of waiting up to a minute for the first video chunk to fill up"
   ],
   "releases": [
     {
