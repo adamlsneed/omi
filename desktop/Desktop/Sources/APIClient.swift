@@ -4104,11 +4104,9 @@ struct MemorySettingsResponse: Codable {
 
 struct FloatingBarSettingsResponse: Codable {
   var voiceAnswersEnabled: Bool?
-  var elevenLabsVoiceID: String?
 
   enum CodingKeys: String, CodingKey {
     case voiceAnswersEnabled = "voice_answers_enabled"
-    case elevenLabsVoiceID = "elevenlabs_voice_id"
   }
 }
 
@@ -4829,43 +4827,27 @@ extension APIClient {
   struct TtsSynthesizeRequest: Encodable {
     let text: String
     let voiceId: String
-    let modelId: String
-    let outputFormat: String
-    let voiceSettings: TtsVoiceSettings
+    let instructions: String?
 
     enum CodingKeys: String, CodingKey {
       case text
       case voiceId = "voice_id"
-      case modelId = "model_id"
-      case outputFormat = "output_format"
-      case voiceSettings = "voice_settings"
+      case instructions
     }
   }
 
-  struct TtsVoiceSettings: Encodable {
-    let stability: Double
-    let similarityBoost: Double
-    let style: Double
-    let useSpeakerBoost: Bool
-
-    enum CodingKeys: String, CodingKey {
-      case stability
-      case similarityBoost = "similarity_boost"
-      case style
-      case useSpeakerBoost = "use_speaker_boost"
-    }
-  }
-
-  /// Synthesize speech via the backend TTS proxy (ElevenLabs key stays server-side).
+  /// Synthesize speech via the backend TTS proxy.
   /// Returns raw audio data (audio/mpeg).
   func synthesizeSpeech(request: TtsSynthesizeRequest) async throws -> Data {
     let base = rustBackendURL
-    let url = URL(string: base + "v1/tts/synthesize")!
+    guard !base.isEmpty, let url = URL(string: base + "v1/tts/synthesize") else {
+      throw APIError.invalidResponse
+    }
     var urlRequest = URLRequest(url: url)
     urlRequest.httpMethod = "POST"
-    urlRequest.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
-    urlRequest.httpBody = try JSONEncoder().encode(request)
     urlRequest.timeoutInterval = 60
+    urlRequest.allHTTPHeaderFields = try await buildHeaders()
+    urlRequest.httpBody = try JSONEncoder().encode(request)
 
     let (data, response) = try await session.data(for: urlRequest)
     guard let httpResponse = response as? HTTPURLResponse else {
@@ -4884,6 +4866,9 @@ extension APIClient {
       let (retryData, retryResponse) = try await session.data(for: retryRequest)
       guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
         throw APIError.invalidResponse
+      }
+      guard retryHttpResponse.statusCode != 401 else {
+        throw APIError.unauthorized
       }
       guard (200...299).contains(retryHttpResponse.statusCode) else {
         throw APIError.httpError(statusCode: retryHttpResponse.statusCode)

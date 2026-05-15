@@ -16,7 +16,7 @@ use axum::{
 use futures::StreamExt;
 use serde_json::json;
 
-use crate::auth::AuthUser;
+use crate::auth::{AuthUser, PaywalledAuthUser};
 use crate::models::chat_completions::*;
 use crate::AppState;
 
@@ -106,9 +106,8 @@ fn translate_request(
                 system_prompt = Some(text);
             }
             "user" => {
-                let content = convert_user_content(
-                    msg.content.as_ref().cloned().unwrap_or(json!("")),
-                );
+                let content =
+                    convert_user_content(msg.content.as_ref().cloned().unwrap_or(json!("")));
                 anthropic_messages.push(AnthropicMessage {
                     role: "user".to_string(),
                     content,
@@ -130,8 +129,7 @@ fn translate_request(
                 if let Some(tool_calls) = &msg.tool_calls {
                     for tc in tool_calls {
                         let args: serde_json::Value =
-                            serde_json::from_str(&tc.function.arguments)
-                                .unwrap_or(json!({}));
+                            serde_json::from_str(&tc.function.arguments).unwrap_or(json!({}));
                         content_blocks.push(json!({
                             "type": "tool_use",
                             "id": tc.id,
@@ -214,7 +212,11 @@ fn translate_request(
         system: system_prompt,
         temperature: req.temperature,
         stream: req.stream,
-        tools: if is_tool_choice_none { None } else { anthropic_tools },
+        tools: if is_tool_choice_none {
+            None
+        } else {
+            anthropic_tools
+        },
         tool_choice: anthropic_tool_choice,
     })
 }
@@ -245,9 +247,7 @@ fn translate_tool_choice(
             let choice_type = obj
                 .get("type")
                 .and_then(|t| t.as_str())
-                .ok_or_else(|| {
-                    "invalid tool_choice object: missing 'type' field".to_string()
-                })?;
+                .ok_or_else(|| "invalid tool_choice object: missing 'type' field".to_string())?;
             if choice_type != "function" {
                 return Err(format!(
                     "invalid tool_choice object: unsupported type {:?}",
@@ -260,9 +260,7 @@ fn translate_tool_choice(
             let name = func
                 .get("name")
                 .and_then(|n| n.as_str())
-                .ok_or_else(|| {
-                    "invalid tool_choice object: missing function.name".to_string()
-                })?;
+                .ok_or_else(|| "invalid tool_choice object: missing function.name".to_string())?;
             Ok(Some(json!({"type": "tool", "name": name})))
         }
         Some(other) => Err(format!(
@@ -329,19 +327,17 @@ fn convert_user_content(content: serde_json::Value) -> serde_json::Value {
 fn extract_text_content(content: &Option<serde_json::Value>) -> String {
     match content {
         Some(serde_json::Value::String(s)) => s.clone(),
-        Some(serde_json::Value::Array(parts)) => {
-            parts
-                .iter()
-                .filter_map(|p| {
-                    if p.get("type")?.as_str()? == "text" {
-                        p.get("text")?.as_str().map(String::from)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("")
-        }
+        Some(serde_json::Value::Array(parts)) => parts
+            .iter()
+            .filter_map(|p| {
+                if p.get("type")?.as_str()? == "text" {
+                    p.get("text")?.as_str().map(String::from)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(""),
         Some(serde_json::Value::Null) | None => String::new(),
         Some(other) => other.to_string(),
     }
@@ -349,10 +345,7 @@ fn extract_text_content(content: &Option<serde_json::Value>) -> String {
 
 // ── Anthropic non-streaming response → OpenAI format ────────────────────────
 
-fn translate_response(
-    resp: &AnthropicResponse,
-    public_model: &str,
-) -> ChatCompletionResponse {
+fn translate_response(resp: &AnthropicResponse, public_model: &str) -> ChatCompletionResponse {
     let mut text_parts = Vec::new();
     let mut tool_calls = Vec::new();
     let mut tool_index: u32 = 0;
@@ -442,9 +435,10 @@ fn make_chunk(
 
 async fn chat_completions(
     State(state): State<AppState>,
-    user: AuthUser,
+    user: PaywalledAuthUser,
     Json(req): Json<ChatCompletionRequest>,
 ) -> Result<Response, StatusCode> {
+    let user: AuthUser = user.into();
     // Validate model
     let route = resolve_model(&req.model).ok_or_else(|| {
         tracing::warn!(
@@ -473,14 +467,10 @@ async fn chat_completions(
 
     // Get API key
     let api_key = match route.provider {
-        Provider::Anthropic => state
-            .config
-            .anthropic_api_key
-            .as_ref()
-            .ok_or_else(|| {
-                tracing::error!("chat_completions: ANTHROPIC_API_KEY not configured");
-                StatusCode::INTERNAL_SERVER_ERROR
-            })?,
+        Provider::Anthropic => state.config.anthropic_api_key.as_ref().ok_or_else(|| {
+            tracing::error!("chat_completions: ANTHROPIC_API_KEY not configured");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?,
     };
 
     // Translate request
@@ -492,25 +482,9 @@ async fn chat_completions(
     let client = reqwest::Client::new();
 
     if req.stream {
-        handle_streaming(
-            &client,
-            api_key,
-            &anthropic_req,
-            route,
-            &user,
-            &state,
-        )
-        .await
+        handle_streaming(&client, api_key, &anthropic_req, route, &user, &state).await
     } else {
-        handle_non_streaming(
-            &client,
-            api_key,
-            &anthropic_req,
-            route,
-            &user,
-            &state,
-        )
-        .await
+        handle_non_streaming(&client, api_key, &anthropic_req, route, &user, &state).await
     }
 }
 
@@ -552,7 +526,10 @@ async fn handle_non_streaming(
     }
 
     let anthropic_resp: AnthropicResponse = upstream_resp.json().await.map_err(|e| {
-        tracing::error!("chat_completions: failed to parse Anthropic response: {}", e);
+        tracing::error!(
+            "chat_completions: failed to parse Anthropic response: {}",
+            e
+        );
         StatusCode::BAD_GATEWAY
     })?;
 
@@ -889,11 +866,7 @@ async fn log_usage(state: &AppState, user: &AuthUser, usage: &AnthropicUsage, co
         )
         .await
     {
-        tracing::error!(
-            "chat_completions: usage log failed for {}: {}",
-            user.uid,
-            e
-        );
+        tracing::error!("chat_completions: usage log failed for {}: {}", user.uid, e);
     }
 }
 
@@ -1136,7 +1109,11 @@ mod tests {
 
         let result = translate_request(&req, "claude-sonnet-4-6").unwrap();
         assert_eq!(result.system, Some("You are terse.".to_string()));
-        assert_eq!(result.messages.len(), 1, "developer msg must be extracted, not forwarded");
+        assert_eq!(
+            result.messages.len(),
+            1,
+            "developer msg must be extracted, not forwarded"
+        );
         assert_eq!(result.messages[0].role, "user");
     }
 
@@ -1333,10 +1310,7 @@ mod tests {
             Some("Hello!".to_string())
         );
         assert!(openai.choices[0].message.tool_calls.is_none());
-        assert_eq!(
-            openai.choices[0].finish_reason,
-            Some("stop".to_string())
-        );
+        assert_eq!(openai.choices[0].finish_reason, Some("stop".to_string()));
         let usage = openai.usage.unwrap();
         assert_eq!(usage.prompt_tokens, 10);
         assert_eq!(usage.completion_tokens, 5);
@@ -1517,7 +1491,10 @@ mod tests {
 
         let result = translate_request(&req, "claude-sonnet-4-6").unwrap();
         // tool_choice "none" must strip tools entirely
-        assert!(result.tools.is_none(), "tools should be stripped when tool_choice is 'none'");
+        assert!(
+            result.tools.is_none(),
+            "tools should be stripped when tool_choice is 'none'"
+        );
         assert!(result.tool_choice.is_none());
     }
 
@@ -1551,7 +1528,10 @@ mod tests {
         // Unknown strings must return Err (→ 400) instead of silently coercing
         let choice = Some(json!("invalid_value"));
         let result = translate_tool_choice(&choice);
-        assert!(result.is_err(), "unknown string tool_choice must return Err");
+        assert!(
+            result.is_err(),
+            "unknown string tool_choice must return Err"
+        );
     }
 
     #[test]
@@ -1573,7 +1553,10 @@ mod tests {
         // Malformed objects must return Err (→ 400)
         let choice = Some(json!({"type": "function", "function": {}}));
         let result = translate_tool_choice(&choice);
-        assert!(result.is_err(), "object without function.name must return Err");
+        assert!(
+            result.is_err(),
+            "object without function.name must return Err"
+        );
     }
 
     #[test]
@@ -1593,7 +1576,10 @@ mod tests {
             "function": {"name": "get_weather"}
         }));
         let result = translate_tool_choice(&choice);
-        assert!(result.is_err(), "non-function tool_choice object must return Err");
+        assert!(
+            result.is_err(),
+            "non-function tool_choice object must return Err"
+        );
     }
 
     #[test]
@@ -1656,7 +1642,10 @@ mod tests {
             tool_choice: None,
         };
         let result = translate_request(&req, "claude-sonnet-4-6").unwrap();
-        assert_eq!(result.max_tokens, 0, "max_tokens=0 should be respected (capped at min)");
+        assert_eq!(
+            result.max_tokens, 0,
+            "max_tokens=0 should be respected (capped at min)"
+        );
     }
 
     #[test]
@@ -1678,7 +1667,10 @@ mod tests {
             tool_choice: None,
         };
         let result = translate_request(&req, "claude-sonnet-4-6").unwrap();
-        assert_eq!(result.max_tokens, MAX_TOKENS_CAP, "max_tokens at exactly the cap should be preserved");
+        assert_eq!(
+            result.max_tokens, MAX_TOKENS_CAP,
+            "max_tokens at exactly the cap should be preserved"
+        );
     }
 
     // ── SSE helper tests ───────────────────────────────────────────────
@@ -1699,7 +1691,9 @@ mod tests {
             }]),
         };
         let chunk = make_chunk("id-1", 1000, "omi-sonnet", delta, None, None);
-        let tool_calls = chunk["choices"][0]["delta"]["tool_calls"].as_array().unwrap();
+        let tool_calls = chunk["choices"][0]["delta"]["tool_calls"]
+            .as_array()
+            .unwrap();
         assert_eq!(tool_calls.len(), 1);
         assert_eq!(tool_calls[0]["function"]["name"], "get_weather");
         assert_eq!(tool_calls[0]["index"], 0);
@@ -1712,7 +1706,14 @@ mod tests {
             content: Some("done".to_string()),
             tool_calls: None,
         };
-        let chunk = make_chunk("id-2", 2000, "omi-sonnet", delta, Some("stop".to_string()), None);
+        let chunk = make_chunk(
+            "id-2",
+            2000,
+            "omi-sonnet",
+            delta,
+            Some("stop".to_string()),
+            None,
+        );
         assert_eq!(chunk["choices"][0]["finish_reason"], "stop");
     }
 
@@ -1728,7 +1729,14 @@ mod tests {
             completion_tokens: 20,
             total_tokens: 30,
         };
-        let chunk = make_chunk("id-3", 3000, "omi-sonnet", delta, Some("stop".to_string()), Some(usage));
+        let chunk = make_chunk(
+            "id-3",
+            3000,
+            "omi-sonnet",
+            delta,
+            Some("stop".to_string()),
+            Some(usage),
+        );
         assert_eq!(chunk["usage"]["prompt_tokens"], 10);
         assert_eq!(chunk["usage"]["completion_tokens"], 20);
         assert_eq!(chunk["usage"]["total_tokens"], 30);
@@ -1739,5 +1747,4 @@ mod tests {
         let done = Bytes::from("data: [DONE]\n\n");
         assert_eq!(done, "data: [DONE]\n\n".as_bytes());
     }
-
 }

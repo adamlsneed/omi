@@ -483,15 +483,8 @@ final class APIClientRoutingTests: XCTestCase {
         let client = await makeTestClient()
         let request = APIClient.TtsSynthesizeRequest(
             text: "hello from test",
-            voiceId: "BAMYoBHLZM7lJgJAmFz0",
-            modelId: "eleven_turbo_v2_5",
-            outputFormat: "mp3_44100_128",
-            voiceSettings: .init(
-                stability: 0.34,
-                similarityBoost: 0.88,
-                style: 0.12,
-                useSpeakerBoost: true
-            )
+            voiceId: "onyx",
+            instructions: "Speak naturally"
         )
 
         _ = try? await client.synthesizeSpeech(request: request)
@@ -510,20 +503,12 @@ final class APIClientRoutingTests: XCTestCase {
         )
 
         XCTAssertEqual(json["text"] as? String, "hello from test")
-        XCTAssertEqual(json["voice_id"] as? String, "BAMYoBHLZM7lJgJAmFz0")
-        XCTAssertEqual(json["model_id"] as? String, "eleven_turbo_v2_5")
-        XCTAssertEqual(json["output_format"] as? String, "mp3_44100_128")
+        XCTAssertEqual(json["voice_id"] as? String, "onyx")
+        XCTAssertEqual(json["instructions"] as? String, "Speak naturally")
         XCTAssertNil(json["voiceId"])
-        XCTAssertNil(json["modelId"])
-        XCTAssertNil(json["outputFormat"])
-
-        let voiceSettings = try XCTUnwrap(json["voice_settings"] as? [String: Any])
-        XCTAssertEqual(voiceSettings["stability"] as? Double, 0.34)
-        XCTAssertEqual(voiceSettings["similarity_boost"] as? Double, 0.88)
-        XCTAssertEqual(voiceSettings["style"] as? Double, 0.12)
-        XCTAssertEqual(voiceSettings["use_speaker_boost"] as? Bool, true)
-        XCTAssertNil(voiceSettings["similarityBoost"])
-        XCTAssertNil(voiceSettings["useSpeakerBoost"])
+        XCTAssertNil(json["model_id"])
+        XCTAssertNil(json["output_format"])
+        XCTAssertNil(json["voice_settings"])
     }
 
     // -- Assistant settings (GET → Python, migrated from Rust) --
