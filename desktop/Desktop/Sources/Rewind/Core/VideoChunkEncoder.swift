@@ -43,6 +43,8 @@ actor VideoChunkEncoder {
 
     /// Maximum consecutive ffmpeg failures before emergency reset
     private let maxConsecutiveFailures = 5
+    private let ffmpegFinalizeTimeout: TimeInterval = 10.0
+    private let ffmpegForceKillGrace: TimeInterval = 2.0
 
     // MARK: - State
 
@@ -360,29 +362,28 @@ actor VideoChunkEncoder {
             ffmpegStdin = nil
         }
 
-        // Wait for ffmpeg to finish, but don't block forever.
-        // Under memory pressure, ffmpeg can hang in a disk I/O syscall and never respond
-        // to stdin close. A 10-second watchdog force-kills it so the cooperative thread
-        // isn't blocked indefinitely, which would deadlock the entire actor.
+        // Wait for ffmpeg to finish, but do it cooperatively. A synchronous
+        // wait here blocks the encoder actor and can indirectly keep the Rewind
+        // page stuck on its loading spinner while capture finalization is wedged.
         if let process = ffmpegProcess {
             let pid = process.processIdentifier
             let frameCount = frameTimestamps.count
 
-            let watchdog = Task.detached(priority: .background) {
-                try? await Task.sleep(nanoseconds: 10_000_000_000)
-                if process.isRunning {
-                    logError("VideoChunkEncoder: ffmpeg hung for 10s — force killing PID \(pid)")
-                    kill(pid, SIGKILL)
+            let didExit = await waitForProcessExit(
+                process,
+                pid: pid,
+                timeout: ffmpegFinalizeTimeout,
+                forceKillGrace: ffmpegForceKillGrace
+            )
+
+            if didExit {
+                if process.terminationStatus != 0 {
+                    logError("VideoChunkEncoder: FFmpeg exited with status \(process.terminationStatus)")
+                } else {
+                    log("VideoChunkEncoder: Finalized chunk with \(frameCount) frames")
                 }
-            }
-
-            process.waitUntilExit()
-            watchdog.cancel()
-
-            if process.terminationStatus != 0 {
-                logError("VideoChunkEncoder: FFmpeg exited with status \(process.terminationStatus)")
             } else {
-                log("VideoChunkEncoder: Finalized chunk with \(frameCount) frames")
+                logError("VideoChunkEncoder: FFmpeg PID \(pid) did not exit after SIGKILL; resetting encoder state")
             }
 
             ffmpegProcess = nil
@@ -398,6 +399,32 @@ actor VideoChunkEncoder {
         consecutiveWriteFailures = 0
         pendingAspectRatioSize = nil
         pendingAspectRatioSince = nil
+    }
+
+    private func waitForProcessExit(
+        _ process: Process,
+        pid: pid_t,
+        timeout: TimeInterval,
+        forceKillGrace: TimeInterval
+    ) async -> Bool {
+        let pollNanoseconds: UInt64 = 100_000_000
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while process.isRunning, Date() < deadline {
+            try? await Task.sleep(nanoseconds: pollNanoseconds)
+        }
+
+        if process.isRunning {
+            logError("VideoChunkEncoder: ffmpeg hung for \(Int(timeout))s — force killing PID \(pid)")
+            kill(pid, SIGKILL)
+
+            let killDeadline = Date().addingTimeInterval(forceKillGrace)
+            while process.isRunning, Date() < killDeadline {
+                try? await Task.sleep(nanoseconds: pollNanoseconds)
+            }
+        }
+
+        return !process.isRunning
     }
 
     // MARK: - Staleness Detection
