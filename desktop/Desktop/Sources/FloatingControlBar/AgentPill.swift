@@ -174,8 +174,19 @@ final class AgentPillsManager: ObservableObject {
                 log("AgentPill: router response shape unexpected, defaulting to chat")
                 return nil
             }
+            // Haiku sometimes wraps the JSON answer in fenced code blocks or
+            // adds leading prose. Parse the first JSON object we can find.
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let payloadData = trimmed.data(using: .utf8),
+            let jsonBody: String
+            if let firstBrace = trimmed.firstIndex(of: "{"),
+                let lastBrace = trimmed.lastIndex(of: "}"),
+                firstBrace < lastBrace
+            {
+                jsonBody = String(trimmed[firstBrace...lastBrace])
+            } else {
+                jsonBody = trimmed
+            }
+            guard let payloadData = jsonBody.data(using: .utf8),
                 let payload = try? JSONSerialization.jsonObject(with: payloadData) as? [String: Any],
                 let routeStr = (payload["route"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             else {
