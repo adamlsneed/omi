@@ -467,6 +467,14 @@ final class APIClientRoutingTests: XCTestCase {
                      label: "getUserSubscription")
     }
 
+    func testGetTrialMetadataRoutesToPython() async {
+        let client = await makeTestClient()
+        _ = try? await client.getTrialMetadata() as TrialMetadataResponse
+        assertRoutes(URLCapture.capturedRequests, host: "python-test", port: 9001,
+                     pathContains: "v1/users/me/trial", method: "GET",
+                     label: "getTrialMetadata")
+    }
+
     // MARK: - Routing behavior: Rust-routed endpoints (customBaseURL: rustBackendURL)
 
     // -- Config/API keys (GET → Rust) --
