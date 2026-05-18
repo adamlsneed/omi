@@ -199,11 +199,20 @@ for app in "${CONFLICTING_APPS[@]}"; do
 done
 # Also remove any stale dev app bundles nested inside Flutter builds.
 find "$(dirname "$0")/../app/build" -name "$APP_NAME.app" -type d -exec rm -rf {} + 2>/dev/null || true
-# Kill stale app bundles from other repo clones (e.g. ~/omi-desktop/)
+# Kill stale app bundles from other repo clones without traversing the entire
+# home directory, which can stall deploys on machines with large trees.
 # These confuse LaunchServices and get launched instead of the /Applications copy.
-find "$HOME" -maxdepth 4 -name "$APP_NAME.app" -type d -not -path "$APP_BUNDLE" -not -path "$APP_PATH" 2>/dev/null | while read stale; do
-    substep "Removing stale clone: $stale"
-    rm -rf "$stale"
+STALE_APP_SCAN_ROOTS=(
+    "$(dirname "$0")/.."
+    "$HOME/dev"
+    "$HOME/.config/superpowers/worktrees"
+)
+for root in "${STALE_APP_SCAN_ROOTS[@]}"; do
+    [ -d "$root" ] || continue
+    find "$root" -maxdepth 4 -name "$APP_NAME.app" -type d -not -path "$APP_BUNDLE" -not -path "$APP_PATH" 2>/dev/null | while read stale; do
+        substep "Removing stale clone: $stale"
+        rm -rf "$stale"
+    done
 done
 
 # ─── Load .env and credentials ─────────────────────────────────────────
