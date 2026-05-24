@@ -72,9 +72,12 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     /// UserDefaults key mirroring the user's `notification_frequency` setting from the backend.
     /// 0=Off, 1=Minimal, 2=Low, 3=Balanced (default), 4=High, 5=Maximum.
+    /// The Settings page writes this on load and on slider change; `sendNotification`
+    /// reads it synchronously to throttle proactive notifications.
     static let frequencyDefaultsKey = "notification_frequency"
 
-    /// Default level used when the key has never been written.
+    /// Default level used when the key has never been written (e.g. first run before
+    /// the Settings page has hydrated from the backend). Mirrors the backend default.
     private static let defaultFrequencyLevel = 3
 
     /// Stores metadata for sent notifications so we can retrieve it in delegate callbacks
@@ -84,10 +87,12 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     /// Last time we triggered a notification repair (debounce to avoid hammering lsregister)
     private var lastRepairAttempt: Date?
 
-    /// Last proactive-notification timestamp per assistantId.
+    /// Last proactive-notification timestamp per assistantId. Used by the frequency
+    /// throttle so one chatty assistant cannot starve another.
     private var lastNotificationAt: [String: Date] = [:]
 
-    /// Last proactive-notification timestamp across all assistants.
+    /// Last proactive-notification timestamp across all assistants. Used by the
+    /// frequency throttle as a global rate limit.
     private var lastNotificationAtGlobal: Date?
 
     private override init() {
@@ -259,7 +264,8 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         }
 
         // Proactive notifications honor the user's frequency setting. Functional
-        // notifications can pass `respectFrequency: false` to bypass the gate.
+        // notifications (Crisp support replies, screen-recording permission prompts,
+        // onboarding test) pass `respectFrequency: false` to bypass the gate.
         if respectFrequency && !shouldAllowProactiveNotification(assistantId: assistantId) {
             log("NotificationService: throttled \(assistantId) notification (frequency=\(Self.currentFrequencyLevel()))")
             return
@@ -360,7 +366,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Frequency throttle
 
     /// Current frequency level from UserDefaults, clamped to [0, 5]. Falls back to
-    /// `defaultFrequencyLevel` when the key is absent.
+    /// `defaultFrequencyLevel` when the key is absent (first run before sync).
     static func currentFrequencyLevel() -> Int {
         guard UserDefaults.standard.object(forKey: Self.frequencyDefaultsKey) != nil else {
             return Self.defaultFrequencyLevel
@@ -373,24 +379,27 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     /// `nil` means no throttle (Maximum); `.infinity` means drop everything (Off).
     private static func minInterval(forLevel level: Int) -> TimeInterval? {
         switch level {
-        case 0: return .infinity
-        case 1: return 60 * 60
-        case 2: return 30 * 60
-        case 3: return 10 * 60
-        case 4: return 3 * 60
-        default: return nil
+        case 0: return .infinity   // Off
+        case 1: return 60 * 60     // Minimal:  1 per hour
+        case 2: return 30 * 60     // Low:      1 per 30 min
+        case 3: return 10 * 60     // Balanced: 1 per 10 min
+        case 4: return 3 * 60      // High:     1 per 3 min
+        default: return nil        // Maximum:  no throttle
         }
     }
 
+    /// Decide whether a proactive notification from `assistantId` should be delivered.
+    /// Records the timestamp when allowed so subsequent calls within the window are
+    /// suppressed. Per-assistant + global limits combine so a chatty assistant cannot
+    /// starve another.
     private func shouldAllowProactiveNotification(assistantId: String) -> Bool {
         let level = Self.currentFrequencyLevel()
         guard let interval = Self.minInterval(forLevel: level) else {
-            return true
+            return true  // Maximum
         }
         if interval == .infinity {
-            return false
+            return false  // Off
         }
-
         let now = Date()
         if let last = lastNotificationAtGlobal, now.timeIntervalSince(last) < interval {
             return false
@@ -398,7 +407,6 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         if let last = lastNotificationAt[assistantId], now.timeIntervalSince(last) < interval {
             return false
         }
-
         lastNotificationAt[assistantId] = now
         lastNotificationAtGlobal = now
         return true

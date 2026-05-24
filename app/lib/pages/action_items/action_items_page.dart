@@ -1,3 +1,4 @@
+import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -7,11 +8,11 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:omi/backend/http/api/goals.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/schema.dart';
+import 'package:omi/pages/settings/task_integrations_page.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/goals_provider.dart';
 import 'package:omi/providers/task_integration_provider.dart';
 import 'package:omi/services/app_review_service.dart';
-import 'package:omi/utils/analytics/mixpanel.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/other/debouncer.dart';
 import 'widgets/action_item_form_sheet.dart';
@@ -54,6 +55,8 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
   // important thing to surface, hiding them behind a tap caused regret.
   bool _overdueExpanded = true;
 
+  bool _noDeadlineExpanded = true;
+
   // Search header lifecycle objects.
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -75,7 +78,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
     _loadTaskGoalLinks();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      MixpanelManager().actionItemsPageOpened();
+      PlatformManager.instance.analytics.actionItemsPageOpened();
       final provider = Provider.of<ActionItemsProvider>(context, listen: false);
       if (provider.actionItems.isEmpty) {
         provider.fetchActionItems(showShimmer: true);
@@ -113,6 +116,14 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
     SharedPreferencesUtil().taskGoalLinks = Map<String, String>.from(_taskGoalLinks);
   }
 
+  void _attachTaskToGoal(String taskId, String goalId) {
+    setState(() {
+      _taskGoalLinks[taskId] = goalId;
+    });
+    SharedPreferencesUtil().taskGoalLinks = Map<String, String>.from(_taskGoalLinks);
+    HapticFeedback.lightImpact();
+  }
+
   String? _getGoalTitleForTask(ActionItemWithMetadata item) {
     final goalId = _taskGoalLinks[item.id];
     if (goalId == null) return null;
@@ -143,7 +154,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
   }
 
   Future<void> _onActionItemCompleted() async {
-    MixpanelManager().actionItemCompleted(fromTab: 'Tasks');
+    PlatformManager.instance.analytics.actionItemCompleted(fromTab: 'Tasks');
 
     final hasCompletedFirst = await _appReviewService.hasCompletedFirstActionItem();
 
@@ -181,7 +192,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
             currentValue: current,
           );
           if (created != null) {
-            MixpanelManager().goalCreated(
+            PlatformManager.instance.analytics.goalCreated(
               goalId: created.id,
               titleLength: title.length,
               targetValue: target,
@@ -314,9 +325,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
           width: 36,
           height: 36,
           decoration: const BoxDecoration(color: Color(0xFF1F1F25), shape: BoxShape.circle),
-          child: const Center(
-            child: Icon(Icons.more_horiz_rounded, color: Colors.white70, size: 20),
-          ),
+          child: const Center(child: Icon(Icons.more_horiz_rounded, color: Colors.white70, size: 20)),
         ),
       ),
     );
@@ -600,10 +609,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
         const SliverPadding(padding: EdgeInsets.only(top: 12)),
         SliverToBoxAdapter(child: _buildGoalsRow()),
         const SliverPadding(padding: EdgeInsets.only(top: 8)),
-        SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(child: _buildEmptyTasksContent()),
-        ),
+        SliverFillRemaining(hasScrollBody: false, child: Center(child: _buildEmptyTasksContent())),
       ],
     );
   }
@@ -626,10 +632,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [
-                      Colors.deepPurple.withValues(alpha: 0.35),
-                      Colors.deepPurple.withValues(alpha: 0.0),
-                    ],
+                    colors: [Colors.deepPurple.withValues(alpha: 0.35), Colors.deepPurple.withValues(alpha: 0.0)],
                     stops: const [0.0, 1.0],
                   ),
                 ),
@@ -661,12 +664,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
           const SizedBox(height: 28),
           Text(
             context.l10n.noTasksYet,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.3,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3),
           ),
           const SizedBox(height: 10),
           ConstrainedBox(
@@ -674,11 +672,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
             child: Text(
               context.l10n.tasksEmptyStateMessage,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.55),
-                fontSize: 15,
-                height: 1.5,
-              ),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 15, height: 1.5),
             ),
           ),
           const SizedBox(height: 28),
@@ -699,11 +693,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 6)),
                 ],
               ),
               child: Row(
@@ -745,27 +735,21 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
 
         if (isSearching) ...[
           if (filteredItems.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: _buildNoSearchResultsContent()),
-            )
+            SliverFillRemaining(hasScrollBody: false, child: Center(child: _buildNoSearchResultsContent()))
           else
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final item = filteredItems[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildTaskItem(
-                      item,
-                      provider,
-                      category: _getCategoryForItem(item),
-                      categoryItems: filteredItems,
-                    ),
-                  );
-                },
-                childCount: filteredItems.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final item = filteredItems[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildTaskItem(
+                    item,
+                    provider,
+                    category: _getCategoryForItem(item),
+                    categoryItems: filteredItems,
+                  ),
+                );
+              }, childCount: filteredItems.length),
             ),
         ] else ...[
           SliverToBoxAdapter(child: _buildGoalsRow()),
@@ -823,7 +807,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                         GestureDetector(
                           onTap: () {
                             HapticFeedback.lightImpact();
-                            MixpanelManager().track('Add Goal Clicked from Tasks Page');
+                            PlatformManager.instance.analytics.track('Add Goal Clicked from Tasks Page');
                             _showCreateGoalSheet();
                           },
                           child: Container(
@@ -844,6 +828,46 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
               ...goals.map((goal) => _buildGoalItem(goal, actionProvider)),
               const SizedBox(height: 8),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGoalDropTile(Goal? goal) {
+    return DragTarget<ActionItemWithMetadata>(
+      onWillAcceptWithDetails: (details) => goal != null,
+      onAcceptWithDetails: (details) {
+        if (goal == null) return;
+        PlatformManager.instance.analytics.taskDraggedToGoal(taskId: details.data.id, goalId: goal.id);
+        _attachTaskToGoal(details.data.id, goal.id);
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty && goal != null;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(goal == null ? 0.04 : 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isHovering ? Colors.white.withOpacity(0.5) : Colors.white.withOpacity(0.08),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              goal?.title ?? '',
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              style: TextStyle(
+                color: goal == null ? Colors.white.withOpacity(0.2) : Colors.white.withOpacity(0.9),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ),
+            ),
           ),
         );
       },
@@ -885,43 +909,79 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                   padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
                   child: Row(
                     children: [
-                      Text(
-                        title.toUpperCase(),
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (provider.showCompletedView && orderedItems.isNotEmpty)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('${orderedItems.length}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => _confirmClearCompleted(provider, orderedItems),
-                              child: Icon(Icons.close, size: 14, color: Colors.grey[600]),
-                            ),
-                          ],
+                      if (category == TaskCategory.noDeadline)
+                        GestureDetector(
+                          onTap: () => setState(() => _noDeadlineExpanded = !_noDeadlineExpanded),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _noDeadlineExpanded ? Icons.expand_less : Icons.expand_more,
+                                color: Colors.grey[500],
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                title.toUpperCase(),
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              if (orderedItems.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Text('${orderedItems.length}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                              ],
+                            ],
+                          ),
                         )
-                      else if (orderedItems.isNotEmpty)
-                        Text('${orderedItems.length}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      else
+                        Text(
+                          title.toUpperCase(),
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      const Spacer(),
+                      if (category != TaskCategory.noDeadline) ...[
+                        if (provider.showCompletedView && orderedItems.isNotEmpty)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('${orderedItems.length}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _confirmClearCompleted(provider, orderedItems),
+                                child: Icon(Icons.close, size: 14, color: Colors.grey[600]),
+                              ),
+                            ],
+                          )
+                        else if (orderedItems.isNotEmpty)
+                          Text('${orderedItems.length}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                      ] else if (provider.showCompletedView && orderedItems.isNotEmpty && _noDeadlineExpanded)
+                        GestureDetector(
+                          onTap: () => _confirmClearCompleted(provider, orderedItems),
+                          child: Icon(Icons.close, size: 14, color: Colors.grey[600]),
+                        ),
                     ],
                   ),
                 ),
 
                 // Drop zone for first position
-                if (orderedItems.isNotEmpty)
+                if (orderedItems.isNotEmpty && (category != TaskCategory.noDeadline || _noDeadlineExpanded))
                   _buildFirstPositionDropZone(category, orderedItems, candidateData.isNotEmpty),
 
                 // Task items. Row padding alone carries the rhythm — no
                 // dividers between rows; matches Things 3 / Apple Reminders.
-                ...orderedItems.map(
-                  (item) => _buildTaskItem(item, provider, category: category, categoryItems: orderedItems),
-                ),
+                if (category != TaskCategory.noDeadline || _noDeadlineExpanded)
+                  ...orderedItems.map(
+                    (item) => _buildTaskItem(item, provider, category: category, categoryItems: orderedItems),
+                  ),
 
                 // Spacing after section
                 const SizedBox(height: 12),
@@ -1171,10 +1231,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
   /// stopping at the first sibling/ancestor. The data model is flat (no
   /// parent_id), so the page is the right layer to compute this: it owns the
   /// category-grouped display order; the provider does not.
-  List<String> _visibleDescendantIds(
-    ActionItemWithMetadata parent,
-    List<ActionItemWithMetadata> categoryItems,
-  ) {
+  List<String> _visibleDescendantIds(ActionItemWithMetadata parent, List<ActionItemWithMetadata> categoryItems) {
     final idx = categoryItems.indexWhere((i) => i.id == parent.id);
     if (idx < 0) return const [];
     final ids = <String>[];
@@ -1411,11 +1468,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
                         await provider.updateActionItemState(item, !item.completed);
                         if (!item.completed) _onActionItemCompleted();
                       },
-                child: SizedBox(
-                  width: 44,
-                  height: 48,
-                  child: Center(child: _buildCheckbox(item.completed)),
-                ),
+                child: SizedBox(width: 44, height: 48, child: Center(child: _buildCheckbox(item.completed))),
               ),
               // Task text
               Expanded(
@@ -1461,10 +1514,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
               // Different shape + position from the leading completion circle
               // so completion vs. selection cannot be confused.
               if (provider.isSelectionMode)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8, right: 8),
-                  child: _buildSelectionSquare(isSelected),
-                ),
+                Padding(padding: const EdgeInsets.only(left: 8, right: 8), child: _buildSelectionSquare(isSelected)),
             ],
           ),
         ),
@@ -1548,7 +1598,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
         // Goals are not part of selection mode — selection only applies to
         // tasks (the action bar's Export action acts on tasks only).
         if (provider.isSelectionMode) return;
-        MixpanelManager().goalItemTappedForEdit(goalId: goal.id, source: 'tasks_page');
+        PlatformManager.instance.analytics.goalItemTappedForEdit(goalId: goal.id, source: 'tasks_page');
         _showEditGoalSheet(goal);
       },
       child: Container(
@@ -1618,7 +1668,7 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
             false;
       },
       onDismissed: (direction) async {
-        MixpanelManager().goalDeleted(goalId: goal.id, source: 'tasks_page', method: 'swipe');
+        PlatformManager.instance.analytics.goalDeleted(goalId: goal.id, source: 'tasks_page', method: 'swipe');
         await _deleteGoal(goal);
       },
       background: Container(
@@ -1644,10 +1694,10 @@ class _ActionItemsPageState extends State<ActionItemsPage> with AutomaticKeepAli
           // Update goal via provider
           final goalsProvider = Provider.of<GoalsProvider>(context, listen: false);
           await goalsProvider.updateGoal(goal.id, title: title, currentValue: current, targetValue: target);
-          MixpanelManager().goalUpdated(goalId: goal.id, source: 'tasks_page');
+          PlatformManager.instance.analytics.goalUpdated(goalId: goal.id, source: 'tasks_page');
         },
         onDelete: () {
-          MixpanelManager().goalDeleted(goalId: goal.id, source: 'tasks_page', method: 'button');
+          PlatformManager.instance.analytics.goalDeleted(goalId: goal.id, source: 'tasks_page', method: 'button');
           _deleteGoal(goal);
         },
       ),
@@ -1715,8 +1765,7 @@ class _GoalCreateSheetState extends State<_GoalCreateSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.l10n.goalTitle,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                  Text(context.l10n.goalTitle, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: titleController,
@@ -1724,7 +1773,7 @@ class _GoalCreateSheetState extends State<_GoalCreateSheet> {
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.08),
+                      fillColor: Colors.white.withOpacity(0.08),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
@@ -1742,7 +1791,7 @@ class _GoalCreateSheetState extends State<_GoalCreateSheet> {
                       children: [
                         Text(
                           context.l10n.current,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                         ),
                         const SizedBox(height: 8),
                         TextField(
@@ -1751,7 +1800,7 @@ class _GoalCreateSheetState extends State<_GoalCreateSheet> {
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.08),
+                            fillColor: Colors.white.withOpacity(0.08),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -1767,8 +1816,7 @@ class _GoalCreateSheetState extends State<_GoalCreateSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(context.l10n.target,
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                        Text(context.l10n.target, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: targetController,
@@ -1776,7 +1824,7 @@ class _GoalCreateSheetState extends State<_GoalCreateSheet> {
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.08),
+                            fillColor: Colors.white.withOpacity(0.08),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -1887,8 +1935,7 @@ class _GoalEditSheetState extends State<_GoalEditSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(context.l10n.goalTitle,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                  Text(context.l10n.goalTitle, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: titleController,
@@ -1896,7 +1943,7 @@ class _GoalEditSheetState extends State<_GoalEditSheet> {
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.08),
+                      fillColor: Colors.white.withOpacity(0.08),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
@@ -1914,7 +1961,7 @@ class _GoalEditSheetState extends State<_GoalEditSheet> {
                       children: [
                         Text(
                           context.l10n.current,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                         ),
                         const SizedBox(height: 8),
                         TextField(
@@ -1923,7 +1970,7 @@ class _GoalEditSheetState extends State<_GoalEditSheet> {
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.08),
+                            fillColor: Colors.white.withOpacity(0.08),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -1939,8 +1986,7 @@ class _GoalEditSheetState extends State<_GoalEditSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(context.l10n.target,
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+                        Text(context.l10n.target, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
                         const SizedBox(height: 8),
                         TextField(
                           controller: targetController,
@@ -1948,7 +1994,7 @@ class _GoalEditSheetState extends State<_GoalEditSheet> {
                           style: const TextStyle(color: Colors.white, fontSize: 16),
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.white.withValues(alpha: 0.08),
+                            fillColor: Colors.white.withOpacity(0.08),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -2056,7 +2102,7 @@ class _CircularProgressPainter extends CustomPainter {
 
     // Draw background circle (empty part)
     final bgPaint = Paint()
-      ..color = color.withValues(alpha: 0.2)
+      ..color = color.withOpacity(0.2)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, bgPaint);
 
@@ -2121,13 +2167,7 @@ class _DashedCirclePainter extends CustomPainter {
 
     for (var i = 0; i < segments; i++) {
       final startAngle = i * stepAngle;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        dashAngle,
-        false,
-        paint,
-      );
+      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, dashAngle, false, paint);
     }
   }
 

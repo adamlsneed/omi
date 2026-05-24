@@ -1,32 +1,33 @@
-# Mintlify Starter Kit
+# Omi Docs
 
-Click on `Use this template` to copy the Mintlify starter kit. The starter kit contains examples including
+This directory contains the local source for Omi's developer, API, hardware, and assembly documentation.
 
-- Guide pages
-- Navigation
-- Customizations
-- API Reference pages
-- Use of popular components
+Start here:
 
-### /Development
+- `INDEX.md` - complete local documentation index.
+- `developer/repository-guide.mdx` - repository map, architecture, and day-to-day development commands.
+- `developer/upstream-sync-and-backend-policy.mdx` - fork maintenance runbook and BasedHardware hosted backend policy.
+- `doc/developer/backend/` - backend architecture and pipeline docs.
+- `api-reference/` - API reference pages.
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the documentation changes locally. To install, use the following command
+## Preview Locally
 
-```
+Install the Mintlify CLI:
+
+```bash
 npm i -g mintlify
 ```
 
-Run the following command at the root of your documentation (where docs.json is)
+Run from the docs root, where `docs.json` lives:
 
-```
+```bash
+cd docs
 mintlify dev
 ```
 
-### Publishing Changes
+## Maintenance Rules
 
-Install our Github App to auto propagate changes from your repo to your deployment. Changes will be deployed to production automatically after pushing to the default branch. Find the link to install on your dashboard.
-
-#### Troubleshooting
-
-- Mintlify dev isn't running - Run `mintlify install` it'll re-install dependencies.
-- Page loads as a 404 - Make sure you are running in a folder with `docs.json`
+- Keep Adam's normal local builds on BasedHardware hosted services: `https://api.omi.me/` for the Python API and `https://desktop-backend-hhibjajaja-uc.a.run.app` for the hosted desktop backend.
+- Update setup docs when changing scripts, required environment variables, signing, or Firebase assumptions.
+- Update backend pipeline docs when changing audio streaming, transcription, conversation lifecycle, pusher/listen behavior, VAD, diarization, or speaker identification.
+- Update hardware docs when changing firmware protocol, BLE characteristics, storage layout, or flashing behavior.

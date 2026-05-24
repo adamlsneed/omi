@@ -1,0 +1,146 @@
+---
+title: "Repository Guide"
+icon: "map"
+description: "Repository map, architecture, backend policy, and development workflows for this Omi fork."
+---
+
+# Omi Repository Guide
+
+This repository is Adam's fork of [BasedHardware/Omi](https://github.com/BasedHardware/Omi). The fork carries local desktop and mobile changes, while upstream remains the source of truth for Omi's hosted services, hardware behavior, SDKs, and broad product direction.
+
+## Backend Rule
+
+Local builds for Adam's paid subscription flow must use BasedHardware's hosted backend unless the task is explicitly about local backend development.
+
+Use these defaults for normal desktop and mobile work:
+
+```bash
+API_BASE_URL=https://api.omi.me/
+USE_WEB_AUTH=true
+USE_AUTH_CUSTOM_TOKEN=true
+OMI_PYTHON_API_URL=https://api.omi.me
+OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app
+```
+
+Do not commit personal backend URLs, private API keys, Firebase tokens, or one-off tunnel URLs. Put those in ignored `.env` files when they are needed for a local experiment.
+
+## Repository Map
+
+| Path | Purpose | Primary stack |
+| --- | --- | --- |
+| `desktop/` | macOS product, local runner, Swift app, Rust desktop backend, TypeScript agent runtime | Swift, SwiftUI, Rust, TypeScript |
+| `app/` | Mobile app for iOS and Android, device pairing, capture, conversations, chat, memories, tasks, subscriptions | Flutter, Dart |
+| `backend/` | Hosted Python API, pusher/listen services, transcription orchestration, app integrations, payments, notifications | Python, FastAPI, Firebase |
+| `omi/` | Omi wearable firmware and board configuration | C, Zephyr, nRF |
+| `omiGlass/` | Omi Glass firmware/app tooling | ESP32-S3, C/C++, TypeScript |
+| `plugins/` | Example and production Omi apps and integrations | Python, TypeScript |
+| `sdks/` | Client SDKs and examples | Python, Swift, React Native |
+| `web/` | Public, admin, app, and persona web surfaces | Next.js, TypeScript |
+| `mcp/` | Model Context Protocol server and examples | Python |
+| `docs/` | Mintlify docs source and local runbooks | MDX, Markdown |
+
+## Runtime Architecture
+
+```text
+Omi wearable / Omi Glass
+        |
+        | BLE, storage sync, or direct capture
+        v
+Mobile app or macOS app
+        |
+        | HTTPS and WebSocket with Firebase auth
+        v
+BasedHardware hosted Omi backend
+        |
+        +--> Firestore, Redis, storage
+        +--> pusher/listen WebSocket services
+        +--> VAD, diarizer, Deepgram STT
+        +--> LLM, chat, memory, task, and app integration services
+```
+
+The macOS app has an additional Rust desktop backend. In normal hosted mode, the Swift app is local but talks to BasedHardware's deployed desktop backend and Python backend. The local Rust backend is only required when changing or debugging `desktop/Backend-Rust/`.
+
+## Desktop Development
+
+Most desktop work should start in hosted backend mode:
+
+```bash
+cd desktop
+./run.sh --yolo
+```
+
+That mode builds and launches the local Swift app while routing service calls to:
+
+- `OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app`
+- `OMI_PYTHON_API_URL=https://api.omi.me`
+
+Use full local mode only for Rust backend changes:
+
+```bash
+cd desktop
+cp Backend-Rust/.env.example Backend-Rust/.env
+./run.sh
+```
+
+Keep `OMI_PYTHON_API_URL=https://api.omi.me` in local Rust backend work unless the task is explicitly testing a local Python backend.
+
+Useful desktop checks:
+
+```bash
+cd desktop
+xcrun swift build -c debug --package-path Desktop
+./test.sh
+cd Backend-Rust && cargo check
+```
+
+## Mobile Development
+
+Normal mobile work should also use hosted Omi auth and backend configuration:
+
+```bash
+cd app
+bash setup.sh ios
+# or
+bash setup.sh android
+```
+
+The setup script writes `.dev.env` with `API_BASE_URL=https://api.omi.me/`, web auth, and custom token auth. For Adam's active local-signing iPhone build, keep the local bundle identifier but use the production Firebase flavor/config for the hosted backend subscription path. See `app/README.md` and `app/docs/local-ios-standalone-install.md` for the signing and install details.
+
+Useful mobile checks:
+
+```bash
+cd app
+flutter pub get
+flutter gen-l10n
+dart run build_runner build --delete-conflicting-outputs
+flutter test
+```
+
+## Backend Development
+
+The `backend/` directory represents the Python services that BasedHardware deploys. Local backend work is appropriate when changing server behavior, tests, routes, workers, or integrations. It is not required for normal subscription-backed app testing.
+
+Useful backend checks:
+
+```bash
+cd backend
+./test-preflight.sh
+./test.sh
+```
+
+When changing async backend code, follow `AGENTS.md`: synchronous Firestore, Redis, storage, auth refresh, and file operations must be offloaded through the configured executors in `utils.executors`.
+
+## Firmware And Hardware
+
+Firmware changes under `omi/` and `omiGlass/` should be treated as hardware-facing changes with a larger blast radius. Prefer upstream firmware behavior unless the fork has an explicit device requirement. When merging upstream, keep current BasedHardware protocol, storage, and BLE identity changes unless there is a known fork-specific incompatibility.
+
+## Documentation Locations
+
+- Root overview: `README.md`
+- Local docs index: `docs/INDEX.md`
+- Desktop guide: `desktop/README.md`
+- Mobile guide: `app/README.md`
+- Backend docs: `docs/doc/developer/backend/`
+- Fork maintenance runbook: `docs/developer/upstream-sync-and-backend-policy.mdx`
+
+Update the relevant doc in the same change when altering setup, backend routing, device protocol, auth behavior, or upstream merge policy.

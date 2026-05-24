@@ -49,7 +49,7 @@ echo "- bash setup.sh android"
 echo ""
 
 
-API_BASE_URL=https://api.omiapi.com/
+API_BASE_URL=https://api.omi.me/
 
 ######################################
 # Generate device suffix from hostname

@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <hal/nrf_power.h>
 #include <math.h> // For float conversion in logs
-#include <shell/shell_bt_nus.h>
 #include <stdint.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/gatt.h>
@@ -17,6 +16,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
+#include <shell/shell_bt_nus.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/ring_buffer.h>
 
@@ -25,20 +25,14 @@
 #include "config.h"
 #include "features.h"
 #include "haptic.h"
-#ifdef CONFIG_OMI_ENABLE_BATTERY
-#include "lib/core/lib/battery/battery.h"
-#endif
 #include "mic.h"
 #ifdef CONFIG_OMI_ENABLE_MONITOR
 #include "monitor.h"
 #endif
-#include "rtc.h"
 #include "sd_card.h"
 #include "settings.h"
-#ifdef CONFIG_OMI_ENABLE_SPEAKER
-#include "speaker.h"
-#endif
 #include "storage.h"
+#include "rtc.h"
 LOG_MODULE_REGISTER(transport, CONFIG_LOG_DEFAULT_LEVEL);
 
 #ifdef CONFIG_OMI_ENABLE_RFSW_CTRL
@@ -55,21 +49,18 @@ extern bool is_connected;
 #ifdef CONFIG_OMI_ENABLE_BATTERY
 extern bool is_charging;
 #endif
-extern void set_led_state(void);
 static atomic_t pusher_stop_flag;
 
 struct bt_conn *current_connection = NULL;
 uint16_t current_mtu = 0;
 uint16_t current_package_index = 0;
 
-#ifdef CONFIG_OMI_ENABLE_SPEAKER
 static ssize_t audio_data_write_handler(struct bt_conn *conn,
                                         const struct bt_gatt_attr *attr,
                                         const void *buf,
                                         uint16_t len,
                                         uint16_t offset,
                                         uint8_t flags);
-#endif
 
 static struct bt_conn_cb _callback_references;
 static void audio_ccc_config_changed_handler(const struct bt_gatt_attr *attr, uint16_t value);
@@ -111,34 +102,15 @@ static ssize_t settings_charging_status_read_handler(struct bt_conn *conn,
                                                      void *buf,
                                                      uint16_t len,
                                                      uint16_t offset);
-static ssize_t settings_recording_pause_write_handler(struct bt_conn *conn,
-                                                      const struct bt_gatt_attr *attr,
-                                                      const void *buf,
-                                                      uint16_t len,
-                                                      uint16_t offset,
-                                                      uint8_t flags);
-static ssize_t settings_recording_pause_read_handler(struct bt_conn *conn,
-                                                     const struct bt_gatt_attr *attr,
-                                                     void *buf,
-                                                     uint16_t len,
-                                                     uint16_t offset);
 static int notify_charging_status(struct bt_conn *conn, bool force_notify);
 static ssize_t
 features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset);
-
-enum conn_update_stage {
-    CONN_UPDATE_PARAMS,
-    CONN_UPDATE_PHY,
-    CONN_UPDATE_DATA_LENGTH_AND_MTU,
-};
 
 // Forward declarations for update functions and callbacks
 static void update_phy(struct bt_conn *conn);
 static void update_data_length(struct bt_conn *conn);
 static void update_mtu(struct bt_conn *conn);
 static void update_conn_params(struct bt_conn *conn);
-static void schedule_conn_update(enum conn_update_stage stage, k_timeout_t delay);
-static void conn_update_work_handler(struct k_work *work);
 static void schedule_mtu_recheck(void);
 static void mtu_recheck_work_handler(struct k_work *work);
 static void exchange_func(struct bt_conn *conn, uint8_t att_err, struct bt_gatt_exchange_params *params);
@@ -146,11 +118,9 @@ static void exchange_func(struct bt_conn *conn, uint8_t att_err, struct bt_gatt_
 // --- GATT Exchange MTU Params ---
 static struct bt_gatt_exchange_params exchange_params;
 
-#define MTU_RECHECK_DELAY_MS 800
-#define MTU_RECHECK_MAX_ATTEMPTS 6
+#define MTU_RECHECK_DELAY_MS        800
+#define MTU_RECHECK_MAX_ATTEMPTS    6
 static uint8_t mtu_recheck_attempts = 0;
-static enum conn_update_stage conn_update_stage = CONN_UPDATE_PARAMS;
-K_WORK_DELAYABLE_DEFINE(conn_update_work, conn_update_work_handler);
 K_WORK_DELAYABLE_DEFINE(mtu_recheck_work, mtu_recheck_work_handler);
 
 //
@@ -168,10 +138,8 @@ static struct bt_uuid_128 audio_characteristic_data_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10001, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
 static struct bt_uuid_128 audio_characteristic_format_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10002, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
-#ifdef CONFIG_OMI_ENABLE_SPEAKER
 static struct bt_uuid_128 audio_characteristic_speaker_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10003, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
-#endif
 
 static struct bt_gatt_attr audio_service_attr[] = {
     BT_GATT_PRIMARY_SERVICE(&audio_service_uuid),
@@ -211,8 +179,6 @@ static struct bt_uuid_128 settings_mic_gain_characteristic_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10012, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
 static struct bt_uuid_128 settings_charging_status_characteristic_uuid =
     BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10013, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
-static struct bt_uuid_128 settings_recording_pause_characteristic_uuid =
-    BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x19B10014, 0xE8F2, 0x537E, 0x4F6C, 0xD104768A1214));
 
 static struct bt_gatt_attr settings_service_attr[] = {
     BT_GATT_PRIMARY_SERVICE(&settings_service_uuid),
@@ -235,12 +201,6 @@ static struct bt_gatt_attr settings_service_attr[] = {
                            NULL,
                            NULL),
     BT_GATT_CCC(charging_status_ccc_config_changed_handler, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-    BT_GATT_CHARACTERISTIC(&settings_recording_pause_characteristic_uuid.uuid,
-                           BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE,
-                           BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
-                           settings_recording_pause_read_handler,
-                           settings_recording_pause_write_handler,
-                           NULL),
 };
 
 static struct bt_gatt_service settings_service = BT_GATT_SERVICE(settings_service_attr);
@@ -292,7 +252,7 @@ static ssize_t time_sync_write_handler(struct bt_conn *conn,
 
     LOG_INF("Time sync received: %u seconds", epoch_s);
 
-    int err = rtc_set_utc_time((uint64_t) epoch_s);
+    int err = rtc_set_utc_time((uint64_t)epoch_s);
     if (err) {
         LOG_ERR("Failed to set RTC time: %d", err);
         return BT_GATT_ERR(BT_ATT_ERR_UNLIKELY);
@@ -306,8 +266,11 @@ static ssize_t time_sync_write_handler(struct bt_conn *conn,
     return len;
 }
 
-static ssize_t
-time_sync_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset)
+static ssize_t time_sync_read_handler(struct bt_conn *conn,
+                                      const struct bt_gatt_attr *attr,
+                                      void *buf,
+                                      uint16_t len,
+                                      uint16_t offset)
 {
     uint32_t epoch_s = get_utc_time();
     LOG_INF("Time sync read: %u seconds", epoch_s);
@@ -396,7 +359,6 @@ static ssize_t audio_codec_read_characteristic(struct bt_conn *conn,
     return bt_gatt_attr_read(conn, attr, buf, len, offset, value, sizeof(value));
 }
 
-#ifdef CONFIG_OMI_ENABLE_SPEAKER
 static ssize_t audio_data_write_handler(struct bt_conn *conn,
                                         const struct bt_gatt_attr *attr,
                                         const void *buf,
@@ -405,11 +367,12 @@ static ssize_t audio_data_write_handler(struct bt_conn *conn,
                                         uint8_t flags)
 {
     uint16_t amount = 400;
+    int16_t *int16_buf = (int16_t *) buf;
+    uint8_t *data = (uint8_t *) buf;
     bt_gatt_notify(conn, attr, &amount, sizeof(amount));
-    (void) speak(len, buf);
+    amount = speak(len, buf);
     return len;
 }
-#endif
 
 static ssize_t settings_dim_ratio_write_handler(struct bt_conn *conn,
                                                 const struct bt_gatt_attr *attr,
@@ -499,37 +462,6 @@ static ssize_t settings_charging_status_read_handler(struct bt_conn *conn,
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &charging_status, sizeof(charging_status));
 }
 
-static ssize_t settings_recording_pause_write_handler(struct bt_conn *conn,
-                                                      const struct bt_gatt_attr *attr,
-                                                      const void *buf,
-                                                      uint16_t len,
-                                                      uint16_t offset,
-                                                      uint8_t flags)
-{
-    if (len != 1) {
-        LOG_WRN("Invalid length for recording pause write: %u", len);
-        return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
-    }
-
-    bool paused = ((uint8_t *) buf)[0] != 0;
-    LOG_INF("Received recording pause state: %u", paused ? 1U : 0U);
-    app_settings_set_recording_paused(paused);
-    set_led_state();
-
-    return len;
-}
-
-static ssize_t settings_recording_pause_read_handler(struct bt_conn *conn,
-                                                     const struct bt_gatt_attr *attr,
-                                                     void *buf,
-                                                     uint16_t len,
-                                                     uint16_t offset)
-{
-    uint8_t paused = app_settings_is_recording_paused() ? 1U : 0U;
-    LOG_INF("Reading recording pause state: %u", paused);
-    return bt_gatt_attr_read(conn, attr, buf, len, offset, &paused, sizeof(paused));
-}
-
 static ssize_t
 features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset)
 {
@@ -560,7 +492,6 @@ features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, voi
     features |= OMI_FEATURE_LED_DIMMING;
     // Mic gain control is always enabled.
     features |= OMI_FEATURE_MIC_GAIN;
-    features |= OMI_FEATURE_RECORDING_PAUSE;
 
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &features, sizeof(features));
 }
@@ -584,9 +515,9 @@ static void exchange_func(struct bt_conn *conn, uint8_t att_err, struct bt_gatt_
 //
 
 #ifdef CONFIG_OMI_ENABLE_BATTERY
-#define BATTERY_REFRESH_INTERVAL_CONNECTED 5000     // 5 seconds
+#define BATTERY_REFRESH_INTERVAL_CONNECTED   5000 // 5 seconds
 #define BATTERY_REFRESH_INTERVAL_DISCONNECTED 10000 // 10 seconds
-#define CONFIG_OMI_BATTERY_CRITICAL_MV 3500         // mV
+#define CONFIG_OMI_BATTERY_CRITICAL_MV  3500  // mV
 uint8_t battery_percentage = 0;
 static int8_t charging_status_last_notified = -1;
 void broadcast_battery_level(struct k_work *work_item);
@@ -597,7 +528,8 @@ static int notify_charging_status(struct bt_conn *conn, bool force_notify)
         return -ENOTCONN;
     }
 
-    if (!bt_gatt_is_subscribed(conn, &settings_service.attrs[6], BT_GATT_CCC_NOTIFY)) {
+    if (!bt_gatt_is_subscribed(
+            conn, &settings_service.attrs[6], BT_GATT_CCC_NOTIFY)) {
         return 0;
     }
 
@@ -606,7 +538,8 @@ static int notify_charging_status(struct bt_conn *conn, bool force_notify)
         return 0;
     }
 
-    int err = bt_gatt_notify(conn, &settings_service.attrs[6], &charging_status, sizeof(charging_status));
+    int err = bt_gatt_notify(
+        conn, &settings_service.attrs[6], &charging_status, sizeof(charging_status));
     if (err) {
         LOG_WRN("Charging status notify failed: %d", err);
         return err;
@@ -621,11 +554,12 @@ K_WORK_DELAYABLE_DEFINE(battery_work, broadcast_battery_level);
 
 void broadcast_battery_level(struct k_work *work_item)
 {
-    (void) work_item;
+    (void)work_item;
     uint16_t battery_millivolt;
-    uint32_t next_refresh_interval = (is_connected && current_connection != NULL)
-                                         ? BATTERY_REFRESH_INTERVAL_CONNECTED
-                                         : BATTERY_REFRESH_INTERVAL_DISCONNECTED;
+    uint32_t next_refresh_interval =
+        (is_connected && current_connection != NULL)
+            ? BATTERY_REFRESH_INTERVAL_CONNECTED
+            : BATTERY_REFRESH_INTERVAL_DISCONNECTED;
 
     if (battery_get_millivolt(&battery_millivolt) == 0 &&
         battery_get_percentage(&battery_percentage, battery_millivolt) == 0) {
@@ -672,6 +606,7 @@ static void _transport_connected(struct bt_conn *conn, uint8_t err)
     err = bt_conn_get_info(conn, &info);
     if (err) {
         LOG_ERR("Failed to get connection info (err %d)", err);
+        bt_conn_unref(conn);
         return;
     }
 
@@ -692,26 +627,31 @@ static void _transport_connected(struct bt_conn *conn, uint8_t err)
     LOG_INF("Initial MTU: %u", mtu);
     mtu_recheck_attempts = 0;
 
+    // Request aggressive connection params for higher BLE sync throughput.
+    update_conn_params(current_connection);
+
+        // Delay a bit before PHY request to avoid early HCI race on some phones.
+        k_sleep(K_MSEC(300));
+
+    // Initiate PHY, Data Length, and MTU updates
+    update_phy(current_connection);
+
+    // Add a delay before data length and MTU updates as per Nordic example
+    k_sleep(K_MSEC(1000));
+    update_data_length(current_connection);
+    update_mtu(current_connection);
+    schedule_mtu_recheck();
+
     is_connected = true;
 
     if (IS_ENABLED(CONFIG_SHELL_BT_NUS)) {
         shell_bt_nus_enable(conn);
     }
 
-#if defined(CONFIG_BT_SMP)
-    /* Request bonding so link keys are persisted by BT settings backend. */
-    int sec_err = bt_conn_set_security(conn, BT_SECURITY_L2);
-    if (sec_err && sec_err != -EALREADY) {
-        LOG_WRN("bt_conn_set_security failed (err %d)", sec_err);
-    }
-#endif
-
     // Notify SD module about BLE connection (flush current file)
 #ifdef CONFIG_OMI_ENABLE_OFFLINE_STORAGE
     sd_notify_ble_state(true);
 #endif
-
-    schedule_conn_update(CONN_UPDATE_PARAMS, K_NO_WAIT);
 }
 
 // Number of BLE TX slots reserved for non-audio notifications (battery, status, diagnostics).
@@ -727,7 +667,6 @@ K_SEM_DEFINE(audio_tx_sem,
 
 static void _transport_disconnected(struct bt_conn *conn, uint8_t err)
 {
-    k_work_cancel_delayable(&conn_update_work);
     k_work_cancel_delayable(&mtu_recheck_work);
     mtu_recheck_attempts = 0;
 
@@ -779,7 +718,7 @@ static void _le_param_updated(struct bt_conn *conn, uint16_t interval, uint16_t 
 
     if (interval > 24) {
         LOG_WRN("Connection interval still high (%u units). Re-requesting preferred params.", interval);
-        schedule_conn_update(CONN_UPDATE_PARAMS, K_NO_WAIT);
+        update_conn_params(conn);
     }
 }
 
@@ -825,12 +764,12 @@ static struct bt_conn_cb _callback_references = {
 
 // --- Update Request Functions ---
 
-#define PHY_UPDATE_RETRY_COUNT 3
-#define PHY_UPDATE_RETRY_DELAY_MS 150
-#define MTU_UPDATE_RETRY_COUNT 3
-#define MTU_UPDATE_RETRY_DELAY_MS 120
-#define CONN_PARAM_RETRY_COUNT 3
-#define CONN_PARAM_RETRY_DELAY_MS 300
+#define PHY_UPDATE_RETRY_COUNT      3
+#define PHY_UPDATE_RETRY_DELAY_MS   150
+#define MTU_UPDATE_RETRY_COUNT      3
+#define MTU_UPDATE_RETRY_DELAY_MS   120
+#define CONN_PARAM_RETRY_COUNT      3
+#define CONN_PARAM_RETRY_DELAY_MS   300
 
 static void update_conn_params(struct bt_conn *conn)
 {
@@ -850,7 +789,10 @@ static void update_conn_params(struct bt_conn *conn)
         }
 
         if (attempt < CONN_PARAM_RETRY_COUNT) {
-            LOG_WRN("bt_conn_le_param_update() failed (err %d), retry %d/%d", err, attempt, CONN_PARAM_RETRY_COUNT);
+            LOG_WRN("bt_conn_le_param_update() failed (err %d), retry %d/%d",
+                    err,
+                    attempt,
+                    CONN_PARAM_RETRY_COUNT);
             k_sleep(K_MSEC(CONN_PARAM_RETRY_DELAY_MS));
         }
     }
@@ -879,12 +821,17 @@ static void update_phy(struct bt_conn *conn)
         }
 
         if (attempt < PHY_UPDATE_RETRY_COUNT) {
-            LOG_WRN("bt_conn_le_phy_update() failed (err %d), retry %d/%d", err, attempt, PHY_UPDATE_RETRY_COUNT);
+            LOG_WRN("bt_conn_le_phy_update() failed (err %d), retry %d/%d",
+                    err,
+                    attempt,
+                    PHY_UPDATE_RETRY_COUNT);
             k_sleep(K_MSEC(PHY_UPDATE_RETRY_DELAY_MS));
         }
     }
 
-    LOG_ERR("bt_conn_le_phy_update() failed after %d retries (last err %d)", PHY_UPDATE_RETRY_COUNT, err);
+    LOG_ERR("bt_conn_le_phy_update() failed after %d retries (last err %d)",
+            PHY_UPDATE_RETRY_COUNT,
+            err);
 }
 
 static void update_data_length(struct bt_conn *conn)
@@ -899,38 +846,6 @@ static void update_data_length(struct bt_conn *conn)
     err = bt_conn_le_data_len_update(conn, &data_len_param);
     if (err) {
         LOG_ERR("bt_conn_le_data_len_update() failed (err %d)", err);
-    }
-}
-
-static void schedule_conn_update(enum conn_update_stage stage, k_timeout_t delay)
-{
-    conn_update_stage = stage;
-    k_work_reschedule(&conn_update_work, delay);
-}
-
-static void conn_update_work_handler(struct k_work *work)
-{
-    ARG_UNUSED(work);
-
-    struct bt_conn *conn = current_connection;
-    if (!conn || !is_connected) {
-        return;
-    }
-
-    switch (conn_update_stage) {
-    case CONN_UPDATE_PARAMS:
-        update_conn_params(conn);
-        schedule_conn_update(CONN_UPDATE_PHY, K_MSEC(300));
-        break;
-    case CONN_UPDATE_PHY:
-        update_phy(conn);
-        schedule_conn_update(CONN_UPDATE_DATA_LENGTH_AND_MTU, K_MSEC(1000));
-        break;
-    case CONN_UPDATE_DATA_LENGTH_AND_MTU:
-        update_data_length(conn);
-        update_mtu(conn);
-        schedule_mtu_recheck();
-        break;
     }
 }
 
@@ -962,7 +877,10 @@ static void mtu_recheck_work_handler(struct k_work *work)
     }
 
     mtu_recheck_attempts++;
-    LOG_WRN("MTU still %u, re-requesting exchange (%u/%u)", mtu, mtu_recheck_attempts, MTU_RECHECK_MAX_ATTEMPTS);
+    LOG_WRN("MTU still %u, re-requesting exchange (%u/%u)",
+            mtu,
+            mtu_recheck_attempts,
+            MTU_RECHECK_MAX_ATTEMPTS);
     update_mtu(conn);
 
     if (mtu_recheck_attempts < MTU_RECHECK_MAX_ATTEMPTS) {
@@ -991,7 +909,10 @@ static void update_mtu(struct bt_conn *conn)
         }
 
         if ((err == -EBUSY || err == -EAGAIN) && attempt < MTU_UPDATE_RETRY_COUNT) {
-            LOG_WRN("bt_gatt_exchange_mtu() busy (err %d), retry %d/%d", err, attempt, MTU_UPDATE_RETRY_COUNT);
+            LOG_WRN("bt_gatt_exchange_mtu() busy (err %d), retry %d/%d",
+                    err,
+                    attempt,
+                    MTU_UPDATE_RETRY_COUNT);
             k_sleep(K_MSEC(MTU_UPDATE_RETRY_DELAY_MS));
             continue;
         }
@@ -1001,6 +922,56 @@ static void update_mtu(struct bt_conn *conn)
     }
 
     LOG_ERR("bt_gatt_exchange_mtu() failed after retries (last err %d)", err);
+}
+
+static void log_local_ble_addresses(void)
+{
+    bt_addr_le_t addrs[CONFIG_BT_ID_MAX];
+    size_t count = CONFIG_BT_ID_MAX;
+
+    bt_id_get(addrs, &count);
+
+    if (count == 0U) {
+        LOG_WRN("No local BLE identity address found");
+        printk("BLE_ADDR: unavailable (count=0)\n");
+        return;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        char addr[BT_ADDR_LE_STR_LEN];
+
+        bt_addr_le_to_str(&addrs[i], addr, sizeof(addr));
+        LOG_INF("BLE identity[%u]: %s", (unsigned int)i, addr);
+        printk("BLE_ADDR[%u]: %s\n", (unsigned int)i, addr);
+    }
+}
+
+static int ensure_local_ble_identity(void)
+{
+#if defined(CONFIG_BT_SETTINGS)
+    int err = settings_load();
+    if (err && err != -ENOENT) {
+        LOG_ERR("Failed to load BT settings (err %d)", err);
+        return err;
+    }
+#endif
+
+    bt_addr_le_t addrs[CONFIG_BT_ID_MAX];
+    size_t count = CONFIG_BT_ID_MAX;
+
+    bt_id_get(addrs, &count);
+    if (count > 0U) {
+        return 0;
+    }
+
+    int id = bt_id_create(NULL, NULL);
+    if (id < 0) {
+        LOG_ERR("Failed to create local BLE identity (err %d)", id);
+        return id;
+    }
+
+    LOG_INF("Created local BLE identity %d", id);
+    return 0;
 }
 
 //
@@ -1155,6 +1126,7 @@ static bool push_to_gatt(struct bt_conn *conn)
 #define OPUS_PREFIX_LENGTH 1
 #define OPUS_PADDED_LENGTH 80
 #define MAX_WRITE_SIZE 440
+static uint32_t offset = 0;
 static uint16_t buffer_offset = 0;
 
 #ifdef CONFIG_OMI_ENABLE_OFFLINE_STORAGE
@@ -1196,8 +1168,11 @@ bool write_to_storage(void)
 }
 #endif
 
+static bool use_storage = true;
 #define MAX_FILES 10
 #define MAX_AUDIO_FILE_SIZE 300000
+static int recent_file_size_updated = 0;
+static uint8_t heartbeat_count = 0;
 
 void test_pusher(void)
 {
@@ -1275,9 +1250,6 @@ void pusher(void)
 
 int transport_off()
 {
-    k_work_cancel_delayable(&conn_update_work);
-    k_work_cancel_delayable(&mtu_recheck_work);
-
     // Stop pusher thread when transport is turned off
     atomic_set(&pusher_stop_flag, 1);
     k_sem_give(&tx_queue_sem);
@@ -1354,22 +1326,15 @@ int transport_start()
         return err;
     }
 
-#if defined(CONFIG_BT_SETTINGS)
-    err = settings_load_subtree("bt");
-    if (err == -ENOENT) {
-        LOG_INF("No persisted BT bond keys yet");
-    } else if (err) {
-        LOG_WRN("Failed to load BT settings (err %d)", err);
-    }
-#endif
-
     LOG_INF("Transport bluetooth initialized");
 
-    // Load settings AFTER bt_enable so BLE identity address is available
-    err = settings_load();
+    err = ensure_local_ble_identity();
     if (err) {
-        LOG_WRN("BLE settings_load failed (err %d), advertising may fail", err);
+        LOG_WRN("Continuing without confirmed BLE identity (err %d)", err);
     }
+
+    // Production-line helper: emit local BLE addresses on UART for fixture parsing.
+    log_local_ble_addresses();
 
     if (IS_ENABLED(CONFIG_SHELL_BT_NUS)) {
         err = shell_bt_nus_init();
@@ -1392,7 +1357,9 @@ int transport_start()
 #endif
     //  Enable button
 #ifdef CONFIG_OMI_ENABLE_BUTTON
+    button_init();
     register_button_service();
+    activate_button_work();
 #endif
 
 // Initialize and register Haptic service if enabled

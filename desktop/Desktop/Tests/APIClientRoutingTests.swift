@@ -497,7 +497,8 @@ final class APIClientRoutingTests: XCTestCase {
 
         _ = try? await client.synthesizeSpeech(request: request)
 
-        assertRoutes(URLCapture.capturedRequests, host: "rust-test", port: 9002,
+        let requests = URLCapture.capturedRequests
+        assertRoutes(requests, host: "rust-test", port: 9002,
                      pathContains: "v1/tts/synthesize", method: "POST",
                      label: "synthesizeSpeech")
 

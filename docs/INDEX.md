@@ -12,6 +12,8 @@ Complete index of all documentation in the Omi codebase.
 
 ### Setup
 
+- [Repository Guide](developer/repository-guide.mdx) - Local fork map, runtime architecture, and development workflows
+- [Upstream Sync And Backend Policy](developer/upstream-sync-and-backend-policy.mdx) - Keep the fork current while preserving BasedHardware hosted backend defaults
 - [App Setup](doc/developer/AppSetup.mdx) - Set up Flutter app for development
 - [Backend Setup](doc/developer/backend/Backend_Setup.mdx) - Set up backend infrastructure
 - [Backend Deep Dive](doc/developer/backend/backend_deepdive.mdx) - Backend architecture overview

@@ -80,9 +80,6 @@ pub struct Config {
     pub vertex_project_id: Option<String>,
     /// GCP region for Vertex AI (default: us-central1)
     pub vertex_location: String,
-    /// Python backend base URL used for cross-service calls (e.g. paywall status).
-    /// Defaults to https://api.omi.me; override with OMI_PYTHON_API_URL for staging/dev.
-    pub python_api_base: String,
 }
 
 impl Config {
@@ -97,6 +94,7 @@ impl Config {
                     10201
                 }),
             gemini_api_key: env::var("GEMINI_API_KEY").ok(),
+            openai_api_key: env::var("OPENAI_API_KEY").ok(),
             firebase_project_id: env::var("FIREBASE_PROJECT_ID").ok()
                 .or_else(|| env::var("GCP_PROJECT_ID").ok()),
             firebase_auth_project_id: env::var("FIREBASE_AUTH_PROJECT_ID").ok(),
@@ -142,7 +140,6 @@ impl Config {
             agent_gcs_bucket: env::var("AGENT_GCS_BUCKET").ok(),
             anthropic_api_key: env::var("ANTHROPIC_API_KEY").ok(),
             desktop_legacy_anthropic_key: env::var("DESKTOP_LEGACY_ANTHROPIC_KEY").ok(),
-            openai_api_key: env::var("OPENAI_API_KEY").ok(),
             google_calendar_api_key: env::var("GOOGLE_CALENDAR_API_KEY").ok(),
             use_vertex_ai: env::var("USE_VERTEX_AI")
                 .map(|v| v != "false" && v != "0")
@@ -152,10 +149,6 @@ impl Config {
                 .ok(),
             vertex_location: env::var("GCP_LOCATION")
                 .unwrap_or_else(|_| "us-central1".to_string()),
-            python_api_base: env::var("OMI_PYTHON_API_URL")
-                .unwrap_or_else(|_| "https://api.omi.me".to_string())
-                .trim_end_matches('/')
-                .to_string(),
         }
     }
 
@@ -177,9 +170,7 @@ impl Config {
             tracing::warn!("REDIS_DB_HOST not set - conversation visibility/sharing will not work");
         }
         if self.encryption_secret.is_none() {
-            tracing::warn!(
-                "ENCRYPTION_SECRET not set — encrypted user data will not be decryptable"
-            );
+            tracing::warn!("ENCRYPTION_SECRET not set — encrypted user data will not be decryptable");
         }
         Ok(())
     }
@@ -190,10 +181,7 @@ impl Config {
             if let Some(password) = &self.redis_password {
                 // URL-encode the password to handle special characters
                 let encoded_password = urlencoding::encode(password);
-                format!(
-                    "redis://default:{}@{}:{}",
-                    encoded_password, host, self.redis_port
-                )
+                format!("redis://default:{}@{}:{}", encoded_password, host, self.redis_port)
             } else {
                 format!("redis://{}:{}", host, self.redis_port)
             }

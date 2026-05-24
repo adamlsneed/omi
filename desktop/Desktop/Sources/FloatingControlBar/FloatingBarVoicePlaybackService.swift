@@ -230,9 +230,9 @@ final class FloatingBarVoicePlaybackService: NSObject, AVAudioPlayerDelegate {
         await MainActor.run {
           guard let self else { return }
           self.isSynthesizing = false
-          log(
-            "FloatingBarVoicePlaybackService: cloud TTS chunk synthesis failed, falling back to system voice: \(error.localizedDescription)"
-          )
+        log(
+          "FloatingBarVoicePlaybackService: cloud TTS chunk synthesis failed, falling back to system voice: \(error.localizedDescription)"
+        )
           self.enqueueSystemSpeech(text)
           self.startSynthesisIfNeeded(mode: mode)
         }
@@ -398,6 +398,8 @@ final class FloatingBarVoicePlaybackService: NSObject, AVAudioPlayerDelegate {
   }
 
   /// Synthesize speech through the desktop backend's OpenAI TTS proxy.
+  /// APIClient attaches a user BYOK key when one is configured; otherwise the
+  /// backend uses its server-side key.
   private nonisolated static func synthesizeOpenAISpeech(
     text: String,
     voiceID: String,

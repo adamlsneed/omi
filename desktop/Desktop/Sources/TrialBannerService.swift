@@ -43,7 +43,7 @@ final class TrialBannerService {
     guard metadata.trialStartedAt != nil else { return }
 
     if metadata.trialExpired {
-      showOnce(key: Self.expiredKey, title: "Trial Ended", message: "Your 3-day premium trial has ended. Upgrade to keep unlimited access.")
+      showOnce(key: Self.expiredKey, title: "Trial Ended", message: "Your 3-day premium trial has ended. Upgrade to keep unlimited access or bring your own API keys.")
       return
     }
 

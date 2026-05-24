@@ -124,6 +124,8 @@ cd app && bash setup.sh ios    # or: bash setup.sh android
 ### Getting Started
 - [Introduction](https://docs.omi.me/)
 - [Quick Start Guide](https://docs.omi.me/quickstart)
+- [Repository Guide](docs/developer/repository-guide.mdx)
+- [Upstream Sync And Backend Policy](docs/developer/upstream-sync-and-backend-policy.mdx)
 - [macOS App Development](desktop/README.md)
 - [Mobile App Setup](https://docs.omi.me/doc/developer/AppSetup)
 - [Backend Setup](https://docs.omi.me/doc/developer/backend/Backend_Setup)

@@ -25,6 +25,8 @@
           {
             "group": "Core Development",
             "pages": [
+              "developer/repository-guide",
+              "developer/upstream-sync-and-backend-policy",
               "doc/developer/AppSetup",
               "doc/developer/Cursor",
               {

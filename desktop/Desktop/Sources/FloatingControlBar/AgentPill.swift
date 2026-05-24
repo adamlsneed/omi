@@ -174,8 +174,10 @@ final class AgentPillsManager: ObservableObject {
                 log("AgentPill: router response shape unexpected, defaulting to chat")
                 return nil
             }
-            // Haiku sometimes wraps the JSON answer in fenced code blocks or
-            // adds leading prose. Parse the first JSON object we can find.
+            // Haiku occasionally ignores the "no markdown" instruction and
+            // wraps the JSON in ```json ... ``` fences, or emits leading
+            // prose. Extract the first balanced {...} object instead of
+            // trusting the whole response to be raw JSON.
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             let jsonBody: String
             if let firstBrace = trimmed.firstIndex(of: "{"),

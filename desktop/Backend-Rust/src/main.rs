@@ -23,6 +23,7 @@ impl FormatTime for BackendTimer {
 }
 
 mod auth;
+mod byok;
 mod config;
 mod encryption;
 mod llm;
@@ -32,24 +33,17 @@ mod routes;
 mod services;
 mod vertex;
 
-use auth::{firebase_auth_extension, paywall_checker_extension, FirebaseAuth};
-use config::Config;
+use auth::{byok_cache_extension, firebase_auth_extension, paywall_checker_extension, FirebaseAuth};
+use byok::ByokStateCache;
 use paywall::PaywallChecker;
+use config::Config;
 use routes::{
     // Active (real traffic from current app)
-    agent_routes,
-    auth_routes,
-    chat_completions_routes,
-    config_routes,
-    crisp_routes,
+    agent_routes, auth_routes, chat_completions_routes, config_routes, crisp_routes,
+    health_routes, proxy_routes, screen_activity_routes, tts_routes, updates_routes,
+    webhook_routes,
     // Deprecated stubs (return 410 Gone — current app uses Python for all data CRUD)
     deprecated_routes,
-    health_routes,
-    proxy_routes,
-    screen_activity_routes,
-    tts_routes,
-    updates_routes,
-    webhook_routes,
 };
 use services::{FirestoreService, IntegrationService, RedisService};
 
@@ -93,7 +87,7 @@ async fn main() {
                 .with_timer(BackendTimer)
                 .with_target(false)
                 .with_level(false)
-                .with_ansi(true),
+                .with_ansi(true)
         )
         // File layer (same format, no ANSI colors)
         .with(
@@ -102,7 +96,7 @@ async fn main() {
                 .with_target(false)
                 .with_level(false)
                 .with_ansi(false)
-                .with_writer(non_blocking),
+                .with_writer(non_blocking)
         )
         .init();
 
@@ -110,8 +104,7 @@ async fn main() {
     dotenvy::dotenv().ok();
 
     // Log active QoS tier
-    tracing::info!(
-        "Model QoS tier: {} | rate limits: soft={}, hard={}",
+    tracing::info!("Model QoS tier: {} | rate limits: soft={}, hard={}",
         llm::model_qos::tier_description(),
         llm::model_qos::daily_soft_limit(),
         llm::model_qos::daily_hard_limit(),
@@ -127,12 +120,10 @@ async fn main() {
     // Auth token validation may use a different project than Firestore.
     // Cloud Run OAuth issues tokens for "based-hardware" (prod), so local dev
     // needs FIREBASE_AUTH_PROJECT_ID=based-hardware while keeping Firestore on dev.
-    let auth_project_id = config
-        .firebase_auth_project_id
-        .clone()
+    let auth_project_id = config.firebase_auth_project_id.clone()
         .or_else(|| config.firebase_project_id.clone())
         .expect("FIREBASE_AUTH_PROJECT_ID or FIREBASE_PROJECT_ID must be set");
-    let firebase_auth = Arc::new(FirebaseAuth::new(auth_project_id));
+    let firebase_auth = Arc::new(FirebaseAuth::new(auth_project_id.clone()));
 
     // Refresh Firebase keys with retry (transient network failures at startup)
     {
@@ -148,44 +139,30 @@ async fn main() {
                     break;
                 }
                 Err(e) => {
-                    tracing::warn!(
-                        "Firebase key fetch attempt {}/{} failed: {}",
-                        attempt,
-                        max_attempts,
-                        e
-                    );
+                    tracing::warn!("Firebase key fetch attempt {}/{} failed: {}", attempt, max_attempts, e);
                     last_err = Some(e);
                     if attempt < max_attempts {
-                        tokio::time::sleep(std::time::Duration::from_secs(1 << (attempt - 1)))
-                            .await;
+                        tokio::time::sleep(std::time::Duration::from_secs(1 << (attempt - 1))).await;
                     }
                 }
             }
         }
         if let Some(e) = last_err {
-            tracing::warn!(
-                "All {} Firebase key fetch attempts failed: {} - auth may not work",
-                max_attempts,
-                e
-            );
+            tracing::warn!("All {} Firebase key fetch attempts failed: {} - auth may not work", max_attempts, e);
         }
     }
 
     // Initialize Firestore
-    let firestore_project_id = config
-        .firebase_project_id
-        .clone()
+    let firestore_project_id = config.firebase_project_id.clone()
         .expect("FIREBASE_PROJECT_ID must be set for Firestore");
     let firestore = match FirestoreService::new(
         firestore_project_id.clone(),
         config.encryption_secret.clone(),
-    )
-    .await
-    {
+    ).await {
         Ok(fs) => Arc::new(fs),
         Err(e) => {
-            tracing::error!("Failed to initialize Firestore: {}", e);
-            std::process::exit(1);
+            tracing::warn!("Failed to initialize Firestore: {} - using placeholder", e);
+            Arc::new(FirestoreService::new(firestore_project_id, config.encryption_secret.clone()).await.unwrap())
         }
     };
 
@@ -195,20 +172,13 @@ async fn main() {
     // Initialize Redis (optional - for conversation visibility/sharing)
     // Use explicit connection params to avoid URL encoding issues with special characters in password
     let redis = if let Some(host) = &config.redis_host {
-        match RedisService::new_with_params(
-            host,
-            config.redis_port,
-            config.redis_password.as_deref(),
-        ) {
+        match RedisService::new_with_params(host, config.redis_port, config.redis_password.as_deref()) {
             Ok(rs) => {
                 tracing::info!("Redis client created for {}:{}", host, config.redis_port);
                 Some(Arc::new(rs))
             }
             Err(e) => {
-                tracing::warn!(
-                    "Failed to create Redis client: {} - conversation sharing will not work",
-                    e
-                );
+                tracing::warn!("Failed to create Redis client: {} - conversation sharing will not work", e);
                 None
             }
         }
@@ -226,18 +196,11 @@ async fn main() {
                         // Verify we can get a token at startup
                         match auth.token().await {
                             Ok(_) => {
-                                tracing::info!(
-                                    "Vertex AI auth initialized (project={}, location={})",
-                                    project_id,
-                                    location
-                                );
+                                tracing::info!("Vertex AI auth initialized (project={}, location={})", project_id, location);
                                 Some(auth)
                             }
                             Err(e) => {
-                                tracing::error!(
-                                    "Vertex AI token fetch failed: {} — falling back to API key",
-                                    e
-                                );
+                                tracing::error!("Vertex AI token fetch failed: {} — falling back to API key", e);
                                 None
                             }
                         }
@@ -271,8 +234,15 @@ async fn main() {
         });
     }
 
-    // Paywall checker — calls Python `/v1/users/me/paywall`, caches 5min.
-    let paywall_checker = Arc::new(PaywallChecker::new(config.python_api_base.clone()));
+    // BYOK state cache — caches Firestore BYOK state per-uid for 30s.
+    let byok_cache = Arc::new(ByokStateCache::new());
+
+    // Paywall checker — reads subscription/BYOK/account-age from Firestore + Firebase Auth.
+    let paywall_checker = Arc::new(PaywallChecker::new(
+        firestore.clone(),
+        auth_project_id.clone(),
+        byok_cache.clone(),
+    ));
 
     let state = AppState {
         firestore,
@@ -316,6 +286,7 @@ async fn main() {
         .merge(auth_router)
         .layer(firebase_auth_extension(firebase_auth))
         .layer(paywall_checker_extension(paywall_checker))
+        .layer(byok_cache_extension(byok_cache))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
@@ -323,15 +294,6 @@ async fn main() {
     let addr = format!("0.0.0.0:{}", config.port);
     tracing::info!("Starting OMI Desktop Backend on {}", addr);
 
-    let listener = match tokio::net::TcpListener::bind(&addr).await {
-        Ok(listener) => listener,
-        Err(e) => {
-            tracing::error!("Failed to bind {}: {}", addr, e);
-            std::process::exit(1);
-        }
-    };
-    if let Err(e) = axum::serve(listener, app).await {
-        tracing::error!("Server failed: {}", e);
-        std::process::exit(1);
-    }
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
