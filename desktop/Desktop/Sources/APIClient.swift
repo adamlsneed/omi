@@ -4908,7 +4908,7 @@ extension APIClient {
       let authService = await MainActor.run { AuthService.shared }
       _ = try await authService.getIdToken(forceRefresh: true)
 
-      var retryRequest = request
+      var retryRequest = urlRequest
       retryRequest.setValue(
         try await authService.getAuthHeader(), forHTTPHeaderField: "Authorization")
 
