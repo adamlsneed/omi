@@ -9151,21 +9151,6 @@ class AppLocalizationsMs extends AppLocalizations {
   String get bulkDeleteFailed => 'Tidak dapat memadam tugasan. Sila cuba lagi.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Tambah tugas secara automatik ke Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Apabila dihidupkan, tugas yang dibuat oleh Omi akan ditambah secara automatik ke Peringatan. Anda masih boleh menambah tugas secara manual apabila pilihan ini dimatikan.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Tambah pilihan ke Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Sesetengah tugas yang dipilih tidak dapat ditambah.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Tugasan yang dipilih sudah dieksport.';
-
-  @override
   String get deleteRecap => 'Padam ringkasan';
 
   @override
@@ -9312,4 +9297,143 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Pelayan Omi sedang sibuk — rakaman anda akan disegerakkan apabila kapasiti tersedia semula';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used daripada $limit ingatan dicipta bulan ini';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Tetapan Segerak WiFi';
+
+  @override
+  String get enterHotspotCredentials => 'Masukkan kelayakan hotspot telefon anda';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'Segerak WiFi menggunakan telefon anda sebagai hotspot. Cari nama dan kata laluan di Tetapan > Hotspot Peribadi.';
+
+  @override
+  String get hotspotNameSsid => 'Nama Hotspot (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'cth. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Masukkan kata laluan hotspot';
+
+  @override
+  String get pleaseEnterHotspotName => 'Sila masukkan nama hotspot';
+
+  @override
+  String get wifiCredentialsSaved => 'Kelayakan WiFi disimpan';
+
+  @override
+  String get wifiCredentialsCleared => 'Kelayakan WiFi dikosongkan';
+
+  @override
+  String get fastTransfer => 'Pemindahan Pantas';
+
+  @override
+  String get transferMethod => 'Kaedah Pemindahan';
+
+  @override
+  String get fast => 'Pantas';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Gagal mengaktifkan WiFi pada peranti. Sila cuba lagi.';
+
+  @override
+  String get deviceNoFastTransfer => 'Peranti anda tidak menyokong Pemindahan Pantas. Gunakan Bluetooth sebaliknya.';
+
+  @override
+  String get enableHotspotMessage => 'Sila aktifkan hotspot telefon anda dan cuba lagi.';
+
+  @override
+  String get transferStartFailed => 'Gagal memulakan pemindahan. Sila cuba lagi.';
+
+  @override
+  String get invalidWifiCredentials => 'Kelayakan WiFi tidak sah. Semak tetapan hotspot anda.';
+
+  @override
+  String get wifiConnectionFailed => 'Sambungan WiFi gagal. Sila cuba lagi.';
+
+  @override
+  String get wifiSyncFailed => 'Segerak WiFi Gagal';
+
+  @override
+  String get wifiSync => 'Penyegerakan WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Sambungan Gagal';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Aktifkan WiFi $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Bertukar ke Pemindahan Pantas';
+
+  @override
+  String get fastTransferEnabled => 'Pemindahan Pantas diaktifkan';
+
+  @override
+  String get enableFastTransfer => 'Aktifkan Pemindahan Pantas';
+
+  @override
+  String get fastTransferDescription =>
+      'Pemindahan Pantas menggunakan WiFi untuk kelajuan ~5x lebih pantas. Telefon anda akan bersambung sementara ke rangkaian WiFi peranti Omi semasa pemindahan.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Akses internet dijeda semasa pemindahan';
+
+  @override
+  String get chooseTransferMethodDescription => 'Pilih cara rakaman dipindahkan dari peranti Omi ke telefon anda.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s melalui WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X LEBIH PANTAS';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Mencipta sambungan WiFi terus ke peranti Omi anda. Telefon anda terputus sementara dari WiFi biasa semasa pemindahan.';
+
+  @override
+  String get locationPermissionRequired => 'Kebenaran lokasi diperlukan';
+
+  @override
+  String get locationPermissionContent =>
+      'Pemindahan Pantas memerlukan kebenaran lokasi untuk mengesahkan sambungan WiFi. Sila berikan kebenaran lokasi untuk meneruskan.';
+
+  @override
+  String get chooseTransferMethod => 'Pilih kaedah pemindahan';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s melalui WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Peranti tidak menyokong penyegerakan WiFi, bertukar kepada Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Tambah tugas secara automatik ke Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Apabila dihidupkan, tugas yang dibuat oleh Omi akan ditambah secara automatik ke Peringatan. Anda masih boleh menambah tugas secara manual apabila pilihan ini dimatikan.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Tambah pilihan ke Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Sesetengah tugas yang dipilih tidak dapat ditambah.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Tugasan yang dipilih sudah dieksport.';
 }

@@ -9158,21 +9158,6 @@ class AppLocalizationsKn extends AppLocalizations {
   String get bulkDeleteFailed => 'ಕಾರ್ಯಗಳನ್ನು ಅಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'ಕಾರ್ಯಗಳನ್ನು Apple Reminders ಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸಿ';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'ಸಕ್ರಿಯವಾಗಿದ್ದರೆ, Omi ರಚಿಸುವ ಕಾರ್ಯಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ Reminders ಗೆ ಸೇರುತ್ತವೆ. ಇದು ಆಫ್ ಆಗಿದ್ದರೂ ನೀವು ಕಾರ್ಯಗಳನ್ನು ಕೈಯಾರೆ ಸೇರಿಸಬಹುದು.';
-
-  @override
-  String get addSelectedToAppleReminders => 'ಆಯ್ದವುಗಳನ್ನು Apple Reminders ಗೆ ಸೇರಿಸಿ';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ಕೆಲವು ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಸೇರಿಸಲಾಗಲಿಲ್ಲ.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಈಗಾಗಲೇ ರಫ್ತು ಮಾಡಲಾಗಿದೆ.';
-
-  @override
   String get deleteRecap => 'ಸಾರಾಂಶ ಅಳಿಸಿ';
 
   @override
@@ -9320,4 +9305,144 @@ class AppLocalizationsKn extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Omi ಸರ್ವರ್‌ಗಳು ಬ್ಯುಸಿಯಾಗಿವೆ — ಸಾಮರ್ಥ್ಯ ಲಭ್ಯವಾದ ತಕ್ಷಣ ನಿಮ್ಮ ರೆಕಾರ್ಡಿಂಗ್‌ಗಳು ಸಿಂಕ್ ಆಗುತ್ತವೆ';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used of $limit ಸ್ಮೃತಿಗಳು ಈ ತಿಂಗಳು ರಚಿತ';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi ಸಿಂಕ್ ಸಂಯೋಜನೆಗಳು';
+
+  @override
+  String get enterHotspotCredentials => 'ನಿಮ್ಮ ಫೋನ್‌ನ ಹಾಟ್‌ಸ್ಪಾಟ್ ಪ್ರಮಾಣಪತ್ರ ನಮೂದಿಸಿ';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi ಸಿಂಕ್ ನಿಮ್ಮ ಫೋನ್‌ನನ್ನು ಹಾಟ್‌ಸ್ಪಾಟ್ ಆಗಿ ಬಳಸುತ್ತದೆ. ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಪರ್ಸನಲ್ ಹಾಟ್‌ಸ್ಪಾಟ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಹಾಟ್‌ಸ್ಪಾಟ್ ಹೆಸರು ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ಕಂಡುಕೊಳ್ಳಿ.';
+
+  @override
+  String get hotspotNameSsid => 'ಹಾಟ್‌ಸ್ಪಾಟ್ ಹೆಸರು (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'ಉದಾಹರಣೆ iPhone ಹಾಟ್‌ಸ್ಪಾಟ್';
+
+  @override
+  String get enterHotspotPassword => 'ಹಾಟ್‌ಸ್ಪಾಟ್ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ';
+
+  @override
+  String get pleaseEnterHotspotName => 'ದಯವಿಟ್ಟು ಹಾಟ್‌ಸ್ಪಾಟ್ ಹೆಸರು ನಮೂದಿಸಿ';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi ಪ್ರಮಾಣಪತ್ರ ಉಳಿಸಲಾಗಿದೆ';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi ಪ್ರಮಾಣಪತ್ರ ತೀಕ್ಷ್ಣ ಮಾಡಲಾಗಿದೆ';
+
+  @override
+  String get fastTransfer => 'ವೇಗ ವರ್ಗಾವಣೆ';
+
+  @override
+  String get transferMethod => 'ವರ್ಗಾವಣೆ ವಿಧಾನ';
+
+  @override
+  String get fast => 'ವೇಗ';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'ಸಾಧನದಲ್ಲಿ WiFi ಸಕ್ರಿಯಗೊಳಿಸಲು ವಿಫಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get deviceNoFastTransfer => 'ನಿಮ್ಮ ಸಾಧನವು ವೇಗ ವರ್ಗಾವಣೆ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ಬದಲಿ Bluetooth ಬಳಸಿ.';
+
+  @override
+  String get enableHotspotMessage => 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಫೋನ್‌ನ ಹಾಟ್‌ಸ್ಪಾಟ್ ಸಕ್ರಿಯಗೊಳಿಸಿ ಮತ್ತು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get transferStartFailed => 'ವರ್ಗಾವಣೆ ಪ್ರಾರಂಭಗೊಳಿಸಲು ವಿಫಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get invalidWifiCredentials => 'ಅಮಾನ್ಯ WiFi ಆಖ್ಯಾನ. ನಿಮ್ಮ ಹಾಟ್‌ಸ್ಪಾಟ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi ಸಂಪರ್ಕ ವಿಫಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi ಸಿಂಕ್ ವಿಫಲ';
+
+  @override
+  String get wifiSync => 'WiFi ಸಿಂಕ್';
+
+  @override
+  String get wifiConnectionFailedTitle => 'ಸಂಪರ್ಕ ವಿಫಲ';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName ನ WiFi ಸಕ್ರಿಯಗೊಳಿಸಿ';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'ವೇಗದ ವರ್ಗಾವಣೆಗೆ ಬದಲಾಯಿಸಲಾಗಿದೆ';
+
+  @override
+  String get fastTransferEnabled => 'ವೇಗದ ವರ್ಗಾವಣೆ ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ';
+
+  @override
+  String get enableFastTransfer => 'ವೇಗದ ವರ್ಗಾವಣೆ ಸಕ್ರಿಯಗೊಳಿಸಿ';
+
+  @override
+  String get fastTransferDescription =>
+      'ವೇಗದ ವರ್ಗಾವಣೆ WiFi ಬಳಸಿ ಸುಮಾರು 5 ಪಟ್ಟು ವೇಗವಾನ ಗತಿಯನ್ನು ಬಳಸುತ್ತದೆ. ವರ್ಗಾವಣೆಯ ಸಮಯದಲ್ಲಿ ನಿಮ್ಮ ಫೋನ್ ಠಾಯಿ Omi ಸಾಧನದ WiFi ನೆಟ್ವರ್ಕ್ಗೆ ಠಾಯಿಗೆ ಸಂಪರ್ಕ ಸ್ಥಾಪಿಸುತ್ತದೆ.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'ವರ್ಗಾವಣೆಯ ಸಮಯದಲ್ಲಿ ಇಂಟರ್ನೆಟ್ ಪ್ರವೇಶ ಸ್ಥಗಿತಗೊಂಡಿದೆ';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'ರೆಕಾರ್ಡಿಂಗ್ಗಳನ್ನು ನಿಮ್ಮ Omi ಸಾಧನದಿಂದ ಫೋನ್ಗೆ ವರ್ಗಾವಣೆ ಮಾಡುವ ವಿಧಾನವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ.';
+
+  @override
+  String get wifiSpeed => 'WiFi ಮೂಲಕ ~150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '5X ವೇಗವಾಯಿತು';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'ನಿಮ್ಮ Omi ಸಾಧನಕ್ಕೆ ನೇರ WiFi ಸಂಪರ್ಕವನ್ನು ರಚಿಸುತ್ತದೆ. ನಿಮ್ಮ ಫೋನ್ ವರ್ಗಾವಣೆಯ ಸಮಯದಲ್ಲಿ ಠಾಯಿಗೆ ಸಾಮಾನ್ಯ WiFi ನಿಂದ ಸಂಪರ್ಕವಿಚ್ಛಿನ್ನ ಆಗುತ್ತದೆ.';
+
+  @override
+  String get locationPermissionRequired => 'ಸ್ಥಳ ಅನುಮತಿ ಅಗತ್ಯ';
+
+  @override
+  String get locationPermissionContent =>
+      'ವೇಗದ ವರ್ಗಾವಣೆ WiFi ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಲು ಸ್ಥಳ ಅನುಮತಿ ಅಗತ್ಯ. ದಯವಿಟ್ಟು ಸ್ಥಳ ಅನುಮತಿ ನೀಡಿ ಮುಂದುವರೆಯಲು.';
+
+  @override
+  String get chooseTransferMethod => 'ವರ್ಗಾವಣೆ ವಿಧಾನ ಆಯ್ಕೆ ಮಾಡಿ';
+
+  @override
+  String get fastTransferSpeed => 'WiFi ಮೂಲಕ ~150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'ಸಾಧನವು WiFi ಸಿಂಕ್ ಬೆಂಬಲಿಸುವುದಿಲ್ಲ, ಬ್ಲೂಟೂತ್ಗೆ ಬದಲಾಯಿಸಿಕೊಳ್ಳುತ್ತಿದೆ';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'ಕಾರ್ಯಗಳನ್ನು Apple Reminders ಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸೇರಿಸಿ';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'ಸಕ್ರಿಯವಾಗಿದ್ದರೆ, Omi ರಚಿಸುವ ಕಾರ್ಯಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ Reminders ಗೆ ಸೇರುತ್ತವೆ. ಇದು ಆಫ್ ಆಗಿದ್ದರೂ ನೀವು ಕಾರ್ಯಗಳನ್ನು ಕೈಯಾರೆ ಸೇರಿಸಬಹುದು.';
+
+  @override
+  String get addSelectedToAppleReminders => 'ಆಯ್ದವುಗಳನ್ನು Apple Reminders ಗೆ ಸೇರಿಸಿ';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ಕೆಲವು ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಸೇರಿಸಲಾಗಲಿಲ್ಲ.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'ಆಯ್ದ ಕಾರ್ಯಗಳನ್ನು ಈಗಾಗಲೇ ರಫ್ತು ಮಾಡಲಾಗಿದೆ.';
 }

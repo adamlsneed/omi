@@ -9165,21 +9165,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get bulkDeleteFailed => 'A feladatokat nem sikerült törölni. Kérjük, próbáld újra.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Feladatok automatikus hozzáadása az Apple Remindershez';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Kijelöltek hozzáadása az Apple Remindershez';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Néhány kijelölt feladatot nem sikerült hozzáadni.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'A kijelölt feladatok már exportálva vannak.';
-
-  @override
   String get deleteRecap => 'Összefoglaló törlése';
 
   @override
@@ -9328,4 +9313,144 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Az Omi szerverei leterheltek — a felvételeid szinkronizálódnak, amint felszabadul a kapacitás';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used / $limit emlék létrehozva ebben a hónapban';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi szinkronizálás beállításai';
+
+  @override
+  String get enterHotspotCredentials => 'Adja meg telefonja hotspot hitelesítő adatait';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'A WiFi szinkronizálás a telefont hotspotként használja. A nevet és jelszót a Beállítások > Személyes hotspot menüben találja.';
+
+  @override
+  String get hotspotNameSsid => 'Hotspot neve (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'pl. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Adja meg a hotspot jelszavát';
+
+  @override
+  String get pleaseEnterHotspotName => 'Kérjük, adjon meg egy hotspot nevet';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi hitelesítő adatok mentve';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi hitelesítő adatok törölve';
+
+  @override
+  String get fastTransfer => 'Gyors átvitel';
+
+  @override
+  String get transferMethod => 'Átviteli módszer';
+
+  @override
+  String get fast => 'Gyors';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'A WiFi engedélyezése sikertelen az eszközön. Kérlek, próbáld újra.';
+
+  @override
+  String get deviceNoFastTransfer => 'Az eszközöd nem támogatja a gyors átvitelt. Használd inkább a Bluetooth-t.';
+
+  @override
+  String get enableHotspotMessage => 'Kérlek, engedélyezd a telefonod hotspotját, és próbáld újra.';
+
+  @override
+  String get transferStartFailed => 'Az átvitel indítása sikertelen. Kérlek, próbáld újra.';
+
+  @override
+  String get invalidWifiCredentials => 'Érvénytelen WiFi hitelesítő adatok. Ellenőrizd a hotspot beállításokat.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi kapcsolódás sikertelen. Kérlek, próbáld újra.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi szinkronizálás sikertelen';
+
+  @override
+  String get wifiSync => 'WiFi szinkronizálás';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Kapcsolódás sikertelen';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName WiFi engedélyezése';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Átváltás gyors átvitelre';
+
+  @override
+  String get fastTransferEnabled => 'Gyors átvitel engedélyezve';
+
+  @override
+  String get enableFastTransfer => 'Gyors átvitel engedélyezése';
+
+  @override
+  String get fastTransferDescription =>
+      'A gyors átvitel WiFi-t használ ~5x gyorsabb sebességekhez. A telefonja ideiglenesen csatlakozik az Omi eszköz WiFi hálózatához az átvitel során.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Az internetelérés szünetel az átvitel alatt';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Válassza ki, hogyan kerüljenek át a felvételek az Omi eszközről a telefonjára.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s WiFi-n keresztül';
+
+  @override
+  String get fiveTimesFaster => '5X GYORSABB';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Közvetlen WiFi kapcsolatot hoz létre az Omi eszközével. A telefonja ideiglenesen lecsatlakozik a szokásos WiFi-ről az átvitel alatt.';
+
+  @override
+  String get locationPermissionRequired => 'Helymeghatározási engedély szükséges';
+
+  @override
+  String get locationPermissionContent =>
+      'A gyors átvitelhez helymeghatározási engedély szükséges a WiFi-kapcsolat ellenőrzéséhez. Kérjük, adja meg a helymeghatározási engedélyt a folytatáshoz.';
+
+  @override
+  String get chooseTransferMethod => 'Válasszon átviteli módot';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s WiFi-n keresztül';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Az eszköz nem támogatja a WiFi szinkronizálást, váltás Bluetooth-ra';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Feladatok automatikus hozzáadása az Apple Remindershez';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Kijelöltek hozzáadása az Apple Remindershez';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Néhány kijelölt feladatot nem sikerült hozzáadni.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'A kijelölt feladatok már exportálva vannak.';
 }

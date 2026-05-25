@@ -9132,21 +9132,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get bulkDeleteFailed => 'Det gick inte att ta bort uppgifterna. Försök igen.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Lägg automatiskt till uppgifter i Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'När detta är aktiverat läggs uppgifter som Omi skapar automatiskt till i Påminnelser. Du kan fortfarande lägga till uppgifter manuellt när detta är avstängt.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Lägg till valda i Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Vissa valda uppgifter kunde inte läggas till.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'De valda uppgifterna har redan exporterats.';
-
-  @override
   String get deleteRecap => 'Radera sammanfattning';
 
   @override
@@ -9294,4 +9279,142 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Omis servrar är hårt belastade — dina inspelningar synkroniseras så snart kapacitet frigörs';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used av $limit minnen skapade denna månad';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi-synkroniseringsinställningar';
+
+  @override
+  String get enterHotspotCredentials => 'Ange din telefons hotspot-uppgifter';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi-synkronisering använder din telefon som hotspot. Hitta namnet och lösenordet i Inställningar > Internetdelning.';
+
+  @override
+  String get hotspotNameSsid => 'Hotspotnamn (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 't.ex. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Ange hotspot-lösenord';
+
+  @override
+  String get pleaseEnterHotspotName => 'Ange ett hotspotnamn';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi-uppgifter sparade';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi-uppgifter rensade';
+
+  @override
+  String get fastTransfer => 'Snabb överföring';
+
+  @override
+  String get transferMethod => 'Överföringsmetod';
+
+  @override
+  String get fast => 'Snabb';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Kunde inte aktivera WiFi på enheten. Försök igen.';
+
+  @override
+  String get deviceNoFastTransfer => 'Din enhet stöder inte snabb överföring. Använd Bluetooth istället.';
+
+  @override
+  String get enableHotspotMessage => 'Aktivera telefonens hotspot och försök igen.';
+
+  @override
+  String get transferStartFailed => 'Kunde inte starta överföringen. Försök igen.';
+
+  @override
+  String get invalidWifiCredentials => 'Ogiltiga WiFi-uppgifter. Kontrollera dina hotspot-inställningar.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi-anslutningen misslyckades. Försök igen.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi-synkronisering misslyckades';
+
+  @override
+  String get wifiSync => 'WiFi-synkronisering';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Anslutningen misslyckades';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Aktivera ${deviceName}s WiFi';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Bytte till snabb överföring';
+
+  @override
+  String get fastTransferEnabled => 'Snabb överföring aktiverad';
+
+  @override
+  String get enableFastTransfer => 'Aktivera snabb överföring';
+
+  @override
+  String get fastTransferDescription =>
+      'Snabb överföring använder WiFi för ~5x snabbare hastigheter. Din telefon ansluter tillfälligt till Omi-enhetens WiFi-nätverk under överföringen.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Internetåtkomst pausas under överföring';
+
+  @override
+  String get chooseTransferMethodDescription => 'Välj hur inspelningar överförs från Omi-enheten till din telefon.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s via WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X SNABBARE';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Skapar en direkt WiFi-anslutning till din Omi-enhet. Din telefon kopplas tillfälligt från ditt vanliga WiFi under överföringen.';
+
+  @override
+  String get locationPermissionRequired => 'Platstillstånd krävs';
+
+  @override
+  String get locationPermissionContent =>
+      'Snabb överföring kräver platstillstånd för att verifiera WiFi-anslutningen. Vänligen ge platstillstånd för att fortsätta.';
+
+  @override
+  String get chooseTransferMethod => 'Välj överföringsmetod';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s via WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'Enheten stöder inte WiFi-synkronisering, byter till Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lägg automatiskt till uppgifter i Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'När detta är aktiverat läggs uppgifter som Omi skapar automatiskt till i Påminnelser. Du kan fortfarande lägga till uppgifter manuellt när detta är avstängt.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lägg till valda i Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Vissa valda uppgifter kunde inte läggas till.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'De valda uppgifterna har redan exporterats.';
 }
