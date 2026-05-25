@@ -9,7 +9,13 @@ void main() {
       await SharedPreferencesUtil.init();
     });
 
-    test('defaults to enabled to preserve existing behavior', () {
+    test('defaults to disabled until the user opts in', () {
+      expect(SharedPreferencesUtil().appleRemindersAutoExportEnabled, isFalse);
+    });
+
+    test('persists when enabled', () {
+      SharedPreferencesUtil().appleRemindersAutoExportEnabled = true;
+
       expect(SharedPreferencesUtil().appleRemindersAutoExportEnabled, isTrue);
     });
 

@@ -770,7 +770,7 @@ def get_app_result(transcript: str, photos: List[ConversationPhoto], app: App, l
     You are an AI with the following characteristics:
     Name: {app.name},
     Description: {app.description},
-    Task: ${app.memory_prompt}
+    Task: {app.memory_prompt}
 
     Language: The conversation language is {language_code}. Use the same language {language_code} for your response.
 

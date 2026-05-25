@@ -59,8 +59,31 @@ def test_batch_auto_sync_skips_apple_reminders_when_auto_export_disabled():
     notifications.send_apple_reminders_sync_push.assert_not_called()
 
 
-def test_batch_auto_sync_defaults_apple_reminders_auto_export_to_enabled():
+def test_batch_auto_sync_defaults_apple_reminders_auto_export_to_disabled():
     task_sync, _, action_items_db, notifications = _load_task_sync(integration={'connected': True})
+
+    results = asyncio.run(
+        task_sync.auto_sync_action_items_batch(
+            'uid-1',
+            [{'id': 'item-1', 'description': 'Do the thing'}],
+        )
+    )
+
+    assert results == [
+        {
+            'synced': False,
+            'platform': 'apple_reminders',
+            'reason': 'auto_export_disabled',
+        }
+    ]
+    action_items_db.batch_set_sync_requested.assert_not_called()
+    notifications.send_apple_reminders_sync_push.assert_not_called()
+
+
+def test_batch_auto_sync_exports_apple_reminders_when_auto_export_enabled():
+    task_sync, _, action_items_db, notifications = _load_task_sync(
+        integration={'connected': True, 'auto_export_enabled': True}
+    )
 
     results = asyncio.run(
         task_sync.auto_sync_action_items_batch(
@@ -72,3 +95,32 @@ def test_batch_auto_sync_defaults_apple_reminders_auto_export_to_enabled():
     assert results == [{'synced': True, 'platform': 'apple_reminders', 'pending_device': True}]
     action_items_db.batch_set_sync_requested.assert_called_once_with('uid-1', ['item-1'])
     notifications.send_apple_reminders_sync_push.assert_called_once()
+
+
+def test_batch_auto_sync_skips_apple_reminders_for_disabled_source():
+    task_sync, _, action_items_db, notifications = _load_task_sync(
+        integration={
+            'connected': True,
+            'auto_export_enabled': True,
+            'auto_export_disabled_sources': ['desktop', 'screenpipe'],
+        }
+    )
+
+    results = asyncio.run(
+        task_sync.auto_sync_action_items_batch(
+            'uid-1',
+            [{'id': 'item-1', 'description': 'Do the thing'}],
+            conversation_source='desktop',
+        )
+    )
+
+    assert results == [
+        {
+            'synced': False,
+            'platform': 'apple_reminders',
+            'reason': 'source_auto_export_disabled',
+            'source': 'desktop',
+        }
+    ]
+    action_items_db.batch_set_sync_requested.assert_not_called()
+    notifications.send_apple_reminders_sync_push.assert_not_called()

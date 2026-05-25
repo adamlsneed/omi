@@ -336,6 +336,15 @@ def get_default_conversation_summarized_apps():
     return default_apps
 
 
+def _get_summarized_app_run_limit() -> int:
+    """Return how many suggested memory apps should run automatically."""
+    try:
+        value = int(os.getenv('CONVERSATION_SUMMARIZED_APP_RUN_LIMIT', '1'))
+    except ValueError:
+        return 1
+    return max(1, min(value, 3))
+
+
 def _trigger_apps(
     uid: str,
     conversation: Conversation,
@@ -359,17 +368,19 @@ def _trigger_apps(
     # Combined list for suggestions: default apps + user's installed apps (no duplicates)
     all_suggestion_apps = list(all_apps_dict.values())
 
-    app_to_run = None
+    apps_to_run = []
 
     # If a specific app_id is provided (for reprocessing), find and use it.
     if app_id:
-        app_to_run = all_apps_dict.get(app_id)
+        app = all_apps_dict.get(app_id)
+        apps_to_run = [app] if app else []
     else:
         # Check preferred app first — skip the suggestion LLM call if user has one
         preferred_app_id = redis_db.get_user_preferred_app(uid)
         if preferred_app_id and preferred_app_id in all_apps_dict:
-            app_to_run = all_apps_dict.get(preferred_app_id)
-            logger.info(f"Using user's preferred app: {app_to_run.name} (id: {preferred_app_id})")
+            app = all_apps_dict.get(preferred_app_id)
+            apps_to_run = [app]
+            logger.info(f"Using user's preferred app: {app.name} (id: {preferred_app_id})")
         else:
             # Only run suggestion LLM call when no preferred app is set
             if not conversation.suggested_summarization_apps:
@@ -379,14 +390,15 @@ def _trigger_apps(
                 logger.info(f"Generated suggested apps for conversation {conversation.id}: {suggested_apps}")
 
             if conversation.suggested_summarization_apps:
-                first_suggested_app_id = conversation.suggested_summarization_apps[0]
-                app_to_run = all_apps_dict.get(first_suggested_app_id)
-                if app_to_run:
-                    logger.info(f"Using first suggested app: {app_to_run.name}")
-                else:
-                    logger.warning(f"First suggested app '{first_suggested_app_id}' not found in apps.")
+                for suggested_app_id in conversation.suggested_summarization_apps[: _get_summarized_app_run_limit()]:
+                    app = all_apps_dict.get(suggested_app_id)
+                    if app:
+                        apps_to_run.append(app)
+                        logger.info(f"Using suggested app: {app.name}")
+                    else:
+                        logger.warning(f"Suggested app '{suggested_app_id}' not found in apps.")
 
-    filtered_apps = [app_to_run] if app_to_run else []
+    filtered_apps = apps_to_run
 
     if not filtered_apps:
         logger.info(f"No summarization app selected for conversation {conversation.id} {uid}")
@@ -613,9 +625,11 @@ def _save_action_items(uid: str, conversation: Conversation):
 
         # Auto-sync to task integration — submit before vector ops so it always runs
         created_items = [{"id": aid, **data} for aid, data in zip(action_item_ids, action_items_data)]
+        source_value = getattr(conversation, 'source', None)
+        source = source_value.value if hasattr(source_value, 'value') else source_value
 
         def _run_auto_sync():
-            asyncio.run(auto_sync_action_items_batch(uid, created_items))
+            asyncio.run(auto_sync_action_items_batch(uid, created_items, conversation_source=source))
 
         submit_with_context(db_executor, _run_auto_sync)
 

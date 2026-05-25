@@ -192,10 +192,10 @@ class SharedPreferencesUtil {
 
   int get notificationFrequency => getInt('notificationFrequency', defaultValue: 0);
 
-  // Apple Reminders automatic export. Default is true to preserve existing behavior.
+  // Apple Reminders automatic export. Default is false until the user opts in.
   set appleRemindersAutoExportEnabled(bool value) => saveBool('appleRemindersAutoExportEnabled', value);
 
-  bool get appleRemindersAutoExportEnabled => getBool('appleRemindersAutoExportEnabled', defaultValue: true);
+  bool get appleRemindersAutoExportEnabled => getBool('appleRemindersAutoExportEnabled', defaultValue: false);
 
   // Task category order for drag-and-drop sorting persistence
   // Format: { "today": ["id1", "id2"], "tomorrow": ["id3"] }
