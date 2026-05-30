@@ -9161,21 +9161,6 @@ class AppLocalizationsBg extends AppLocalizations {
   String get bulkDeleteFailed => 'Задачите не можаха да бъдат изтрити. Моля, опитайте отново.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Автоматично добавяне на задачи в Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Когато е включено, задачите, създадени от Omi, автоматично се добавят в Напомняния. Можете пак да добавяте задачи ръчно, когато това е изключено.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Добавяне на избраните в Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Някои избрани задачи не можаха да бъдат добавени.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Избраните задачи вече са експортирани.';
-
-  @override
   String get deleteRecap => 'Изтрий резюмето';
 
   @override
@@ -9324,4 +9309,144 @@ class AppLocalizationsBg extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Сървърите на Omi са натоварени — записите ви ще се синхронизират, когато се освободи капацитет';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used от $limit спомена създадени този месец';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Настройки за WiFi синхронизация';
+
+  @override
+  String get enterHotspotCredentials => 'Въведете данните за гореща точка на телефона';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi синхронизацията използва телефона ви като гореща точка. Намерете името и паролата в Настройки > Лична гореща точка.';
+
+  @override
+  String get hotspotNameSsid => 'Име на гореща точка (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'напр. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Въведете парола за гореща точка';
+
+  @override
+  String get pleaseEnterHotspotName => 'Моля, въведете име на гореща точка';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi данните са запазени';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi данните са изчистени';
+
+  @override
+  String get fastTransfer => 'Бърз трансфер';
+
+  @override
+  String get transferMethod => 'Метод на трансфер';
+
+  @override
+  String get fast => 'Бързо';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Неуспешно активиране на WiFi на устройството. Моля, опитайте отново.';
+
+  @override
+  String get deviceNoFastTransfer => 'Вашето устройство не поддържа бърз трансфер. Използвайте Bluetooth вместо това.';
+
+  @override
+  String get enableHotspotMessage => 'Моля, активирайте точката за достъп на телефона си и опитайте отново.';
+
+  @override
+  String get transferStartFailed => 'Неуспешно стартиране на трансфера. Моля, опитайте отново.';
+
+  @override
+  String get invalidWifiCredentials => 'Невалидни WiFi данни. Проверете настройките на точката за достъп.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi връзката е неуспешна. Моля, опитайте отново.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi синхронизацията е неуспешна';
+
+  @override
+  String get wifiSync => 'WiFi синхронизация';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Неуспешна връзка';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Активирай WiFi на $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Превключено на бърз трансфер';
+
+  @override
+  String get fastTransferEnabled => 'Бързият трансфер е активиран';
+
+  @override
+  String get enableFastTransfer => 'Активиране на бърз трансфер';
+
+  @override
+  String get fastTransferDescription =>
+      'Бързият трансфер използва WiFi за ~5 пъти по-бързи скорости. Телефонът ви временно ще се свърже с WiFi мрежата на вашето Omi устройство по време на трансфер.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Достъпът до интернет е на пауза по време на трансфер';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Изберете как записите да се прехвърлят от вашето Omi устройство на телефона.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s чрез WiFi';
+
+  @override
+  String get fiveTimesFaster => '5 ПЪТИ ПО-БЪРЗО';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Създава директна WiFi връзка с вашето Omi устройство. Телефонът ви временно се изключва от обичайната WiFi мрежа по време на трансфер.';
+
+  @override
+  String get locationPermissionRequired => 'Необходимо е разрешение за местоположение';
+
+  @override
+  String get locationPermissionContent =>
+      'Разрешението за местоположение е необходимо, за да съхранявате местоположението на вашите разговори в приложението.';
+
+  @override
+  String get chooseTransferMethod => 'Изберете метод на прехвърляне';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s чрез WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Устройството не поддържа WiFi синхронизация, превключване към Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Автоматично добавяне на задачи в Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Когато е включено, задачите, създадени от Omi, автоматично се добавят в Напомняния. Можете пак да добавяте задачи ръчно, когато това е изключено.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Добавяне на избраните в Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Някои избрани задачи не можаха да бъдат добавени.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Избраните задачи вече са експортирани.';
 }

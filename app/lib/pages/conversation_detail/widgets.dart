@@ -723,6 +723,8 @@ class AppResultDetailWidget extends StatefulWidget {
   final VoidCallback? onEditStarted;
   final VoidCallback? onEditCancelled;
   final bool Function()? canStartEditing;
+  final String? fallbackAppName;
+  final String? fallbackAppDescription;
 
   const AppResultDetailWidget({
     super.key,
@@ -735,6 +737,8 @@ class AppResultDetailWidget extends StatefulWidget {
     this.onEditStarted,
     this.onEditCancelled,
     this.canStartEditing,
+    this.fallbackAppName,
+    this.fallbackAppDescription,
   });
 
   @override
@@ -906,7 +910,9 @@ class _AppResultDetailWidgetState extends State<AppResultDetailWidget> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.app != null ? widget.app!.name.decodeString : context.l10n.unknownApp,
+                                  widget.app != null
+                                      ? widget.app!.name.decodeString
+                                      : widget.fallbackAppName ?? context.l10n.unknownApp,
                                   maxLines: 1,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w500,
@@ -914,9 +920,11 @@ class _AppResultDetailWidgetState extends State<AppResultDetailWidget> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                if (widget.app != null)
+                                if (widget.app != null || widget.fallbackAppDescription != null)
                                   Text(
-                                    widget.app!.description.decodeString,
+                                    widget.app != null
+                                        ? widget.app!.description.decodeString
+                                        : widget.fallbackAppDescription!,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(color: Colors.grey, fontSize: 12),
@@ -1010,6 +1018,7 @@ class GetAppsWidgets extends StatelessWidget {
     return Consumer<ConversationDetailProvider>(
       builder: (context, provider, child) {
         final summarizedApp = provider.getSummarizedApp();
+        final isRoutedSummary = provider.isRoutedSummaryActive;
         return Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.start,
@@ -1026,12 +1035,50 @@ class GetAppsWidgets extends StatelessWidget {
                       searchQuery: searchQuery,
                       currentResultIndex: currentResultIndex,
                       canStartEditing: canStartEditing,
-                      onEditStarted: onEditStarted == null ? null : () => onEditStarted!(summarizedApp.appId),
-                      onEditCancelled: onEditCancelled == null ? null : () => onEditCancelled!(summarizedApp.appId),
-                      onSaveSummary: onSaveSummary == null
+                      fallbackAppName: isRoutedSummary ? provider.routedSummaryLabel : null,
+                      fallbackAppDescription: isRoutedSummary ? provider.routedSummaryDescription : null,
+                      onEditStarted:
+                          isRoutedSummary || onEditStarted == null ? null : () => onEditStarted!(summarizedApp.appId),
+                      onEditCancelled: isRoutedSummary || onEditCancelled == null
+                          ? null
+                          : () => onEditCancelled!(summarizedApp.appId),
+                      onSaveSummary: isRoutedSummary || onSaveSummary == null
                           ? null
                           : (newContent) => onSaveSummary!(summarizedApp.appId, newContent),
                     ),
+                    if (provider.routedSummaryLoading)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 12),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              height: 14,
+                              width: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Applying local template...', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    if (provider.routedSummaryError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                provider.routedSummaryError!,
+                                style: const TextStyle(color: Colors.orangeAccent, fontSize: 13),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => provider.loadOrGenerateRoutedSummary(force: true),
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                   const SizedBox(height: 8),
                 ],

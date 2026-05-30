@@ -9147,21 +9147,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bulkDeleteFailed => 'No se pudieron eliminar las tareas. Inténtalo de nuevo.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Añadir tareas automáticamente a Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Cuando está activado, las tareas que crea Omi se añaden automáticamente a Recordatorios. Aún puedes añadir tareas manualmente cuando esto está desactivado.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Añadir seleccionadas a Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'No se pudieron añadir algunas tareas seleccionadas.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Las tareas seleccionadas ya están exportadas.';
-
-  @override
   String get deleteRecap => 'Eliminar resumen';
 
   @override
@@ -9309,4 +9294,144 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Los servidores de Omi están saturados — tus grabaciones se sincronizarán cuando haya capacidad disponible';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used de $limit recuerdos hechos este mes';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Configuración de sincronización WiFi';
+
+  @override
+  String get enterHotspotCredentials => 'Ingresa las credenciales del punto de acceso de tu teléfono';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'La sincronización WiFi usa tu teléfono como punto de acceso. Encuentra el nombre y contraseña en Ajustes > Punto de acceso personal.';
+
+  @override
+  String get hotspotNameSsid => 'Nombre del punto de acceso (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'ej. Punto de acceso iPhone';
+
+  @override
+  String get enterHotspotPassword => 'Ingresa la contraseña del punto de acceso';
+
+  @override
+  String get pleaseEnterHotspotName => 'Por favor ingresa un nombre de punto de acceso';
+
+  @override
+  String get wifiCredentialsSaved => 'Credenciales WiFi guardadas';
+
+  @override
+  String get wifiCredentialsCleared => 'Credenciales WiFi borradas';
+
+  @override
+  String get fastTransfer => 'Transferencia rápida';
+
+  @override
+  String get transferMethod => 'Método de transferencia';
+
+  @override
+  String get fast => 'Rápido';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Error al habilitar WiFi en el dispositivo. Por favor, inténtalo de nuevo.';
+
+  @override
+  String get deviceNoFastTransfer => 'Tu dispositivo no admite Transferencia rápida. Usa Bluetooth en su lugar.';
+
+  @override
+  String get enableHotspotMessage => 'Por favor, habilita el punto de acceso de tu teléfono e inténtalo de nuevo.';
+
+  @override
+  String get transferStartFailed => 'Error al iniciar la transferencia. Por favor, inténtalo de nuevo.';
+
+  @override
+  String get invalidWifiCredentials => 'Credenciales WiFi inválidas. Verifica la configuración de tu punto de acceso.';
+
+  @override
+  String get wifiConnectionFailed => 'La conexión WiFi falló. Por favor, inténtalo de nuevo.';
+
+  @override
+  String get wifiSyncFailed => 'Sincronización WiFi fallida';
+
+  @override
+  String get wifiSync => 'Sincronización WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Conexión fallida';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Habilitar WiFi de $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Cambiado a Transferencia rápida';
+
+  @override
+  String get fastTransferEnabled => 'Transferencia rápida habilitada';
+
+  @override
+  String get enableFastTransfer => 'Habilitar transferencia rápida';
+
+  @override
+  String get fastTransferDescription =>
+      'La transferencia rápida usa WiFi para velocidades ~5x más rápidas. Tu teléfono se conectará temporalmente a la red WiFi de tu dispositivo Omi durante la transferencia.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'El acceso a internet se pausa durante la transferencia';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Elige cómo se transfieren las grabaciones de tu dispositivo Omi a tu teléfono.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s vía WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X MÁS RÁPIDO';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Crea una conexión WiFi directa a tu dispositivo Omi. Tu teléfono se desconecta temporalmente de tu WiFi habitual durante la transferencia.';
+
+  @override
+  String get locationPermissionRequired => 'Permiso de ubicación requerido';
+
+  @override
+  String get locationPermissionContent =>
+      'La transferencia rápida requiere permiso de ubicación para verificar la conexión WiFi. Por favor, conceda el permiso de ubicación para continuar.';
+
+  @override
+  String get chooseTransferMethod => 'Elegir método de transferencia';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s vía WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'El dispositivo no admite sincronización WiFi, cambiando a Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Añadir tareas automáticamente a Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Cuando está activado, las tareas que crea Omi se añaden automáticamente a Recordatorios. Aún puedes añadir tareas manualmente cuando esto está desactivado.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Añadir seleccionadas a Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'No se pudieron añadir algunas tareas seleccionadas.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Las tareas seleccionadas ya están exportadas.';
 }

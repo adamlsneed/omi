@@ -9123,21 +9123,6 @@ class AppLocalizationsCs extends AppLocalizations {
   String get bulkDeleteFailed => 'Úkoly se nepodařilo smazat. Zkuste to prosím znovu.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Automaticky přidávat úkoly do Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Přidat vybrané do Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Některé vybrané úkoly se nepodařilo přidat.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Vybrané úkoly už byly exportovány.';
-
-  @override
   String get deleteRecap => 'Smazat shrnutí';
 
   @override
@@ -9289,4 +9274,143 @@ class AppLocalizationsCs extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Servery Omi jsou vytížené — vaše nahrávky se synchronizují, jakmile bude k dispozici kapacita';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return 'Tento měsíc vytvořeno $used z $limit vzpomínek';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Nastavení WiFi synchronizace';
+
+  @override
+  String get enterHotspotCredentials => 'Zadejte přihlašovací údaje hotspotu telefonu';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi synchronizace používá váš telefon jako hotspot. Název a heslo najdete v Nastavení > Osobní hotspot.';
+
+  @override
+  String get hotspotNameSsid => 'Název hotspotu (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'např. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Zadejte heslo hotspotu';
+
+  @override
+  String get pleaseEnterHotspotName => 'Prosím zadejte název hotspotu';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi přihlašovací údaje uloženy';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi přihlašovací údaje vymazány';
+
+  @override
+  String get fastTransfer => 'Rychlý přenos';
+
+  @override
+  String get transferMethod => 'Metoda přenosu';
+
+  @override
+  String get fast => 'Rychle';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Nepodařilo se povolit WiFi na zařízení. Zkuste to prosím znovu.';
+
+  @override
+  String get deviceNoFastTransfer => 'Vaše zařízení nepodporuje rychlý přenos. Použijte místo toho Bluetooth.';
+
+  @override
+  String get enableHotspotMessage => 'Povolte prosím hotspot telefonu a zkuste to znovu.';
+
+  @override
+  String get transferStartFailed => 'Nepodařilo se spustit přenos. Zkuste to prosím znovu.';
+
+  @override
+  String get invalidWifiCredentials => 'Neplatné přihlašovací údaje WiFi. Zkontrolujte nastavení hotspotu.';
+
+  @override
+  String get wifiConnectionFailed => 'Připojení WiFi selhalo. Zkuste to prosím znovu.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi synchronizace selhala';
+
+  @override
+  String get wifiSync => 'Synchronizace WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Připojení selhalo';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Povolit WiFi na $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Přepnuto na rychlý přenos';
+
+  @override
+  String get fastTransferEnabled => 'Rychlý přenos povolen';
+
+  @override
+  String get enableFastTransfer => 'Povolit rychlý přenos';
+
+  @override
+  String get fastTransferDescription =>
+      'Rychlý přenos používá WiFi pro ~5x rychlejší přenosy. Váš telefon se dočasně připojí k WiFi síti zařízení Omi během přenosu.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Přístup k internetu je během přenosu pozastaven';
+
+  @override
+  String get chooseTransferMethodDescription => 'Zvolte, jak se nahrávky přenášejí ze zařízení Omi do telefonu.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s přes WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X RYCHLEJŠÍ';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Vytvoří přímé WiFi připojení k zařízení Omi. Telefon se dočasně odpojí od běžné WiFi během přenosu.';
+
+  @override
+  String get locationPermissionRequired => 'Vyžadováno oprávnění k poloze';
+
+  @override
+  String get locationPermissionContent =>
+      'Rychlý přenos vyžaduje oprávnění k poloze pro ověření WiFi připojení. Prosím, udělte oprávnění k poloze pro pokračování.';
+
+  @override
+  String get chooseTransferMethod => 'Vyberte metodu přenosu';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s přes WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Zařízení nepodporuje WiFi synchronizaci, přepínání na Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automaticky přidávat úkoly do Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Přidat vybrané do Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Některé vybrané úkoly se nepodařilo přidat.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Vybrané úkoly už byly exportovány.';
 }

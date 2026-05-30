@@ -9128,21 +9128,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get bulkDeleteFailed => 'Không thể xóa các tác vụ. Vui lòng thử lại.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Tự động thêm tác vụ vào Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Khi bật, các tác vụ Omi tạo sẽ tự động được thêm vào Nhắc nhở. Bạn vẫn có thể thêm tác vụ thủ công khi tùy chọn này tắt.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Thêm mục đã chọn vào Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Không thể thêm một số công việc đã chọn.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Các công việc đã chọn đã được xuất.';
-
-  @override
   String get deleteRecap => 'Xóa tóm tắt';
 
   @override
@@ -9287,4 +9272,142 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Máy chủ Omi đang quá tải — bản ghi của bạn sẽ được đồng bộ khi dung lượng được khôi phục';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return 'Đã tạo $used trong số $limit ký ức trong tháng này';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Cài đặt đồng bộ WiFi';
+
+  @override
+  String get enterHotspotCredentials => 'Nhập thông tin đăng nhập điểm phát sóng điện thoại';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'Đồng bộ WiFi sử dụng điện thoại của bạn làm điểm phát sóng. Tìm tên và mật khẩu trong Cài đặt > Điểm truy cập cá nhân.';
+
+  @override
+  String get hotspotNameSsid => 'Tên điểm phát sóng (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'vd: iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Nhập mật khẩu điểm phát sóng';
+
+  @override
+  String get pleaseEnterHotspotName => 'Vui lòng nhập tên điểm phát sóng';
+
+  @override
+  String get wifiCredentialsSaved => 'Đã lưu thông tin WiFi';
+
+  @override
+  String get wifiCredentialsCleared => 'Đã xóa thông tin WiFi';
+
+  @override
+  String get fastTransfer => 'Truyền nhanh';
+
+  @override
+  String get transferMethod => 'Phương thức truyền';
+
+  @override
+  String get fast => 'Nhanh';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Không thể bật WiFi trên thiết bị. Vui lòng thử lại.';
+
+  @override
+  String get deviceNoFastTransfer => 'Thiết bị của bạn không hỗ trợ Chuyển Nhanh. Sử dụng Bluetooth thay thế.';
+
+  @override
+  String get enableHotspotMessage => 'Vui lòng bật điểm phát sóng trên điện thoại và thử lại.';
+
+  @override
+  String get transferStartFailed => 'Không thể bắt đầu chuyển. Vui lòng thử lại.';
+
+  @override
+  String get invalidWifiCredentials => 'Thông tin WiFi không hợp lệ. Kiểm tra cài đặt điểm phát sóng của bạn.';
+
+  @override
+  String get wifiConnectionFailed => 'Kết nối WiFi thất bại. Vui lòng thử lại.';
+
+  @override
+  String get wifiSyncFailed => 'Đồng bộ WiFi Thất bại';
+
+  @override
+  String get wifiSync => 'Đồng bộ WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Kết nối Thất bại';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Bật WiFi của $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Đã chuyển sang Chuyển Nhanh';
+
+  @override
+  String get fastTransferEnabled => 'Đã bật truyền nhanh';
+
+  @override
+  String get enableFastTransfer => 'Bật truyền nhanh';
+
+  @override
+  String get fastTransferDescription =>
+      'Truyền nhanh sử dụng WiFi để đạt tốc độ nhanh hơn ~5 lần. Điện thoại của bạn sẽ tạm thời kết nối với mạng WiFi của thiết bị Omi trong quá trình truyền.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Truy cập internet bị tạm dừng trong quá trình truyền';
+
+  @override
+  String get chooseTransferMethodDescription => 'Chọn cách truyền bản ghi từ thiết bị Omi sang điện thoại của bạn.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s qua WiFi';
+
+  @override
+  String get fiveTimesFaster => 'NHANH HƠN 5 LẦN';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Tạo kết nối WiFi trực tiếp đến thiết bị Omi. Điện thoại của bạn tạm thời ngắt kết nối WiFi thông thường trong quá trình truyền.';
+
+  @override
+  String get locationPermissionRequired => 'Cần Quyền Vị trí';
+
+  @override
+  String get locationPermissionContent =>
+      'Ứng dụng cần quyền truy cập vị trí để hoạt động đúng. Vui lòng cấp quyền trong cài đặt.';
+
+  @override
+  String get chooseTransferMethod => 'Chọn phương thức chuyển';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s qua WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'Thiết bị không hỗ trợ đồng bộ WiFi, chuyển sang Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Tự động thêm tác vụ vào Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Khi bật, các tác vụ Omi tạo sẽ tự động được thêm vào Nhắc nhở. Bạn vẫn có thể thêm tác vụ thủ công khi tùy chọn này tắt.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Thêm mục đã chọn vào Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Không thể thêm một số công việc đã chọn.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Các công việc đã chọn đã được xuất.';
 }
