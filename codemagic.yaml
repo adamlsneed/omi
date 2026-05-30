@@ -2055,6 +2055,7 @@ workflows:
           # by using `npx tsx` as a version-agnostic TypeScript loader that
           # still delegates to node:test.
           cd pi-mono-extension
+          npm install --no-fund --no-audit
           if node --experimental-strip-types --test index.test.ts; then
             echo "pi-mono-extension tests passed (native Node --experimental-strip-types)"
           else
@@ -2371,6 +2372,7 @@ workflows:
             mkdir -p "$APP_BUNDLE/Contents/Resources/pi-mono-extension"
             cp -f pi-mono-extension/index.ts    "$APP_BUNDLE/Contents/Resources/pi-mono-extension/"
             cp -f pi-mono-extension/package.json "$APP_BUNDLE/Contents/Resources/pi-mono-extension/"
+            ln -s "../agent/node_modules" "$APP_BUNDLE/Contents/Resources/pi-mono-extension/node_modules"
           else
             echo "ERROR: pi-mono-extension directory not found"
             exit 1

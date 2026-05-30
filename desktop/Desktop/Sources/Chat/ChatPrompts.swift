@@ -945,6 +945,9 @@ struct ChatPrompts {
             "appName": "Active application name at capture time",
             "windowTitle": "Active window title at capture time",
             "ocrText": "Full OCR-extracted text from the screen",
+            "captureTrigger": "Why the frame was captured (timer, startup_immediate, context_switch, manual, replay)",
+            "textSource": "Where persisted screen text came from (none, ocr, accessibility, hybrid, deferred)",
+            "accessibilityText": "Accessibility-tree text captured alongside OCR when available",
             "focusStatus": "Whether user was focused or distracted (focused/distracted)",
             "skippedForBattery": "OCR was skipped on battery; text may be missing",
         ],
@@ -1167,6 +1170,7 @@ struct ChatPrompts {
     static let schemaFooter = """
     **FTS5 full-text search tables** (use MATCH for keyword search, BM25 for ranking):
     - screenshots_fts(ocrText, windowTitle, appName)
+    - screenshots.captureTrigger records why the frame was captured; screenshots.textSource records whether text came from OCR, accessibility, hybrid, deferred OCR, or no text.
     - action_items_fts(description)
     - staged_tasks_fts(description)
     - task_chat_messages_fts(messageText)

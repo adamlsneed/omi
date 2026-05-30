@@ -175,6 +175,7 @@ struct SettingsContentView: View {
   @State private var taskExtractionInterval: Double
   @State private var taskMinConfidence: Double
   @State private var taskNotificationsEnabled: Bool
+  @State private var taskAutoPromoteEnabled: Bool
   @State private var taskAllowedApps: Set<String>
   @State private var taskBrowserKeywords: [String]
   @State private var isRescoringTasks = false
@@ -432,6 +433,8 @@ struct SettingsContentView: View {
     _taskMinConfidence = State(initialValue: TaskAssistantSettings.shared.minConfidence)
     _taskNotificationsEnabled = State(
       initialValue: TaskAssistantSettings.shared.notificationsEnabled)
+    _taskAutoPromoteEnabled = State(
+      initialValue: TaskAssistantSettings.shared.autoPromoteEnabled)
     _taskAllowedApps = State(initialValue: TaskAssistantSettings.shared.allowedApps)
     _taskBrowserKeywords = State(initialValue: TaskAssistantSettings.shared.browserKeywords)
     _insightEnabled = State(initialValue: InsightAssistantSettings.shared.isEnabled)
@@ -939,6 +942,7 @@ struct SettingsContentView: View {
   @ObservedObject private var rewindSettings = RewindSettings.shared
 
   @State private var rewindStats: (total: Int, indexed: Int, storageSize: Int64)? = nil
+  @State private var rewindWindowPatternInput = ""
 
   private var rewindSection: some View {
     VStack(spacing: 20) {
@@ -1042,6 +1046,56 @@ struct SettingsContentView: View {
             },
             excludedApps: rewindSettings.excludedApps
           )
+
+          Divider()
+            .background(OmiColors.backgroundQuaternary)
+
+          HStack {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Suppress private browser windows")
+                .scaledFont(size: 13, weight: .medium)
+                .foregroundColor(OmiColors.textSecondary)
+              Text("Skip Rewind capture for Chrome Incognito, Safari Private Browsing, Firefox Private Windows, and Edge InPrivate windows.")
+                .scaledFont(size: 12)
+                .foregroundColor(OmiColors.textTertiary)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: $rewindSettings.suppressPrivateBrowsing)
+              .toggleStyle(.switch)
+              .labelsHidden()
+          }
+
+          VStack(alignment: .leading, spacing: 12) {
+            Text("Window title patterns")
+              .scaledFont(size: 13, weight: .medium)
+              .foregroundColor(OmiColors.textSecondary)
+
+            HStack(spacing: 8) {
+              TextField("e.g. Google Chrome::*Bank* or *Payroll*", text: $rewindWindowPatternInput)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit {
+                  addRewindWindowPattern()
+                }
+
+              Button("Add") {
+                addRewindWindowPattern()
+              }
+              .buttonStyle(.bordered)
+              .disabled(rewindWindowPatternInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            if !rewindSettings.excludedWindowPatterns.isEmpty {
+              LazyVStack(spacing: 8) {
+                ForEach(Array(rewindSettings.excludedWindowPatterns).sorted(), id: \.self) { pattern in
+                  ExcludedWindowPatternRow(pattern: pattern) {
+                    rewindSettings.includeWindowPattern(pattern)
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
@@ -1106,6 +1160,13 @@ struct SettingsContentView: View {
         }
       }
     }
+  }
+
+  private func addRewindWindowPattern() {
+    let trimmed = rewindWindowPatternInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return }
+    rewindSettings.excludeWindowPattern(trimmed)
+    rewindWindowPatternInput = ""
   }
 
   // MARK: - Transcription Section
@@ -4175,6 +4236,26 @@ struct SettingsContentView: View {
                 .labelsHidden()
                 .onChange(of: taskChatAgentEnabled) { _, newValue in
                   TaskAgentSettings.shared.isChatEnabled = newValue
+                }
+            }
+
+            HStack {
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Auto-Add Tasks")
+                  .scaledFont(size: 14)
+                  .foregroundColor(OmiColors.textSecondary)
+                Text("Move extracted suggestions into active Tasks automatically")
+                  .scaledFont(size: 12)
+                  .foregroundColor(OmiColors.textTertiary)
+              }
+
+              Spacer()
+
+              Toggle("", isOn: $taskAutoPromoteEnabled)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .onChange(of: taskAutoPromoteEnabled) { _, newValue in
+                  TaskAssistantSettings.shared.autoPromoteEnabled = newValue
                 }
             }
 
@@ -7640,6 +7721,48 @@ struct ExcludedAppRow: View {
       Text(appName)
         .scaledFont(size: 14)
         .foregroundColor(OmiColors.textPrimary)
+
+      Spacer()
+
+      Button(action: onRemove) {
+        Image(systemName: "xmark.circle.fill")
+          .scaledFont(size: 16)
+          .foregroundColor(isHovered ? OmiColors.error : OmiColors.textTertiary)
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
+    .background(
+      RoundedRectangle(cornerRadius: 8)
+        .fill(isHovered ? OmiColors.backgroundQuaternary.opacity(0.5) : Color.clear)
+    )
+    .onHover { hovering in
+      isHovered = hovering
+    }
+  }
+}
+
+// MARK: - Excluded Window Pattern Row
+
+struct ExcludedWindowPatternRow: View {
+  let pattern: String
+  let onRemove: () -> Void
+
+  @State private var isHovered = false
+
+  var body: some View {
+    HStack(spacing: 12) {
+      Image(systemName: "rectangle.on.rectangle.slash")
+        .scaledFont(size: 16)
+        .foregroundColor(OmiColors.textTertiary)
+        .frame(width: 24, height: 24)
+
+      Text(pattern)
+        .scaledFont(size: 13)
+        .foregroundColor(OmiColors.textPrimary)
+        .lineLimit(1)
+        .truncationMode(.middle)
 
       Spacer()
 

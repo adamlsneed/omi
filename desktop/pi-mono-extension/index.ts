@@ -850,7 +850,7 @@ export const OMI_TOOLS = [
   omiTool({
     name: "execute_sql",
     label: "Execute SQL",
-    description: "Run SQL on the user's local omi.db SQLite database. Use for app usage stats, screen time, activity counts, task lookups, aggregations. Read-only (SELECT only). Key tables: screenshots, transcription_sessions, action_items, memories, staged_tasks, focus_sessions, observations, goals, indexed_files.",
+    description: "Run SQL on the user's local omi.db SQLite database. Use for app usage stats, screen time, activity counts, task lookups, aggregations. Read-only (SELECT only). Key tables: screenshots (including captureTrigger, textSource, accessibilityText), transcription_sessions, action_items, memories, staged_tasks, focus_sessions, observations, goals, indexed_files.",
     promptSnippet: "execute_sql - Query the user's local omi.db SQLite database (SELECT only)",
     promptGuidelines: [
       "Use execute_sql for quantitative queries (counts, sums, date ranges, aggregations).",

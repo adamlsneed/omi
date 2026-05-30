@@ -474,7 +474,7 @@ public class ProactiveAssistantsPlugin: NSObject {
         // Capture the first frame immediately so screenshots appear right away
         // (don't wait for the first timer interval to elapse)
         Task { @MainActor in
-            await self.captureFrame()
+            await self.captureFrame(captureTrigger: .startupImmediate)
         }
         isStartingMonitoring = false
 
@@ -655,7 +655,7 @@ public class ProactiveAssistantsPlugin: NSObject {
         }
     }
 
-    private func captureFrame() async {
+    private func captureFrame(captureTrigger: CaptureTrigger = .timer) async {
         guard isMonitoring, let screenCaptureService = screenCaptureService else { return }
         guard !isCapturing else { return }
         isCapturing = true
@@ -708,8 +708,10 @@ public class ProactiveAssistantsPlugin: NSObject {
         // Get current window info (use real app name, not cached)
         let (realAppName, windowTitle, windowID) = await WindowMonitor.getActiveWindowInfoAsync()
 
-        // Check if the current app is excluded from Rewind capture
-        let isRewindExcluded = realAppName.map { RewindSettings.shared.isAppExcluded($0) } ?? false
+        // Check if the current app/window is excluded from Rewind capture
+        let isRewindExcluded = realAppName.map {
+            RewindSettings.shared.isCaptureExcluded(appName: $0, windowTitle: windowTitle)
+        } ?? false
 
         // Throttle capture when a video call app is frontmost to reduce CPU contention.
         // Captures 1 out of every N frames (e.g., effective ~5s interval at default 1s capture rate).
@@ -817,7 +819,8 @@ public class ProactiveAssistantsPlugin: NSObject {
                             appName: appName,
                             windowTitle: currentWindowTitle,
                             frameNumber: frameCount,
-                            captureTime: captureTime
+                            captureTime: captureTime,
+                            captureTrigger: captureTrigger
                         )
 
                         // Always track the frame for context switch detection (even during delay)
@@ -856,7 +859,8 @@ public class ProactiveAssistantsPlugin: NSObject {
                                 cgImage: cgImage,
                                 appName: appName,
                                 windowTitle: windowTitle,
-                                captureTime: captureTime
+                                captureTime: captureTime,
+                                captureTrigger: captureTrigger
                             )
                             await MainActor.run {
                                 self?.pendingFrameDataBytes = max(0, (self?.pendingFrameDataBytes ?? 0) - frameBytes)
@@ -894,7 +898,8 @@ public class ProactiveAssistantsPlugin: NSObject {
                     jpegData: jpegData,
                     appName: appName,
                     windowTitle: currentWindowTitle,
-                    frameNumber: frameCount
+                    frameNumber: frameCount,
+                    captureTrigger: captureTrigger
                 )
             }
 

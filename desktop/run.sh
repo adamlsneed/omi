@@ -379,6 +379,11 @@ else
     echo "Warning: agent directory not found at $AGENT_DIR"
 fi
 
+PI_MONO_EXT_DIR="$(dirname "$0")/pi-mono-extension"
+
+step "Preparing bundled Node.js runtime..."
+bash "$(dirname "$0")/scripts/prepare-node-resource.sh"
+
 step "Checking schema docs..."
 if [ -f scripts/check_schema_docs.sh ]; then
     bash scripts/check_schema_docs.sh || substep "Schema docs check failed (non-fatal)"
@@ -493,6 +498,18 @@ if [ -d "$RESOURCE_BUNDLE" ]; then
     substep "Copying resource bundle ($(du -sh "$RESOURCE_BUNDLE" 2>/dev/null | cut -f1))"
     cp -Rf "$RESOURCE_BUNDLE" "$APP_BUNDLE/Contents/Resources/"
 fi
+BUNDLED_NODE="$APP_BUNDLE/Contents/Resources/Omi Computer_Omi Computer.bundle/node"
+if [ ! -x "$BUNDLED_NODE" ] && [ -x "Desktop/Sources/Resources/node" ]; then
+    substep "Copying bundled Node.js runtime into resource bundle"
+    mkdir -p "$(dirname "$BUNDLED_NODE")"
+    cp -f "Desktop/Sources/Resources/node" "$BUNDLED_NODE"
+    chmod +x "$BUNDLED_NODE"
+fi
+if [ ! -x "$BUNDLED_NODE" ]; then
+    echo "ERROR: bundled Node.js runtime is missing from $BUNDLED_NODE"
+    echo "       Run scripts/prepare-node-resource.sh or reinstall Node.js, then retry."
+    exit 1
+fi
 
 substep "Copying agent"
 if [ -d "$AGENT_DIR/dist" ]; then
@@ -503,11 +520,12 @@ if [ -d "$AGENT_DIR/dist" ]; then
 fi
 
 substep "Copying pi-mono-extension (for piMono harness)"
-PI_MONO_EXT_DIR="$(dirname "$0")/pi-mono-extension"
 if [ -d "$PI_MONO_EXT_DIR" ]; then
     mkdir -p "$APP_BUNDLE/Contents/Resources/pi-mono-extension"
     cp -f "$PI_MONO_EXT_DIR/index.ts" "$APP_BUNDLE/Contents/Resources/pi-mono-extension/"
     cp -f "$PI_MONO_EXT_DIR/package.json" "$APP_BUNDLE/Contents/Resources/pi-mono-extension/"
+    rm -rf "$APP_BUNDLE/Contents/Resources/pi-mono-extension/node_modules"
+    ln -s "../agent/node_modules" "$APP_BUNDLE/Contents/Resources/pi-mono-extension/node_modules"
 else
     echo "Warning: pi-mono-extension not found at $PI_MONO_EXT_DIR"
 fi

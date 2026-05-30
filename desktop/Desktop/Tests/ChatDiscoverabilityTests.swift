@@ -44,11 +44,14 @@ final class ChatDiscoverabilityTests: XCTestCase {
     }
 
     func testScreenshotsHasKeyColumnAnnotations() {
-        let cols = ChatPrompts.columnAnnotations["screenshots"]!
-        XCTAssertNotNil(cols["timestamp"])
-        XCTAssertNotNil(cols["appName"])
-        XCTAssertNotNil(cols["ocrText"])
-    }
+    let cols = ChatPrompts.columnAnnotations["screenshots"]!
+    XCTAssertNotNil(cols["timestamp"])
+    XCTAssertNotNil(cols["appName"])
+    XCTAssertNotNil(cols["ocrText"])
+    XCTAssertNotNil(cols["captureTrigger"])
+    XCTAssertNotNil(cols["textSource"])
+    XCTAssertNotNil(cols["accessibilityText"])
+  }
 
     func testActionItemsHasKeyColumnAnnotations() {
         let cols = ChatPrompts.columnAnnotations["action_items"]!
