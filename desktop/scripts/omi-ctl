@@ -11,28 +11,37 @@ set -euo pipefail
 
 PORT="${OMI_AUTOMATION_PORT:-47777}"
 BASE="http://127.0.0.1:${PORT}"
+TOKEN_FILE="${OMI_AUTOMATION_TOKEN_FILE:-$HOME/Library/Application Support/Omi/automation-bridge.token}"
+
+curl_auth_args=()
+if [ -f "$TOKEN_FILE" ]; then
+  token="$(cat "$TOKEN_FILE")"
+  if [ -n "$token" ]; then
+    curl_auth_args=(-H "Authorization: Bearer $token")
+  fi
+fi
 
 cmd="${1:-help}"; shift || true
 case "$cmd" in
   state|health)
-    curl -fsS "$BASE/$cmd"; echo ;;
+    curl -fsS "${curl_auth_args[@]}" "$BASE/$cmd"; echo ;;
   navigate)
     target="${1:?usage: omi-ctl navigate <screen> [settings-section]}"
     section="${2:-}"
     body="{\"target\":\"$target\""
     [ -n "$section" ] && body="$body,\"settingsSection\":\"$section\""
     body="$body}"
-    curl -fsS -X POST "$BASE/navigate" -d "$body" >/dev/null
+    curl -fsS "${curl_auth_args[@]}" -X POST "$BASE/navigate" -d "$body" >/dev/null
     # The POST snapshot races the animated tab switch — settle, then report fresh state.
     sleep 0.3
-    curl -fsS "$BASE/state"; echo ;;
+    curl -fsS "${curl_auth_args[@]}" "$BASE/state"; echo ;;
   open-conversation)
     id="${1:?usage: omi-ctl open-conversation <id> [--transcript]}"
     show=false; [ "${2:-}" = "--transcript" ] && show=true
-    curl -fsS -X POST "$BASE/conversation/open" \
+    curl -fsS "${curl_auth_args[@]}" -X POST "$BASE/conversation/open" \
       -d "{\"conversationId\":\"$id\",\"showTranscript\":$show}"; echo ;;
   actions)
-    curl -fsS "$BASE/actions"; echo ;;
+    curl -fsS "${curl_auth_args[@]}" "$BASE/actions"; echo ;;
   action)
     name="${1:?usage: omi-ctl action <name> [key=value ...]}"; shift || true
     params=""
@@ -44,11 +53,11 @@ case "$cmd" in
     body="{\"name\":\"$name\""
     [ -n "$params" ] && body="$body,\"params\":{$params}"
     body="$body}"
-    curl -fsS -X POST "$BASE/action" -d "$body"; echo ;;
+    curl -fsS "${curl_auth_args[@]}" -X POST "$BASE/action" -d "$body"; echo ;;
   wait-ready)
     tries="${1:-30}"
     for _ in $(seq 1 "$tries"); do
-      s=$(curl -fsS "$BASE/state" 2>/dev/null || true)
+      s=$(curl -fsS "${curl_auth_args[@]}" "$BASE/state" 2>/dev/null || true)
       if echo "$s" | grep -q '"appState" : "main"'; then echo "$s"; exit 0; fi
       sleep 0.5
     done
