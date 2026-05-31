@@ -710,6 +710,14 @@ step "Installing to /Applications/..."
 ditto "$APP_BUNDLE" "$APP_PATH"
 substep "Installed to $APP_PATH"
 
+step "Removing installed bundle extended attributes..."
+# Copying into /Applications can add com.apple.provenance attributes after the
+# build bundle was signed. Clear them on the installed copy so verification and
+# TCC identity checks see the sealed files exactly as signed.
+chmod -R u+w "$APP_PATH"
+xattr -cr "$APP_PATH"
+codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+
 step "Clearing stale LaunchServices registration..."
 # Unregister first to clear any launch-disabled flag from stale entries,
 # then let `open` re-register the app fresh. Without this, notifications
