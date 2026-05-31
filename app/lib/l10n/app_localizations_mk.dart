@@ -1463,7 +1463,7 @@ class AppLocalizationsMk extends AppLocalizations {
   String get payYourSttProvider => 'Слободно користете omi. Плаќате директно на вашиот STT добавувач.';
 
   @override
-  String get freeMinutesMonth => '1,200 слободни минути/месец вклучени. Неограничено со ';
+  String get freeMinutesMonth => '600 слободни минути/месец вклучени. Неограничено со ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -9462,4 +9462,7 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Избраните задачи веќе се извезени.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Не може да се одреди тековната верзија на фирмверот';
 }

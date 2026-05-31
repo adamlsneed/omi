@@ -9480,4 +9480,7 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Οι επιλεγμένες εργασίες έχουν ήδη εξαχθεί.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Δεν είναι δυνατός ο προσδιορισμός της τρέχουσας έκδοσης firmware';
 }

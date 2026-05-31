@@ -9404,4 +9404,7 @@ class AppLocalizationsSk extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Vybrané úlohy už boli exportované.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Nedá sa určiť aktuálna verzia firmvéru';
 }

@@ -709,7 +709,7 @@ public class ProactiveAssistantsPlugin: NSObject {
         let (realAppName, windowTitle, windowID) = await WindowMonitor.getActiveWindowInfoAsync()
 
         // Check if the current app/window is excluded from Rewind capture
-        let isRewindExcluded = realAppName.map {
+        var isRewindExcluded = realAppName.map {
             RewindSettings.shared.isCaptureExcluded(appName: $0, windowTitle: windowTitle)
         } ?? false
 
@@ -766,8 +766,9 @@ public class ProactiveAssistantsPlugin: NSObject {
         }
         currentWindowTitle = windowTitle
 
-        // Use real app name from window info, fall back to cached if unavailable
-        let appName = realAppName ?? currentApp
+        // Use real app name from window info, fall back to cached if unavailable.
+        // Mutable because windowGone retry may re-resolve to a different app.
+        var appName = realAppName ?? currentApp
 
         // Always capture frames (other features may need them)
         // macOS 14+: capture CGImage directly, encode JPEG once for assistants,
@@ -787,11 +788,32 @@ public class ProactiveAssistantsPlugin: NSObject {
                     // failure. This used to trip the consecutive-failure counter and falsely
                     // declare "screen recording permission lost" after normal user actions.
                     cgImage = await screenCaptureService.captureActiveWindowCGImage()
+                    // Privacy: re-resolve app name since active window may have changed
+                    let (retryApp, retryTitle, _) = await WindowMonitor.getActiveWindowInfoAsync()
+                    if let retryApp = retryApp {
+                        appName = retryApp
+                        currentWindowTitle = retryTitle
+                        isRewindExcluded = RewindSettings.shared.isCaptureExcluded(
+                            appName: retryApp,
+                            windowTitle: retryTitle
+                        )
+                    }
                 case .failed:
                     cgImage = nil
                 }
             } else {
                 cgImage = await screenCaptureService.captureActiveWindowCGImage()
+                // Privacy: re-resolve app name since captureActiveWindowCGImage captures
+                // whatever is currently active, which may differ from the earlier resolution.
+                let (fallbackApp, fallbackTitle, _) = await WindowMonitor.getActiveWindowInfoAsync()
+                if let fallbackApp = fallbackApp {
+                    appName = fallbackApp
+                    currentWindowTitle = fallbackTitle
+                    isRewindExcluded = RewindSettings.shared.isCaptureExcluded(
+                        appName: fallbackApp,
+                        windowTitle: fallbackTitle
+                    )
+                }
             }
             if let cgImage = cgImage,
                let appName = appName {
@@ -823,14 +845,23 @@ public class ProactiveAssistantsPlugin: NSObject {
                             captureTrigger: captureTrigger
                         )
 
-                        // Always track the frame for context switch detection (even during delay)
-                        AssistantCoordinator.shared.trackFrame(frame)
-
-                        if !isInDelayPeriod {
-                            distributeFrameIfChanged(frame)
-                        } else {
-                            // During delay, still distribute to assistants that need it (e.g. refocus detection)
-                            AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                        // Privacy gate: skip ALL assistant paths for Rewind-excluded apps.
+                        // This includes trackFrame — the tracked frame can be passed to assistants
+                        // via onContextSwitch (e.g. TaskAssistant), so excluded frames must never
+                        // be stored as lastTrackedFrame.
+                        // Context switch detection still works: it uses lastTrackedApp/lastTrackedWindowTitle
+                        // (set by checkContextSwitch), not lastTrackedFrame.
+                        if isRewindExcluded {
+                            log("PrivacyGate: Blocked frame from Rewind-excluded app '\(appName)' — not sent to assistants")
+                        }
+                        if !isRewindExcluded {
+                            AssistantCoordinator.shared.trackFrame(frame)
+                            if !isInDelayPeriod {
+                                distributeFrameIfChanged(frame)
+                            } else {
+                                // During delay, still distribute to assistants that need it (e.g. refocus detection)
+                                AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                            }
                         }
                     }
                 }
@@ -885,6 +916,19 @@ public class ProactiveAssistantsPlugin: NSObject {
         } else if let jpegData = await screenCaptureService.captureActiveWindowAsync(),
            let appName = appName {
             // macOS 13.x fallback: existing JPEG-based path
+            // Privacy: re-resolve app name since captureActiveWindowAsync captures
+            // whatever is currently active, which may differ from the earlier resolution.
+            var resolvedApp = appName
+            let (freshApp, freshTitle, _) = await WindowMonitor.getActiveWindowInfoAsync()
+            if let freshApp = freshApp {
+                resolvedApp = freshApp
+                currentWindowTitle = freshTitle
+                isRewindExcluded = RewindSettings.shared.isCaptureExcluded(
+                    appName: freshApp,
+                    windowTitle: freshTitle
+                )
+            }
+
             if !lastCaptureSucceeded {
                 log("Screen capture recovered after \(consecutiveFailures) failures")
             }
@@ -896,7 +940,7 @@ public class ProactiveAssistantsPlugin: NSObject {
             let frame = autoreleasepool {
                 CapturedFrame(
                     jpegData: jpegData,
-                    appName: appName,
+                    appName: resolvedApp,
                     windowTitle: currentWindowTitle,
                     frameNumber: frameCount,
                     captureTrigger: captureTrigger
@@ -904,14 +948,19 @@ public class ProactiveAssistantsPlugin: NSObject {
             }
 
             autoreleasepool {
-                // Always track the frame for context switch detection (even during delay)
-                AssistantCoordinator.shared.trackFrame(frame)
-
-                if !isInDelayPeriod {
-                    distributeFrameIfChanged(frame)
-                } else {
-                    // During delay, still distribute to assistants that need it (e.g. refocus detection)
-                    AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                // Privacy gate: skip ALL assistant paths for Rewind-excluded apps
+                // (including trackFrame — see macOS 14+ path comment for rationale).
+                if isRewindExcluded {
+                    log("PrivacyGate: Blocked frame from Rewind-excluded app '\(resolvedApp)' — not sent to assistants")
+                }
+                if !isRewindExcluded {
+                    AssistantCoordinator.shared.trackFrame(frame)
+                    if !isInDelayPeriod {
+                        distributeFrameIfChanged(frame)
+                    } else {
+                        // During delay, still distribute to assistants that need it (e.g. refocus detection)
+                        AssistantCoordinator.shared.distributeFrameDuringDelay(frame)
+                    }
                 }
             }
 

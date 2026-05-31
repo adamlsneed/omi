@@ -9412,4 +9412,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Valitut tehtävät on jo viety.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Nykyistä laiteohjelmistoversiota ei voida määrittää';
 }

@@ -1458,7 +1458,7 @@ class AppLocalizationsBn extends AppLocalizations {
       'Omi অবাধে ব্যবহার করুন। আপনি শুধুমাত্র আপনার STT প্রদানকারীকে সরাসরি অর্থ প্রদান করেন।';
 
   @override
-  String get freeMinutesMonth => 'প্রতি মাসে 1,200 বিনামূল্যে মিনিট অন্তর্ভুক্ত। সীমাহীন ';
+  String get freeMinutesMonth => 'প্রতি মাসে 600 বিনামূল্যে মিনিট অন্তর্ভুক্ত। সীমাহীন ';
 
   @override
   String get omiUnlimited => 'Omi আনলিমিটেড';
@@ -9420,4 +9420,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'নির্বাচিত কাজগুলো ইতিমধ্যে রপ্তানি করা হয়েছে।';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'বর্তমান ফার্মওয়্যার সংস্করণ নির্ধারণ করা যায়নি';
 }

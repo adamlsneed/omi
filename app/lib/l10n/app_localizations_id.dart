@@ -9422,4 +9422,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Tugas yang dipilih sudah diekspor.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Tidak dapat menentukan versi firmware saat ini';
 }

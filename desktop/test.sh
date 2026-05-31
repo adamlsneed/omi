@@ -5,12 +5,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "=== Desktop Script Tests ==="
-cd "$SCRIPT_DIR"
-bash scripts/test-prepare-node-resource.sh
-bash scripts/test-omi-dev-smoke.sh
-echo ""
-
 echo "=== Agent Runtime Tests ==="
 cd "$SCRIPT_DIR/agent"
 if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then

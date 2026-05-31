@@ -9442,4 +9442,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'De geselecteerde taken zijn al geëxporteerd.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Kan de huidige firmwareversie niet bepalen';
 }

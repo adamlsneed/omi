@@ -9413,4 +9413,7 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Vybrané úkoly už byly exportovány.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Nelze určit aktuální verzi firmwaru';
 }

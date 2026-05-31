@@ -5990,7 +5990,7 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1200 premium-minutter/måned. Fanen På enheten tilbyr ubegrenset gratis transkribering.';
+      '600 premium-minutter/måned. Fanen På enheten tilbyr ubegrenset gratis transkribering.';
 
   @override
   String get viewUsage => 'Se forbruk';
@@ -6070,7 +6070,7 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1200 premium minutter/måned. På enheten-fanen tilbyr ubegrenset gratis transkribering. ';
+      '600 premium minutter/måned. På enheten-fanen tilbyr ubegrenset gratis transkribering. ';
 
   @override
   String get audioProcessedLocally => 'Lyd behandles lokalt. Fungerer offline, mer privat, men bruker mer batteri.';
@@ -9409,4 +9409,7 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'De valgte oppgavene er allerede eksportert.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Kan ikke bestemme gjeldende fastvareversjon';
 }

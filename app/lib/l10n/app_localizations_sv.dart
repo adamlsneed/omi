@@ -9417,4 +9417,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'De valda uppgifterna har redan exporterats.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Det gick inte att fastställa aktuell firmwareversion';
 }

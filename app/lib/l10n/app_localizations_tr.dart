@@ -9424,4 +9424,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Seçilen görevler zaten dışa aktarıldı.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Mevcut donanım yazılımı sürümü belirlenemiyor';
 }

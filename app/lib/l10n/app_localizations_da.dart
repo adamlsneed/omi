@@ -9398,4 +9398,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'De valgte opgaver er allerede eksporteret.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Kan ikke fastslå den aktuelle firmware-version';
 }

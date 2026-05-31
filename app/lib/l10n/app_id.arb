@@ -3140,5 +3140,6 @@
     },
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
-    }
+    },
+    "unableToDetermineFirmwareVersion": "Tidak dapat menentukan versi firmware saat ini"
 }

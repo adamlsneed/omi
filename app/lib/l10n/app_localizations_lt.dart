@@ -6074,7 +6074,7 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1200 premium minučių/mėn. Įrenginyje skirtukas siūlo neribotą nemokamą transkripciją. ';
+      '600 premium minučių/mėn. Įrenginyje skirtukas siūlo neribotą nemokamą transkripciją. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9425,4 +9425,8 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Pasirinktos užduotys jau eksportuotos.';
+
+  @override
+  String get unableToDetermineFirmwareVersion =>
+      'Nepavyko nustatyti dabartinės programinės aparatinės įrangos versijos';
 }

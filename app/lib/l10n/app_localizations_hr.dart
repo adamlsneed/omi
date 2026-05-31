@@ -9445,4 +9445,7 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Odabrani zadaci već su izvezeni.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Nije moguće utvrditi trenutnu verziju firmvera';
 }

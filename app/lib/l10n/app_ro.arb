@@ -3098,5 +3098,6 @@
     },
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
-    }
+    },
+    "unableToDetermineFirmwareVersion": "Nu se poate determina versiunea curentă a firmware-ului"
 }

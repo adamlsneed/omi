@@ -9469,4 +9469,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Le attività selezionate sono già state esportate.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Impossibile determinare la versione attuale del firmware';
 }

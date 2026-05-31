@@ -9440,4 +9440,7 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Izbrana opravila so že izvožena.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Trenutne različice vdelane programske opreme ni mogoče določiti';
 }

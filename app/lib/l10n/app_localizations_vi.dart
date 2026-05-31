@@ -9410,4 +9410,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Các công việc đã chọn đã được xuất.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Không thể xác định phiên bản firmware hiện tại';
 }

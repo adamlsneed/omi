@@ -9426,4 +9426,7 @@ class AppLocalizationsSr extends AppLocalizations {
 
   @override
   String get selectedActionItemsAlreadyExported => 'Изабрани задаци су већ извезени.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Није могуће одредити тренутну верзију фирмвера';
 }
