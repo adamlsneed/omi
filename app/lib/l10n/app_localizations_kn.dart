@@ -9448,4 +9448,13 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'ಪ್ರಸ್ತುತ ಫರ್ಮ್‌ವೇರ್ ಆವೃತ್ತಿಯನ್ನು ನಿರ್ಧರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ';
+
+  @override
+  String get promoCode => 'ಪ್ರೋಮೋ ಕೋಡ್';
+
+  @override
+  String get enterPromoCode => 'ಪ್ರೋಮೋ ಕೋಡ್ ನಮೂದಿಸಿ';
+
+  @override
+  String get invalidPromotionCode => 'ಅಮಾನ್ಯ ಪ್ರೋಮೋ ಕೋಡ್.';
 }

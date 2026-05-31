@@ -9423,4 +9423,13 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'বর্তমান ফার্মওয়্যার সংস্করণ নির্ধারণ করা যায়নি';
+
+  @override
+  String get promoCode => 'প্রোমো কোড';
+
+  @override
+  String get enterPromoCode => 'প্রোমো কোড লিখুন';
+
+  @override
+  String get invalidPromotionCode => 'অবৈধ প্রোমো কোড।';
 }

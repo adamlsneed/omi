@@ -9245,4 +9245,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => '无法确定当前固件版本';
+
+  @override
+  String get promoCode => '促销代码';
+
+  @override
+  String get enterPromoCode => '输入促销代码';
+
+  @override
+  String get invalidPromotionCode => '促销代码无效。';
 }

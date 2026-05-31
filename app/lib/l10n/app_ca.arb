@@ -3068,5 +3068,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "No s'ha pogut determinar la versió actual del firmware"
+    "unableToDetermineFirmwareVersion": "No s'ha pogut determinar la versió actual del firmware",
+    "promoCode": "Codi promocional",
+    "enterPromoCode": "Introduïu el codi promocional",
+    "invalidPromotionCode": "Codi promocional no vàlid."
 }

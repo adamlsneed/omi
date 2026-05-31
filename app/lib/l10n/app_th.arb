@@ -3099,5 +3099,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "ไม่สามารถระบุเวอร์ชันเฟิร์มแวร์ปัจจุบันได้"
+    "unableToDetermineFirmwareVersion": "ไม่สามารถระบุเวอร์ชันเฟิร์มแวร์ปัจจุบันได้",
+    "promoCode": "รหัสโปรโมชัน",
+    "enterPromoCode": "กรอกรหัสโปรโมชัน",
+    "invalidPromotionCode": "รหัสโปรโมชันไม่ถูกต้อง"
 }

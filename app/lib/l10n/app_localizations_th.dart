@@ -9365,4 +9365,13 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'ไม่สามารถระบุเวอร์ชันเฟิร์มแวร์ปัจจุบันได้';
+
+  @override
+  String get promoCode => 'รหัสโปรโมชัน';
+
+  @override
+  String get enterPromoCode => 'กรอกรหัสโปรโมชัน';
+
+  @override
+  String get invalidPromotionCode => 'รหัสโปรโมชันไม่ถูกต้อง';
 }

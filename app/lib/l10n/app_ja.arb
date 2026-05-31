@@ -3100,5 +3100,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "現在のファームウェアバージョンを特定できません"
+    "unableToDetermineFirmwareVersion": "現在のファームウェアバージョンを特定できません",
+    "promoCode": "プロモコード",
+    "enterPromoCode": "プロモコードを入力",
+    "invalidPromotionCode": "無効なプロモコードです。"
 }

@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "ಪ್ರಸ್ತುತ ಫರ್ಮ್‌ವೇರ್ ಆವೃತ್ತಿಯನ್ನು ನಿರ್ಧರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ"
+    "unableToDetermineFirmwareVersion": "ಪ್ರಸ್ತುತ ಫರ್ಮ್‌ವೇರ್ ಆವೃತ್ತಿಯನ್ನು ನಿರ್ಧರಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ",
+    "promoCode": "ಪ್ರೋಮೋ ಕೋಡ್",
+    "enterPromoCode": "ಪ್ರೋಮೋ ಕೋಡ್ ನಮೂದಿಸಿ",
+    "invalidPromotionCode": "ಅಮಾನ್ಯ ಪ್ರೋಮೋ ಕೋಡ್."
 }

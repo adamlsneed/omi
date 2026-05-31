@@ -9462,4 +9462,13 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Nu se poate determina versiunea curentă a firmware-ului';
+
+  @override
+  String get promoCode => 'Cod promoțional';
+
+  @override
+  String get enterPromoCode => 'Introduceți codul promoțional';
+
+  @override
+  String get invalidPromotionCode => 'Cod promoțional invalid.';
 }

@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "सद्य फर्मवेअर आवृत्ती निर्धारित करता आली नाही"
+    "unableToDetermineFirmwareVersion": "सद्य फर्मवेअर आवृत्ती निर्धारित करता आली नाही",
+    "promoCode": "प्रोमो कोड",
+    "enterPromoCode": "प्रोमो कोड प्रविष्ट करा",
+    "invalidPromotionCode": "अवैध प्रोमो कोड."
 }

@@ -9441,4 +9441,13 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Nie można określić bieżącej wersji oprogramowania układowego';
+
+  @override
+  String get promoCode => 'Kod promocyjny';
+
+  @override
+  String get enterPromoCode => 'Wpisz kod promocyjny';
+
+  @override
+  String get invalidPromotionCode => 'Nieprawidłowy kod promocyjny.';
 }

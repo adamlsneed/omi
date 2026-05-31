@@ -9502,4 +9502,13 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Hindi matukoy ang kasalukuyang bersyon ng firmware';
+
+  @override
+  String get promoCode => 'Promo code';
+
+  @override
+  String get enterPromoCode => 'Ilagay ang promo code';
+
+  @override
+  String get invalidPromotionCode => 'Hindi valid na promo code.';
 }

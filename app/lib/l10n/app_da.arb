@@ -3108,5 +3108,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Kan ikke fastslå den aktuelle firmware-version"
+    "unableToDetermineFirmwareVersion": "Kan ikke fastslå den aktuelle firmware-version",
+    "promoCode": "Kampagnekode",
+    "enterPromoCode": "Indtast kampagnekode",
+    "invalidPromotionCode": "Ugyldig kampagnekode."
 }

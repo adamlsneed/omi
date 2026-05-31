@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "தற்போதைய ஃபார்ம்வேர் பதிப்பை தீர்மானிக்க முடியவில்லை"
+    "unableToDetermineFirmwareVersion": "தற்போதைய ஃபார்ம்வேர் பதிப்பை தீர்மானிக்க முடியவில்லை",
+    "promoCode": "விளம்பர குறியீடு",
+    "enterPromoCode": "விளம்பர குறியீட்டை உள்ளிடவும்",
+    "invalidPromotionCode": "தவறான விளம்பர குறியீடு."
 }

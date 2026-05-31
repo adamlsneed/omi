@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "বর্তমান ফার্মওয়্যার সংস্করণ নির্ধারণ করা যায়নি"
+    "unableToDetermineFirmwareVersion": "বর্তমান ফার্মওয়্যার সংস্করণ নির্ধারণ করা যায়নি",
+    "promoCode": "প্রোমো কোড",
+    "enterPromoCode": "প্রোমো কোড লিখুন",
+    "invalidPromotionCode": "অবৈধ প্রোমো কোড।"
 }

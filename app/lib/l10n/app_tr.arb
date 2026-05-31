@@ -3134,5 +3134,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Mevcut donanım yazılımı sürümü belirlenemiyor"
+    "unableToDetermineFirmwareVersion": "Mevcut donanım yazılımı sürümü belirlenemiyor",
+    "promoCode": "Promosyon kodu",
+    "enterPromoCode": "Promosyon kodunu girin",
+    "invalidPromotionCode": "Geçersiz promosyon kodu."
 }

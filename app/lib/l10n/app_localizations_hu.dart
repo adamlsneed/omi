@@ -9456,4 +9456,13 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'A jelenlegi firmware verziója nem határozható meg';
+
+  @override
+  String get promoCode => 'Promóciós kód';
+
+  @override
+  String get enterPromoCode => 'Adja meg a promóciós kódot';
+
+  @override
+  String get invalidPromotionCode => 'Érvénytelen promóciós kód.';
 }

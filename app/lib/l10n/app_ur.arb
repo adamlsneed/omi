@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "موجودہ فرم ویئر ورژن کا تعین نہیں کیا جا سکا"
+    "unableToDetermineFirmwareVersion": "موجودہ فرم ویئر ورژن کا تعین نہیں کیا جا سکا",
+    "promoCode": "پرومو کوڈ",
+    "enterPromoCode": "پرومو کوڈ درج کریں",
+    "invalidPromotionCode": "غلط پرومو کوڈ۔"
 }

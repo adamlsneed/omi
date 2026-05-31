@@ -9360,4 +9360,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'تعذر تحديد إصدار البرنامج الثابت الحالي';
+
+  @override
+  String get promoCode => 'رمز ترويجي';
+
+  @override
+  String get enterPromoCode => 'أدخل الرمز الترويجي';
+
+  @override
+  String get invalidPromotionCode => 'رمز ترويجي غير صالح.';
 }

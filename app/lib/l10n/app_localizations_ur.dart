@@ -9432,4 +9432,13 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'موجودہ فرم ویئر ورژن کا تعین نہیں کیا جا سکا';
+
+  @override
+  String get promoCode => 'پرومو کوڈ';
+
+  @override
+  String get enterPromoCode => 'پرومو کوڈ درج کریں';
+
+  @override
+  String get invalidPromotionCode => 'غلط پرومو کوڈ۔';
 }

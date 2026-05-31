@@ -9394,4 +9394,13 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'वर्तमान फ़र्मवेयर संस्करण निर्धारित नहीं किया जा सका';
+
+  @override
+  String get promoCode => 'प्रोमो कोड';
+
+  @override
+  String get enterPromoCode => 'प्रोमो कोड दर्ज करें';
+
+  @override
+  String get invalidPromotionCode => 'अमान्य प्रोमो कोड।';
 }

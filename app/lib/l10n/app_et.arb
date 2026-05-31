@@ -3099,5 +3099,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Praeguse püsivara versiooni ei õnnestunud tuvastada"
+    "unableToDetermineFirmwareVersion": "Praeguse püsivara versiooni ei õnnestunud tuvastada",
+    "promoCode": "Sooduskood",
+    "enterPromoCode": "Sisestage sooduskood",
+    "invalidPromotionCode": "Kehtetu sooduskood."
 }

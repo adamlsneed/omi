@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "تعیین نسخه فعلی سفت‌افزار امکان‌پذیر نیست"
+    "unableToDetermineFirmwareVersion": "تعیین نسخه فعلی سفت‌افزار امکان‌پذیر نیست",
+    "promoCode": "کد تخفیف",
+    "enterPromoCode": "کد تخفیف را وارد کنید",
+    "invalidPromotionCode": "کد تخفیف نامعتبر."
 }

@@ -3099,5 +3099,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Nepavyko nustatyti dabartinės programinės aparatinės įrangos versijos"
+    "unableToDetermineFirmwareVersion": "Nepavyko nustatyti dabartinės programinės aparatinės įrangos versijos",
+    "promoCode": "Reklamos kodas",
+    "enterPromoCode": "Įveskite reklamos kodą",
+    "invalidPromotionCode": "Neteisingas reklamos kodas."
 }

@@ -9449,4 +9449,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Не удаётся определить текущую версию прошивки';
+
+  @override
+  String get promoCode => 'Промокод';
+
+  @override
+  String get enterPromoCode => 'Введите промокод';
+
+  @override
+  String get invalidPromotionCode => 'Недействительный промокод.';
 }

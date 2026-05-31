@@ -9434,4 +9434,13 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Не вдається визначити поточну версію мікропрограми';
+
+  @override
+  String get promoCode => 'Промокод';
+
+  @override
+  String get enterPromoCode => 'Введіть промокод';
+
+  @override
+  String get invalidPromotionCode => 'Недійсний промокод.';
 }

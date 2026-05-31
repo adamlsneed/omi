@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "לא ניתן לקבוע את גרסת הקושחה הנוכחית"
+    "unableToDetermineFirmwareVersion": "לא ניתן לקבוע את גרסת הקושחה הנוכחית",
+    "promoCode": "קוד קידום",
+    "enterPromoCode": "הזינו קוד קידום",
+    "invalidPromotionCode": "קוד קידום לא תקין."
 }

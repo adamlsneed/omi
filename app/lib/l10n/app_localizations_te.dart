@@ -9465,4 +9465,13 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'ప్రస్తుత ఫర్మ్‌వేర్ సంస్కరణను నిర్ధారించలేకపోయాము';
+
+  @override
+  String get promoCode => 'ప్రోమో కోడ్';
+
+  @override
+  String get enterPromoCode => 'ప్రోమో కోడ్ ఎంటర్ చేయండి';
+
+  @override
+  String get invalidPromotionCode => 'చెల్లని ప్రోమో కోడ్.';
 }

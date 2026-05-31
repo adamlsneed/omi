@@ -9437,4 +9437,13 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Nevar noteikt pašreizējo programmaparatūras versiju';
+
+  @override
+  String get promoCode => 'Reklāmas kods';
+
+  @override
+  String get enterPromoCode => 'Ievadiet reklāmas kodu';
+
+  @override
+  String get invalidPromotionCode => 'Nederīgs reklāmas kods.';
 }

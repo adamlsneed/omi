@@ -9412,4 +9412,13 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Praeguse püsivara versiooni ei õnnestunud tuvastada';
+
+  @override
+  String get promoCode => 'Sooduskood';
+
+  @override
+  String get enterPromoCode => 'Sisestage sooduskood';
+
+  @override
+  String get invalidPromotionCode => 'Kehtetu sooduskood.';
 }

@@ -3121,5 +3121,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "无法确定当前固件版本"
+    "unableToDetermineFirmwareVersion": "无法确定当前固件版本",
+    "promoCode": "促销代码",
+    "enterPromoCode": "输入促销代码",
+    "invalidPromotionCode": "促销代码无效。"
 }

@@ -9419,4 +9419,13 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'تعیین نسخه فعلی سفت‌افزار امکان‌پذیر نیست';
+
+  @override
+  String get promoCode => 'کد تخفیف';
+
+  @override
+  String get enterPromoCode => 'کد تخفیف را وارد کنید';
+
+  @override
+  String get invalidPromotionCode => 'کد تخفیف نامعتبر.';
 }

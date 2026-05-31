@@ -3099,5 +3099,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Kan de huidige firmwareversie niet bepalen"
+    "unableToDetermineFirmwareVersion": "Kan de huidige firmwareversie niet bepalen",
+    "promoCode": "Promotiecode",
+    "enterPromoCode": "Voer promotiecode in",
+    "invalidPromotionCode": "Ongeldige promotiecode."
 }

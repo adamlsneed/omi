@@ -3099,5 +3099,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Не вдається визначити поточну версію мікропрограми"
+    "unableToDetermineFirmwareVersion": "Не вдається визначити поточну версію мікропрограми",
+    "promoCode": "Промокод",
+    "enterPromoCode": "Введіть промокод",
+    "invalidPromotionCode": "Недійсний промокод."
 }

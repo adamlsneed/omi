@@ -3134,5 +3134,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Не удаётся определить текущую версию прошивки"
+    "unableToDetermineFirmwareVersion": "Не удаётся определить текущую версию прошивки",
+    "promoCode": "Промокод",
+    "enterPromoCode": "Введите промокод",
+    "invalidPromotionCode": "Недействительный промокод."
 }

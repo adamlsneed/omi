@@ -3099,5 +3099,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Kan ikke bestemme gjeldende fastvareversjon"
+    "unableToDetermineFirmwareVersion": "Kan ikke bestemme gjeldende fastvareversjon",
+    "promoCode": "Kampanjekode",
+    "enterPromoCode": "Skriv inn kampanjekode",
+    "invalidPromotionCode": "Ugyldig kampanjekode."
 }

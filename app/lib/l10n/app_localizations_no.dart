@@ -9412,4 +9412,13 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Kan ikke bestemme gjeldende fastvareversjon';
+
+  @override
+  String get promoCode => 'Kampanjekode';
+
+  @override
+  String get enterPromoCode => 'Skriv inn kampanjekode';
+
+  @override
+  String get invalidPromotionCode => 'Ugyldig kampanjekode.';
 }

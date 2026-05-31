@@ -9445,4 +9445,13 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Не ўдалося вызначыць бягучую версію прашыўкі';
+
+  @override
+  String get promoCode => 'Промакод';
+
+  @override
+  String get enterPromoCode => 'Увядзіце промакод';
+
+  @override
+  String get invalidPromotionCode => 'Няправільны промакод.';
 }

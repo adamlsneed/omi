@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Hindi matukoy ang kasalukuyang bersyon ng firmware"
+    "unableToDetermineFirmwareVersion": "Hindi matukoy ang kasalukuyang bersyon ng firmware",
+    "promoCode": "Promo code",
+    "enterPromoCode": "Ilagay ang promo code",
+    "invalidPromotionCode": "Hindi valid na promo code."
 }

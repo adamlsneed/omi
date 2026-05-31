@@ -9259,4 +9259,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => '現在のファームウェアバージョンを特定できません';
+
+  @override
+  String get promoCode => 'プロモコード';
+
+  @override
+  String get enterPromoCode => 'プロモコードを入力';
+
+  @override
+  String get invalidPromotionCode => '無効なプロモコードです。';
 }

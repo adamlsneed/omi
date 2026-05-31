@@ -3195,5 +3195,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "A jelenlegi firmware verziója nem határozható meg"
+    "unableToDetermineFirmwareVersion": "A jelenlegi firmware verziója nem határozható meg",
+    "promoCode": "Promóciós kód",
+    "enterPromoCode": "Adja meg a promóciós kódot",
+    "invalidPromotionCode": "Érvénytelen promóciós kód."
 }

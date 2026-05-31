@@ -9465,4 +9465,13 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Не може да се одреди тековната верзија на фирмверот';
+
+  @override
+  String get promoCode => 'Промо код';
+
+  @override
+  String get enterPromoCode => 'Внесете промо код';
+
+  @override
+  String get invalidPromotionCode => 'Невалиден промо код.';
 }

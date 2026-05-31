@@ -9484,4 +9484,13 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'தற்போதைய ஃபார்ம்வேர் பதிப்பை தீர்மானிக்க முடியவில்லை';
+
+  @override
+  String get promoCode => 'விளம்பர குறியீடு';
+
+  @override
+  String get enterPromoCode => 'விளம்பர குறியீட்டை உள்ளிடவும்';
+
+  @override
+  String get invalidPromotionCode => 'தவறான விளம்பர குறியீடு.';
 }

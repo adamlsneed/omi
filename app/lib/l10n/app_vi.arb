@@ -3104,5 +3104,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Không thể xác định phiên bản firmware hiện tại"
+    "unableToDetermineFirmwareVersion": "Không thể xác định phiên bản firmware hiện tại",
+    "promoCode": "Mã khuyến mãi",
+    "enterPromoCode": "Nhập mã khuyến mãi",
+    "invalidPromotionCode": "Mã khuyến mãi không hợp lệ."
 }

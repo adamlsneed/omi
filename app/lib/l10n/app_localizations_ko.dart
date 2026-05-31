@@ -9262,4 +9262,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => '현재 펌웨어 버전을 확인할 수 없습니다';
+
+  @override
+  String get promoCode => '프로모 코드';
+
+  @override
+  String get enterPromoCode => '프로모 코드를 입력하세요';
+
+  @override
+  String get invalidPromotionCode => '유효하지 않은 프로모 코드입니다.';
 }

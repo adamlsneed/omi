@@ -9345,4 +9345,13 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'לא ניתן לקבוע את גרסת הקושחה הנוכחית';
+
+  @override
+  String get promoCode => 'קוד קידום';
+
+  @override
+  String get enterPromoCode => 'הזינו קוד קידום';
+
+  @override
+  String get invalidPromotionCode => 'קוד קידום לא תקין.';
 }

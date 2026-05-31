@@ -3068,5 +3068,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Nelze určit aktuální verzi firmwaru"
+    "unableToDetermineFirmwareVersion": "Nelze určit aktuální verzi firmwaru",
+    "promoCode": "Promo kód",
+    "enterPromoCode": "Zadejte promo kód",
+    "invalidPromotionCode": "Neplatný promo kód."
 }

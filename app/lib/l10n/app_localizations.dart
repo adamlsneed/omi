@@ -17546,6 +17546,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to determine current firmware version'**
   String get unableToDetermineFirmwareVersion;
+
+  /// No description provided for @promoCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Promo code'**
+  String get promoCode;
+
+  /// No description provided for @enterPromoCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter promo code'**
+  String get enterPromoCode;
+
+  /// No description provided for @invalidPromotionCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid promotion code.'**
+  String get invalidPromotionCode;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

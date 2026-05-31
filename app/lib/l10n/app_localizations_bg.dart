@@ -9452,4 +9452,13 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Не може да се определи текущата версия на фърмуера';
+
+  @override
+  String get promoCode => 'Промо код';
+
+  @override
+  String get enterPromoCode => 'Въведете промо код';
+
+  @override
+  String get invalidPromotionCode => 'Невалиден промо код.';
 }

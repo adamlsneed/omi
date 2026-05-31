@@ -9439,4 +9439,13 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get unableToDetermineFirmwareVersion => 'Tidak dapat menentukan versi perisian tegar semasa';
+
+  @override
+  String get promoCode => 'Kod promo';
+
+  @override
+  String get enterPromoCode => 'Masukkan kod promo';
+
+  @override
+  String get invalidPromotionCode => 'Kod promo tidak sah.';
 }

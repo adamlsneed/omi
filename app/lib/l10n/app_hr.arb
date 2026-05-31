@@ -10804,5 +10804,8 @@
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
     },
-    "unableToDetermineFirmwareVersion": "Nije moguće utvrditi trenutnu verziju firmvera"
+    "unableToDetermineFirmwareVersion": "Nije moguće utvrditi trenutnu verziju firmvera",
+    "promoCode": "Promo kod",
+    "enterPromoCode": "Unesite promo kod",
+    "invalidPromotionCode": "Nevažeći promo kod."
 }
