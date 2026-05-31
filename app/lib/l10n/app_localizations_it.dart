@@ -9180,21 +9180,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get bulkDeleteFailed => 'Impossibile eliminare le attività. Riprova.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Aggiungi automaticamente attività a Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Quando è attivo, le attività create da Omi vengono aggiunte automaticamente ai Promemoria. Puoi comunque aggiungere attività manualmente quando questa opzione è disattivata.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Aggiungi selezionati ad Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Alcune attività selezionate non sono state aggiunte.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Le attività selezionate sono già state esportate.';
-
-  @override
   String get deleteRecap => 'Elimina riepilogo';
 
   @override
@@ -9342,4 +9327,158 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'I server di Omi sono sovraccarichi — le tue registrazioni verranno sincronizzate appena tornerà disponibile capacità';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used di $limit ricordi creati questo mese';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Impostazioni sincronizzazione WiFi';
+
+  @override
+  String get enterHotspotCredentials => 'Inserisci le credenziali hotspot del tuo telefono';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'La sincronizzazione WiFi usa il telefono come hotspot. Trova nome e password in Impostazioni > Hotspot personale.';
+
+  @override
+  String get hotspotNameSsid => 'Nome hotspot (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'es. Hotspot iPhone';
+
+  @override
+  String get enterHotspotPassword => 'Inserisci la password dell\'hotspot';
+
+  @override
+  String get pleaseEnterHotspotName => 'Inserisci un nome hotspot';
+
+  @override
+  String get wifiCredentialsSaved => 'Credenziali WiFi salvate';
+
+  @override
+  String get wifiCredentialsCleared => 'Credenziali WiFi cancellate';
+
+  @override
+  String get fastTransfer => 'Trasferimento rapido';
+
+  @override
+  String get transferMethod => 'Metodo di trasferimento';
+
+  @override
+  String get fast => 'Veloce';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Impossibile abilitare il WiFi sul dispositivo. Riprova.';
+
+  @override
+  String get deviceNoFastTransfer =>
+      'Il tuo dispositivo non supporta il Trasferimento Rapido. Usa il Bluetooth invece.';
+
+  @override
+  String get enableHotspotMessage => 'Abilita l\'hotspot del telefono e riprova.';
+
+  @override
+  String get transferStartFailed => 'Impossibile avviare il trasferimento. Riprova.';
+
+  @override
+  String get invalidWifiCredentials => 'Credenziali WiFi non valide. Controlla le impostazioni dell\'hotspot.';
+
+  @override
+  String get wifiConnectionFailed => 'Connessione WiFi fallita. Riprova.';
+
+  @override
+  String get wifiSyncFailed => 'Sincronizzazione WiFi Fallita';
+
+  @override
+  String get wifiSync => 'Sincronizzazione WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Connessione fallita';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Abilita il WiFi di $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Passato al Trasferimento Rapido';
+
+  @override
+  String get fastTransferEnabled => 'Trasferimento rapido abilitato';
+
+  @override
+  String get enableFastTransfer => 'Abilita trasferimento rapido';
+
+  @override
+  String get fastTransferDescription =>
+      'Il trasferimento rapido utilizza il WiFi per velocità ~5x più veloci. Il tuo telefono si connetterà temporaneamente alla rete WiFi del dispositivo Omi durante il trasferimento.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'L\'accesso a Internet è sospeso durante il trasferimento';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Scegli come le registrazioni vengono trasferite dal dispositivo Omi al telefono.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s via WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X PIÙ VELOCE';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Crea una connessione WiFi diretta al dispositivo Omi. Il telefono si disconnette temporaneamente dal WiFi normale durante il trasferimento.';
+
+  @override
+  String get locationPermissionRequired => 'Autorizzazione posizione richiesta';
+
+  @override
+  String get locationPermissionContent =>
+      'Il trasferimento rapido richiede l\'autorizzazione alla posizione per verificare la connessione WiFi. Concedi l\'autorizzazione alla posizione per continuare.';
+
+  @override
+  String get chooseTransferMethod => 'Scegli metodo di trasferimento';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s tramite WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Il dispositivo non supporta la sincronizzazione WiFi, passaggio al Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Aggiungi automaticamente attività a Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Quando è attivo, le attività create da Omi vengono aggiunte automaticamente ai Promemoria. Puoi comunque aggiungere attività manualmente quando questa opzione è disattivata.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Aggiungi selezionati ad Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Alcune attività selezionate non sono state aggiunte.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Le attività selezionate sono già state esportate.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Impossibile determinare la versione attuale del firmware';
+
+  @override
+  String get promoCode => 'Codice promozionale';
+
+  @override
+  String get enterPromoCode => 'Inserisci il codice promozionale';
+
+  @override
+  String get invalidPromotionCode => 'Codice promozionale non valido.';
 }

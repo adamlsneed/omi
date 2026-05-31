@@ -3098,5 +3098,9 @@
     },
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
-    }
+    },
+    "unableToDetermineFirmwareVersion": "Det gick inte att fastställa aktuell firmwareversion",
+    "promoCode": "Kampanjkod",
+    "enterPromoCode": "Ange kampanjkod",
+    "invalidPromotionCode": "Ogiltig kampanjkod."
 }

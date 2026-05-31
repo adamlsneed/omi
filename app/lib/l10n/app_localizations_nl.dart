@@ -9153,21 +9153,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get bulkDeleteFailed => 'Taken konden niet worden verwijderd. Probeer het opnieuw.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Taken automatisch toevoegen aan Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Wanneer dit is ingeschakeld, worden taken die Omi maakt automatisch toegevoegd aan Herinneringen. Je kunt taken nog steeds handmatig toevoegen wanneer dit uit staat.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Geselecteerde toevoegen aan Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Sommige geselecteerde taken konden niet worden toegevoegd.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'De geselecteerde taken zijn al geëxporteerd.';
-
-  @override
   String get deleteRecap => 'Samenvatting verwijderen';
 
   @override
@@ -9315,4 +9300,158 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'De servers van Omi zijn druk — je opnames worden gesynchroniseerd zodra er weer capaciteit is';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used van $limit herinneringen aangemaakt deze maand';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi-synchronisatie-instellingen';
+
+  @override
+  String get enterHotspotCredentials => 'Voer de hotspot-inloggegevens van uw telefoon in';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi-sync gebruikt uw telefoon als hotspot. Vind de naam en het wachtwoord in Instellingen > Persoonlijke hotspot.';
+
+  @override
+  String get hotspotNameSsid => 'Hotspotnaam (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'bijv. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Voer hotspot-wachtwoord in';
+
+  @override
+  String get pleaseEnterHotspotName => 'Voer een hotspotnaam in';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi-inloggegevens opgeslagen';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi-inloggegevens gewist';
+
+  @override
+  String get fastTransfer => 'Snelle overdracht';
+
+  @override
+  String get transferMethod => 'Overdrachtsmethode';
+
+  @override
+  String get fast => 'Snel';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Kon WiFi niet inschakelen op apparaat. Probeer opnieuw.';
+
+  @override
+  String get deviceNoFastTransfer =>
+      'Je apparaat ondersteunt geen snelle overdracht. Gebruik Bluetooth in plaats daarvan.';
+
+  @override
+  String get enableHotspotMessage => 'Schakel de hotspot van je telefoon in en probeer opnieuw.';
+
+  @override
+  String get transferStartFailed => 'Kon overdracht niet starten. Probeer opnieuw.';
+
+  @override
+  String get invalidWifiCredentials => 'Ongeldige WiFi-gegevens. Controleer je hotspot-instellingen.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi-verbinding mislukt. Probeer opnieuw.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi-synchronisatie mislukt';
+
+  @override
+  String get wifiSync => 'WiFi-synchronisatie';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Verbinding mislukt';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'WiFi van $deviceName inschakelen';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Overgeschakeld naar snelle overdracht';
+
+  @override
+  String get fastTransferEnabled => 'Snelle overdracht ingeschakeld';
+
+  @override
+  String get enableFastTransfer => 'Snelle overdracht inschakelen';
+
+  @override
+  String get fastTransferDescription =>
+      'Snelle overdracht gebruikt WiFi voor ~5x snellere snelheden. Je telefoon maakt tijdens de overdracht tijdelijk verbinding met het WiFi-netwerk van je Omi-apparaat.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Internettoegang is onderbroken tijdens overdracht';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Kies hoe opnames worden overgedragen van je Omi-apparaat naar je telefoon.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s via WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X SNELLER';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Maakt een directe WiFi-verbinding met je Omi-apparaat. Je telefoon wordt tijdens de overdracht tijdelijk losgekoppeld van je normale WiFi.';
+
+  @override
+  String get locationPermissionRequired => 'Locatiemachtiging vereist';
+
+  @override
+  String get locationPermissionContent =>
+      'Snelle overdracht vereist locatietoestemming om de WiFi-verbinding te verifiëren. Verleen alstublieft locatietoestemming om door te gaan.';
+
+  @override
+  String get chooseTransferMethod => 'Kies overdrachtsmethode';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s via WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Apparaat ondersteunt geen WiFi-synchronisatie, overschakelen naar Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Taken automatisch toevoegen aan Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Wanneer dit is ingeschakeld, worden taken die Omi maakt automatisch toegevoegd aan Herinneringen. Je kunt taken nog steeds handmatig toevoegen wanneer dit uit staat.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Geselecteerde toevoegen aan Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders =>
+      'Sommige geselecteerde taken konden niet worden toegevoegd.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'De geselecteerde taken zijn al geëxporteerd.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Kan de huidige firmwareversie niet bepalen';
+
+  @override
+  String get promoCode => 'Promotiecode';
+
+  @override
+  String get enterPromoCode => 'Voer promotiecode in';
+
+  @override
+  String get invalidPromotionCode => 'Ongeldige promotiecode.';
 }

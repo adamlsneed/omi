@@ -3133,5 +3133,9 @@
     },
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
-    }
+    },
+    "unableToDetermineFirmwareVersion": "Impossible de déterminer la version actuelle du firmware",
+    "promoCode": "Code promo",
+    "enterPromoCode": "Entrez le code promo",
+    "invalidPromotionCode": "Code promo invalide."
 }

@@ -12,6 +12,7 @@ class TaskAssistantSettings {
     private let extractionIntervalKey = "taskExtractionInterval"
     private let minConfidenceKey = "taskMinConfidence"
     private let notificationsEnabledKey = "taskNotificationsEnabled"
+    private let autoPromoteEnabledKey = "taskAutoPromoteEnabled"
     private let allowedAppsKey = "taskAllowedApps"
     private let browserKeywordsKey = "taskBrowserKeywords"
 
@@ -112,6 +113,7 @@ class TaskAssistantSettings {
     private let defaultExtractionInterval: TimeInterval = 600.0 // 10 minutes
     private let defaultMinConfidence: Double = 0.75
     private let defaultNotificationsEnabled = false
+    private let defaultAutoPromoteEnabled = true
 
     /// Default system prompt for task extraction (loop-based with tool calling)
     static let defaultAnalysisPrompt = """
@@ -287,6 +289,7 @@ class TaskAssistantSettings {
             extractionIntervalKey: defaultExtractionInterval,
             minConfidenceKey: defaultMinConfidence,
             notificationsEnabledKey: defaultNotificationsEnabled,
+            autoPromoteEnabledKey: defaultAutoPromoteEnabled,
         ])
     }
 
@@ -348,6 +351,16 @@ class TaskAssistantSettings {
         get { UserDefaults.standard.bool(forKey: notificationsEnabledKey) }
         set {
             UserDefaults.standard.set(newValue, forKey: notificationsEnabledKey)
+            NotificationCenter.default.post(name: .assistantSettingsDidChange, object: nil)
+        }
+    }
+
+    /// Whether staged extracted tasks should automatically become active Omi tasks.
+    var autoPromoteEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: autoPromoteEnabledKey) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: autoPromoteEnabledKey)
+            log("Task auto-add to active tasks \(newValue ? "enabled" : "disabled")")
             NotificationCenter.default.post(name: .assistantSettingsDidChange, object: nil)
         }
     }

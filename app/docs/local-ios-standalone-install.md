@@ -70,6 +70,59 @@ xcodebuild -workspace ios/Runner.xcworkspace \
 Use `Profile-dev` only when intentionally testing the dev Firebase/backend
 environment.
 
+### Local dev shell with prod Firebase auth
+
+On Adam's Mac, the local Apple account currently has valid explicit
+provisioning profiles for the dev shell:
+
+- app: `com.adam.omi.dev`
+- widget: `com.adam.omi.dev.development.widget`
+- app group: `group.com.adam.omi.dev`
+
+The prod flavor uses the widget bundle id `com.adam.omi.dev.widget`, which may
+fail to sign until Apple Developer has an explicit App ID/profile for that
+extension and the `group.com.adam.omi.dev` App Group. The failure looks like:
+
+```text
+Provisioning profile "iOS Team Provisioning Profile: *" doesn't include the App Groups capability.
+Provisioning profile "iOS Team Provisioning Profile: *" doesn't support the group.com.adam.omi.dev App Group.
+```
+
+When that happens, build the signable `Release-dev` shell but restore the local
+ignored dev Firebase inputs to the prod Firebase project (`based-hardware`).
+This keeps the installed app as `Omi Dev`, reuses the working local profiles,
+and still matches hosted backend custom-token auth from `https://api.omi.me/`.
+
+Before building, verify:
+
+```bash
+/usr/libexec/PlistBuddy -c 'Print :PROJECT_ID' ios/Config/Dev/GoogleService-Info.plist
+rg -n "projectId: 'based-hardware'" lib/firebase_options_dev.dart
+```
+
+Expected:
+
+```text
+based-hardware
+```
+
+Then build and install:
+
+```bash
+flutter build ios --release --flavor dev --config-only --no-codesign
+
+xcodebuild -workspace ios/Runner.xcworkspace \
+  -scheme dev \
+  -configuration Release-dev \
+  -destination 'id=00008150-001004D93E40401C' \
+  -allowProvisioningUpdates \
+  -allowProvisioningDeviceRegistration \
+  build
+```
+
+This is a local-install workaround, not an upstream release configuration. Do
+not commit the ignored Firebase config files.
+
 ### Two Omi Dev entries or stale Runner processes
 
 Symptom: after replacing the app, device process listings can show more than
@@ -242,6 +295,8 @@ xcrun devicectl device info processes \
 - `flutter build ios --profile --flavor prod --config-only --no-codesign`
   completes successfully.
 - `xcodebuild ... -configuration Profile-prod ... build` exits 0.
+- If the prod widget profile is not available, the documented `Release-dev`
+  shell with prod Firebase local inputs builds successfully instead.
 - Entitlements match the expected local bundle id, app group, and HealthKit
   values before installation, and `GoogleService-Info.plist` reports
   `PROJECT_ID=based-hardware`.

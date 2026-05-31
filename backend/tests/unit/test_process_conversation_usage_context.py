@@ -93,6 +93,7 @@ for name in [
     "utils.notifications",
     "utils.other.hume",
     "utils.retrieval.rag",
+    "utils.subscription",
     "utils.webhooks",
     "utils.task_sync",
     "utils.other.storage",
@@ -156,6 +157,9 @@ for attr in ["get_hume", "HumeJobCallbackModel", "HumeJobModelPredictionResponse
 
 utils_rag = sys.modules["utils.retrieval.rag"]
 utils_rag.retrieve_rag_conversation_context = MagicMock()
+
+utils_subscription = sys.modules["utils.subscription"]
+utils_subscription.is_trial_paywalled = MagicMock(return_value=False)
 
 utils_webhooks = sys.modules["utils.webhooks"]
 utils_webhooks.conversation_created_webhook = MagicMock()
@@ -667,3 +671,71 @@ def test_trigger_apps_no_preferred_app_runs_suggestion():
 
     # The suggestion LLM call SHOULD have been invoked
     suggestion_mock.assert_called_once()
+
+
+def test_trigger_apps_can_run_multiple_suggested_apps_when_limit_allows(monkeypatch):
+    """When configured, run more than the first suggested app result."""
+    monkeypatch.setenv("CONVERSATION_SUMMARIZED_APP_RUN_LIMIT", "2")
+    redis_mod = sys.modules["database.redis_db"]
+    redis_mod.get_user_preferred_app = MagicMock(return_value=None)
+    first_app = _make_mock_app("suggested-app-1", "SuggestedAppOne")
+    second_app = _make_mock_app("suggested-app-2", "SuggestedAppTwo")
+    conv = _make_trigger_conversation()
+
+    suggestion_mock = MagicMock(return_value=(["suggested-app-1", "suggested-app-2"], "reasoning"))
+    app_result_mock = MagicMock(side_effect=["First result", "Second result"])
+    record_mock = MagicMock()
+
+    with patch.object(process_conversation, "get_default_conversation_summarized_apps", return_value=[]), patch.object(
+        process_conversation, "get_available_apps", return_value=[first_app, second_app]
+    ), patch.object(process_conversation, "get_suggested_apps_for_conversation", suggestion_mock), patch.object(
+        process_conversation, "get_app_result", app_result_mock
+    ), patch.object(
+        process_conversation, "record_app_usage", record_mock
+    ):
+        process_conversation._trigger_apps("user-multi-template", conv)
+
+    suggestion_mock.assert_called_once()
+    assert [result.app_id for result in conv.apps_results] == ["suggested-app-1", "suggested-app-2"]
+    assert [result.content for result in conv.apps_results] == ["First result", "Second result"]
+    assert app_result_mock.call_count == 2
+    assert record_mock.call_count == 2
+
+
+def test_save_action_items_passes_conversation_source_to_auto_sync():
+    """Task sync receives the originating conversation source for source-level export controls."""
+    from models.conversation_enums import ConversationSource
+    from models.structured import ActionItem, Structured
+
+    action_items_mod = sys.modules["database.action_items"]
+    action_items_mod.get_action_items_by_conversation = MagicMock(return_value=[])
+    action_items_mod.delete_action_items_for_conversation = MagicMock()
+    action_items_mod.create_action_items_batch = MagicMock(return_value=["action-1"])
+
+    captured = {}
+
+    async def fake_auto_sync(uid, items, conversation_source=None):
+        captured["uid"] = uid
+        captured["items"] = items
+        captured["conversation_source"] = conversation_source
+        return []
+
+    def run_submitted_task(_executor, fn):
+        fn()
+
+    conversation = MagicMock()
+    conversation.id = "conversation-1"
+    conversation.is_locked = False
+    conversation.source = ConversationSource.desktop
+    conversation.structured = Structured(action_items=[ActionItem(description="Send the recap")])
+
+    with patch.object(process_conversation, "auto_sync_action_items_batch", fake_auto_sync), patch.object(
+        process_conversation, "submit_with_context", side_effect=run_submitted_task
+    ), patch.object(process_conversation, "delete_action_item_vectors_batch", MagicMock()), patch.object(
+        process_conversation, "send_action_item_data_message", MagicMock()
+    ):
+        process_conversation._save_action_items("user-source", conversation)
+
+    assert captured["uid"] == "user-source"
+    assert captured["conversation_source"] == "desktop"
+    assert captured["items"][0]["id"] == "action-1"

@@ -9169,21 +9169,6 @@ class AppLocalizationsRo extends AppLocalizations {
   String get bulkDeleteFailed => 'Nu am putut șterge sarcinile. Vă rugăm să încercați din nou.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Adaugă automat sarcini în Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Când este activat, sarcinile create de Omi sunt adăugate automat în Mementouri. Poți adăuga în continuare sarcini manual când opțiunea este dezactivată.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Adaugă selecția în Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Unele sarcini selectate nu au putut fi adăugate.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Sarcinile selectate sunt deja exportate.';
-
-  @override
   String get deleteRecap => 'Șterge rezumatul';
 
   @override
@@ -9334,4 +9319,156 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Serverele Omi sunt aglomerate — înregistrările tale se vor sincroniza imediat ce se eliberează capacitate';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used din $limit amintiri create luna aceasta';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Setări sincronizare WiFi';
+
+  @override
+  String get enterHotspotCredentials => 'Introduceți datele hotspot-ului telefonului';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'Sincronizarea WiFi folosește telefonul ca hotspot. Găsește numele și parola în Setări > Hotspot personal.';
+
+  @override
+  String get hotspotNameSsid => 'Nume hotspot (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'ex. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Introduceți parola hotspot';
+
+  @override
+  String get pleaseEnterHotspotName => 'Vă rugăm introduceți un nume de hotspot';
+
+  @override
+  String get wifiCredentialsSaved => 'Datele WiFi au fost salvate';
+
+  @override
+  String get wifiCredentialsCleared => 'Datele WiFi au fost șterse';
+
+  @override
+  String get fastTransfer => 'Transfer rapid';
+
+  @override
+  String get transferMethod => 'Metodă de transfer';
+
+  @override
+  String get fast => 'Rapid';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Nu s-a putut activa WiFi-ul pe dispozitiv. Încercați din nou.';
+
+  @override
+  String get deviceNoFastTransfer => 'Dispozitivul dvs. nu suportă Transfer rapid. Utilizați Bluetooth.';
+
+  @override
+  String get enableHotspotMessage => 'Te rugăm să activezi hotspot-ul telefonului și să încerci din nou.';
+
+  @override
+  String get transferStartFailed => 'Pornirea transferului a eșuat. Te rugăm să încerci din nou.';
+
+  @override
+  String get invalidWifiCredentials => 'Credențiale WiFi invalide. Verificați setările hotspot-ului.';
+
+  @override
+  String get wifiConnectionFailed => 'Conexiune WiFi eșuată. Încercați din nou.';
+
+  @override
+  String get wifiSyncFailed => 'Sincronizare WiFi eșuată';
+
+  @override
+  String get wifiSync => 'Sincronizare WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Conexiune eșuată';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Activează WiFi-ul $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'S-a trecut la transfer rapid';
+
+  @override
+  String get fastTransferEnabled => 'Transfer rapid activat';
+
+  @override
+  String get enableFastTransfer => 'Activează transferul rapid';
+
+  @override
+  String get fastTransferDescription =>
+      'Transferul rapid folosește WiFi pentru viteze de ~5x mai rapide. Telefonul se va conecta temporar la rețeaua WiFi a dispozitivului Omi în timpul transferului.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Accesul la internet este întrerupt în timpul transferului';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Alegeți cum sunt transferate înregistrările de pe dispozitivul Omi pe telefon.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s prin WiFi';
+
+  @override
+  String get fiveTimesFaster => 'DE 5X MAI RAPID';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Creează o conexiune WiFi directă la dispozitivul Omi. Telefonul se deconectează temporar de la WiFi-ul obișnuit în timpul transferului.';
+
+  @override
+  String get locationPermissionRequired => 'Permisiune de locație necesară';
+
+  @override
+  String get locationPermissionContent =>
+      'Transferul rapid necesită permisiune de locație pentru a verifica conexiunea WiFi. Vă rugăm să acordați permisiunea de locație pentru a continua.';
+
+  @override
+  String get chooseTransferMethod => 'Alegeți metoda de transfer';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s prin WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Dispozitivul nu acceptă sincronizare WiFi, comutare la Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Adaugă automat sarcini în Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Când este activat, sarcinile create de Omi sunt adăugate automat în Mementouri. Poți adăuga în continuare sarcini manual când opțiunea este dezactivată.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Adaugă selecția în Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Unele sarcini selectate nu au putut fi adăugate.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Sarcinile selectate sunt deja exportate.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Nu se poate determina versiunea curentă a firmware-ului';
+
+  @override
+  String get promoCode => 'Cod promoțional';
+
+  @override
+  String get enterPromoCode => 'Introduceți codul promoțional';
+
+  @override
+  String get invalidPromotionCode => 'Cod promoțional invalid.';
 }

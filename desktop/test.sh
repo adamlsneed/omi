@@ -5,6 +5,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+echo "=== Agent Runtime Tests ==="
+cd "$SCRIPT_DIR/agent"
+if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
+  npm install --no-fund --no-audit
+fi
+npm test
+echo ""
+
+echo "=== Pi-Mono Extension Tests ==="
+cd "$SCRIPT_DIR/pi-mono-extension"
+if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
+  npm install --no-fund --no-audit
+fi
+npm test
+echo ""
+
 echo "=== Rust Backend Tests ==="
 cd "$SCRIPT_DIR/Backend-Rust"
 cargo test

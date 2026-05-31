@@ -80,6 +80,10 @@ from utils.retrieval.rag import retrieve_rag_conversation_context
 from utils.webhooks import conversation_created_webhook
 from utils.notifications import send_action_item_data_message
 from utils.task_sync import auto_sync_action_items_batch
+from utils.conversations.calendar_linking import (
+    get_overlapping_calendar_event,
+    write_conversation_link_to_calendar_event,
+)
 from utils.other.storage import precache_conversation_audio
 
 logger = logging.getLogger(__name__)
@@ -336,6 +340,15 @@ def get_default_conversation_summarized_apps():
     return default_apps
 
 
+def _get_summarized_app_run_limit() -> int:
+    """Return how many suggested memory apps should run automatically."""
+    try:
+        value = int(os.getenv('CONVERSATION_SUMMARIZED_APP_RUN_LIMIT', '1'))
+    except ValueError:
+        return 1
+    return max(1, min(value, 3))
+
+
 def _trigger_apps(
     uid: str,
     conversation: Conversation,
@@ -359,17 +372,19 @@ def _trigger_apps(
     # Combined list for suggestions: default apps + user's installed apps (no duplicates)
     all_suggestion_apps = list(all_apps_dict.values())
 
-    app_to_run = None
+    apps_to_run = []
 
     # If a specific app_id is provided (for reprocessing), find and use it.
     if app_id:
-        app_to_run = all_apps_dict.get(app_id)
+        app = all_apps_dict.get(app_id)
+        apps_to_run = [app] if app else []
     else:
         # Check preferred app first — skip the suggestion LLM call if user has one
         preferred_app_id = redis_db.get_user_preferred_app(uid)
         if preferred_app_id and preferred_app_id in all_apps_dict:
-            app_to_run = all_apps_dict.get(preferred_app_id)
-            logger.info(f"Using user's preferred app: {app_to_run.name} (id: {preferred_app_id})")
+            app = all_apps_dict.get(preferred_app_id)
+            apps_to_run = [app]
+            logger.info(f"Using user's preferred app: {app.name} (id: {preferred_app_id})")
         else:
             # Only run suggestion LLM call when no preferred app is set
             if not conversation.suggested_summarization_apps:
@@ -379,14 +394,15 @@ def _trigger_apps(
                 logger.info(f"Generated suggested apps for conversation {conversation.id}: {suggested_apps}")
 
             if conversation.suggested_summarization_apps:
-                first_suggested_app_id = conversation.suggested_summarization_apps[0]
-                app_to_run = all_apps_dict.get(first_suggested_app_id)
-                if app_to_run:
-                    logger.info(f"Using first suggested app: {app_to_run.name}")
-                else:
-                    logger.warning(f"First suggested app '{first_suggested_app_id}' not found in apps.")
+                for suggested_app_id in conversation.suggested_summarization_apps[: _get_summarized_app_run_limit()]:
+                    app = all_apps_dict.get(suggested_app_id)
+                    if app:
+                        apps_to_run.append(app)
+                        logger.info(f"Using suggested app: {app.name}")
+                    else:
+                        logger.warning(f"Suggested app '{suggested_app_id}' not found in apps.")
 
-    filtered_apps = [app_to_run] if app_to_run else []
+    filtered_apps = apps_to_run
 
     if not filtered_apps:
         logger.info(f"No summarization app selected for conversation {conversation.id} {uid}")
@@ -613,9 +629,11 @@ def _save_action_items(uid: str, conversation: Conversation):
 
         # Auto-sync to task integration — submit before vector ops so it always runs
         created_items = [{"id": aid, **data} for aid, data in zip(action_item_ids, action_items_data)]
+        source_value = getattr(conversation, 'source', None)
+        source = source_value.value if hasattr(source_value, 'value') else source_value
 
         def _run_auto_sync():
-            asyncio.run(auto_sync_action_items_batch(uid, created_items))
+            asyncio.run(auto_sync_action_items_batch(uid, created_items, conversation_source=source))
 
         submit_with_context(db_executor, _run_auto_sync)
 
@@ -742,6 +760,23 @@ def process_conversation(
     structured, discarded = _get_structured(uid, language_code, conversation, force_process, people=people)
     conversation = _get_conversation_obj(uid, structured, conversation)
 
+    # Check for overlapping calendar events and auto-write conversation link to the event description
+    if not discarded and conversation.started_at and conversation.finished_at and conversation.calendar_event is None:
+        try:
+            calendar_event = asyncio.run(
+                get_overlapping_calendar_event(
+                    uid,
+                    conversation.started_at,
+                    conversation.finished_at,
+                )
+            )
+            if calendar_event:
+                conversation.calendar_event = calendar_event
+                asyncio.run(write_conversation_link_to_calendar_event(uid, calendar_event.event_id, conversation.id))
+        except Exception as e:
+            logger.error(f"Error during calendar event linking: {e}")
+            pass
+
     # AI-based folder assignment
     assigned_folder_id = None
     if not discarded and not is_reprocess and not conversation.folder_id:
@@ -822,7 +857,7 @@ def process_conversation(
             logger.error(f"Error creating audio files: {e}")
 
     conversation.status = ConversationStatus.completed
-    conversations_db.upsert_conversation(uid, conversation.dict())
+    conversations_db.upsert_conversation(uid, conversation.as_dict_cleaned_dates())
 
     # Update folder conversation count after conversation is saved
     if assigned_folder_id:

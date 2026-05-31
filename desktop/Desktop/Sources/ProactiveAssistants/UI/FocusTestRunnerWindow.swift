@@ -413,11 +413,12 @@ struct FocusTestRunnerView: View {
                 return
             }
 
-            // Filter out excluded apps and system apps
+            // Filter out excluded apps, Rewind privacy-excluded apps, and system apps
             let filtered = allScreenshots.filter { screenshot in
                 !screenshot.appName.isEmpty
                     && !TaskAssistantSettings.builtInExcludedApps.contains(screenshot.appName)
                     && !excludedApps.contains(screenshot.appName)
+                    && !RewindSettings.shared.isAppExcluded(screenshot.appName)
             }
 
             guard filtered.count >= 2 else {
@@ -670,12 +671,16 @@ enum FocusTestRunner {
             return
         }
 
-        // Filter excluded apps
+        // Filter excluded apps + Rewind privacy-excluded apps
         let builtInExcludedApps = TaskAssistantSettings.builtInExcludedApps
         let filtered = allScreenshots.filter { screenshot in
             !screenshot.appName.isEmpty
                 && !builtInExcludedApps.contains(screenshot.appName)
                 && !excludedApps.contains(screenshot.appName)
+                && !RewindSettings.shared.isCaptureExcluded(
+                    appName: screenshot.appName,
+                    windowTitle: screenshot.windowTitle
+                )
         }
 
         guard filtered.count >= 2 else {

@@ -9140,21 +9140,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get bulkDeleteFailed => 'Görevler silinemedi. Lütfen tekrar deneyin.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Görevleri Apple Reminders\'a otomatik ekle';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Açık olduğunda, Omi\'nin oluşturduğu görevler otomatik olarak Anımsatıcılara eklenir. Bu kapalıyken de görevleri elle ekleyebilirsiniz.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Seçilenleri Apple Reminders’a ekle';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Seçilen bazı görevler eklenemedi.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Seçilen görevler zaten dışa aktarıldı.';
-
-  @override
   String get deleteRecap => 'Özeti sil';
 
   @override
@@ -9300,4 +9285,155 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi sunucuları yoğun — kapasite boşaldığında kayıtlarınız eşitlenecek';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return 'Bu ay $limit anıdan $used oluşturuldu';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi Senkronizasyon Ayarları';
+
+  @override
+  String get enterHotspotCredentials => 'Telefonunuzun hotspot kimlik bilgilerini girin';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi senkronizasyonu telefonunuzu hotspot olarak kullanır. Adı ve şifreyi Ayarlar > Kişisel Erişim Noktası\'nda bulun.';
+
+  @override
+  String get hotspotNameSsid => 'Hotspot Adı (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'örn. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Hotspot şifresini girin';
+
+  @override
+  String get pleaseEnterHotspotName => 'Lütfen bir hotspot adı girin';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi kimlik bilgileri kaydedildi';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi kimlik bilgileri temizlendi';
+
+  @override
+  String get fastTransfer => 'Hızlı aktarım';
+
+  @override
+  String get transferMethod => 'Aktarım yöntemi';
+
+  @override
+  String get fast => 'Hızlı';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Cihazda WiFi etkinleştirilemedi. Lütfen tekrar deneyin.';
+
+  @override
+  String get deviceNoFastTransfer => 'Cihazınız Hızlı Aktarımı desteklemiyor. Bunun yerine Bluetooth kullanın.';
+
+  @override
+  String get enableHotspotMessage => 'Lütfen telefonunuzun erişim noktasını etkinleştirin ve tekrar deneyin.';
+
+  @override
+  String get transferStartFailed => 'Aktarım başlatılamadı. Lütfen tekrar deneyin.';
+
+  @override
+  String get invalidWifiCredentials => 'Geçersiz WiFi kimlik bilgileri. Erişim noktası ayarlarınızı kontrol edin.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi bağlantısı başarısız oldu. Lütfen tekrar deneyin.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi Senkronizasyonu Başarısız';
+
+  @override
+  String get wifiSync => 'WiFi Senkronizasyonu';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Bağlantı Başarısız';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName WiFi\'sini etkinleştir';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Hızlı Aktarıma geçildi';
+
+  @override
+  String get fastTransferEnabled => 'Hızlı aktarım etkinleştirildi';
+
+  @override
+  String get enableFastTransfer => 'Hızlı aktarımı etkinleştir';
+
+  @override
+  String get fastTransferDescription =>
+      'Hızlı aktarım, ~5 kat daha hızlı hızlar için WiFi kullanır. Telefonunuz aktarım sırasında geçici olarak Omi cihazınızın WiFi ağına bağlanacaktır.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Aktarım sırasında internet erişimi duraklatıldı';
+
+  @override
+  String get chooseTransferMethodDescription => 'Kayıtların Omi cihazından telefonunuza nasıl aktarılacağını seçin.';
+
+  @override
+  String get wifiSpeed => 'WiFi ile ~150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '5 KAT DAHA HIZLI';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Omi cihazınıza doğrudan WiFi bağlantısı oluşturur. Telefonunuz aktarım sırasında geçici olarak normal WiFi bağlantısını keser.';
+
+  @override
+  String get locationPermissionRequired => 'Konum izni gerekli';
+
+  @override
+  String get locationPermissionContent =>
+      'Hızlı Transfer, WiFi bağlantısını doğrulamak için konum izni gerektirir. Devam etmek için lütfen konum izni verin.';
+
+  @override
+  String get chooseTransferMethod => 'Aktarım yöntemi seçin';
+
+  @override
+  String get fastTransferSpeed => 'WiFi ile ~150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Cihaz WiFi senkronizasyonunu desteklemiyor, Bluetooth\'a geçiliyor';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Görevleri Apple Reminders\'a otomatik ekle';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Açık olduğunda, Omi\'nin oluşturduğu görevler otomatik olarak Anımsatıcılara eklenir. Bu kapalıyken de görevleri elle ekleyebilirsiniz.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Seçilenleri Apple Reminders’a ekle';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Seçilen bazı görevler eklenemedi.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Seçilen görevler zaten dışa aktarıldı.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Mevcut donanım yazılımı sürümü belirlenemiyor';
+
+  @override
+  String get promoCode => 'Promosyon kodu';
+
+  @override
+  String get enterPromoCode => 'Promosyon kodunu girin';
+
+  @override
+  String get invalidPromotionCode => 'Geçersiz promosyon kodu.';
 }

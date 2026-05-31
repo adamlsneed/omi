@@ -136,6 +136,16 @@ actor RewindIndexer {
         return RewindSettings.shared.pauseOCROnBattery && PowerMonitor.checkBatteryState()
     }
 
+    private func textSource(ocrText: String?, skippedForBattery: Bool) -> String {
+        if let ocrText, !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return CapturedTextSource.ocr.rawValue
+        }
+        if skippedForBattery {
+            return CapturedTextSource.deferred.rawValue
+        }
+        return CapturedTextSource.none.rawValue
+    }
+
     // MARK: - Frame Processing
 
     /// Process a captured frame from ProactiveAssistantsPlugin
@@ -212,7 +222,9 @@ actor RewindIndexer {
                 ocrText: ocrText,
                 ocrDataJson: ocrDataJson,
                 isIndexed: isIndexed,
-                skippedForBattery: skippedForBattery
+                skippedForBattery: skippedForBattery,
+                captureTrigger: frame.captureTrigger.rawValue,
+                textSource: textSource(ocrText: ocrText, skippedForBattery: skippedForBattery)
             )
 
             let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
@@ -236,7 +248,13 @@ actor RewindIndexer {
     }
 
     /// Process a frame directly from a CGImage (macOS 14+ path, avoids JPEG decode round-trip)
-    func processFrame(cgImage: CGImage, appName: String, windowTitle: String?, captureTime: Date) async {
+    func processFrame(
+        cgImage: CGImage,
+        appName: String,
+        windowTitle: String?,
+        captureTime: Date,
+        captureTrigger: CaptureTrigger = .timer
+    ) async {
         guard await ensureInitialized() else { return }
 
         do {
@@ -293,7 +311,9 @@ actor RewindIndexer {
                 ocrText: ocrText,
                 ocrDataJson: ocrDataJson,
                 isIndexed: isIndexed,
-                skippedForBattery: skippedForBattery
+                skippedForBattery: skippedForBattery,
+                captureTrigger: captureTrigger.rawValue,
+                textSource: textSource(ocrText: ocrText, skippedForBattery: skippedForBattery)
             )
 
             let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
@@ -398,7 +418,9 @@ actor RewindIndexer {
                 focusStatus: focusStatus,
                 extractedTasksJson: tasksJson,
                 adviceJson: adviceJson,
-                skippedForBattery: skippedForBattery
+                skippedForBattery: skippedForBattery,
+                captureTrigger: frame.captureTrigger.rawValue,
+                textSource: textSource(ocrText: ocrText, skippedForBattery: skippedForBattery)
             )
 
             let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)

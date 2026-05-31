@@ -1437,7 +1437,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get payYourSttProvider => 'Omi를 자유롭게 사용하세요. STT 제공업체에 직접 비용을 지불하기만 하면 됩니다.';
 
   @override
-  String get freeMinutesMonth => '월 1,200분 무료 포함. ';
+  String get freeMinutesMonth => '월 600분 무료 포함. ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -4616,7 +4616,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noSpecificDataAccessConfigured => '특정 데이터 액세스가 구성되지 않았습니다.';
 
   @override
-  String get basicPlanDescription => '1,200 프리미엄 분 + 무제한 온디바이스';
+  String get basicPlanDescription => '600 프리미엄 분 + 무제한 온디바이스';
 
   @override
   String get minutes => '분';
@@ -5886,7 +5886,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get cloudProvider => '클라우드 제공자';
 
   @override
-  String get premiumMinutesInfo => '월 1,200분의 프리미엄 사용 시간. 온디바이스 탭에서 무제한 무료 음성 인식을 제공합니다.';
+  String get premiumMinutesInfo => '월 600분의 프리미엄 사용 시간. 온디바이스 탭에서 무제한 무료 음성 인식을 제공합니다.';
 
   @override
   String get viewUsage => '사용량 보기';
@@ -5964,7 +5964,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get batteryDrainSignificantly => '배터리 소모가 크게 증가합니다.';
 
   @override
-  String get premiumMinutesMonth => '월 1,200 프리미엄 분. 온디바이스 탭은 무제한 무료 전사를 제공합니다. ';
+  String get premiumMinutesMonth => '월 600 프리미엄 분. 온디바이스 탭은 무제한 무료 전사를 제공합니다. ';
 
   @override
   String get audioProcessedLocally => '오디오가 로컬에서 처리됩니다. 오프라인 작동, 더 프라이빗하지만 배터리 사용량이 더 많습니다.';
@@ -8984,21 +8984,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get bulkDeleteFailed => '작업을 삭제할 수 없습니다. 다시 시도해 주세요.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Apple 미리 알림에 작업 자동 추가';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => '켜져 있으면 Omi가 만든 작업이 미리 알림에 자동으로 추가됩니다. 이 옵션이 꺼져 있어도 작업을 수동으로 추가할 수 있습니다.';
-
-  @override
-  String get addSelectedToAppleReminders => '선택 항목을 Apple Reminders에 추가';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => '일부 선택한 작업을 추가하지 못했습니다.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => '선택한 작업은 이미 내보냈습니다.';
-
-  @override
   String get deleteRecap => '요약 삭제';
 
   @override
@@ -9140,4 +9125,150 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi 서버가 혼잡합니다 — 용량이 확보되는 대로 녹음이 동기화됩니다';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '이번 달 $limit개 중 $used개의 기억 생성';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi 동기화 설정';
+
+  @override
+  String get enterHotspotCredentials => '휴대폰 핫스팟 자격 증명 입력';
+
+  @override
+  String get wifiSyncUsesHotspot => 'WiFi 동기화는 휴대폰을 핫스팟으로 사용합니다. 설정 > 개인용 핫스팟에서 이름과 비밀번호를 찾으세요.';
+
+  @override
+  String get hotspotNameSsid => '핫스팟 이름 (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => '예: iPhone 핫스팟';
+
+  @override
+  String get enterHotspotPassword => '핫스팟 비밀번호 입력';
+
+  @override
+  String get pleaseEnterHotspotName => '핫스팟 이름을 입력하세요';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi 자격 증명이 저장됨';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi 자격 증명이 지워짐';
+
+  @override
+  String get fastTransfer => '빠른 전송';
+
+  @override
+  String get transferMethod => '전송 방법';
+
+  @override
+  String get fast => '빠름';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => '장치에서 WiFi를 활성화하지 못했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get deviceNoFastTransfer => '이 장치는 빠른 전송을 지원하지 않습니다. 대신 Bluetooth를 사용하세요.';
+
+  @override
+  String get enableHotspotMessage => '휴대폰의 핫스팟을 활성화한 후 다시 시도해 주세요.';
+
+  @override
+  String get transferStartFailed => '전송을 시작하지 못했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get invalidWifiCredentials => '잘못된 WiFi 자격 증명입니다. 핫스팟 설정을 확인하세요.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi 연결에 실패했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi 동기화 실패';
+
+  @override
+  String get wifiSync => 'WiFi 동기화';
+
+  @override
+  String get wifiConnectionFailedTitle => '연결 실패';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName의 WiFi 활성화';
+  }
+
+  @override
+  String get switchedToFastTransfer => '빠른 전송으로 전환됨';
+
+  @override
+  String get fastTransferEnabled => '빠른 전송 활성화됨';
+
+  @override
+  String get enableFastTransfer => '빠른 전송 활성화';
+
+  @override
+  String get fastTransferDescription => '빠른 전송은 WiFi를 사용하여 ~5배 빠른 속도를 제공합니다. 전송 중 휴대폰이 일시적으로 Omi 기기의 WiFi 네트워크에 연결됩니다.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => '전송 중 인터넷 접속이 일시 중지됩니다';
+
+  @override
+  String get chooseTransferMethodDescription => 'Omi 기기에서 휴대폰으로 녹음을 전송하는 방법을 선택하세요.';
+
+  @override
+  String get wifiSpeed => 'WiFi로 ~150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '5배 빠름';
+
+  @override
+  String get fastTransferMethodDescription => 'Omi 기기에 직접 WiFi 연결을 생성합니다. 전송 중 휴대폰이 일시적으로 일반 WiFi에서 연결 해제됩니다.';
+
+  @override
+  String get locationPermissionRequired => '위치 권한 필요';
+
+  @override
+  String get locationPermissionContent => '빠른 전송을 위해 WiFi 연결 확인에 위치 권한이 필요합니다. 계속하려면 위치 권한을 부여해 주세요.';
+
+  @override
+  String get chooseTransferMethod => '전송 방법 선택';
+
+  @override
+  String get fastTransferSpeed => 'WiFi를 통해 ~150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => '기기가 WiFi 동기화를 지원하지 않습니다. Bluetooth로 전환 중';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple 미리 알림에 작업 자동 추가';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      '켜져 있으면 Omi가 만든 작업이 미리 알림에 자동으로 추가됩니다. 이 옵션이 꺼져 있어도 작업을 수동으로 추가할 수 있습니다.';
+
+  @override
+  String get addSelectedToAppleReminders => '선택 항목을 Apple Reminders에 추가';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '일부 선택한 작업을 추가하지 못했습니다.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '선택한 작업은 이미 내보냈습니다.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => '현재 펌웨어 버전을 확인할 수 없습니다';
+
+  @override
+  String get promoCode => '프로모 코드';
+
+  @override
+  String get enterPromoCode => '프로모 코드를 입력하세요';
+
+  @override
+  String get invalidPromotionCode => '유효하지 않은 프로모 코드입니다.';
 }

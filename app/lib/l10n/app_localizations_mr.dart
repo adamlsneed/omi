@@ -1459,7 +1459,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get payYourSttProvider => 'Omi मुक्तपणे वापरा. आपण केवळ आपल्या STT प्रदाता ला थेट भुगतान करा.';
 
   @override
-  String get freeMinutesMonth => '1,200 मुक्त मिनिटे/महिना समाविष्ट. अमर्यादित ';
+  String get freeMinutesMonth => '600 मुक्त मिनिटे/महिना समाविष्ट. अमर्यादित ';
 
   @override
   String get omiUnlimited => 'Omi अमर्यादित';
@@ -5999,7 +5999,7 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1,200 प्रीमियम मिनिटे/महिना. ऑन-डिव्हाइस टॅब अमर्यादित विनामूल्य ट्रान्सक्रिप्शन ऑफर करते.';
+      '600 प्रीमियम मिनिटे/महिना. ऑन-डिव्हाइस टॅब अमर्यादित विनामूल्य ट्रान्सक्रिप्शन ऑफर करते.';
 
   @override
   String get viewUsage => 'वापर पहा';
@@ -6081,7 +6081,7 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1,200 प्रीमियम मिनिटे/महिना. ऑन-डिव्हाइस टॅब अमर्यादित विनामूल्य ट्रान्सक्रिप्शन ऑफर करते. ';
+      '600 प्रीमियम मिनिटे/महिना. ऑन-डिव्हाइस टॅब अमर्यादित विनामूल्य ट्रान्सक्रिप्शन ऑफर करते. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9138,21 +9138,6 @@ class AppLocalizationsMr extends AppLocalizations {
   String get bulkDeleteFailed => 'कार्ये हटवता आली नाहीत. कृपया पुन्हा प्रयत्न करा.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Apple Reminders मध्ये कामे आपोआप जोडा';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'चालू असताना, Omi तयार करत असलेली कामे आपोआप Reminders मध्ये जोडली जातात. हे बंद असतानाही तुम्ही कामे हाताने जोडू शकता.';
-
-  @override
-  String get addSelectedToAppleReminders => 'निवडलेले Apple Reminders मध्ये जोडा';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'काही निवडलेली कामे जोडता आली नाहीत.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'निवडलेली कामे आधीच निर्यात केली आहेत.';
-
-  @override
   String get deleteRecap => 'रीकॅप हटवा';
 
   @override
@@ -9299,4 +9284,155 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi चे सर्व्हर व्यस्त आहेत — क्षमता उपलब्ध होताच तुमची रेकॉर्डिंग्ज सिंक होतील';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return 'या महिन्यात $used of $limit स्मृती तयार केली';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi सिंक सेटिंग्ज';
+
+  @override
+  String get enterHotspotCredentials => 'आपल्या फोनच्या हॉटस्पॉट क्रेडेंशियल्स प्रविष्ट करा';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi सिंक आपल्या फोनला हॉटस्पॉट म्हणून वापरते. आपल्या हॉटस्पॉट नाव आणि पासवर्ड सेटिंग्ज > व्यक्तिगत हॉटस्पॉट मध्ये शोधा.';
+
+  @override
+  String get hotspotNameSsid => 'हॉटस्पॉट नाव (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'उदा. iPhone हॉटस्पॉट';
+
+  @override
+  String get enterHotspotPassword => 'हॉटस्पॉट पासवर्ड प्रविष्ट करा';
+
+  @override
+  String get pleaseEnterHotspotName => 'कृपया हॉटस्पॉट नाव प्रविष्ट करा';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi क्रेडेंशियल्स सेव केली आहेत';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi क्रेडेंशियल्स साफ केली आहेत';
+
+  @override
+  String get fastTransfer => 'जलद स्थानांतर';
+
+  @override
+  String get transferMethod => 'स्थानांतर पद्धत';
+
+  @override
+  String get fast => 'जलद';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'डिव्हाइसवर WiFi सक्षम करणे अयोग्य. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get deviceNoFastTransfer => 'आपल्या डिव्हाइसला जलद स्थानांतर समर्थित नाही. त्याऐवजी Bluetooth वापरा.';
+
+  @override
+  String get enableHotspotMessage => 'कृपया आपल्या फोनची हॉटस्पॉट सक्षम करा आणि पुन्हा प्रयत्न करा.';
+
+  @override
+  String get transferStartFailed => 'स्थानांतर सुरू करणे अयोग्य. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get invalidWifiCredentials => 'अमान्य WiFi प्रमाणपत्र. आपल्या हॉटस्पॉट सेटिंग्स तपासा.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi कनेक्शन अयोग्य. कृपया पुन्हा प्रयत्न करा.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi समन्वय अयोग्य';
+
+  @override
+  String get wifiSync => 'WiFi समन्वय';
+
+  @override
+  String get wifiConnectionFailedTitle => 'कनेक्शन अयोग्य';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName चा WiFi सक्षम करा';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'फास्ट ट्रांसफरवर स्विच केले';
+
+  @override
+  String get fastTransferEnabled => 'फास्ट ट्रांसफर सक्षम केले';
+
+  @override
+  String get enableFastTransfer => 'फास्ट ट्रांसफर सक्षम करा';
+
+  @override
+  String get fastTransferDescription =>
+      'फास्ट ट्रांसफर WiFi वापरून ~5x वेगवान गती देतो. आपले फोन स्थानांतरणादरम्यान आपल्या Omi डिव्हाइसच्या WiFi नेटवर्कला तात्पुरते जोडेल.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'स्थानांतरणादरम्यान इंटरनेट प्रवेश सक्षम केला आहे';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'आपल्या Omi डिव्हाइसमधून आपल्या फोनवर रेकॉर्डिंग कसे स्थानांतरित करायचे ते निवडा.';
+
+  @override
+  String get wifiSpeed => 'WiFi द्वारे ~150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '५X वेगवान';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'आपल्या Omi डिव्हाइसला थेट WiFi कनेक्शन तयार करते. स्थानांतरणादरम्यान आपले फोन आपल्या नियमित WiFi पासून तात्पुरते डिस्कनेक्ट होईल.';
+
+  @override
+  String get locationPermissionRequired => 'स्थान परवानगी आवश्यक';
+
+  @override
+  String get locationPermissionContent =>
+      'फास्ट ट्रांसफरला WiFi कनेक्शन सत्यापित करण्यासाठी स्थान परवानगी आवश्यक आहे. कृपया आगे जाण्यासाठी स्थान परवानगी द्या.';
+
+  @override
+  String get chooseTransferMethod => 'स्थानांतरण पद्धती निवडा';
+
+  @override
+  String get fastTransferSpeed => 'WiFi द्वारे ~150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'डिव्हाइस WiFi सिंक समर्थन करत नाही, ब्लूटूथ वर स्विच करत आहे';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple Reminders मध्ये कामे आपोआप जोडा';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'चालू असताना, Omi तयार करत असलेली कामे आपोआप Reminders मध्ये जोडली जातात. हे बंद असतानाही तुम्ही कामे हाताने जोडू शकता.';
+
+  @override
+  String get addSelectedToAppleReminders => 'निवडलेले Apple Reminders मध्ये जोडा';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'काही निवडलेली कामे जोडता आली नाहीत.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'निवडलेली कामे आधीच निर्यात केली आहेत.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'सद्य फर्मवेअर आवृत्ती निर्धारित करता आली नाही';
+
+  @override
+  String get promoCode => 'प्रोमो कोड';
+
+  @override
+  String get enterPromoCode => 'प्रोमो कोड प्रविष्ट करा';
+
+  @override
+  String get invalidPromotionCode => 'अवैध प्रोमो कोड.';
 }

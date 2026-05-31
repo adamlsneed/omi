@@ -14,6 +14,9 @@ import 'package:omi/models/stt_provider.dart';
 import 'package:omi/utils/logger.dart';
 
 class SharedPreferencesUtil {
+  static const String frontendTemplateRoutingConfigKey = 'frontendTemplateRoutingConfig';
+  static const String frontendTemplateRoutingResultsKey = 'frontendTemplateRoutingResults';
+
   static final SharedPreferencesUtil _instance = SharedPreferencesUtil._internal();
   static SharedPreferences? _preferences;
 
@@ -45,7 +48,7 @@ class SharedPreferencesUtil {
   }
 
   BtDevice get btDevice {
-    final String device = getString('btDevice') ?? '';
+    final String device = getString('btDevice');
     if (device.isEmpty) return BtDevice(id: '', name: '', type: DeviceType.omi, rssi: 0);
     return BtDevice.fromJson(jsonDecode(device));
   }
@@ -192,10 +195,20 @@ class SharedPreferencesUtil {
 
   int get notificationFrequency => getInt('notificationFrequency', defaultValue: 0);
 
-  // Apple Reminders automatic export. Default is true to preserve existing behavior.
+  // Apple Reminders automatic export. Default is false until the user opts in.
   set appleRemindersAutoExportEnabled(bool value) => saveBool('appleRemindersAutoExportEnabled', value);
 
-  bool get appleRemindersAutoExportEnabled => getBool('appleRemindersAutoExportEnabled', defaultValue: true);
+  bool get appleRemindersAutoExportEnabled => getBool('appleRemindersAutoExportEnabled', defaultValue: false);
+
+  // Frontend template routing keeps Adam-controlled work/personal prompts local
+  // while the app continues to use BasedHardware's hosted backend for execution.
+  String get frontendTemplateRoutingConfigJson => getString(frontendTemplateRoutingConfigKey);
+
+  set frontendTemplateRoutingConfigJson(String value) => saveString(frontendTemplateRoutingConfigKey, value);
+
+  String get frontendTemplateRoutingResultsJson => getString(frontendTemplateRoutingResultsKey);
+
+  set frontendTemplateRoutingResultsJson(String value) => saveString(frontendTemplateRoutingResultsKey, value);
 
   // Task category order for drag-and-drop sorting persistence
   // Format: { "today": ["id1", "id2"], "tomorrow": ["id3"] }

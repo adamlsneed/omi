@@ -47,6 +47,15 @@ struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Eq
     /// Whether OCR was skipped because the Mac was on battery (needs backfill when AC reconnects)
     var skippedForBattery: Bool
 
+    /// Why this screen frame was captured.
+    var captureTrigger: String
+
+    /// Where the persisted text came from: none, OCR, accessibility, hybrid, or deferred.
+    var textSource: String
+
+    /// Accessibility-tree text captured alongside the image when available.
+    var accessibilityText: String?
+
     static let databaseTableName = "screenshots"
 
     // MARK: - Storage Type
@@ -72,7 +81,10 @@ struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Eq
         focusStatus: String? = nil,
         extractedTasksJson: String? = nil,
         adviceJson: String? = nil,
-        skippedForBattery: Bool = false
+        skippedForBattery: Bool = false,
+        captureTrigger: String = CaptureTrigger.timer.rawValue,
+        textSource: String = CapturedTextSource.none.rawValue,
+        accessibilityText: String? = nil
     ) {
         self.id = id
         self.timestamp = timestamp
@@ -88,6 +100,9 @@ struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Eq
         self.extractedTasksJson = extractedTasksJson
         self.adviceJson = adviceJson
         self.skippedForBattery = skippedForBattery
+        self.captureTrigger = captureTrigger
+        self.textSource = textSource
+        self.accessibilityText = accessibilityText
     }
 
     // MARK: - Persistence Callbacks
@@ -393,10 +408,23 @@ class RewindSettings: ObservableObject {
         }
     }
 
+    /// When true, skip Rewind persistence for browser private/incognito windows.
+    @Published var suppressPrivateBrowsing: Bool {
+        didSet {
+            defaults.set(suppressPrivateBrowsing, forKey: "rewindSuppressPrivateBrowsing")
+        }
+    }
+
     @Published var excludedApps: Set<String> {
         didSet {
             let array = Array(excludedApps)
             defaults.set(array, forKey: "rewindExcludedApps")
+        }
+    }
+
+    @Published var excludedWindowPatterns: Set<String> {
+        didSet {
+            defaults.set(Array(excludedWindowPatterns), forKey: "rewindExcludedWindowPatterns")
         }
     }
 
@@ -414,6 +442,8 @@ class RewindSettings: ObservableObject {
         self.captureInterval = defaults.object(forKey: "rewindCaptureInterval") as? Double ?? 3.0
         self.ocrRecognitionFast = defaults.object(forKey: "rewindOCRFast") as? Bool ?? true
         self.pauseOCROnBattery = defaults.object(forKey: "rewindPauseOCROnBattery") as? Bool ?? true
+        self.suppressPrivateBrowsing = defaults.object(forKey: "rewindSuppressPrivateBrowsing") as? Bool ?? true
+        self.excludedWindowPatterns = Set(defaults.array(forKey: "rewindExcludedWindowPatterns") as? [String] ?? [])
         self.removedDefaults = Set(defaults.array(forKey: "rewindRemovedDefaultApps") as? [String] ?? [])
 
         // Load excluded apps, merging in any new defaults
@@ -431,6 +461,17 @@ class RewindSettings: ObservableObject {
     /// Check if an app is excluded from screen capture
     func isAppExcluded(_ appName: String) -> Bool {
         excludedApps.contains(appName)
+    }
+
+    /// Check if an app/window should be excluded from Rewind capture for privacy.
+    func isCaptureExcluded(appName: String, windowTitle: String?) -> Bool {
+        RewindPrivacyFilter.shouldExclude(
+            appName: appName,
+            windowTitle: windowTitle,
+            excludedApps: excludedApps,
+            excludedWindowPatterns: excludedWindowPatterns,
+            suppressPrivateBrowsing: suppressPrivateBrowsing
+        )
     }
 
     /// Add an app to the exclusion list
@@ -454,7 +495,19 @@ class RewindSettings: ObservableObject {
     /// Reset excluded apps to defaults
     func resetToDefaults() {
         excludedApps = Self.defaultExcludedApps
+        excludedWindowPatterns = []
+        suppressPrivateBrowsing = true
         removedDefaults = []
+    }
+
+    func excludeWindowPattern(_ pattern: String) {
+        let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        excludedWindowPatterns.insert(trimmed)
+    }
+
+    func includeWindowPattern(_ pattern: String) {
+        excludedWindowPatterns.remove(pattern)
     }
 }
 

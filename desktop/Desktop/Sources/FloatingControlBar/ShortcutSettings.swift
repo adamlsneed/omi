@@ -9,6 +9,9 @@ class ShortcutSettings: ObservableObject {
     /// Notification posted when the Ask Omi shortcut changes so hotkeys can be re-registered.
     nonisolated static let askOmiShortcutChanged = Notification.Name("ShortcutSettings.askOmiShortcutChanged")
 
+    /// Notification posted when idle cursor dot visibility should be re-evaluated.
+    nonisolated static let cursorIdleDotVisibilityChanged = Notification.Name("ShortcutSettings.cursorIdleDotVisibilityChanged")
+
     struct KeyboardShortcut: Codable, Hashable {
         var keyCode: UInt16?
         var keyDisplay: String?
@@ -350,6 +353,14 @@ class ShortcutSettings: ObservableObject {
         didSet { UserDefaults.standard.set(draggableBarEnabled, forKey: "shortcut_draggableBarEnabled") }
     }
 
+    /// When true, a small idle Omi dot follows the cursor while the floating bar is visible.
+    @Published var cursorIdleDotEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(cursorIdleDotEnabled, forKey: Self.cursorIdleDotDefaultsKey)
+            NotificationCenter.default.post(name: Self.cursorIdleDotVisibilityChanged, object: nil)
+        }
+    }
+
     /// When true, floating-bar replies are spoken aloud.
     @Published var floatingBarVoiceAnswersEnabled: Bool {
         didSet {
@@ -513,6 +524,8 @@ class ShortcutSettings: ObservableObject {
 
     private static let askOmiShortcutDefaultsKey = "shortcut_askOmiKey"
     private static let pttShortcutDefaultsKey = "shortcut_pttKey"
+    static let cursorIdleDotDefaultsKey = "shortcut_cursorIdleDotEnabled"
+    static let cursorIdleDotDefault = false
 
     private init() {
         self.pttShortcut = Self.loadShortcut(
@@ -540,6 +553,8 @@ class ShortcutSettings: ObservableObject {
             self.pttTranscriptionMode = .batch
         }
         self.draggableBarEnabled = UserDefaults.standard.object(forKey: "shortcut_draggableBarEnabled") as? Bool ?? false
+        self.cursorIdleDotEnabled =
+            UserDefaults.standard.object(forKey: Self.cursorIdleDotDefaultsKey) as? Bool ?? Self.cursorIdleDotDefault
         self.floatingBarVoiceAnswersEnabled = UserDefaults.standard.object(forKey: "shortcut_floatingBarVoiceAnswersEnabled") as? Bool ?? true
         self.floatingBarTypedQuestionVoiceAnswersEnabled =
             UserDefaults.standard.object(forKey: "shortcut_floatingBarTypedQuestionVoiceAnswersEnabled") as? Bool ?? false

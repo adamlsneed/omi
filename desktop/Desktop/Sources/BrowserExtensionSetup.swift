@@ -407,7 +407,8 @@ struct BrowserExtensionSetup: View {
                 let guidance = Self.connectionFailureGuidance(
                     chromeInstalled: Self.isChromeInstalled,
                     extensionInstalled: Self.isExtensionInstalled,
-                    token: Self.parseToken(tokenInput)
+                    token: Self.parseToken(tokenInput),
+                    localAIRuntimeReady: Self.isLocalAIRuntimeReady
                 )
 
                 Text(guidance.title)
@@ -560,7 +561,8 @@ struct BrowserExtensionSetup: View {
     static func connectionFailureGuidance(
         chromeInstalled: Bool,
         extensionInstalled: Bool,
-        token: String
+        token: String,
+        localAIRuntimeReady: Bool = true
     ) -> ConnectionFailureGuidance {
         let parsedToken = parseToken(token)
         if validateToken(parsedToken) != nil {
@@ -581,11 +583,53 @@ struct BrowserExtensionSetup: View {
                 message: "Install the Playwright MCP Bridge extension from the Chrome Web Store, then retry the test."
             )
         }
+        if !localAIRuntimeReady {
+            return ConnectionFailureGuidance(
+                title: "Local AI runtime is missing",
+                message: "Node.js or the bundled agent runtime is not available, so the browser MCP client cannot start. Run ./run.sh from the desktop folder to package the local AI components, then reopen Omi Dev and try again."
+            )
+        }
         return ConnectionFailureGuidance(
             title: "No live browser connection",
             message:
                 "Chrome and the extension are present, but the MCP client did not connect. Keep Chrome open, open the extension status page, and confirm it shows an MCP client during the test. If it still says no MCP clients are connected, copy a fresh token and try again."
         )
+    }
+
+    static var isLocalAIRuntimeReady: Bool {
+        let fileManager = FileManager.default
+        return findNodeBinary(fileManager: fileManager) != nil
+            && findAgentScript(fileManager: fileManager) != nil
+    }
+
+    private static func findNodeBinary(fileManager: FileManager) -> String? {
+        let resourcePath = Bundle.main.resourcePath ?? ""
+        let cwd = fileManager.currentDirectoryPath
+        let home = fileManager.homeDirectoryForCurrentUser.path
+        let candidates = [
+            (resourcePath as NSString).appendingPathComponent("Omi Computer_Omi Computer.bundle/node"),
+            (cwd as NSString).appendingPathComponent("Desktop/Sources/Resources/node"),
+            (cwd as NSString).appendingPathComponent("desktop/Desktop/Sources/Resources/node"),
+            "\(home)/.hermes/node/bin/node",
+            "/opt/homebrew/bin/node",
+            "/usr/local/bin/node",
+            "/usr/bin/node",
+        ]
+
+        return candidates.first { fileManager.isExecutableFile(atPath: $0) }
+    }
+
+    private static func findAgentScript(fileManager: FileManager) -> String? {
+        let resourcePath = Bundle.main.resourcePath ?? ""
+        let cwd = fileManager.currentDirectoryPath
+        let candidates = [
+            (resourcePath as NSString).appendingPathComponent("agent/dist/index.js"),
+            (cwd as NSString).appendingPathComponent("agent/dist/index.js"),
+            (cwd as NSString).appendingPathComponent("desktop/agent/dist/index.js"),
+            (cwd as NSString).appendingPathComponent("../desktop/agent/dist/index.js"),
+        ].map { ($0 as NSString).standardizingPath }
+
+        return candidates.first { fileManager.fileExists(atPath: $0) }
     }
 
     /// Check if Google Chrome is installed.

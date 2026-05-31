@@ -1435,7 +1435,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get payYourSttProvider => '免费使用 Omi。您只需直接向 STT 提供商付费。';
 
   @override
-  String get freeMinutesMonth => '包含 1,200 免费分钟/月。';
+  String get freeMinutesMonth => '包含 600 免费分钟/月。';
 
   @override
   String get omiUnlimited => 'Omi 无限版';
@@ -4607,7 +4607,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noSpecificDataAccessConfigured => '未配置特定数据访问。';
 
   @override
-  String get basicPlanDescription => '1,200 高级分钟 + 设备端无限';
+  String get basicPlanDescription => '600 高级分钟 + 设备端无限';
 
   @override
   String get minutes => '分钟';
@@ -5875,7 +5875,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cloudProvider => '云服务提供商';
 
   @override
-  String get premiumMinutesInfo => '每月 1,200 分钟高级时长。本地标签页提供无限免费转录。';
+  String get premiumMinutesInfo => '每月 600 分钟高级时长。本地标签页提供无限免费转录。';
 
   @override
   String get viewUsage => '查看使用量';
@@ -5953,7 +5953,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get batteryDrainSignificantly => '电池消耗将显著增加。';
 
   @override
-  String get premiumMinutesMonth => '每月1,200分钟高级配额。设备端选项卡提供无限免费转录。';
+  String get premiumMinutesMonth => '每月600分钟高级配额。设备端选项卡提供无限免费转录。';
 
   @override
   String get audioProcessedLocally => '音频在本地处理。可离线使用，更私密，但消耗更多电量。';
@@ -8969,21 +8969,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bulkDeleteFailed => '无法删除任务，请重试。';
 
   @override
-  String get autoAddTasksToAppleReminders => '自动将任务添加到 Apple 提醒事项';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => '启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。';
-
-  @override
-  String get addSelectedToAppleReminders => '将所选项添加到 Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => '部分所选任务无法添加。';
-
-  @override
-  String get selectedActionItemsAlreadyExported => '所选任务已导出。';
-
-  @override
   String get deleteRecap => '删除回顾';
 
   @override
@@ -9124,4 +9109,149 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi 服务器繁忙 — 容量恢复后将自动同步你的录音';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '本月创建 $used/$limit 条记忆';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi同步设置';
+
+  @override
+  String get enterHotspotCredentials => '输入您手机的热点凭据';
+
+  @override
+  String get wifiSyncUsesHotspot => 'WiFi同步使用您的手机作为热点。在设置 > 个人热点中找到热点名称和密码。';
+
+  @override
+  String get hotspotNameSsid => '热点名称 (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => '例如 iPhone热点';
+
+  @override
+  String get enterHotspotPassword => '输入热点密码';
+
+  @override
+  String get pleaseEnterHotspotName => '请输入热点名称';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi凭据已保存';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi凭据已清除';
+
+  @override
+  String get fastTransfer => '快速传输';
+
+  @override
+  String get transferMethod => '传输方式';
+
+  @override
+  String get fast => '快速';
+
+  @override
+  String get ble => '蓝牙低功耗';
+
+  @override
+  String get wifiEnableFailed => '无法在设备上启用 WiFi。请重试。';
+
+  @override
+  String get deviceNoFastTransfer => '您的设备不支持快速传输。请改用蓝牙。';
+
+  @override
+  String get enableHotspotMessage => '请启用您手机的热点并重试。';
+
+  @override
+  String get transferStartFailed => '无法开始传输。请重试。';
+
+  @override
+  String get invalidWifiCredentials => 'WiFi 凭据无效。请检查您的热点设置。';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi 连接失败。请重试。';
+
+  @override
+  String get wifiSyncFailed => 'WiFi 同步失败';
+
+  @override
+  String get wifiSync => 'WiFi 同步';
+
+  @override
+  String get wifiConnectionFailedTitle => '连接失败';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '启用 $deviceName 的 WiFi';
+  }
+
+  @override
+  String get switchedToFastTransfer => '已切换到快速传输';
+
+  @override
+  String get fastTransferEnabled => '快速传输已启用';
+
+  @override
+  String get enableFastTransfer => '启用快速传输';
+
+  @override
+  String get fastTransferDescription => '快速传输使用WiFi实现约5倍的传输速度。传输期间，您的手机将临时连接到Omi设备的WiFi网络。';
+
+  @override
+  String get internetAccessPausedDuringTransfer => '传输期间互联网访问暂停';
+
+  @override
+  String get chooseTransferMethodDescription => '选择如何将录音从Omi设备传输到您的手机。';
+
+  @override
+  String get wifiSpeed => '通过WiFi约150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '快5倍';
+
+  @override
+  String get fastTransferMethodDescription => '创建与Omi设备的直接WiFi连接。传输期间，您的手机将暂时断开常规WiFi连接。';
+
+  @override
+  String get locationPermissionRequired => '位置权限请求';
+
+  @override
+  String get locationPermissionContent => '快速传输需要位置权限来验证WiFi连接。请授予位置权限以继续。';
+
+  @override
+  String get chooseTransferMethod => '选择传输方式';
+
+  @override
+  String get fastTransferSpeed => '通过WiFi ~150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => '设备不支持WiFi同步,正在切换到蓝牙';
+
+  @override
+  String get autoAddTasksToAppleReminders => '自动将任务添加到 Apple 提醒事项';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription => '启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。';
+
+  @override
+  String get addSelectedToAppleReminders => '将所选项添加到 Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '部分所选任务无法添加。';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '所选任务已导出。';
+
+  @override
+  String get unableToDetermineFirmwareVersion => '无法确定当前固件版本';
+
+  @override
+  String get promoCode => '促销代码';
+
+  @override
+  String get enterPromoCode => '输入促销代码';
+
+  @override
+  String get invalidPromotionCode => '促销代码无效。';
 }

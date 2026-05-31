@@ -776,7 +776,11 @@ actor RewindDatabase {
                         isIndexed INTEGER NOT NULL DEFAULT 0,
                         focusStatus TEXT,
                         extractedTasksJson TEXT,
-                        adviceJson TEXT
+                        adviceJson TEXT,
+                        skippedForBattery INTEGER NOT NULL DEFAULT 0,
+                        captureTrigger TEXT NOT NULL DEFAULT 'timer',
+                        textSource TEXT NOT NULL DEFAULT 'none',
+                        accessibilityText TEXT
                     )
                 """)
 
@@ -1752,6 +1756,26 @@ actor RewindDatabase {
             }
         }
 
+        migrator.registerMigration("addCaptureProvenance") { db in
+            try db.alter(table: "screenshots") { t in
+                t.add(column: "captureTrigger", .text).notNull().defaults(to: CaptureTrigger.timer.rawValue)
+                t.add(column: "textSource", .text).notNull().defaults(to: CapturedTextSource.none.rawValue)
+                t.add(column: "accessibilityText", .text)
+            }
+            try db.execute(sql: """
+                UPDATE screenshots
+                SET textSource = CASE
+                    WHEN ocrText IS NOT NULL AND length(trim(ocrText)) > 0 THEN ?
+                    WHEN skippedForBattery = 1 THEN ?
+                    ELSE ?
+                END
+            """, arguments: [
+                CapturedTextSource.ocr.rawValue,
+                CapturedTextSource.deferred.rawValue,
+                CapturedTextSource.none.rawValue,
+            ])
+        }
+
         migrator.registerMigration("switchToScreenshotEmbeddings") { db in
             // Clear old per-block embeddings from ocr_texts (no longer used for search)
             try db.execute(sql: "UPDATE ocr_texts SET embedding = NULL WHERE embedding IS NOT NULL")
@@ -2367,8 +2391,14 @@ actor RewindDatabase {
 
         try dbQueue.write { db in
             try db.execute(
-                sql: "UPDATE screenshots SET ocrText = ?, isIndexed = 1 WHERE id = ?",
-                arguments: [ocrText, id]
+                sql: "UPDATE screenshots SET ocrText = ?, isIndexed = 1, textSource = ? WHERE id = ?",
+                arguments: [
+                    ocrText,
+                    ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        ? CapturedTextSource.none.rawValue
+                        : CapturedTextSource.ocr.rawValue,
+                    id,
+                ]
             )
         }
     }
@@ -2389,8 +2419,15 @@ actor RewindDatabase {
 
         try dbQueue.write { db in
             try db.execute(
-                sql: "UPDATE screenshots SET ocrText = ?, ocrDataJson = ?, isIndexed = 1, skippedForBattery = 0 WHERE id = ?",
-                arguments: [ocrResult.fullText, ocrDataJson, id]
+                sql: "UPDATE screenshots SET ocrText = ?, ocrDataJson = ?, isIndexed = 1, skippedForBattery = 0, textSource = ? WHERE id = ?",
+                arguments: [
+                    ocrResult.fullText,
+                    ocrDataJson,
+                    ocrResult.fullText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        ? CapturedTextSource.none.rawValue
+                        : CapturedTextSource.ocr.rawValue,
+                    id,
+                ]
             )
         }
     }

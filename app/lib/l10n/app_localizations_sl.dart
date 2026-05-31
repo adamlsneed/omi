@@ -9151,21 +9151,6 @@ class AppLocalizationsSl extends AppLocalizations {
   String get bulkDeleteFailed => 'Nalog ni bilo mogoče izbrisati. Poskusite znova.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Samodejno dodaj opravila v Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Ko je vklopljeno, se opravila, ki jih ustvari Omi, samodejno dodajo v Opomnike. Ko je to izklopljeno, lahko opravila še vedno dodate ročno.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Dodaj izbrano v Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Nekaterih izbranih opravil ni bilo mogoče dodati.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Izbrana opravila so že izvožena.';
-
-  @override
   String get deleteRecap => 'Izbriši povzetek';
 
   @override
@@ -9316,4 +9301,155 @@ class AppLocalizationsSl extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Strežniki Omi so obremenjeni — vaši posnetki se bodo sinhronizirali, ko se sprosti zmogljivost';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used od $limit spominov ustvarjenih ta mesec';
+  }
+
+  @override
+  String get wifiSyncSettings => 'Nastavitve WiFi sinhronizacije';
+
+  @override
+  String get enterHotspotCredentials => 'Vnesite poverilnice osebne dostopne točke vašega telefona';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi sinhronizacija uporablja vaš telefon kot dostopno točko. Poiščite ime dostopne točke in geslo v Nastavitve > Osebna dostopna točka.';
+
+  @override
+  String get hotspotNameSsid => 'Ime dostopne točke (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'npr. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Vnesite geslo dostopne točke';
+
+  @override
+  String get pleaseEnterHotspotName => 'Prosimo, vnesite ime dostopne točke';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi poverilnice so shranjene';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi poverilnice so počiščene';
+
+  @override
+  String get fastTransfer => 'Hitri prenos';
+
+  @override
+  String get transferMethod => 'Način prenosa';
+
+  @override
+  String get fast => 'Hitro';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Napaka pri omogočanju WiFi na napravi. Poskusite znova.';
+
+  @override
+  String get deviceNoFastTransfer => 'Vaša naprava ne podpira hitrih prenosa. Namesto tega uporabite Bluetooth.';
+
+  @override
+  String get enableHotspotMessage => 'Prosim, omogočite osebno točko dostopa na vašem telefonu in poskusite znova.';
+
+  @override
+  String get transferStartFailed => 'Napaka pri začetku prenosa. Poskusite znova.';
+
+  @override
+  String get invalidWifiCredentials => 'Neveljavne WiFi poverila. Preverite nastavitve osebne točke dostopa.';
+
+  @override
+  String get wifiConnectionFailed => 'Povezava WiFi je neuspešna. Poskusite znova.';
+
+  @override
+  String get wifiSyncFailed => 'Sinhronizacija WiFi neuspešna';
+
+  @override
+  String get wifiSync => 'Sinhronizacija WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Povezava neuspešna';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Omogočite WiFi na $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Prešli na Hiter Prenos';
+
+  @override
+  String get fastTransferEnabled => 'Hiter prenos je omogočen';
+
+  @override
+  String get enableFastTransfer => 'Omogoči Hiter Prenos';
+
+  @override
+  String get fastTransferDescription =>
+      'Hiter prenos uporablja WiFi za približno 5-krat hitrejše hitrosti. Vaš telefon se bo med prenosom začasno povezal na WiFi omrežje naprave Omi.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Dostop do interneta je zaustavljen med prenosom';
+
+  @override
+  String get chooseTransferMethodDescription => 'Izberite, kako se snemanja prenašajo z naprave Omi na vaš telefon.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s prek WiFi';
+
+  @override
+  String get fiveTimesFaster => '5-KRAT HITREJŠE';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Ustvari neposredno WiFi povezavo z napravo Omi. Vaš telefon se med prenosom začasno odklopi od običajnega WiFi omrežja.';
+
+  @override
+  String get locationPermissionRequired => 'Dovoljenječe za Lokacijo je Potrebno';
+
+  @override
+  String get locationPermissionContent =>
+      'Hiter prenos zahteva dovoljenječe za lokacijo za preverjanje WiFi povezave. Prosimo, dovolite dovoljenječe za lokacijo, da nadaljujete.';
+
+  @override
+  String get chooseTransferMethod => 'Izberite Način Prenosa';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s prek WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Naprava ne podpira WiFi sinhronizacije, preklapljam na Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Samodejno dodaj opravila v Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Ko je vklopljeno, se opravila, ki jih ustvari Omi, samodejno dodajo v Opomnike. Ko je to izklopljeno, lahko opravila še vedno dodate ročno.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Dodaj izbrano v Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Nekaterih izbranih opravil ni bilo mogoče dodati.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Izbrana opravila so že izvožena.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Trenutne različice vdelane programske opreme ni mogoče določiti';
+
+  @override
+  String get promoCode => 'Promocijska koda';
+
+  @override
+  String get enterPromoCode => 'Vnesite promocijsko kodo';
+
+  @override
+  String get invalidPromotionCode => 'Neveljavna promocijska koda.';
 }

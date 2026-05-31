@@ -9127,21 +9127,6 @@ class AppLocalizationsFi extends AppLocalizations {
   String get bulkDeleteFailed => 'Tehtävien poistaminen epäonnistui. Yritä uudelleen.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Lisää tehtävät automaattisesti Apple Remindersiin';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Kun tämä on käytössä, Omin luomat tehtävät lisätään automaattisesti Muistutuksiin. Voit silti lisätä tehtäviä manuaalisesti, kun tämä on pois päältä.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Lisää valitut Apple Remindersiin';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Joitakin valittuja tehtäviä ei voitu lisätä.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Valitut tehtävät on jo viety.';
-
-  @override
   String get deleteRecap => 'Poista yhteenveto';
 
   @override
@@ -9289,4 +9274,154 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Omin palvelimet ovat ruuhkautuneet — tallenteesi synkronoidaan, kun kapasiteettia vapautuu';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used/$limit muistoa luotu tässä kuussa';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi-synkronointiasetukset';
+
+  @override
+  String get enterHotspotCredentials => 'Syötä puhelimesi hotspot-tunnukset';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi-synkronointi käyttää puhelintasi hotspotina. Löydä nimi ja salasana kohdasta Asetukset > Oma hotspot.';
+
+  @override
+  String get hotspotNameSsid => 'Hotspotin nimi (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'esim. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Syötä hotspotin salasana';
+
+  @override
+  String get pleaseEnterHotspotName => 'Syötä hotspotin nimi';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi-tunnukset tallennettu';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi-tunnukset tyhjennetty';
+
+  @override
+  String get fastTransfer => 'Nopea siirto';
+
+  @override
+  String get transferMethod => 'Siirtotapa';
+
+  @override
+  String get fast => 'Nopea';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'WiFin käyttöönotto laitteessa epäonnistui. Yritä uudelleen.';
+
+  @override
+  String get deviceNoFastTransfer => 'Laitteesi ei tue nopeaa siirtoa. Käytä Bluetoothia sen sijaan.';
+
+  @override
+  String get enableHotspotMessage => 'Ota puhelimesi hotspot käyttöön ja yritä uudelleen.';
+
+  @override
+  String get transferStartFailed => 'Siirron aloitus epäonnistui. Yritä uudelleen.';
+
+  @override
+  String get invalidWifiCredentials => 'Virheelliset WiFi-tunnukset. Tarkista hotspot-asetuksesi.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi-yhteys epäonnistui. Yritä uudelleen.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi-synkronointi epäonnistui';
+
+  @override
+  String get wifiSync => 'WiFi-synkronointi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'WiFi-yhteys epäonnistui';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Ota käyttöön $deviceName-laitteen WiFi';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Vaihdettu nopeaan siirtoon';
+
+  @override
+  String get fastTransferEnabled => 'Nopea siirto käytössä';
+
+  @override
+  String get enableFastTransfer => 'Ota nopea siirto käyttöön';
+
+  @override
+  String get fastTransferDescription =>
+      'Nopea siirto käyttää WiFiä ~5x nopeampiin nopeuksiin. Puhelimesi yhdistää tilapäisesti Omi-laitteesi WiFi-verkkoon siirron aikana.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Internet-yhteys keskeytetään siirron ajaksi';
+
+  @override
+  String get chooseTransferMethodDescription => 'Valitse, miten tallenteet siirretään Omi-laitteesta puhelimeesi.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s WiFin kautta';
+
+  @override
+  String get fiveTimesFaster => '5X NOPEAMPI';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Luo suoran WiFi-yhteyden Omi-laitteeseesi. Puhelimesi katkeaa tilapäisesti tavallisesta WiFistä siirron aikana.';
+
+  @override
+  String get locationPermissionRequired => 'Sijaintilupa vaaditaan';
+
+  @override
+  String get locationPermissionContent =>
+      'Nopea siirto vaatii sijaintiluvan WiFi-yhteyden tarkistamiseksi. Myönnä sijaintilupa jatkaaksesi.';
+
+  @override
+  String get chooseTransferMethod => 'Valitse siirtotapa';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s WiFin kautta';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'Laite ei tue WiFi-synkronointia, vaihdetaan Bluetoothiin';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lisää tehtävät automaattisesti Apple Remindersiin';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kun tämä on käytössä, Omin luomat tehtävät lisätään automaattisesti Muistutuksiin. Voit silti lisätä tehtäviä manuaalisesti, kun tämä on pois päältä.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lisää valitut Apple Remindersiin';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Joitakin valittuja tehtäviä ei voitu lisätä.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Valitut tehtävät on jo viety.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Nykyistä laiteohjelmistoversiota ei voida määrittää';
+
+  @override
+  String get promoCode => 'Tarjouskoodi';
+
+  @override
+  String get enterPromoCode => 'Syötä tarjouskoodi';
+
+  @override
+  String get invalidPromotionCode => 'Virheellinen tarjouskoodi.';
 }

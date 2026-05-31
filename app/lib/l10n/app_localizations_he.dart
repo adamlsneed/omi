@@ -1448,7 +1448,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get payYourSttProvider => 'השתמש בomi בחופשיות. אתה משלם ישירות לספק STT שלך.';
 
   @override
-  String get freeMinutesMonth => '1,200 דקות חינם לחודש כלולות. בלתי מוגבל עם ';
+  String get freeMinutesMonth => '600 דקות חינם לחודש כלולות. בלתי מוגבל עם ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -4663,7 +4663,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'אין גישת נתונים ספציפית מוגדרת.';
 
   @override
-  String get basicPlanDescription => '1,200 דקות פרימיום + בלתי מוגבל במכשיר';
+  String get basicPlanDescription => '600 דקות פרימיום + בלתי מוגבל במכשיר';
 
   @override
   String get minutes => 'דקות';
@@ -5942,7 +5942,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get cloudProvider => 'ספק ענן';
 
   @override
-  String get premiumMinutesInfo => '1,200 דקות פרמיום/חודש. כרטיסייה On-Device מציעה תמלול בחינם ללא הגבלה.';
+  String get premiumMinutesInfo => '600 דקות פרמיום/חודש. כרטיסייה On-Device מציעה תמלול בחינם ללא הגבלה.';
 
   @override
   String get viewUsage => 'הצג שימוש';
@@ -6021,7 +6021,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get batteryDrainSignificantly => 'זליגת הסוללה תגדל משמעותית.';
 
   @override
-  String get premiumMinutesMonth => '1,200 דקות פרמיום/חודש. כרטיסייה On-Device מציעה תמלול בחינם ללא הגבלה. ';
+  String get premiumMinutesMonth => '600 דקות פרמיום/חודש. כרטיסייה On-Device מציעה תמלול בחינם ללא הגבלה. ';
 
   @override
   String get audioProcessedLocally => 'אודיו מעובד מקומית. עובד במצב לא מקוון, פרטי יותר, אך משתמש בסוללה יותר.';
@@ -9056,21 +9056,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get bulkDeleteFailed => 'לא ניתן למחוק את המשימות. אנא נסה שוב.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'הוספה אוטומטית של משימות ל-Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'כאשר האפשרות מופעלת, משימות ש-Omi יוצר מתווספות אוטומטית לתזכורות. עדיין ניתן להוסיף משימות ידנית כשהאפשרות כבויה.';
-
-  @override
-  String get addSelectedToAppleReminders => 'הוסף את הנבחרים ל-Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'לא ניתן היה להוסיף חלק מהמשימות שנבחרו.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'המשימות שנבחרו כבר יוצאו.';
-
-  @override
   String get deleteRecap => 'מחק סיכום';
 
   @override
@@ -9219,4 +9204,154 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'השרתים של Omi עמוסים — ההקלטות שלך יסונכרנו ברגע שתתפנה תפוסה';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used מתוך $limit זיכרונות שנוצרו החודש';
+  }
+
+  @override
+  String get wifiSyncSettings => 'הגדרות סנכרון WiFi';
+
+  @override
+  String get enterHotspotCredentials => 'הזן את פרטי הנקודה הציבורית של הטלפון שלך';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'סנכרון WiFi משתמש בטלפון שלך כנקודה ציבורית. מצא את שם הנקודה הציבורית וסיסמה בהגדרות > Personal Hotspot.';
+
+  @override
+  String get hotspotNameSsid => 'שם הנקודה הציבורית (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'למשל iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'הזן סיסמה לנקודה ציבורית';
+
+  @override
+  String get pleaseEnterHotspotName => 'אנא הזן שם נקודה ציבורית';
+
+  @override
+  String get wifiCredentialsSaved => 'פרטי WiFi נשמרו';
+
+  @override
+  String get wifiCredentialsCleared => 'פרטי WiFi נוקו';
+
+  @override
+  String get fastTransfer => 'העברה מהירה';
+
+  @override
+  String get transferMethod => 'שיטת העברה';
+
+  @override
+  String get fast => 'מהיר';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'איתור בהפעלת WiFi במכשיר. אנא נסה שוב.';
+
+  @override
+  String get deviceNoFastTransfer => 'המכשיר שלך אינו תומך בהעברה מהירה. השתמש ב-Bluetooth במקום זאת.';
+
+  @override
+  String get enableHotspotMessage => 'אנא הפעל את נקודת החום של הטלפון שלך ונסה שוב.';
+
+  @override
+  String get transferStartFailed => 'איתור בהתחלת ההעברה. אנא נסה שוב.';
+
+  @override
+  String get invalidWifiCredentials => 'אישורי WiFi לא תקפים. בדוק את הגדרות נקודת החום שלך.';
+
+  @override
+  String get wifiConnectionFailed => 'חיבור WiFi נכשל. אנא נסה שוב.';
+
+  @override
+  String get wifiSyncFailed => 'סנכרון WiFi נכשל';
+
+  @override
+  String get wifiSync => 'סנכרון WiFi';
+
+  @override
+  String get wifiConnectionFailedTitle => 'החיבור נכשל';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'הפעל WiFi של $deviceName';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'עברת ל-Fast Transfer';
+
+  @override
+  String get fastTransferEnabled => 'Fast Transfer מופעל';
+
+  @override
+  String get enableFastTransfer => 'הפעל Fast Transfer';
+
+  @override
+  String get fastTransferDescription =>
+      'Fast Transfer משתמש ב-WiFi כדי להשיג מהירויות גבוהות פי 5. הטלפון שלך יתחבר זמנית לרשת ה-WiFi של התקן Omi שלך במהלך ההעברה.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'גישת האינטרנט מושהית במהלך ההעברה';
+
+  @override
+  String get chooseTransferMethodDescription => 'בחר כיצד יוסברו הקלטות מהתקן Omi שלך לטלפון שלך.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s דרך WiFi';
+
+  @override
+  String get fiveTimesFaster => 'פי 5 מהר יותר';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'יוצר חיבור WiFi ישיר להתקן Omi שלך. הטלפון שלך יתנתק זמנית מ-WiFi הרגיל שלך במהלך ההעברה.';
+
+  @override
+  String get locationPermissionRequired => 'הרשאת מיקום נדרשת';
+
+  @override
+  String get locationPermissionContent =>
+      'Fast Transfer דורש הרשאת מיקום כדי לאמת חיבור WiFi. אנא הגרם הרשאת מיקום כדי להמשיך.';
+
+  @override
+  String get chooseTransferMethod => 'בחר שיטת העברה';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s דרך WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'ההתקן אינו תומך בסנכרון WiFi, מעבר ל-Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'הוספה אוטומטית של משימות ל-Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'כאשר האפשרות מופעלת, משימות ש-Omi יוצר מתווספות אוטומטית לתזכורות. עדיין ניתן להוסיף משימות ידנית כשהאפשרות כבויה.';
+
+  @override
+  String get addSelectedToAppleReminders => 'הוסף את הנבחרים ל-Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'לא ניתן היה להוסיף חלק מהמשימות שנבחרו.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'המשימות שנבחרו כבר יוצאו.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'לא ניתן לקבוע את גרסת הקושחה הנוכחית';
+
+  @override
+  String get promoCode => 'קוד קידום';
+
+  @override
+  String get enterPromoCode => 'הזינו קוד קידום';
+
+  @override
+  String get invalidPromotionCode => 'קוד קידום לא תקין.';
 }

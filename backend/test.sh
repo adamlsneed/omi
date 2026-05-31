@@ -101,6 +101,7 @@ pytest tests/unit/test_subscription_restructure.py -v
 pytest tests/unit/test_chat_quota.py -v
 pytest tests/unit/test_subscription_plans.py -v
 pytest tests/unit/test_payment_available_plans_source.py -v
+pytest tests/unit/test_payment_promotion_codes.py -v
 pytest tests/unit/test_stripe_webhook_none_guard.py -v
 pytest tests/unit/test_stripe_webhook_behavioral.py -v
 pytest tests/unit/test_voice_duration_limiter.py -v
@@ -118,9 +119,11 @@ pytest tests/unit/test_omi_qos_tiers.py -v
 pytest tests/unit/test_byok_security.py -v
 pytest tests/unit/test_paywall_reconnect_gate.py -v
 pytest tests/unit/test_trial_metadata.py -v
+pytest tests/unit/test_neo_desktop_grandfather.py -v
 pytest tests/unit/test_vertex_ai_system_role.py -v
 pytest tests/unit/test_tts.py -v
 pytest tests/unit/test_webhook_auto_disable.py -v
+pytest tests/unit/test_merge_validation.py -v
 
 # Fair-use integration tests (require Redis; skip gracefully if unavailable)
 if redis-cli ping >/dev/null 2>&1; then

@@ -7,7 +7,10 @@ import 'package:flutter_provider_utilities/flutter_provider_utilities.dart';
 
 import 'package:omi/backend/http/api/apps.dart';
 import 'package:omi/backend/http/api/audio.dart';
-import 'package:omi/backend/http/api/conversations.dart';
+import 'package:omi/backend/http/api/conversations.dart'
+    hide unlinkCalendarEvent, autoLinkCalendarEvent, linkCalendarEvent;
+import 'package:omi/backend/http/api/conversations.dart' as conv_api
+    show unlinkCalendarEvent, autoLinkCalendarEvent, linkCalendarEvent;
 import 'package:omi/backend/http/api/users.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/app.dart';
@@ -16,6 +19,7 @@ import 'package:omi/backend/schema/structured.dart';
 import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
+import 'package:omi/services/frontend_template_router.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
 
@@ -32,6 +36,10 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
   bool loadingReprocessConversation = false;
   String reprocessConversationId = '';
   App? selectedAppForReprocessing;
+  FrontendTemplateRoutingResult? routedSummary;
+  bool routedSummaryLoading = false;
+  String? routedSummaryError;
+  String? _routedSummaryRequestKey;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -211,10 +219,14 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     if (list != null) {
       final conv = list.firstWhereOrNull((c) => c.id == conversationId);
       if (conv != null) {
+        final previousConversationId = _cachedConversationId;
         selectedDate = date;
         _cachedConversationId = conv.id;
         _cachedConversation = conv;
         appResponseExpanded = List.filled(conv.appResults.length, false);
+        if (previousConversationId != null && previousConversationId != conv.id) {
+          _clearRoutedSummary();
+        }
         notifyListeners();
       }
     }
@@ -301,6 +313,9 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     if (conversation.hasAudio()) {
       precacheConversationAudio(conversation.id);
     }
+
+    loadCachedRoutedSummary();
+    unawaited(loadOrGenerateRoutedSummary());
 
     if (!conversation.discarded) {
       getHasConversationSummaryRating(conversation.id).then((value) {
@@ -389,6 +404,9 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
   /// Returns the first app result from the conversation if available
   /// This is typically the summary of the conversation
   AppResponse? getSummarizedApp() {
+    if (routedSummary != null && routedSummary!.content.trim().isNotEmpty) {
+      return AppResponse(routedSummary!.content, appId: null);
+    }
     if (conversation.appResults.isNotEmpty) {
       return conversation.appResults[0];
     }
@@ -397,6 +415,169 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       return AppResponse(conversation.structured.overview, appId: null);
     }
     return null;
+  }
+
+  bool get isRoutedSummaryActive => routedSummary != null && routedSummary!.content.trim().isNotEmpty;
+
+  String get routedSummaryLabel {
+    final profile = routedSummary?.profile.label;
+    return profile == null ? 'Routed Summary' : '$profile Routed Summary';
+  }
+
+  String get routedSummaryDescription {
+    final generatedAt = routedSummary?.generatedAt;
+    if (generatedAt == null) return 'Local template routing';
+    return 'Local template routing';
+  }
+
+  void _clearRoutedSummary() {
+    routedSummary = null;
+    routedSummaryLoading = false;
+    routedSummaryError = null;
+    _routedSummaryRequestKey = null;
+  }
+
+  void loadCachedRoutedSummary() {
+    final currentConversation = conversationOrNull;
+    if (currentConversation == null) return;
+
+    final store = FrontendTemplateRoutingStore();
+    final config = store.loadConfig();
+    if (!config.enabled) {
+      _clearRoutedSummary();
+      return;
+    }
+
+    final localTime = FrontendTemplateRouter.conversationLocalTime(
+      startedAt: currentConversation.startedAt,
+      createdAt: currentConversation.createdAt,
+    );
+    final profile = FrontendTemplateRouter.selectProfile(localTime, config);
+    final promptHash = FrontendTemplateRouter.expectedPromptHash(
+      config: config,
+      profile: profile,
+      conversationLocalTime: localTime,
+      sourceName: currentConversation.source?.name,
+    );
+    final cached = store.resultForConversation(currentConversation.id);
+
+    if (cached != null &&
+        cached.isFreshFor(profile: profile, promptHash: promptHash, conversationStartedAt: localTime)) {
+      routedSummary = cached;
+      routedSummaryError = null;
+    } else {
+      routedSummary = null;
+    }
+  }
+
+  Future<void> loadOrGenerateRoutedSummary({bool force = false}) async {
+    final currentConversation = conversationOrNull;
+    if (currentConversation == null) return;
+
+    final store = FrontendTemplateRoutingStore();
+    final config = store.loadConfig();
+    if (!config.enabled) {
+      if (routedSummary != null || routedSummaryLoading || routedSummaryError != null) {
+        _clearRoutedSummary();
+        notifyListeners();
+      }
+      return;
+    }
+
+    final localTime = FrontendTemplateRouter.conversationLocalTime(
+      startedAt: currentConversation.startedAt,
+      createdAt: currentConversation.createdAt,
+    );
+    final profile = FrontendTemplateRouter.selectProfile(localTime, config);
+    final promptHash = FrontendTemplateRouter.expectedPromptHash(
+      config: config,
+      profile: profile,
+      conversationLocalTime: localTime,
+      sourceName: currentConversation.source?.name,
+    );
+    final cached = store.resultForConversation(currentConversation.id);
+
+    if (!force &&
+        cached != null &&
+        cached.isFreshFor(profile: profile, promptHash: promptHash, conversationStartedAt: localTime)) {
+      routedSummary = cached;
+      routedSummaryLoading = false;
+      routedSummaryError = null;
+      notifyListeners();
+      return;
+    }
+
+    if (!config.hasRequiredPrompts) {
+      routedSummary = null;
+      routedSummaryLoading = false;
+      routedSummaryError = 'Template routing needs both prompts.';
+      notifyListeners();
+      return;
+    }
+
+    if (!config.autoRunOnOpen && !force) {
+      routedSummary = null;
+      routedSummaryLoading = false;
+      routedSummaryError = null;
+      notifyListeners();
+      return;
+    }
+
+    if (currentConversation.discarded || currentConversation.status != ConversationStatus.completed) {
+      routedSummary = null;
+      routedSummaryLoading = false;
+      routedSummaryError = null;
+      notifyListeners();
+      return;
+    }
+
+    final requestKey = '${currentConversation.id}:$promptHash:${force ? 'force' : 'auto'}';
+    if (_routedSummaryRequestKey == requestKey) return;
+    _routedSummaryRequestKey = requestKey;
+    routedSummary = null;
+    routedSummaryLoading = true;
+    routedSummaryError = null;
+    notifyListeners();
+
+    try {
+      final prompt = FrontendTemplateRouter.buildPrompt(
+        profile: profile,
+        conversationLocalTime: localTime,
+        sourceName: currentConversation.source?.name,
+        profilePrompt: config.promptFor(profile),
+      );
+      final content = (await testConversationPrompt(prompt, currentConversation.id)).trim();
+      if (_isDisposed || conversationOrNull?.id != currentConversation.id) return;
+
+      if (content.isEmpty) {
+        routedSummaryError = 'Template routing returned no summary.';
+        return;
+      }
+
+      final result = FrontendTemplateRoutingResult(
+        conversationId: currentConversation.id,
+        profile: profile,
+        promptHash: promptHash,
+        content: content,
+        generatedAt: DateTime.now(),
+        conversationStartedAt: localTime,
+      );
+      await store.saveResult(result);
+      if (_isDisposed || conversationOrNull?.id != currentConversation.id) return;
+      routedSummary = result;
+      routedSummaryError = null;
+    } catch (e) {
+      Logger.debug('Error generating routed summary: $e');
+      if (!_isDisposed && conversationOrNull?.id == currentConversation.id) {
+        routedSummaryError = 'Template routing failed.';
+      }
+    } finally {
+      if (!_isDisposed && conversationOrNull?.id == currentConversation.id) {
+        routedSummaryLoading = false;
+        _routedSummaryRequestKey = null;
+        notifyListeners();
+      }
+    }
   }
 
   /// Returns the list of suggested summarization apps for this conversation
@@ -582,6 +763,102 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       _cachedConversation!.visibility = newVisibility;
       conversationProvider?.updateConversation(_cachedConversation!);
       notifyListeners();
+    }
+  }
+
+  /// Unlinks the calendar event from the current conversation
+  Future<bool> unlinkCalendarEvent() async {
+    try {
+      final success = await conv_api.unlinkCalendarEvent(conversation.id);
+      if (success) {
+        _updateLocalConversationWithCalendarEvent(null);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Helper method to update the local conversation state with a calendar event
+  void _updateLocalConversationWithCalendarEvent(CalendarEventLink? calendarEvent) {
+    if (_cachedConversation != null) {
+      final updatedConversation = ServerConversation(
+        id: _cachedConversation!.id,
+        createdAt: _cachedConversation!.createdAt,
+        structured: _cachedConversation!.structured,
+        startedAt: _cachedConversation!.startedAt,
+        finishedAt: _cachedConversation!.finishedAt,
+        transcriptSegments: _cachedConversation!.transcriptSegments,
+        appResults: _cachedConversation!.appResults,
+        suggestedSummarizationApps: _cachedConversation!.suggestedSummarizationApps,
+        geolocation: _cachedConversation!.geolocation,
+        photos: _cachedConversation!.photos,
+        audioFiles: _cachedConversation!.audioFiles,
+        discarded: _cachedConversation!.discarded,
+        deleted: _cachedConversation!.deleted,
+        source: _cachedConversation!.source,
+        language: _cachedConversation!.language,
+        externalIntegration: _cachedConversation!.externalIntegration,
+        calendarEvent: calendarEvent,
+        status: _cachedConversation!.status,
+        isLocked: _cachedConversation!.isLocked,
+        starred: _cachedConversation!.starred,
+        folderId: _cachedConversation!.folderId,
+        visibility: _cachedConversation!.visibility,
+      );
+      _cachedConversation = updatedConversation;
+      conversationProvider?.updateConversation(updatedConversation);
+    }
+    notifyListeners();
+  }
+
+  /// Auto-links the conversation to the best overlapping calendar event
+  Future<CalendarEventLink?> autoLinkCalendarEvent() async {
+    try {
+      final calendarEvent = await conv_api.autoLinkCalendarEvent(conversation.id);
+      if (calendarEvent != null) {
+        _updateLocalConversationWithCalendarEvent(calendarEvent);
+      }
+      return calendarEvent;
+    } catch (e) {
+      debugPrint('Error auto-linking calendar event: $e');
+      return null;
+    }
+  }
+
+  /// Links the conversation to a specific calendar event by event ID
+  Future<CalendarEventLink?> linkCalendarEvent(String eventId) async {
+    try {
+      final calendarEvent = await conv_api.linkCalendarEvent(conversation.id, eventId);
+      if (calendarEvent != null) {
+        _updateLocalConversationWithCalendarEvent(calendarEvent);
+      }
+      return calendarEvent;
+    } catch (e) {
+      debugPrint('Error linking calendar event: $e');
+      return null;
+    }
+  }
+
+  /// Lists Google Calendar events around the conversation time for the picker UI
+  Future<List<CalendarEventLink>> listCalendarEventsForPicker() async {
+    try {
+      final conversationStart = conversation.startedAt ?? conversation.createdAt;
+      final conversationEnd = conversation.finishedAt ?? conversationStart.add(const Duration(hours: 1));
+
+      final timeMin = conversationStart.subtract(const Duration(hours: 2));
+      final timeMax = conversationEnd.add(const Duration(hours: 2));
+
+      return await listGoogleCalendarEvents(
+        timeMin: timeMin,
+        timeMax: timeMax,
+        maxResults: 30,
+      );
+    } catch (e) {
+      debugPrint('Error listing calendar events: $e');
+      return [];
     }
   }
 

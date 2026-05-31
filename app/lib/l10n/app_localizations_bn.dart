@@ -1458,7 +1458,7 @@ class AppLocalizationsBn extends AppLocalizations {
       'Omi অবাধে ব্যবহার করুন। আপনি শুধুমাত্র আপনার STT প্রদানকারীকে সরাসরি অর্থ প্রদান করেন।';
 
   @override
-  String get freeMinutesMonth => 'প্রতি মাসে 1,200 বিনামূল্যে মিনিট অন্তর্ভুক্ত। সীমাহীন ';
+  String get freeMinutesMonth => 'প্রতি মাসে 600 বিনামূল্যে মিনিট অন্তর্ভুক্ত। সীমাহীন ';
 
   @override
   String get omiUnlimited => 'Omi আনলিমিটেড';
@@ -9136,21 +9136,6 @@ class AppLocalizationsBn extends AppLocalizations {
   String get bulkDeleteFailed => 'কাজগুলো মুছে ফেলা যায়নি। আবার চেষ্টা করুন।';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Apple Reminders-এ স্বয়ংক্রিয়ভাবে কাজ যোগ করুন';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'চালু থাকলে, Omi তৈরি করা কাজগুলো স্বয়ংক্রিয়ভাবে Reminders-এ যোগ হবে। এটি বন্ধ থাকলেও আপনি হাতে কাজ যোগ করতে পারবেন।';
-
-  @override
-  String get addSelectedToAppleReminders => 'নির্বাচিতগুলো Apple Reminders-এ যোগ করুন';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'কিছু নির্বাচিত কাজ যোগ করা যায়নি।';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'নির্বাচিত কাজগুলো ইতিমধ্যে রপ্তানি করা হয়েছে।';
-
-  @override
   String get deleteRecap => 'রিক্যাপ মুছুন';
 
   @override
@@ -9296,4 +9281,155 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi-এর সার্ভার ব্যস্ত — সক্ষমতা ফিরে এলে আপনার রেকর্ডিংগুলি সিঙ্ক হয়ে যাবে';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return 'এই মাসে $limit স্মৃতির মধ্যে $used তৈরি হয়েছে';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi সিঙ্ক সেটিংস';
+
+  @override
+  String get enterHotspotCredentials => 'আপনার ফোনের হটস্পট শংসাপত্র প্রবেশ করুন';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi সিঙ্ক আপনার ফোনকে হটস্পট হিসাবে ব্যবহার করে। আপনার হটস্পট নাম এবং পাসওয়ার্ড খুঁজুন সেটিংস > ব্যক্তিগত হটস্পট এ।';
+
+  @override
+  String get hotspotNameSsid => 'হটস্পট নাম (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'যেমন iPhone হটস্পট';
+
+  @override
+  String get enterHotspotPassword => 'হটস্পট পাসওয়ার্ড প্রবেশ করুন';
+
+  @override
+  String get pleaseEnterHotspotName => 'দয়া করে একটি হটস্পট নাম প্রবেশ করুন';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi শংসাপত্র সংরক্ষিত';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi শংসাপত্র সাফ করা হয়েছে';
+
+  @override
+  String get fastTransfer => 'দ্রুত স্থানান্তর';
+
+  @override
+  String get transferMethod => 'স্থানান্তর পদ্ধতি';
+
+  @override
+  String get fast => 'দ্রুত';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'ডিভাইসে Wi-Fi সক্ষম করতে ব্যর্থ। দয়া করে আবার চেষ্টা করুন।';
+
+  @override
+  String get deviceNoFastTransfer => 'আপনার ডিভাইস দ্রুত স্থানান্তর সমর্থন করে না। পরিবর্তে Bluetooth ব্যবহার করুন।';
+
+  @override
+  String get enableHotspotMessage => 'আপনার ফোনের হটস্পট সক্ষম করুন এবং আবার চেষ্টা করুন।';
+
+  @override
+  String get transferStartFailed => 'স্থানান্তর শুরু করতে ব্যর্থ। দয়া করে আবার চেষ্টা করুন।';
+
+  @override
+  String get invalidWifiCredentials => 'অবৈধ Wi-Fi শংসাপত্র। আপনার হটস্পট সেটিংস পরীক্ষা করুন।';
+
+  @override
+  String get wifiConnectionFailed => 'Wi-Fi সংযোগ ব্যর্থ। দয়া করে আবার চেষ্টা করুন।';
+
+  @override
+  String get wifiSyncFailed => 'Wi-Fi সিঙ্ক ব্যর্থ';
+
+  @override
+  String get wifiSync => 'Wi-Fi সিঙ্ক';
+
+  @override
+  String get wifiConnectionFailedTitle => 'সংযোগ ব্যর্থ';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName এর Wi-Fi সক্ষম করুন';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'দ্রুত ট্রান্সফারে স্যুইচ করা হয়েছে';
+
+  @override
+  String get fastTransferEnabled => 'দ্রুত ট্রান্সফার সক্ষম';
+
+  @override
+  String get enableFastTransfer => 'দ্রুত ট্রান্সফার সক্ষম করুন';
+
+  @override
+  String get fastTransferDescription =>
+      'দ্রুত ট্রান্সফার WiFi ব্যবহার করে ~৫ গুণ দ্রুত গতি প্রদান করে। ট্রান্সফারের সময় আপনার ফোন আপনার Omi ডিভাইসের WiFi নেটওয়ার্কের সাথে সাময়িকভাবে সংযুক্ত হবে।';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'ট্রান্সফারের সময় ইন্টারনেট অ্যাক্সেস বন্ধ রয়েছে';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'আপনার Omi ডিভাইস থেকে আপনার ফোনে রেকর্ডিং কীভাবে স্থানান্তরিত হবে তা নির্বাচন করুন।';
+
+  @override
+  String get wifiSpeed => 'WiFi এর মাধ্যমে ~১৫০ কেবি/সেক';
+
+  @override
+  String get fiveTimesFaster => '৫ গুণ দ্রুত';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'আপনার Omi ডিভাইসের সাথে সরাসরি WiFi সংযোগ তৈরি করে। ট্রান্সফারের সময় আপনার ফোন আপনার নিয়মিত WiFi থেকে সাময়িকভাবে সংযোগ বিচ্ছিন্ন হয়।';
+
+  @override
+  String get locationPermissionRequired => 'অবস্থান অনুমতি প্রয়োজন';
+
+  @override
+  String get locationPermissionContent =>
+      'দ্রুত ট্রান্সফার WiFi সংযোগ যাচাই করতে অবস্থান অনুমতি প্রয়োজন। এগিয়ে যেতে অবস্থান অনুমতি দিন।';
+
+  @override
+  String get chooseTransferMethod => 'ট্রান্সফার পদ্ধতি নির্বাচন করুন';
+
+  @override
+  String get fastTransferSpeed => 'WiFi এর মাধ্যমে ~১৫০ কেবি/সেক';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'ডিভাইস WiFi সিঙ্ক সমর্থন করে না, ব্লুটুথে স্যুইচ করছি';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple Reminders-এ স্বয়ংক্রিয়ভাবে কাজ যোগ করুন';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'চালু থাকলে, Omi তৈরি করা কাজগুলো স্বয়ংক্রিয়ভাবে Reminders-এ যোগ হবে। এটি বন্ধ থাকলেও আপনি হাতে কাজ যোগ করতে পারবেন।';
+
+  @override
+  String get addSelectedToAppleReminders => 'নির্বাচিতগুলো Apple Reminders-এ যোগ করুন';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'কিছু নির্বাচিত কাজ যোগ করা যায়নি।';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'নির্বাচিত কাজগুলো ইতিমধ্যে রপ্তানি করা হয়েছে।';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'বর্তমান ফার্মওয়্যার সংস্করণ নির্ধারণ করা যায়নি';
+
+  @override
+  String get promoCode => 'প্রোমো কোড';
+
+  @override
+  String get enterPromoCode => 'প্রোমো কোড লিখুন';
+
+  @override
+  String get invalidPromotionCode => 'অবৈধ প্রোমো কোড।';
 }

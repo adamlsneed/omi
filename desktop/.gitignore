@@ -42,7 +42,10 @@ xcuserdata/
 
 # Local scripts and data (untracked)
 local/
-scripts/
+scripts/*
+!scripts/
+!scripts/prepare-node-resource.sh
+!scripts/test-prepare-node-resource.sh
 
 # Swift compiler diagnostics cache
 *.dia

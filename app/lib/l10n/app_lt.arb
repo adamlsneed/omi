@@ -1583,7 +1583,7 @@
     "port": "Prievadas",
     "preferences": "Nuostatos",
     "premiumMinsLeft": "Liko {count} premium minučių.",
-    "premiumMinutesMonth": "1200 premium minučių/mėn. Įrenginyje skirtukas siūlo neribotą nemokamą transkripciją. ",
+    "premiumMinutesMonth": "600 premium minučių/mėn. Įrenginyje skirtukas siūlo neribotą nemokamą transkripciją. ",
     "premiumMinutesUsed": "Premium minutės išnaudotos.",
     "preparingAudioCapture": "Ruošiamas garso įrašymas",
     "preparingFormForYou": "Ruošiama forma jums...",
@@ -3098,5 +3098,9 @@
     },
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
-    }
+    },
+    "unableToDetermineFirmwareVersion": "Nepavyko nustatyti dabartinės programinės aparatinės įrangos versijos",
+    "promoCode": "Reklamos kodas",
+    "enterPromoCode": "Įveskite reklamos kodą",
+    "invalidPromotionCode": "Neteisingas reklamos kodas."
 }

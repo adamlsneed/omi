@@ -1465,7 +1465,7 @@ class AppLocalizationsTl extends AppLocalizations {
   String get payYourSttProvider => 'Gamitin ang omi nang libre. Direkta lang sa iyong STT provider ang babayaran mo.';
 
   @override
-  String get freeMinutesMonth => '1,200 libreng minuto/buwan kasama. Unlimited sa ';
+  String get freeMinutesMonth => '600 libreng minuto/buwan kasama. Unlimited sa ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -4739,7 +4739,7 @@ class AppLocalizationsTl extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Walang specific data access na na-configure.';
 
   @override
-  String get basicPlanDescription => '1,200 premium mins + unlimited on-device';
+  String get basicPlanDescription => '600 premium mins + unlimited on-device';
 
   @override
   String get minutes => 'minutes';
@@ -6041,7 +6041,7 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1,200 premium na minuto/buwan. Ang On-Device tab ay nag-aalok ng unlimited na libreng transcription.';
+      '600 premium na minuto/buwan. Ang On-Device tab ay nag-aalok ng unlimited na libreng transcription.';
 
   @override
   String get viewUsage => 'Tingnan ang paggamit';
@@ -6124,7 +6124,7 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1,200 premium na minuto/buwan. Ang On-Device tab ay nag-aalok ng unlimited na libreng transcription. ';
+      '600 premium na minuto/buwan. Ang On-Device tab ay nag-aalok ng unlimited na libreng transcription. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9210,21 +9210,6 @@ class AppLocalizationsTl extends AppLocalizations {
   String get bulkDeleteFailed => 'Hindi matanggal ang mga gawain. Pakisubukang muli.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Awtomatikong idagdag ang mga gawain sa Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Kapag naka-on, awtomatikong idaragdag sa Mga Paalala ang mga gawaing ginagawa ng Omi. Maaari ka pa ring magdagdag ng mga gawain nang manu-mano kapag naka-off ito.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Idagdag ang napili sa Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Hindi naidagdag ang ilang napiling gawain.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Na-export na ang mga napiling gawain.';
-
-  @override
   String get deleteRecap => 'Burahin ang recap';
 
   @override
@@ -9373,4 +9358,157 @@ class AppLocalizationsTl extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Abala ang mga server ng Omi — masi-sync ang iyong mga recording kapag may bakanteng kapasidad na muli';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used ng $limit alaala na nabuo sa buwan na ito';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi Sync Settings';
+
+  @override
+  String get enterHotspotCredentials => 'Ipasok ang iyong phone hotspot credentials';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'Ang WiFi sync ay gumagamit ng iyong phone bilang hotspot. Hanapin ang iyong hotspot name at password sa Settings > Personal Hotspot.';
+
+  @override
+  String get hotspotNameSsid => 'Hotspot Name (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'halimbawa iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Ipasok ang hotspot password';
+
+  @override
+  String get pleaseEnterHotspotName => 'Mangyaring ipasok ang isang hotspot name';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi credentials na na-save';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi credentials na na-clear';
+
+  @override
+  String get fastTransfer => 'Fast Transfer';
+
+  @override
+  String get transferMethod => 'Transfer Method';
+
+  @override
+  String get fast => 'Mabilis';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Nabigo ang pagpapagana ng WiFi sa device. Subukan ulit.';
+
+  @override
+  String get deviceNoFastTransfer =>
+      'Ang iyong device ay hindi sumusuporta sa Fast Transfer. Gumamit ng Bluetooth sa halip.';
+
+  @override
+  String get enableHotspotMessage => 'Pakipagana ang hotspot ng iyong telepono at subukan ulit.';
+
+  @override
+  String get transferStartFailed => 'Nabigo ang pagsisimula ng transfer. Subukan ulit.';
+
+  @override
+  String get invalidWifiCredentials => 'Invalid na WiFi credentials. Suriin ang iyong hotspot settings.';
+
+  @override
+  String get wifiConnectionFailed => 'Nabigo ang WiFi connection. Subukan ulit.';
+
+  @override
+  String get wifiSyncFailed => 'Nabigo ang WiFi Sync';
+
+  @override
+  String get wifiSync => 'WiFi Sync';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Connection Failed';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Paganahin ang $deviceName\'s WiFi';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Lumipat sa Fast Transfer';
+
+  @override
+  String get fastTransferEnabled => 'Fast Transfer ay naka-enable';
+
+  @override
+  String get enableFastTransfer => 'I-enable ang Fast Transfer';
+
+  @override
+  String get fastTransferDescription =>
+      'Gumagamit ang Fast Transfer ng WiFi para sa humigit-kumulang na 5x na mas mabilis na bilis. Ang iyong telepono ay pansamantalang magkonekta sa WiFi network ng iyong Omi device sa panahon ng paglipat.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Ang internet access ay napigil sa panahon ng paglipat';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'Pumili kung paano ang mga recording ay ilipat mula sa iyong Omi device patungo sa iyong telepono.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s sa pamamagitan ng WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X MAS MABILIS';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Lumilikha ng direktang WiFi connection sa iyong Omi device. Ang iyong telepono ay pansamantalang nadadiskonekta mula sa iyong regular na WiFi sa panahon ng paglipat.';
+
+  @override
+  String get locationPermissionRequired => 'Ang Location Permission ay Kinakailangan';
+
+  @override
+  String get locationPermissionContent =>
+      'Ang Fast Transfer ay nangangailangan ng location permission upang ma-verify ang WiFi connection. Mangyaring bigyan ng location permission upang magpatuloy.';
+
+  @override
+  String get chooseTransferMethod => 'Pumili ng Transfer Method';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s sa pamamagitan ng WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Ang device ay hindi sumusuporta sa WiFi sync, lumipat sa Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Awtomatikong idagdag ang mga gawain sa Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kapag naka-on, awtomatikong idaragdag sa Mga Paalala ang mga gawaing ginagawa ng Omi. Maaari ka pa ring magdagdag ng mga gawain nang manu-mano kapag naka-off ito.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Idagdag ang napili sa Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Hindi naidagdag ang ilang napiling gawain.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Na-export na ang mga napiling gawain.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Hindi matukoy ang kasalukuyang bersyon ng firmware';
+
+  @override
+  String get promoCode => 'Promo code';
+
+  @override
+  String get enterPromoCode => 'Ilagay ang promo code';
+
+  @override
+  String get invalidPromotionCode => 'Hindi valid na promo code.';
 }

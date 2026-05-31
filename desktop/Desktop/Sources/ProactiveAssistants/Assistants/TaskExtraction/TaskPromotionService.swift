@@ -55,6 +55,14 @@ actor TaskPromotionService {
     /// Returns the list of promoted tasks so callers can insert them directly.
     @discardableResult
     func promoteIfNeeded(shouldNotify: Bool = true) async -> [TaskActionItem] {
+        let autoPromoteEnabled = await MainActor.run {
+            TaskAssistantSettings.shared.autoPromoteEnabled
+        }
+        guard autoPromoteEnabled else {
+            log("TaskPromotion: Auto-add disabled — leaving staged tasks pending")
+            return []
+        }
+
         guard !isPromoting else {
             log("TaskPromotion: Already promoting, skipping")
             return []

@@ -6074,7 +6074,7 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1200 premium minučių/mėn. Įrenginyje skirtukas siūlo neribotą nemokamą transkripciją. ';
+      '600 premium minučių/mėn. Įrenginyje skirtukas siūlo neribotą nemokamą transkripciją. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9136,21 +9136,6 @@ class AppLocalizationsLt extends AppLocalizations {
   String get bulkDeleteFailed => 'Nepavyko ištrinti užduočių. Bandykite dar kartą.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Automatiškai pridėti užduotis į Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Įjungus, Omi sukurtos užduotys automatiškai pridedamos prie priminimų. Kai ši parinktis išjungta, užduotis vis tiek galite pridėti rankiniu būdu.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Pridėti pasirinktus į Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Kai kurių pasirinktų užduočių nepavyko pridėti.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Pasirinktos užduotys jau eksportuotos.';
-
-  @override
   String get deleteRecap => 'Ištrinti suvestinę';
 
   @override
@@ -9301,4 +9286,156 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi serveriai užimti — jūsų įrašai bus sinchronizuoti, kai atsilaisvins pajėgumai';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return 'Šį mėnesį sukurta $used iš $limit prisiminimų';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi sinchronizavimo nustatymai';
+
+  @override
+  String get enterHotspotCredentials => 'Įveskite telefono viešosios prieigos taško duomenis';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi sinchronizavimas naudoja jūsų telefoną kaip viešosios prieigos tašką. Raskite pavadinimą ir slaptažodį Nustatymai > Asmeninis viešosios prieigos taškas.';
+
+  @override
+  String get hotspotNameSsid => 'Viešosios prieigos taško pavadinimas (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'pvz. iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Įveskite viešosios prieigos taško slaptažodį';
+
+  @override
+  String get pleaseEnterHotspotName => 'Įveskite viešosios prieigos taško pavadinimą';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi duomenys išsaugoti';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi duomenys išvalyti';
+
+  @override
+  String get fastTransfer => 'Greitas perdavimas';
+
+  @override
+  String get transferMethod => 'Perdavimo metodas';
+
+  @override
+  String get fast => 'Greitas';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Nepavyko įjungti WiFi įrenginyje. Bandykite dar kartą.';
+
+  @override
+  String get deviceNoFastTransfer => 'Jūsų įrenginys nepalaiko greito perkėlimo. Naudokite Bluetooth.';
+
+  @override
+  String get enableHotspotMessage => 'Įjunkite telefono prieigos tašką ir bandykite dar kartą.';
+
+  @override
+  String get transferStartFailed => 'Nepavyko pradėti perkėlimo. Bandykite dar kartą.';
+
+  @override
+  String get invalidWifiCredentials => 'Neteisingi WiFi prisijungimo duomenys. Patikrinkite prieigos taško nustatymus.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi prisijungimas nepavyko. Bandykite dar kartą.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi sinchronizavimas nepavyko';
+
+  @override
+  String get wifiSync => 'WiFi sinchronizavimas';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Prisijungimas nepavyko';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Įjungti $deviceName WiFi';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Perjungta į greitą perkėlimą';
+
+  @override
+  String get fastTransferEnabled => 'Greitas perdavimas įjungtas';
+
+  @override
+  String get enableFastTransfer => 'Įjungti greitą perdavimą';
+
+  @override
+  String get fastTransferDescription =>
+      'Greitas perdavimas naudoja WiFi ~5x greitesniam greičiui. Perdavimo metu telefonas laikinai prisijungs prie Omi įrenginio WiFi tinklo.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Interneto prieiga pristabdyta perdavimo metu';
+
+  @override
+  String get chooseTransferMethodDescription => 'Pasirinkite, kaip įrašai perduodami iš Omi įrenginio į telefoną.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s per WiFi';
+
+  @override
+  String get fiveTimesFaster => '5X GREIČIAU';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Sukuria tiesioginį WiFi ryšį su Omi įrenginiu. Perdavimo metu telefonas laikinai atsijungia nuo įprasto WiFi.';
+
+  @override
+  String get locationPermissionRequired => 'Reikalingas vietos leidimas';
+
+  @override
+  String get locationPermissionContent =>
+      'Greitam perdavimui reikia vietos leidimo, kad būtų galima patikrinti WiFi ryšį. Suteikite vietos leidimą, kad galėtumėte tęsti.';
+
+  @override
+  String get chooseTransferMethod => 'Pasirinkite perdavimo būdą';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s per WiFi';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle =>
+      'Įrenginys nepalaiko WiFi sinchronizavimo, perjungiama į Bluetooth';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Automatiškai pridėti užduotis į Apple Reminders';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Įjungus, Omi sukurtos užduotys automatiškai pridedamos prie priminimų. Kai ši parinktis išjungta, užduotis vis tiek galite pridėti rankiniu būdu.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Pridėti pasirinktus į Apple Reminders';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Kai kurių pasirinktų užduočių nepavyko pridėti.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Pasirinktos užduotys jau eksportuotos.';
+
+  @override
+  String get unableToDetermineFirmwareVersion =>
+      'Nepavyko nustatyti dabartinės programinės aparatinės įrangos versijos';
+
+  @override
+  String get promoCode => 'Reklamos kodas';
+
+  @override
+  String get enterPromoCode => 'Įveskite reklamos kodą';
+
+  @override
+  String get invalidPromotionCode => 'Neteisingas reklamos kodas.';
 }

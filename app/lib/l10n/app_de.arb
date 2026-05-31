@@ -3066,5 +3066,9 @@
     },
     "@bulkDeleteFailed": {
         "description": "Snackbar shown when the bulk delete request fails and the local list is restored"
-    }
+    },
+    "unableToDetermineFirmwareVersion": "Aktuelle Firmware-Version konnte nicht ermittelt werden",
+    "promoCode": "Aktionscode",
+    "enterPromoCode": "Aktionscode eingeben",
+    "invalidPromotionCode": "Ungültiger Aktionscode."
 }

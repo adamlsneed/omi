@@ -1457,7 +1457,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get payYourSttProvider => 'Kasutage Omi-d vabalt. Maksite ainult oma STT pakkujale otse.';
 
   @override
-  String get freeMinutesMonth => '1200 tasuta minutit kuus kaasa arvatud. Piiramatu koos ';
+  String get freeMinutesMonth => '600 tasuta minutit kuus kaasa arvatud. Piiramatu koos ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -4698,7 +4698,7 @@ class AppLocalizationsEt extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Konkreetset andmetele juurdepääsu pole seadistatud.';
 
   @override
-  String get basicPlanDescription => '1200 premium minutit + piiramatu seadmes';
+  String get basicPlanDescription => '600 premium minutit + piiramatu seadmes';
 
   @override
   String get minutes => 'minutit';
@@ -5990,7 +5990,7 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1200 premium minutit kuus. Seadmesisene vahekaart pakub piiramatut tasuta transkriptsiooni.';
+      '600 premium minutit kuus. Seadmesisene vahekaart pakub piiramatut tasuta transkriptsiooni.';
 
   @override
   String get viewUsage => 'Vaata kasutust';
@@ -6072,7 +6072,7 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1200 premium minutit/kuus. Seadmes vahekaart pakub piiramatut tasuta transkriptsiooni. ';
+      '600 premium minutit/kuus. Seadmes vahekaart pakub piiramatut tasuta transkriptsiooni. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9125,21 +9125,6 @@ class AppLocalizationsEt extends AppLocalizations {
   String get bulkDeleteFailed => 'Ülesandeid ei õnnestunud kustutada. Palun proovi uuesti.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Lisa ülesanded automaatselt Apple Remindersisse';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'Kui see on lubatud, lisatakse Omi loodud ülesanded automaatselt meeldetuletustesse. Kui see on välja lülitatud, saad ülesandeid endiselt käsitsi lisada.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Lisa valitud Apple Remindersisse';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Mõnda valitud ülesannet ei saanud lisada.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Valitud ülesanded on juba eksporditud.';
-
-  @override
   String get deleteRecap => 'Kustuta kokkuvõte';
 
   @override
@@ -9286,4 +9271,154 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get syncCardBackendBusy => 'Omi serverid on hõivatud — sinu salvestised sünkroonitakse, kui maht vabaneb';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used/$limit mälestust loodud sel kuul';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi sünkroonimise seaded';
+
+  @override
+  String get enterHotspotCredentials => 'Sisestage oma telefoni leviala mandaadid';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi sünkroonimine kasutab teie telefoni levialana. Leidke nimi ja parool menüüst Seaded > Isiklik leviala.';
+
+  @override
+  String get hotspotNameSsid => 'Leviala nimi (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'nt iPhone Hotspot';
+
+  @override
+  String get enterHotspotPassword => 'Sisestage leviala parool';
+
+  @override
+  String get pleaseEnterHotspotName => 'Palun sisestage leviala nimi';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi mandaadid salvestatud';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi mandaadid kustutatud';
+
+  @override
+  String get fastTransfer => 'Kiire edastus';
+
+  @override
+  String get transferMethod => 'Edastusmeetod';
+
+  @override
+  String get fast => 'Kiire';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'Seadme WiFi lubamine ebaõnnestus. Palun proovige uuesti.';
+
+  @override
+  String get deviceNoFastTransfer => 'Teie seade ei toeta kiiret ülekannet. Kasutage selle asemel Bluetooth-i.';
+
+  @override
+  String get enableHotspotMessage => 'Palun lülitage oma telefoni kuumkoht sisse ja proovige uuesti.';
+
+  @override
+  String get transferStartFailed => 'Ülekande alustamine ebaõnnestus. Palun proovige uuesti.';
+
+  @override
+  String get invalidWifiCredentials => 'Vigased WiFi andmed. Kontrollige oma kuumkoha seadeid.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi ühendus ebaõnnestus. Palun proovige uuesti.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi sünkroonimine ebaõnnestus';
+
+  @override
+  String get wifiSync => 'WiFi sünkroonimine';
+
+  @override
+  String get wifiConnectionFailedTitle => 'Ühendus ebaõnnestus';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return 'Luba $deviceName WiFi';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'Lülitatud kiirele ülekandele';
+
+  @override
+  String get fastTransferEnabled => 'Kiire edastus lubatud';
+
+  @override
+  String get enableFastTransfer => 'Luba kiire edastus';
+
+  @override
+  String get fastTransferDescription =>
+      'Kiire edastus kasutab WiFi-d ~5x kiiremate kiiruste jaoks. Teie telefon ühendub ajutiselt edastuse ajal Omi seadme WiFi-võrguga.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'Interneti-juurdepääs on edastuse ajal peatatud';
+
+  @override
+  String get chooseTransferMethodDescription => 'Valige, kuidas salvestised edastatakse Omi seadmest telefoni.';
+
+  @override
+  String get wifiSpeed => '~150 KB/s WiFi kaudu';
+
+  @override
+  String get fiveTimesFaster => '5X KIIREM';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'Loob otseühenduse WiFi kaudu Omi seadmega. Teie telefon katkestab ajutiselt ühenduse tavalise WiFi-ga edastuse ajal.';
+
+  @override
+  String get locationPermissionRequired => 'Asukoha luba nõutav';
+
+  @override
+  String get locationPermissionContent =>
+      'Kiire edastus vajab asukoha luba WiFi-ühenduse kontrollimiseks. Jätkamiseks andke palun asukoha luba.';
+
+  @override
+  String get chooseTransferMethod => 'Valige ülekandemeetod';
+
+  @override
+  String get fastTransferSpeed => '~150 KB/s WiFi kaudu';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'Seade ei toeta WiFi sünkroniseerimist, lülitumine Bluetoothile';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Lisa ülesanded automaatselt Apple Remindersisse';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'Kui see on lubatud, lisatakse Omi loodud ülesanded automaatselt meeldetuletustesse. Kui see on välja lülitatud, saad ülesandeid endiselt käsitsi lisada.';
+
+  @override
+  String get addSelectedToAppleReminders => 'Lisa valitud Apple Remindersisse';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Mõnda valitud ülesannet ei saanud lisada.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'Valitud ülesanded on juba eksporditud.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'Praeguse püsivara versiooni ei õnnestunud tuvastada';
+
+  @override
+  String get promoCode => 'Sooduskood';
+
+  @override
+  String get enterPromoCode => 'Sisestage sooduskood';
+
+  @override
+  String get invalidPromotionCode => 'Kehtetu sooduskood.';
 }

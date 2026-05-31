@@ -1463,7 +1463,7 @@ class AppLocalizationsTe extends AppLocalizations {
   String get payYourSttProvider => 'Omi ను స్వేచ్ఛగా ఉపయోగించండి. మీరు మీ STT ప్రదాతకు నేరుగా చెల్లించండి.';
 
   @override
-  String get freeMinutesMonth => '1,200 ఉచిత నిమిషాలు/నెల చేర్చబడ్డాయి. అসীమితమైన ';
+  String get freeMinutesMonth => '600 ఉచిత నిమిషాలు/నెల చేర్చబడ్డాయి. అসীమితమైన ';
 
   @override
   String get omiUnlimited => 'Omi అసీమితం';
@@ -4726,7 +4726,7 @@ class AppLocalizationsTe extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'నిర్దిష్ట డేటా ప్రాప్తి కాన్ఫిగర్ చేయబడలేదు.';
 
   @override
-  String get basicPlanDescription => '1,200 ప్రీమియం నిమిషాలు + ఆన్-డివైస్‌లో అన్‌లిమిటెడ్';
+  String get basicPlanDescription => '600 ప్రీమియం నిమిషాలు + ఆన్-డివైస్‌లో అన్‌లిమిటెడ్';
 
   @override
   String get minutes => 'నిమిషాలు';
@@ -6027,7 +6027,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      'నెలకు 1,200 ప్రిమియం నిమిషాలు. ఆన్-డివైస్ ట్యాబ్ అపరిమిత ఉచిత ట్రాన్‌స్క్రిప్షన్ అందిస్తుంది.';
+      'నెలకు 600 ప్రిమియం నిమిషాలు. ఆన్-డివైస్ ట్యాబ్ అపరిమిత ఉచిత ట్రాన్‌స్క్రిప్షన్ అందిస్తుంది.';
 
   @override
   String get viewUsage => 'వినియోగాన్ని చూడండి';
@@ -6109,7 +6109,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      'నెలకు 1,200 ప్రిమియం నిమిషాలు. ఆన్-డివైస్ ట్యాబ్ అపరిమిత ఉచిత ట్రాన్‌స్క్రిప్షన్ అందిస్తుంది. ';
+      'నెలకు 600 ప్రిమియం నిమిషాలు. ఆన్-డివైస్ ట్యాబ్ అపరిమిత ఉచిత ట్రాన్‌స్క్రిప్షన్ అందిస్తుంది. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9177,21 +9177,6 @@ class AppLocalizationsTe extends AppLocalizations {
   String get bulkDeleteFailed => 'పనులను తొలగించలేకపోయింది. దయచేసి మళ్లీ ప్రయత్నించండి.';
 
   @override
-  String get autoAddTasksToAppleReminders => 'Apple Reminders కు పనులను స్వయంచాలకంగా జోడించండి';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => 'ఇది ఆన్‌లో ఉన్నప్పుడు, Omi సృష్టించే పనులు స్వయంచాలకంగా Reminders కు జోడించబడతాయి. ఇది ఆఫ్‌లో ఉన్నప్పుడు కూడా మీరు పనులను చేతితో జోడించవచ్చు.';
-
-  @override
-  String get addSelectedToAppleReminders => 'ఎంచుకున్నవాటిని Apple Reminders కు జోడించండి';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ఎంచుకున్న కొన్ని పనులను జోడించలేకపోయాం.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'ఎంచుకున్న పనులు ఇప్పటికే ఎగుమతి చేయబడ్డాయి.';
-
-  @override
   String get deleteRecap => 'సారాంశాన్ని తొలగించండి';
 
   @override
@@ -9338,4 +9323,155 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get syncCardBackendBusy =>
       'Omi సర్వర్‌లు బిజీగా ఉన్నాయి — సామర్థ్యం అందుబాటులోకి వచ్చిన వెంటనే మీ రికార్డింగ్‌లు సింక్ అవుతాయి';
+
+  @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '$used యొక్క $limit జ్ఞాపకాలు ఈ నెలలో సృష్టించబడ్డాయి';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi సమకాలీకరణ సెట్టింగ్‌లు';
+
+  @override
+  String get enterHotspotCredentials => 'మీ ఫోన్ యొక్క హాట్‌స్పాట్ సంలग్నాలను నమోదు చేయండి';
+
+  @override
+  String get wifiSyncUsesHotspot =>
+      'WiFi సమకాలీకరణ మీ ఫోన్‌ను హాట్‌స్పాట్‌గా ఉపయోగిస్తుంది. సెట్టింగ్‌లు > ఖ్యాతిమත్తర హాట్‌స్పాట్‌లో మీ హాట్‌స్పాట్ పేరు మరియు పాస్‌వర్డ్ కనుగొనండి.';
+
+  @override
+  String get hotspotNameSsid => 'హాట్‌స్పాట్ పేరు (SSID)';
+
+  @override
+  String get exampleIphoneHotspot => 'ఉదా. iPhone హాట్‌స్పాట్';
+
+  @override
+  String get enterHotspotPassword => 'హాట్‌స్పాట్ పాస్‌వర్డ్ నమోదు చేయండి';
+
+  @override
+  String get pleaseEnterHotspotName => 'దయచేసి హాట్‌స్పాట్ పేరు నమోదు చేయండి';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi సంలग్నాలు సేవ చేయబడ్డాయి';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi సంలग్నాలు క్లియర్ చేయబడ్డాయి';
+
+  @override
+  String get fastTransfer => 'ఫాస్ట్ ట్రాన్స్ఫర్';
+
+  @override
+  String get transferMethod => 'ట్రాన్స్ఫర్ పద్ధతి';
+
+  @override
+  String get fast => 'ఫాస్ట్';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'పరికరంపై WiFi ప్రారంభించడంలో విఫలమైంది. దయచేసి మరలా ప్రయత్నించండి.';
+
+  @override
+  String get deviceNoFastTransfer => 'మీ పరికరం ఫాస్ట్ ట్రాన్స్ఫర్ సపోర్ట్ చేయదు. బదులుగా బ్లూటూత్ ఉపయోగించండి.';
+
+  @override
+  String get enableHotspotMessage => 'దయచేసి మీ ఫోన్ యొక్క హాట్‌స్పాట్ ప్రారంభించండి మరియు మరలా ప్రయత్నించండి.';
+
+  @override
+  String get transferStartFailed => 'ట్రాన్స్ఫర్ ప్రారంభించడంలో విఫలమైంది. దయచేసి మరలా ప్రయత్నించండి.';
+
+  @override
+  String get invalidWifiCredentials => 'చెల్లని WiFi నిఖర్చన. మీ హాట్‌స్పాట్ సెట్టింగ్‌లను తనిఖీ చేయండి.';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi సంయోగం విఫలమైంది. దయచేసి మరలా ప్రయత్నించండి.';
+
+  @override
+  String get wifiSyncFailed => 'WiFi సమన్వయం విఫలమైంది';
+
+  @override
+  String get wifiSync => 'WiFi సమన్వయం';
+
+  @override
+  String get wifiConnectionFailedTitle => 'సంయోగం విఫలమైంది';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceName యొక్క WiFi ప్రారంభించండి';
+  }
+
+  @override
+  String get switchedToFastTransfer => 'ఫాస్ట్ ట్రాన్‌సర్కు మారారు';
+
+  @override
+  String get fastTransferEnabled => 'ఫాస్ట్ ట్రాన్‌సర్ సక్రియం చేయబడింది';
+
+  @override
+  String get enableFastTransfer => 'ఫాస్ట్ ట్రాన్‌సర్‌ను సక్రియం చేయండి';
+
+  @override
+  String get fastTransferDescription =>
+      'ఫాస్ట్ ట్రాన్‌సర్ WiFi ను ఉపయోగించి ~5x వేగవంతమైన వేగం. బదిలీ సమయంలో మీ ఫోన్잠시Omi పరికరం యొక్క WiFi నెట్‌వర్క్‌కు అనుసంధానం అవుతుంది.';
+
+  @override
+  String get internetAccessPausedDuringTransfer => 'బదిలీ సమయంలో ఇంటర్నెట్ యాక్సెస్ పాజ్ చేయబడింది';
+
+  @override
+  String get chooseTransferMethodDescription =>
+      'మీ Omi పరికరం నుండి మీ ఫోన్‌కు రికార్డింగ్‌లు ఎలా బదిలీ చేయాలో ఎంచుకోండి.';
+
+  @override
+  String get wifiSpeed => 'WiFi ద్వారా ~150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '5X వేగవంతమైనది';
+
+  @override
+  String get fastTransferMethodDescription =>
+      'మీ Omi పరికరానికి నేరుగా WiFi కనెక్షన్ సృష్టిస్తుంది. బదిలీ సమయంలో మీ ఫోన్잠ిக్కా మీ సాధారణ WiFi నుండి డిస్‌కనెక్ట్ చేయబడుతుంది.';
+
+  @override
+  String get locationPermissionRequired => 'స్థానం అనుమతి అవసరం';
+
+  @override
+  String get locationPermissionContent =>
+      'ఫాస్ట్ ట్రాన్‌సర్‌కు WiFi సంయోగం ధృవీకరించడానికి స్థానం అనుమతి అవసరం. దయచేసి కొనసాగించడానికి స్థానం అనుమతిని ఇవ్వండి.';
+
+  @override
+  String get chooseTransferMethod => 'బదిలీ పద్ధతిని ఎంచుకోండి';
+
+  @override
+  String get fastTransferSpeed => 'WiFi ద్వారా ~150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'పరికరం WiFi సింక్‌కు సమర్థనీయం కాదు, బ్లూటూత్‌కు మారుస్తోంది';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'Apple Reminders కు పనులను స్వయంచాలకంగా జోడించండి';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription =>
+      'ఇది ఆన్‌లో ఉన్నప్పుడు, Omi సృష్టించే పనులు స్వయంచాలకంగా Reminders కు జోడించబడతాయి. ఇది ఆఫ్‌లో ఉన్నప్పుడు కూడా మీరు పనులను చేతితో జోడించవచ్చు.';
+
+  @override
+  String get addSelectedToAppleReminders => 'ఎంచుకున్నవాటిని Apple Reminders కు జోడించండి';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ఎంచుకున్న కొన్ని పనులను జోడించలేకపోయాం.';
+
+  @override
+  String get selectedActionItemsAlreadyExported => 'ఎంచుకున్న పనులు ఇప్పటికే ఎగుమతి చేయబడ్డాయి.';
+
+  @override
+  String get unableToDetermineFirmwareVersion => 'ప్రస్తుత ఫర్మ్‌వేర్ సంస్కరణను నిర్ధారించలేకపోయాము';
+
+  @override
+  String get promoCode => 'ప్రోమో కోడ్';
+
+  @override
+  String get enterPromoCode => 'ప్రోమో కోడ్ ఎంటర్ చేయండి';
+
+  @override
+  String get invalidPromotionCode => 'చెల్లని ప్రోమో కోడ్.';
 }
