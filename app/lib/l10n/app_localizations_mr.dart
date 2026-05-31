@@ -9435,4 +9435,61 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'अवैध प्रोमो कोड.';
+
+  @override
+  String get templateRouting => 'टेम्पलेट राउटिंग';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'ओपनवर ऑटो-रन';
+
+  @override
+  String get templateRoutingWorkDays => 'कामाचे दिवस';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'सोम-शुक्र';
+
+  @override
+  String get templateRoutingWorkStart => 'काम सुरू';
+
+  @override
+  String get templateRoutingWorkEnd => 'कामाचा शेवट';
+
+  @override
+  String get templateRoutingWorkPrompt => 'काम तत्पर';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'वैयक्तिक सूचना';
+
+  @override
+  String get templateRoutingSaved => 'टेम्पलेट राउटिंग जतन केले';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 आणि 17:00 सारख्या 24-तास वेळा वापरा.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'कामाची सुरुवात काम संपण्यापूर्वीच झाली पाहिजे.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'राउटिंग सक्षम करण्यापूर्वी दोन्ही सूचना जोडा.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'स्थानिक टेम्पलेट लागू करत आहे...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'टेम्पलेट राउटिंगने कोणताही सारांश दिला नाही.';
+
+  @override
+  String get templateRoutingFailed => 'टेम्पलेट राउटिंग अयशस्वी.';
+
+  @override
+  String get templateRoutingLocalDescription => 'स्थानिक टेम्पलेट राउटिंग';
+
+  @override
+  String get templateRoutingRoutedSummary => 'राउटेड सारांश';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'कार्य राउटेड सारांश';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'वैयक्तिक राउटेड सारांश';
 }

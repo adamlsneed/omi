@@ -9492,4 +9492,63 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Μη έγκυρος κωδικός προσφοράς.';
+
+  @override
+  String get templateRouting => 'Δρομολόγηση προτύπων';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Αυτόματη λειτουργία σε ανοιχτό';
+
+  @override
+  String get templateRoutingWorkDays => 'Ημέρες εργασίας';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Δευτ.-Παρ';
+
+  @override
+  String get templateRoutingWorkStart => 'Έναρξη εργασιών';
+
+  @override
+  String get templateRoutingWorkEnd => 'Τέλος εργασίας';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Προτροπή εργασίας';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Προσωπική προτροπή';
+
+  @override
+  String get templateRoutingSaved => 'Η δρομολόγηση προτύπου αποθη��εύτηκε';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Χρησιμοποιήστε 24ωρες ώρες όπως 08:00 και 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError =>
+      'Η έναρξη της εργασίας πρέπει να είναι πριν από το τέλος της εργασίας.';
+
+  @override
+  String get templateRoutingPromptsRequiredError =>
+      'Προσθέστε και τα δύο μηνύματα προτροπής πριν ενεργοποιήσετε τη δρομολόγηση.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Εφαρμογή τοπικού προτύπου...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Η δρομολόγηση προτύπου δεν επέστρεψε σύνοψη.';
+
+  @override
+  String get templateRoutingFailed => 'Η ��ρομολόγηση προτύπου απέτυχε.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Τοπική δρομολόγηση προτύπων';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Περίληψη δρομολόγησης';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Περίληψη δρομολογημένης εργασίας';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Περίληψη Προσωπικής δρομολόγησης';
 }

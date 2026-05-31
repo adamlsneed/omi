@@ -9369,4 +9369,61 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'رمز ترويجي غير صالح.';
+
+  @override
+  String get templateRouting => 'توجيه القالب';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'التشغيل التلقائي عند الفتح';
+
+  @override
+  String get templateRoutingWorkDays => 'أيام العمل';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'من الاثنين إلى الجمعة';
+
+  @override
+  String get templateRoutingWorkStart => 'بداية العمل';
+
+  @override
+  String get templateRoutingWorkEnd => 'نهاية العمل';
+
+  @override
+  String get templateRoutingWorkPrompt => 'موجه العمل';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'موجه شخصي';
+
+  @override
+  String get templateRoutingSaved => 'تم حفظ توجيه القالب';
+
+  @override
+  String get templateRoutingTimeFormatError => 'استخدم أوقات 24 ساعة مثل 08:00 و17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'يجب أن تكون بداية العمل قبل نهاية العمل.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'قم بإضافة كلا المطالبتين قبل تمكين التوجيه.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'جارٍ تطبيق القالب المحلي...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'لم يُرجع توجيه القالب أي ملخص.';
+
+  @override
+  String get templateRoutingFailed => 'فشل توجيه القالب.';
+
+  @override
+  String get templateRoutingLocalDescription => 'توجيه القالب المحلي';
+
+  @override
+  String get templateRoutingRoutedSummary => 'ملخص موجه';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'ملخص توجيه العمل';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'ملخص التوجيه الشخصي';
 }

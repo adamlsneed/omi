@@ -9430,4 +9430,61 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Código promocional inválido.';
+
+  @override
+  String get templateRouting => 'Roteamento de modelo';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Execução automática ao abrir';
+
+  @override
+  String get templateRoutingWorkDays => 'Dias úteis';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Seg-Sex';
+
+  @override
+  String get templateRoutingWorkStart => 'Início do trabalho';
+
+  @override
+  String get templateRoutingWorkEnd => 'Fim do trabalho';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Solicitação de trabalho';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Alerta pessoal';
+
+  @override
+  String get templateRoutingSaved => 'Roteamento de modelo salvo';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Use horários de 24 horas, como 8h e 17h.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'O início do trabalho deve ser antes do final do trabalho.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Adicione os dois prompts antes de ativar o roteamento.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Aplicando modelo local...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'O roteamento do modelo não retornou nenhum resumo.';
+
+  @override
+  String get templateRoutingFailed => 'Falha no roteamento do modelo.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Roteamento de modelo local';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Resumo roteado';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Resumo do trabalho roteado';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Resumo de roteamento pessoal';
 }

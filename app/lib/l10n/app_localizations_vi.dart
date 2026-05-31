@@ -9422,4 +9422,61 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Mã khuyến mãi không hợp lệ.';
+
+  @override
+  String get templateRouting => 'Định tuyến mẫu';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Tự động chạy khi mở';
+
+  @override
+  String get templateRoutingWorkDays => 'Ngày làm việc';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Thứ Hai-Thứ Sáu';
+
+  @override
+  String get templateRoutingWorkStart => 'Bắt đầu công việc';
+
+  @override
+  String get templateRoutingWorkEnd => 'Kết thúc công việc';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Lời nhắc công việc';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Lời nhắc cá nhân';
+
+  @override
+  String get templateRoutingSaved => 'Đã lưu định tuyến mẫu';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Sử dụng thời gian 24 giờ như 08:00 và 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Thời gian bắt đầu công việc phải trước khi kết thúc công việc.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Thêm cả hai lời nhắc trước khi bật định tuyến.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Đang áp dụng mẫu cục bộ...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Định tuyến mẫu không trả về bản tóm tắt.';
+
+  @override
+  String get templateRoutingFailed => 'Định tuyến mẫu không thành công.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Định tuyến mẫu cục bộ';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Tóm tắt định tuyến';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Tóm tắt lộ trình công việc';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Tóm tắt định tuyến cá nhân';
 }

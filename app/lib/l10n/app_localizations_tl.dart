@@ -9511,4 +9511,61 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Hindi valid na promo code.';
+
+  @override
+  String get templateRouting => 'Pagruruta ng Template';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Auto-run sa bukas';
+
+  @override
+  String get templateRoutingWorkDays => 'Mga araw ng trabaho';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Lun-Biy';
+
+  @override
+  String get templateRoutingWorkStart => 'Pagsisimula ng trabaho';
+
+  @override
+  String get templateRoutingWorkEnd => 'Pagtatapos ng trabaho';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Maagap sa trabaho';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personal na prompt';
+
+  @override
+  String get templateRoutingSaved => 'Na-save ang pagruruta ng template';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Gumamit ng 24 na oras tulad ng 08:00 at 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Ang pagsisimula ng trabaho ay dapat bago matapos ang trabaho.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Idagdag ang parehong mga prompt bago i-enable ang pagruruta.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Inilalapat ang lokal na template...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Walang ibinalik na buod ang pagruruta ng template.';
+
+  @override
+  String get templateRoutingFailed => 'Nabigo ang pagruruta ng template.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokal na pagruruta ng template';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Ruta na Buod';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Buod ng Ruta ng Trabaho';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Personal na Ruta na Buod';
 }

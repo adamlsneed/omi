@@ -9268,4 +9268,61 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => '無効なプロモコードです。';
+
+  @override
+  String get templateRouting => 'テンプレートルーティング';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => '開いたときに自動実行';
+
+  @override
+  String get templateRoutingWorkDays => '勤務日';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => '月曜～金曜';
+
+  @override
+  String get templateRoutingWorkStart => '作業開始';
+
+  @override
+  String get templateRoutingWorkEnd => '作業終了';
+
+  @override
+  String get templateRoutingWorkPrompt => '作業プロンプト';
+
+  @override
+  String get templateRoutingPersonalPrompt => '個人的なプロンプト';
+
+  @override
+  String get templateRoutingSaved => 'テンプレートルーティングが保存されました';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 や 17:00 などの 24 時間時間を使用します。';
+
+  @override
+  String get templateRoutingStartBeforeEndError => '作業開始は作業終了前���なければなりません。';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'ルーティングを有効にする前に、両方のプロンプトを追加します。';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'ローカル テンプレートを適用しています...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'テンプレート ルーティングは概要を返しませんでした。';
+
+  @override
+  String get templateRoutingFailed => 'テンプレートのルーティングに失敗しました。';
+
+  @override
+  String get templateRoutingLocalDescription => 'ローカルテンプレートルーティング';
+
+  @override
+  String get templateRoutingRoutedSummary => 'ルーティングされた概要';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'ルーティングされた作業の概要';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => '個人ルーティン��の概要';
 }

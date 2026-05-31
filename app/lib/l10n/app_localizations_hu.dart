@@ -9465,4 +9465,61 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Érvénytelen promóciós kód.';
+
+  @override
+  String get templateRouting => 'Sablon Routing';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatikus futás nyitott állapotban';
+
+  @override
+  String get templateRoutingWorkDays => 'Munkanapok';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'H-P';
+
+  @override
+  String get templateRoutingWorkStart => 'Munkakezdés';
+
+  @override
+  String get templateRoutingWorkEnd => 'Munka vége';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Munkafelhívás';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Személyes felszólítás';
+
+  @override
+  String get templateRoutingSaved => 'Sablonútválasztás mentve';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Használja a 24 órás időpontokat, például 08:00 és 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'A munka megkezdésének a munka befejezése előtt kell lennie.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Adja hozzá mindkét promptot az útválasztás engedélyezése előtt.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Helyi sablon alkalmazása...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'A sablon útválasztása nem adott vissza összegzést.';
+
+  @override
+  String get templateRoutingFailed => 'A sablon átirányítása nem sikerült.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Helyi sablon útválasztás';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Routed Summary';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Munkairányított összefoglaló';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Személyes útvonal-összefoglaló';
 }

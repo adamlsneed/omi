@@ -9441,4 +9441,61 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'غلط پرومو کوڈ۔';
+
+  @override
+  String get templateRouting => 'ٹیمپلیٹ روٹنگ';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'کھلے پر خودکار چلائیں۔';
+
+  @override
+  String get templateRoutingWorkDays => 'کام کے دن';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'پیر تا جمعہ';
+
+  @override
+  String get templateRoutingWorkStart => 'کام شروع';
+
+  @override
+  String get templateRoutingWorkEnd => 'کام ختم';
+
+  @override
+  String get templateRoutingWorkPrompt => 'کام کا اشارہ';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'ذاتی اشارہ';
+
+  @override
+  String get templateRoutingSaved => 'ٹیمپلیٹ روٹنگ محفوظ ہو گئی۔';
+
+  @override
+  String get templateRoutingTimeFormatError => '24 گھنٹے کے اوقات جیسے 08:00 اور 17:00 استعمال کریں۔';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'کام کا آغاز کام ختم ہونے سے پہلے ہونا چاہیے۔';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'روٹنگ کو فعال کرنے سے پہلے دونوں پرامپٹس شامل کریں۔';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'مقامی ٹیمپلیٹ کا اطلاق ہو رہا ہے...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'ٹیمپلیٹ روٹنگ نے کوئی خلاصہ واپس نہیں کیا۔';
+
+  @override
+  String get templateRoutingFailed => 'ٹیمپلیٹ روٹنگ ناکام ہو گئی۔';
+
+  @override
+  String get templateRoutingLocalDescription => 'مقامی ٹیمپلیٹ روٹنگ';
+
+  @override
+  String get templateRoutingRoutedSummary => 'روٹ شدہ خلاصہ';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'ورک روٹڈ خلاصہ';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'ذاتی روٹڈ خلاصہ';
 }

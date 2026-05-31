@@ -9481,4 +9481,61 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Codice promozionale non valido.';
+
+  @override
+  String get templateRouting => 'Instradamento del modello';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Esecuzione automatica all\'apertura';
+
+  @override
+  String get templateRoutingWorkDays => 'Giorni di lavoro';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Lun-Ven';
+
+  @override
+  String get templateRoutingWorkStart => 'Inizio dei lavori';
+
+  @override
+  String get templateRoutingWorkEnd => 'Fine del lavoro';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Richiesta di lavoro';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Suggerimento personale';
+
+  @override
+  String get templateRoutingSaved => 'Routing del modello salvato';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Utilizza orari di 24 ore come 08:00 e 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'L\'inizio del lavoro deve avvenire prima della fine del lavoro.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Aggiungi entrambi i prompt prima di abilitare il routing.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Applicazione del modello locale...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Il routing del modello non ha restituito alcun riepilogo.';
+
+  @override
+  String get templateRoutingFailed => 'L\'instradamento del modello non è riuscito.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Routing del modello locale';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Riepilogo indirizzato';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Riepilogo del lavoro instradato';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Riepilogo instradato personale';
 }

@@ -9446,4 +9446,61 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Nederīgs reklāmas kods.';
+
+  @override
+  String get templateRouting => 'Veidņu maršrutēšana';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automātiski palaist atvērtā stāvoklī';
+
+  @override
+  String get templateRoutingWorkDays => 'Darba dienas';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'P-Pk';
+
+  @override
+  String get templateRoutingWorkStart => 'Darba sākums';
+
+  @override
+  String get templateRoutingWorkEnd => 'Darba beigas';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Darba uzvedne';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personīga uzvedne';
+
+  @override
+  String get templateRoutingSaved => 'Veidnes maršrutēšana saglabāta';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Izmantojiet 24 stundu laiku, piemēram, 08:00 un 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Darba sākumam jābūt pirms darba beigām.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Pirms maršrutēšanas iespējošanas pievienojiet abas uzvednes.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Notiek vietējās veidnes lietošana...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Veidnes maršrutēšana neatgrieza kopsavilkumu.';
+
+  @override
+  String get templateRoutingFailed => 'Veidnes maršrutēšana neizdevās.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Vietējās veidnes maršrutēšana';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Maršruta kopsavilkums';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Darba maršruta kopsavilkums';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Personiskais maršruta kopsavilkums';
 }

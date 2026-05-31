@@ -9354,4 +9354,61 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'קוד קידום לא תקין.';
+
+  @override
+  String get templateRouting => 'ניתוב תבנית';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'הפעלה אוטומטית בפתיחה';
+
+  @override
+  String get templateRoutingWorkDays => 'ימי עבודה';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'שני-שי';
+
+  @override
+  String get templateRoutingWorkStart => 'תחילת העבודה';
+
+  @override
+  String get templateRoutingWorkEnd => 'סוף עבודה';
+
+  @override
+  String get templateRoutingWorkPrompt => 'הודעת עבודה';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'הנחיה אישית';
+
+  @override
+  String get templateRoutingSaved => 'ניתוב התבנית נשמר';
+
+  @override
+  String get templateRoutingTimeFormatError => 'השתמש בזמנים של 24 שעות כמו 08:00 ו-17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'תחילת העבודה חייבת להיות לפני סיום העבודה.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'הוסף את שתי ההנחיות לפני הפעלת הניתוב.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'מחיל תבנית מקומית...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'ניתוב התבנית לא החזיר סיכום.';
+
+  @override
+  String get templateRoutingFailed => 'ניתוב התבנית נכשל.';
+
+  @override
+  String get templateRoutingLocalDescription => 'ניתוב תבניות מקומי';
+
+  @override
+  String get templateRoutingRoutedSummary => 'סיכום מנותב';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'סיכום עבודה מנותב';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'סיכום מנותב אישי';
 }

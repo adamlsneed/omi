@@ -9403,4 +9403,61 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'अमान्य प्रोमो कोड।';
+
+  @override
+  String get templateRouting => 'टेम्पलेट रूटिंग';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'खुले में स्वतः चलायें';
+
+  @override
+  String get templateRoutingWorkDays => 'कार्य दिवस';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'सोम-शुक्र';
+
+  @override
+  String get templateRoutingWorkStart => 'काम शुरू';
+
+  @override
+  String get templateRoutingWorkEnd => 'काम ख़त्म';
+
+  @override
+  String get templateRoutingWorkPrompt => 'शीघ्र कार्य करें';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'व्यक्तिगत संकेत';
+
+  @override
+  String get templateRoutingSaved => 'टेम्प्लेट रूटिंग सहेजी गई';
+
+  @override
+  String get templateRoutingTimeFormatError => '24 घंटे के समय जैसे 08:00 और 17:00 का उपयोग करें���';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'कार्य प्रारंभ कार्य समाप्ति से पहले होना चाहिए.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'रूटिंग सक्षम करने से पहले दोनों संकेत जोड़ें.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'स्थानीय टेम्पलेट लागू किया जा रहा है...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'टेम्प्लेट रूटिंग से कोई सारांश नहीं लौटा।';
+
+  @override
+  String get templateRoutingFailed => 'टेम्प्लेट रूटिंग विफल.';
+
+  @override
+  String get templateRoutingLocalDescription => 'स्थानीय टेम्पलेट रूटिंग';
+
+  @override
+  String get templateRoutingRoutedSummary => 'रूट किया गया सारांश';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'कार्य रूटेड सारांश';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'व्यक्तिगत रूटेड सारांश';
 }

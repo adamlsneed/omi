@@ -9461,4 +9461,61 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Невалиден промо код.';
+
+  @override
+  String get templateRouting => 'Маршрутизиране на шаблони';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Автоматично стартиране при отваряне';
+
+  @override
+  String get templateRoutingWorkDays => 'Работни дни';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'понеделник-пет';
+
+  @override
+  String get templateRoutingWorkStart => 'Начало на работа';
+
+  @override
+  String get templateRoutingWorkEnd => 'Край на работата';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Подкана за работа';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Лична подкана';
+
+  @override
+  String get templateRoutingSaved => 'Маршрутът на шаблона е запазен';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Използвайте 24-часово време като 08:00 и 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Началото на работата трябва да бъде преди края на работата.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Добавете и двете подкани, преди да активирате маршрутизирането.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Прилага се локален шаблон...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Маршрутизирането на шаблона не върна обобщение.';
+
+  @override
+  String get templateRoutingFailed => 'Неуспешно маршрутизиране на шаблона.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Местно шаблонно маршрутизиране';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Маршрутизирано резюме';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Резюме на пренасочената работа';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Лично пренасочено резюме';
 }

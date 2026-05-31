@@ -9425,4 +9425,61 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Neplatný promo kód.';
+
+  @override
+  String get templateRouting => 'Směrování šablony';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatické spuštění při otevření';
+
+  @override
+  String get templateRoutingWorkDays => 'Pracovní dny';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Po-Pá';
+
+  @override
+  String get templateRoutingWorkStart => 'Začátek práce';
+
+  @override
+  String get templateRoutingWorkEnd => 'Konec práce';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Výzva k práci';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Osobní výzva';
+
+  @override
+  String get templateRoutingSaved => 'Směrování šablony bylo uloženo';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Použijte 24hodinové časy jako 08:00 a 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Začátek práce musí být před koncem práce.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Před povolením směrování přidejte obě výzvy.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Používá se místní šablona...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Směrování šablony nevrátilo žádné shrnutí.';
+
+  @override
+  String get templateRoutingFailed => 'Směrování šablony se nezdařilo.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Místní směrování šablony';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Směrovaný souhrn';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Shrnutí práce';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Osobní shrnutí cesty';
 }

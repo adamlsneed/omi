@@ -9474,4 +9474,61 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Невалиден промо код.';
+
+  @override
+  String get templateRouting => 'Рутирање на шаблоните';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Автоматско активирање на отворено';
+
+  @override
+  String get templateRoutingWorkDays => 'Работни денови';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Пон-петок';
+
+  @override
+  String get templateRoutingWorkStart => 'Почеток на работа';
+
+  @override
+  String get templateRoutingWorkEnd => 'Крај на работата';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Брзо за работа';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Личен потсетник';
+
+  @override
+  String get templateRoutingSaved => 'Рутирањето на шаблоните е зачувано';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Користете 24-часовно време како 08:00 и 17:00 часот.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Почетокот на работата мора да биде пред крајот на работата.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Додадете ги двата потсетници пред да овозможите рутирање.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Се применува локален шаблон...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Рутирањето на шаблоните не врати резиме.';
+
+  @override
+  String get templateRoutingFailed => 'Рутирањето на шаблоните не успеа.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Локално рутирање на шаблоните';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Насочено резиме';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Резиме за насочување на работа';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Лично рутирано резиме';
 }

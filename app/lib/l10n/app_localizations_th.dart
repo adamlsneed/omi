@@ -9374,4 +9374,61 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'รหัสโปรโมชันไม่ถูกต้อง';
+
+  @override
+  String get templateRouting => 'การกำหนดเส้นทางเทมเพลต';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'ทำงานอัตโนมัติเมื่อเปิด';
+
+  @override
+  String get templateRoutingWorkDays => 'วันทำงาน';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'จันทร์-ศุกร์';
+
+  @override
+  String get templateRoutingWorkStart => 'เริ่มงาน';
+
+  @override
+  String get templateRoutingWorkEnd => 'จบงาน';
+
+  @override
+  String get templateRoutingWorkPrompt => 'พร้อมท์งาน';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'พรอมต์ส่วนบุคคล';
+
+  @override
+  String get templateRoutingSaved => 'บันทึกการกำหนดเส้นทางเทมเพลตแล้ว';
+
+  @override
+  String get templateRoutingTimeFormatError => 'ใช้ช่วงเวลา 24 ชั่วโมง เช่น 08:00 และ 17:00 น.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'การเริ่มงานต้องมาก่อนสิ้นสุดงาน';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'เพิ่มพรอมต์ทั้งสองก่อนเปิดใช้งานการกำหนดเส้นทาง';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'กำลังใช้เทมเพลตในเครื่อง...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'การกำหนดเส้นทางเทมเพลตไม่ส่งคืนข้อมูลสรุป';
+
+  @override
+  String get templateRoutingFailed => 'การกำหนดเส้นทางเทมเพลตล้มเหลว';
+
+  @override
+  String get templateRoutingLocalDescription => 'การกำหนดเส้นทางเทมเพลตในเครื่อง';
+
+  @override
+  String get templateRoutingRoutedSummary => 'สรุปเส้นทาง';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'สรุปเส้นทางการทำงาน';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'สรุปเส้นทางส่วนบุคคล';
 }

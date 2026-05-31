@@ -9421,4 +9421,61 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ugyldig kampanjekode.';
+
+  @override
+  String get templateRouting => 'Ruting av maler';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Autokjør på åpen';
+
+  @override
+  String get templateRoutingWorkDays => 'Arbeidsdager';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'man-fre';
+
+  @override
+  String get templateRoutingWorkStart => 'Arbeidet starter';
+
+  @override
+  String get templateRoutingWorkEnd => 'Arbeid slutt';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Arbeidsmelding';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personlig forespørsel';
+
+  @override
+  String get templateRoutingSaved => 'Malruting lagret';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Bruk 24-timers tider som 08:00 og 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Arbeidsstart må være før arbeidet avsluttes.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Legg til begge ledetekstene før du aktiverer ruting.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Bruker lokal mal ...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Malruting returnerte ingen oppsummering.';
+
+  @override
+  String get templateRoutingFailed => 'Malruting mislyktes.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokal malruting';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Rutede sammendrag';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Arbeidsrutet sammendrag';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Personlig rutet sammendrag';
 }

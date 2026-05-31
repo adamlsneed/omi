@@ -9428,4 +9428,61 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'کد تخفیف نامعتبر.';
+
+  @override
+  String get templateRouting => 'مسیریابی الگو';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'اجرای خودکار در حالت باز';
+
+  @override
+  String get templateRoutingWorkDays => 'روزهای کاری';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'دوشنبه - جمعه';
+
+  @override
+  String get templateRoutingWorkStart => 'شروع کار';
+
+  @override
+  String get templateRoutingWorkEnd => 'پایان کار';
+
+  @override
+  String get templateRoutingWorkPrompt => 'سریع کار';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'درخواست شخصی';
+
+  @override
+  String get templateRoutingSaved => 'مسیریابی الگو ذخیره شد';
+
+  @override
+  String get templateRoutingTimeFormatError => 'از ساعات 24 ساعته مانند 08:00 و 17:00 استفاده کنید.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'شروع کار باید قبل از پایان کار باشد.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'قبل از فعال کردن مسیریابی، هر دو فرمان را اضافه کنید.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'در حال اعمال الگوی محلی...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'مسیریابی الگو هیچ خلاصه ای برگرداند.';
+
+  @override
+  String get templateRoutingFailed => 'مسیریابی الگو ناموفق بود.';
+
+  @override
+  String get templateRoutingLocalDescription => 'مسیریابی قالب م��لی';
+
+  @override
+  String get templateRoutingRoutedSummary => 'خلاصه مسیریابی';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'خلاصه کار مسیریابی';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'خلاصه مسیریابی شخصی';
 }

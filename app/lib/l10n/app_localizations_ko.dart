@@ -9271,4 +9271,61 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => '유효하지 않은 프로모 코드입니다.';
+
+  @override
+  String get templateRouting => '템플릿 라우팅';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => '열 때 자동 실행';
+
+  @override
+  String get templateRoutingWorkDays => '근무일';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => '월~금';
+
+  @override
+  String get templateRoutingWorkStart => '작업 시작';
+
+  @override
+  String get templateRoutingWorkEnd => '작업 종료';
+
+  @override
+  String get templateRoutingWorkPrompt => '작업 프롬프트';
+
+  @override
+  String get templateRoutingPersonalPrompt => '개인 프롬프트';
+
+  @override
+  String get templateRoutingSaved => '템플릿 라우팅이 저장되었습니다.';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00, 17:00 등 24시간제를 사용하세요.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => '작업 시작은 작업 종료 이전이어야 합니다.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => '라우팅을 활성화하기 전에 두 프롬프트를 모두 추가하세요.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => '로컬 템플릿을 적용하는 중...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => '템플릿 라우팅에서 요약이 반환되지 않았습니다.';
+
+  @override
+  String get templateRoutingFailed => '템플릿 라우팅에 실패했습니다.';
+
+  @override
+  String get templateRoutingLocalDescription => '로컬 템플릿 라우팅';
+
+  @override
+  String get templateRoutingRoutedSummary => '전달된 요약';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => '업무 전달 요약';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => '개인 라우팅 요약';
 }

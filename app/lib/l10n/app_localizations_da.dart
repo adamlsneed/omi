@@ -9410,4 +9410,61 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ugyldig kampagnekode.';
+
+  @override
+  String get templateRouting => 'Skabelon Routing';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Kør automatisk på åben';
+
+  @override
+  String get templateRoutingWorkDays => 'Arbejdsdage';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'man-fre';
+
+  @override
+  String get templateRoutingWorkStart => 'Arbejdet starter';
+
+  @override
+  String get templateRoutingWorkEnd => 'Arbejdet slutter';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Arbejdsprompt';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personlig opfordring';
+
+  @override
+  String get templateRoutingSaved => 'Skabelon routing gemt';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Brug 24-timers tider som 08:00 og 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Arbejdsstart skal være før arbejdets afslutning.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Tilføj begge prompter, før du aktiverer routing.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Anvender lokal skabelon...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Skabelon routing returnerede ingen oversigt.';
+
+  @override
+  String get templateRoutingFailed => 'Skabelonrouting mislykkedes.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokal skabelon routing';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Rutede oversigt';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Oversigt over arbejdet';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Resumé af personlig rute';
 }

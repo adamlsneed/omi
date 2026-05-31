@@ -9458,4 +9458,61 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Недействительный промокод.';
+
+  @override
+  String get templateRouting => 'Маршрутизация шаблонов';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Автозапуск при открытии';
+
+  @override
+  String get templateRoutingWorkDays => 'Рабочие дни';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Пн-Пт';
+
+  @override
+  String get templateRoutingWorkStart => 'Начало работы';
+
+  @override
+  String get templateRoutingWorkEnd => 'Конец работы';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Работа подсказка';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Персональная подсказка';
+
+  @override
+  String get templateRoutingSaved => 'Маршрут шаблона сохранен.';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Используйте 24-часовой формат времени, например 08:00 и 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Начало работы должно быть раньше окончания работы.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Добавьте оба запроса перед включением маршрутизации.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Применение локального шаблона...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Маршрутизация шаблонов не дала сводных данных.';
+
+  @override
+  String get templateRoutingFailed => 'Маршрутизация шаблона не удалась.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Локальная маршрутизация шаблонов';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Сводная информация о маршрутизации';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Сводная информация о маршрутизации работы';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Сводка по личному маршруту';
 }

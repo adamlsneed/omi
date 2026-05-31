@@ -9420,4 +9420,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Invalid promotion code.';
+
+  @override
+  String get templateRouting => 'Template Routing';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Auto-run on open';
+
+  @override
+  String get templateRoutingWorkDays => 'Work days';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Mon-Fri';
+
+  @override
+  String get templateRoutingWorkStart => 'Work start';
+
+  @override
+  String get templateRoutingWorkEnd => 'Work end';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Work prompt';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personal prompt';
+
+  @override
+  String get templateRoutingSaved => 'Template routing saved';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Use 24-hour times like 08:00 and 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Work start must be before work end.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Add both prompts before enabling routing.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Applying local template...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Template routing returned no summary.';
+
+  @override
+  String get templateRoutingFailed => 'Template routing failed.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Local template routing';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Routed Summary';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Work Routed Summary';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Personal Routed Summary';
 }

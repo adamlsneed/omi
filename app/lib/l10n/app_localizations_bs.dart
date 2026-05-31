@@ -9450,4 +9450,61 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Nevažeći promo kod.';
+
+  @override
+  String get templateRouting => 'Template Routing';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Auto-run na otvorenom';
+
+  @override
+  String get templateRoutingWorkDays => 'Radni dani';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'pon-pet';
+
+  @override
+  String get templateRoutingWorkStart => 'Početak rada';
+
+  @override
+  String get templateRoutingWorkEnd => 'Kraj rada';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Radni red';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personal prompt';
+
+  @override
+  String get templateRoutingSaved => 'Usmjeravanje šablona je sačuvano';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Koristite 24-satno vrijeme poput 08:00 i 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Početak rada mora biti prije završetka rada.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Dodajte oba upita prije omogućavanja usmjeravanja.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Primjena lokalnog predloška...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Usmjeravanje šablona nije vratilo sažetak.';
+
+  @override
+  String get templateRoutingFailed => 'Usmjeravanje šablona nije uspjelo.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokalno rutiranje šablona';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Routed Summary';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Work Routed Summary';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Personal Routed Summary';
 }

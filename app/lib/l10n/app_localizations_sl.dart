@@ -9452,4 +9452,61 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Neveljavna promocijska koda.';
+
+  @override
+  String get templateRouting => 'Usmerjanje predloge';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Samodejni zagon ob odprtju';
+
+  @override
+  String get templateRoutingWorkDays => 'Delovni dnevi';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'pon-pet';
+
+  @override
+  String get templateRoutingWorkStart => 'Začetek dela';
+
+  @override
+  String get templateRoutingWorkEnd => 'Konec dela';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Delovni poziv';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Osebni poziv';
+
+  @override
+  String get templateRoutingSaved => 'Usmerjanje predloge je shranjeno';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Uporabite 24-urni čas, kot sta 08:00 in 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Začetek dela mora biti pred koncem dela.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Dodajte oba poziva, preden omogočite usmerjanje.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Uporaba lokalne predloge ...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Usmerjanje predloge ni vrnilo povzetka.';
+
+  @override
+  String get templateRoutingFailed => 'Usmerjanje predloge ni uspelo.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Usmerjanje lokalne predloge';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Preusmerjeni povzetek';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Povzetek usmerjanja dela';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Osebno usmerjen povzetek';
 }

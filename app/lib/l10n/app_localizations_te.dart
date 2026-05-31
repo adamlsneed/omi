@@ -9474,4 +9474,61 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'చెల్లని ప్రోమో కోడ్.';
+
+  @override
+  String get templateRouting => 'టెంప్లేట్ రూటింగ్';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'ఓపెన్ ఆన్‌లో ఆటో-రన్';
+
+  @override
+  String get templateRoutingWorkDays => 'పని రోజులు';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'సోమ-శుక్ర';
+
+  @override
+  String get templateRoutingWorkStart => 'పని ప్రారంభం';
+
+  @override
+  String get templateRoutingWorkEnd => 'పని ముగింపు';
+
+  @override
+  String get templateRoutingWorkPrompt => 'పని ప్రాంప్ట్';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'వ్యక్తిగత ప్రాంప్ట్';
+
+  @override
+  String get templateRoutingSaved => 'టెంప్లేట్ రూటింగ్ సేవ్ చేయబడింది';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 మరియు 17:00 వంటి 24-గంటల సమయాలను ఉపయోగించండి.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'పని ప్రారంభం తప్పనిసరిగా పని ముగిసే ముందు ఉండాలి.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'రూటింగ్‌ని ప్రారంభించే ముందు రెండు ప్రాంప్ట్‌లను జోడించండి.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'స్థానిక టెంప్లేట్‌ని వర్తింపజేస్తోంది...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'టెంప్లేట్ రూటింగ్ సారాంశాన్ని అందించలేదు.';
+
+  @override
+  String get templateRoutingFailed => 'టెంప్లేట్ రూటింగ్ విఫలమైంది.';
+
+  @override
+  String get templateRoutingLocalDescription => 'స్థానిక టెంప్లేట్ రూటింగ్';
+
+  @override
+  String get templateRoutingRoutedSummary => 'రూట్ చేయబడిన సారాంశం';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'పని రూటెడ్ సారాంశం';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'వ్యక్తిగత రూటెడ్ సారాంశం';
 }

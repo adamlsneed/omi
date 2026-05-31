@@ -9436,4 +9436,61 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Geçersiz promosyon kodu.';
+
+  @override
+  String get templateRouting => 'Şablon Yönlendirme';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Açılışta otomatik çalıştırma';
+
+  @override
+  String get templateRoutingWorkDays => 'Çalışma günleri';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Pazartesi-Cum';
+
+  @override
+  String get templateRoutingWorkStart => 'İş başlangıcı';
+
+  @override
+  String get templateRoutingWorkEnd => 'İşin sonu';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Çalışma istemi';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Kişisel istem';
+
+  @override
+  String get templateRoutingSaved => 'Şablon yönlendirmesi kaydedildi';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 ve 17:00 gibi 24 saatlik zamanları kullanın.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'İş başlangıcı iş bitiminden önce olmalıdır.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Yönlendirmeyi etkinleştirmeden önce her iki istemi de ekleyin.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Yerel şablon uygulanıyor...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Şablon yönlendirmesi özet döndürmedi.';
+
+  @override
+  String get templateRoutingFailed => 'Şablon yönlendirme başarısız oldu.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Yerel şablon yönlendirme';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Yönlendirilmiş Özet';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Yönlendirilmiş Çalışma Özeti';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Kişisel Yönlendirilmiş Özet';
 }

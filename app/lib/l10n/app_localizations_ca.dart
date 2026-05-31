@@ -9480,4 +9480,61 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Codi promocional no vàlid.';
+
+  @override
+  String get templateRouting => 'Enrutament de plantilles';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Execució automàtica en obertura';
+
+  @override
+  String get templateRoutingWorkDays => 'Dies de treball';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'de dilluns a divendres';
+
+  @override
+  String get templateRoutingWorkStart => 'Inici de les obres';
+
+  @override
+  String get templateRoutingWorkEnd => 'Final de treball';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Instrucció de treball';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Indicació personal';
+
+  @override
+  String get templateRoutingSaved => 'S\'ha desat l\'encaminament de la plantilla';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Utilitzeu hores de 24 hores com les 08:00 i les 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'L\'inici de l\'obra ha de ser abans de la finalització de l\'obra.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Afegiu les dues indicacions abans d\'habilitar l\'encaminament.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'S\'està aplicant la plantilla local...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'L\'encaminament de la plantilla no ha retornat cap resum.';
+
+  @override
+  String get templateRoutingFailed => 'Ha fallat l\'encaminament de la plantilla.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Plantilla d\'encaminament local';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Resum de ruta';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Resum de la ruta del treball';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Resum de ruta personal';
 }
