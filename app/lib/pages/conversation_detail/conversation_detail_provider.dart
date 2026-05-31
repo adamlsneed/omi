@@ -40,6 +40,9 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
   bool routedSummaryLoading = false;
   String? routedSummaryError;
   String? _routedSummaryRequestKey;
+  static const String routedSummaryMissingPromptsError = 'missing_prompts';
+  static const String routedSummaryEmptyResponseError = 'empty_response';
+  static const String routedSummaryFailedError = 'failed';
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -419,17 +422,6 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
 
   bool get isRoutedSummaryActive => routedSummary != null && routedSummary!.content.trim().isNotEmpty;
 
-  String get routedSummaryLabel {
-    final profile = routedSummary?.profile.label;
-    return profile == null ? 'Routed Summary' : '$profile Routed Summary';
-  }
-
-  String get routedSummaryDescription {
-    final generatedAt = routedSummary?.generatedAt;
-    if (generatedAt == null) return 'Local template routing';
-    return 'Local template routing';
-  }
-
   void _clearRoutedSummary() {
     routedSummary = null;
     routedSummaryLoading = false;
@@ -510,7 +502,7 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     if (!config.hasRequiredPrompts) {
       routedSummary = null;
       routedSummaryLoading = false;
-      routedSummaryError = 'Template routing needs both prompts.';
+      routedSummaryError = routedSummaryMissingPromptsError;
       notifyListeners();
       return;
     }
@@ -550,7 +542,7 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       if (_isDisposed || conversationOrNull?.id != currentConversation.id) return;
 
       if (content.isEmpty) {
-        routedSummaryError = 'Template routing returned no summary.';
+        routedSummaryError = routedSummaryEmptyResponseError;
         return;
       }
 
@@ -569,7 +561,7 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     } catch (e) {
       Logger.debug('Error generating routed summary: $e');
       if (!_isDisposed && conversationOrNull?.id == currentConversation.id) {
-        routedSummaryError = 'Template routing failed.';
+        routedSummaryError = routedSummaryFailedError;
       }
     } finally {
       if (!_isDisposed && conversationOrNull?.id == currentConversation.id) {

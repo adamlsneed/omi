@@ -223,14 +223,18 @@ ${profilePrompt.trim()}
     required DateTime conversationLocalTime,
     required String? sourceName,
   }) {
-    return stableHash(
-      buildPrompt(
+    final workWeekdays = [...config.workWeekdays]..sort();
+    return stableHash(jsonEncode({
+      'prompt': buildPrompt(
         profile: profile,
         conversationLocalTime: conversationLocalTime,
         sourceName: sourceName,
         profilePrompt: config.promptFor(profile),
       ),
-    );
+      'work_start_minutes': config.workStartMinutes,
+      'work_end_minutes': config.workEndMinutes,
+      'work_weekdays': workWeekdays,
+    }));
   }
 
   static String stableHash(String input) {
