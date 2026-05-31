@@ -922,6 +922,7 @@ class FloatingControlBarManager {
             window.dismissNotification(animated: false)
         }
         window?.orderOut(nil)
+        CursorPTTOverlayManager.shared.applyIdlePreference()
         scheduleSnoozeTimer()
         AnalyticsManager.shared.floatingBarToggled(visible: false, source: "snooze")
     }
@@ -934,6 +935,7 @@ class FloatingControlBarManager {
         if isEnabled {
             window?.makeKeyAndOrderFront(nil)
         }
+        CursorPTTOverlayManager.shared.applyIdlePreference()
     }
 
     private func scheduleSnoozeTimer() {
@@ -1105,9 +1107,11 @@ class FloatingControlBarManager {
         isEnabled = true
         if isSnoozed {
             log("FloatingControlBarManager: show() suppressed because bar is snoozed until \(snoozedUntil?.description ?? "?")")
+            CursorPTTOverlayManager.shared.applyIdlePreference()
             return
         }
         window?.makeKeyAndOrderFront(nil)
+        CursorPTTOverlayManager.shared.applyIdlePreference()
         log("FloatingControlBarManager: show() done, frame=\(window?.frame ?? .zero)")
 
         // Auto-focus input if AI conversation is open
@@ -1122,6 +1126,7 @@ class FloatingControlBarManager {
     func hide() {
         isEnabled = false
         window?.orderOut(nil)
+        CursorPTTOverlayManager.shared.applyIdlePreference()
     }
 
     /// Show the floating bar temporarily without changing the user's persisted preference.

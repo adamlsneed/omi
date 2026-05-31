@@ -2548,6 +2548,24 @@ struct SettingsContentView: View {
         }
       }
 
+      settingsCard(settingId: "floatingbar.cursordot") {
+        HStack(spacing: 16) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Show cursor dot")
+              .scaledFont(size: 16, weight: .semibold)
+              .foregroundColor(OmiColors.textPrimary)
+            Text("Show a small Omi dot beside the cursor when idle.")
+              .scaledFont(size: 13)
+              .foregroundColor(OmiColors.textSecondary)
+          }
+          Spacer()
+          Toggle("", isOn: $shortcutSettings.cursorIdleDotEnabled)
+            .toggleStyle(.switch)
+            .tint(OmiColors.purplePrimary)
+            .labelsHidden()
+        }
+      }
+
       settingsCard(settingId: "floatingbar.background") {
         VStack(alignment: .leading, spacing: 16) {
           Text("Background Style")

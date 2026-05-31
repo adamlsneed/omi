@@ -10,7 +10,7 @@ import SwiftUI
 ///   startProcessing()     — spinning ring; between Option release and first AI token
 ///   startResponding(barState:) — streaming bubble; intercepts mouse clicks for dismiss
 ///   showNotification(_:)  — amber bubble for proactive alerts
-///   dismiss()             — returns to idle; never restores the floating bar
+///   dismiss()             — returns to idle when enabled; never restores the floating bar
 @MainActor
 final class CursorPTTOverlayManager {
     static let shared = CursorPTTOverlayManager()
@@ -23,15 +23,72 @@ final class CursorPTTOverlayManager {
     private var transcriptCancellable: AnyCancellable?
     private var queryCancellable: AnyCancellable?
     private var autoDismissWork: DispatchWorkItem?
+    private var cursorIdleDotObserver: NSObjectProtocol?
 
-    private init() {}
+    private init() {
+        cursorIdleDotObserver = NotificationCenter.default.addObserver(
+            forName: ShortcutSettings.cursorIdleDotVisibilityChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.applyIdlePreference()
+            }
+        }
+    }
 
     // MARK: - Public API
 
+    static func shouldShowIdleDot(
+        cursorIdleDotEnabled: Bool,
+        floatingBarEnabled: Bool,
+        snoozedUntil: Date?,
+        now: Date = Date()
+    ) -> Bool {
+        cursorIdleDotEnabled
+            && floatingBarEnabled
+            && !(snoozedUntil.map { $0 > now } ?? false)
+    }
+
+    static func shouldShowOverlayPhase(
+        _ phase: CursorPTTOverlayState.Phase,
+        cursorIdleDotEnabled: Bool,
+        floatingBarEnabled: Bool,
+        snoozedUntil: Date?,
+        now: Date = Date()
+    ) -> Bool {
+        switch phase {
+        case .hidden:
+            return false
+        case .idle:
+            return shouldShowIdleDot(
+                cursorIdleDotEnabled: cursorIdleDotEnabled,
+                floatingBarEnabled: floatingBarEnabled,
+                snoozedUntil: snoozedUntil,
+                now: now
+            )
+        case .listening, .processing, .responding, .notifying, .executing:
+            return true
+        }
+    }
+
     func showIdle() {
+        guard shouldShowCurrentIdleDot else {
+            overlayState.phase = .hidden
+            stopCursorTimer()
+            panel?.ignoresMouseEvents = true
+            panel?.orderOut(nil)
+            return
+        }
+
         overlayState.phase = .idle
         showPanel(interceptMouse: false)
         startCursorTimer()
+    }
+
+    func applyIdlePreference() {
+        guard overlayState.phase == .idle || overlayState.phase == .hidden else { return }
+        showIdle()
     }
 
     func startListening(barState: FloatingControlBarState) {
@@ -41,6 +98,7 @@ final class CursorPTTOverlayManager {
         // schedule an auto-dismiss that fires and kills the incoming new response.
         cancelResponseSubscriptions()
         resetContent()
+        showActivePanel(interceptMouse: false)
         overlayState.phase = .listening
         panel?.ignoresMouseEvents = true
 
@@ -53,6 +111,7 @@ final class CursorPTTOverlayManager {
 
     func startProcessing() {
         // Keep transcriptCancellable alive — batch transcript arrives during this phase
+        showActivePanel(interceptMouse: false)
         overlayState.phase = .processing
         panel?.ignoresMouseEvents = true
     }
@@ -63,6 +122,7 @@ final class CursorPTTOverlayManager {
         // Clear stale message before subscribing so the publisher doesn't immediately
         // fire with an old complete message and trigger a premature auto-dismiss.
         barState.currentAIMessage = nil
+        showActivePanel(interceptMouse: true)
         overlayState.phase = .responding
         panel?.ignoresMouseEvents = false
 
@@ -94,6 +154,7 @@ final class CursorPTTOverlayManager {
         transcriptCancellable = nil
         overlayState.displayedQuery = notification.title
         overlayState.streamingText = notification.message
+        showActivePanel(interceptMouse: true)
         overlayState.phase = .notifying
         panel?.ignoresMouseEvents = false
         scheduleAutoDismiss(after: 6.0)
@@ -105,8 +166,7 @@ final class CursorPTTOverlayManager {
         cancelResponseSubscriptions()
         transcriptCancellable = nil
         resetContent()
-        overlayState.phase = .idle
-        panel?.ignoresMouseEvents = true
+        showIdle()
     }
 
     func startExecution() {
@@ -114,13 +174,13 @@ final class CursorPTTOverlayManager {
         autoDismissWork = nil
         cancelResponseSubscriptions()
         transcriptCancellable = nil
+        showActivePanel(interceptMouse: true)
         overlayState.phase = .executing
         panel?.ignoresMouseEvents = false
     }
 
     func cancelExecution() {
-        overlayState.phase = .idle
-        panel?.ignoresMouseEvents = true
+        showIdle()
     }
 
     func finishExecution() {
@@ -162,6 +222,11 @@ final class CursorPTTOverlayManager {
         }
         panel?.ignoresMouseEvents = !interceptMouse
         panel?.orderFrontRegardless()
+    }
+
+    private func showActivePanel(interceptMouse: Bool) {
+        showPanel(interceptMouse: interceptMouse)
+        startCursorTimer()
     }
 
     private func makePTTPanel() -> NSPanel? {
@@ -259,5 +324,13 @@ final class CursorPTTOverlayManager {
         overlayState.streamingText = ""
         overlayState.transcriptText = ""
         overlayState.displayedQuery = ""
+    }
+
+    private var shouldShowCurrentIdleDot: Bool {
+        Self.shouldShowIdleDot(
+            cursorIdleDotEnabled: ShortcutSettings.shared.cursorIdleDotEnabled,
+            floatingBarEnabled: FloatingControlBarManager.shared.isEnabled,
+            snoozedUntil: FloatingControlBarManager.shared.snoozedUntil
+        )
     }
 }
