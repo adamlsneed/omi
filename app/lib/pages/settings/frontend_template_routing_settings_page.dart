@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
+import 'package:provider/provider.dart';
+
+import 'package:omi/backend/schema/app.dart';
+import 'package:omi/pages/apps/widgets/capability_apps_page.dart';
+import 'package:omi/providers/app_provider.dart';
 import 'package:omi/services/frontend_template_router.dart';
 import 'package:omi/utils/l10n_extensions.dart';
+import 'package:omi/utils/other/temp.dart';
 
 class FrontendTemplateRoutingSettingsPage extends StatefulWidget {
   const FrontendTemplateRoutingSettingsPage({super.key});
@@ -19,6 +26,7 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
   late FrontendTemplateRoutingConfig _config;
   String? _error;
   bool _saving = false;
+  bool _loadingApps = false;
 
   @override
   void initState() {
@@ -28,6 +36,16 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
     _workEndController.text = _formatMinutes(_config.workEndMinutes);
     _workPromptController.text = _config.workPrompt;
     _personalPromptController.text = _config.personalPrompt;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureAppsLoaded());
+  }
+
+  Future<void> _ensureAppsLoaded() async {
+    final appProvider = context.read<AppProvider>();
+    if (appProvider.apps.isNotEmpty) return;
+    setState(() => _loadingApps = true);
+    await appProvider.getApps();
+    if (!mounted) return;
+    setState(() => _loadingApps = false);
   }
 
   @override
@@ -37,6 +55,63 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
     _workPromptController.dispose();
     _personalPromptController.dispose();
     super.dispose();
+  }
+
+  /// Enabled apps that can summarize a conversation (capability `memories`).
+  List<App> _summaryApps(AppProvider provider) =>
+      provider.apps.where((app) => app.enabled && app.worksWithMemories()).toList();
+
+  String _appLabel(String appId, List<App> apps) {
+    if (appId.trim().isEmpty) return context.l10n.templateRoutingTemplateNone;
+    final match = apps.firstWhereOrNull((a) => a.id == appId) ??
+        context.read<AppProvider>().apps.firstWhereOrNull((a) => a.id == appId);
+    return match?.name ?? context.l10n.templateRoutingTemplateNone;
+  }
+
+  Future<void> _pickTemplate({
+    required String currentAppId,
+    required List<App> apps,
+    required ValueChanged<String> onPicked,
+  }) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              ListTile(
+                title: Text(context.l10n.templateRoutingTemplateNone, style: const TextStyle(color: Colors.white)),
+                trailing: currentAppId.trim().isEmpty ? const Icon(Icons.check, color: Color(0xFF7C4DFF)) : null,
+                onTap: () => Navigator.pop(sheetContext, ''),
+              ),
+              const Divider(height: 1, color: Color(0xFF3C3C43)),
+              ...apps.map(
+                (app) => ListTile(
+                  title: Text(app.name, style: const TextStyle(color: Colors.white)),
+                  trailing: app.id == currentAppId ? const Icon(Icons.check, color: Color(0xFF7C4DFF)) : null,
+                  onTap: () => Navigator.pop(sheetContext, app.id),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null) onPicked(selected);
+  }
+
+  void _openSummaryApps() {
+    final memoriesApps = context.read<AppProvider>().apps.where((app) => app.worksWithMemories()).toList();
+    routeToPage(
+      context,
+      CapabilityAppsPage(
+        capability: AppCapability(title: context.l10n.summary, id: 'memories'),
+        apps: memoriesApps,
+      ),
+    );
   }
 
   Future<void> _save() async {
@@ -55,10 +130,6 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
       setState(() => _error = context.l10n.templateRoutingStartBeforeEndError);
       return;
     }
-    if (_config.enabled && (workPrompt.isEmpty || personalPrompt.isEmpty)) {
-      setState(() => _error = context.l10n.templateRoutingPromptsRequiredError);
-      return;
-    }
 
     final nextConfig = _config.copyWith(
       workStartMinutes: start,
@@ -66,6 +137,12 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
       workPrompt: workPrompt,
       personalPrompt: personalPrompt,
     );
+
+    // A profile is usable with either a backend template or a free-text prompt.
+    if (nextConfig.enabled && !nextConfig.isFullyConfigured) {
+      setState(() => _error = context.l10n.templateRoutingProfileRequiredError);
+      return;
+    }
 
     setState(() => _saving = true);
     await _store.saveConfig(nextConfig);
@@ -133,6 +210,40 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
     );
   }
 
+  Widget _templatePickerRow({
+    required String label,
+    required String selectedAppId,
+    required List<App> apps,
+    required ValueChanged<String> onPicked,
+  }) {
+    return InkWell(
+      onTap: _loadingApps ? null : () => _pickTemplate(currentAppId: selectedAppId, apps: apps, onPicked: onPicked),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w400),
+              ),
+            ),
+            Flexible(
+              child: Text(
+                _appLabel(selectedAppId, apps),
+                textAlign: TextAlign.right,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16),
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right, color: Color(0xFF8E8E93), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _promptField({required String label, required TextEditingController controller}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -162,6 +273,7 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
 
   @override
   Widget build(BuildContext context) {
+    final summaryApps = _summaryApps(context.watch<AppProvider>());
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -230,6 +342,47 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
                 _divider(),
                 _timeField(label: context.l10n.templateRoutingWorkEnd, controller: _workEndController),
               ],
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 8),
+              child: Text(
+                context.l10n.templateRoutingBackendTemplateSection,
+                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+            _section(
+              children: [
+                _templatePickerRow(
+                  label: context.l10n.templateRoutingWorkTemplate,
+                  selectedAppId: _config.workAppId,
+                  apps: summaryApps,
+                  onPicked: (id) => setState(() => _config = _config.copyWith(workAppId: id)),
+                ),
+                _divider(),
+                _templatePickerRow(
+                  label: context.l10n.templateRoutingPersonalTemplate,
+                  selectedAppId: _config.personalAppId,
+                  apps: summaryApps,
+                  onPicked: (id) => setState(() => _config = _config.copyWith(personalAppId: id)),
+                ),
+                _divider(),
+                ListTile(
+                  title: Text(
+                    context.l10n.templateRoutingManageApps,
+                    style: const TextStyle(color: Color(0xFF7C4DFF), fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Color(0xFF7C4DFF), size: 20),
+                  onTap: _openSummaryApps,
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+              child: Text(
+                context.l10n.templateRoutingTemplateHint,
+                style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 13, height: 1.3),
+              ),
             ),
             const SizedBox(height: 24),
             _section(

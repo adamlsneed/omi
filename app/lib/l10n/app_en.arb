@@ -11250,5 +11250,33 @@
     "templateRoutingPersonalRoutedSummary": "Personal Routed Summary",
     "@templateRoutingPersonalRoutedSummary": {
         "description": "Label for a local routed summary generated with the personal profile."
+    },
+    "templateRoutingBackendTemplateSection": "Backend template (optional)",
+    "@templateRoutingBackendTemplateSection": {
+        "description": "Header for the section to pick a backend app/template per routing profile"
+    },
+    "templateRoutingWorkTemplate": "Work template",
+    "@templateRoutingWorkTemplate": {
+        "description": "Label for the backend template used during work hours"
+    },
+    "templateRoutingPersonalTemplate": "Personal template",
+    "@templateRoutingPersonalTemplate": {
+        "description": "Label for the backend template used outside work hours"
+    },
+    "templateRoutingTemplateNone": "None — use prompt",
+    "@templateRoutingTemplateNone": {
+        "description": "Dropdown option meaning no backend template; the free-text prompt is used instead"
+    },
+    "templateRoutingManageApps": "Enable summary apps",
+    "@templateRoutingManageApps": {
+        "description": "Link to the page where the user can enable summary-capable apps"
+    },
+    "templateRoutingTemplateHint": "Pick an installed summary app for this profile, or keep None to use the prompt above.",
+    "@templateRoutingTemplateHint": {
+        "description": "Helper text under the backend template pickers"
+    },
+    "templateRoutingProfileRequiredError": "Add a prompt or a template for both Work and Personal before enabling.",
+    "@templateRoutingProfileRequiredError": {
+        "description": "Validation error when enabling routing without a prompt or template for each profile"
     }
 }

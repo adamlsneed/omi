@@ -71,6 +71,39 @@ void main() {
       expect(decoded.personalPrompt, 'Summarize this as personal context.');
     });
 
+    test('round trips backend template app ids', () {
+      final withApps = config.copyWith(workAppId: 'app-work-1', personalAppId: 'app-personal-2');
+      final decoded = FrontendTemplateRoutingConfig.fromJson(withApps.toJson());
+
+      expect(decoded.workAppId, 'app-work-1');
+      expect(decoded.personalAppId, 'app-personal-2');
+      expect(decoded.appIdFor(FrontendTemplateProfile.work), 'app-work-1');
+      expect(decoded.appIdFor(FrontendTemplateProfile.personal), 'app-personal-2');
+    });
+
+    test('appIdFor returns null and usesTemplateFor is false when no template selected', () {
+      final noApps = FrontendTemplateRoutingConfig.defaults();
+      expect(noApps.appIdFor(FrontendTemplateProfile.work), isNull);
+      expect(noApps.appIdFor(FrontendTemplateProfile.personal), isNull);
+      expect(noApps.usesTemplateFor(FrontendTemplateProfile.work), isFalse);
+    });
+
+    test('a profile is configured with either a backend template or a prompt', () {
+      // Work via template, Personal via prompt -> fully configured.
+      final mixed = FrontendTemplateRoutingConfig.defaults()
+          .copyWith(enabled: true, workAppId: 'app-1', personalPrompt: 'Personal summary.');
+      expect(mixed.usesTemplateFor(FrontendTemplateProfile.work), isTrue);
+      expect(mixed.isConfiguredFor(FrontendTemplateProfile.work), isTrue);
+      expect(mixed.isConfiguredFor(FrontendTemplateProfile.personal), isTrue);
+      expect(mixed.isFullyConfigured, isTrue);
+
+      // Personal has neither template nor prompt -> not fully configured.
+      final missingPersonal =
+          FrontendTemplateRoutingConfig.defaults().copyWith(enabled: true, workPrompt: 'Work summary.');
+      expect(missingPersonal.isConfiguredFor(FrontendTemplateProfile.personal), isFalse);
+      expect(missingPersonal.isFullyConfigured, isFalse);
+    });
+
     test('result cache freshness depends on profile, hash, and conversation time', () {
       final conversationTime = DateTime(2026, 5, 25, 9);
       final hash = FrontendTemplateRouter.expectedPromptHash(

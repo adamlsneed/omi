@@ -40,6 +40,11 @@ class FrontendTemplateRoutingConfig {
   final String workPrompt;
   final String personalPrompt;
 
+  /// Backend app/template ids to summarize with per profile. Empty = no template
+  /// (fall back to the free-text prompt for that profile).
+  final String workAppId;
+  final String personalAppId;
+
   const FrontendTemplateRoutingConfig({
     required this.enabled,
     required this.autoRunOnOpen,
@@ -48,6 +53,8 @@ class FrontendTemplateRoutingConfig {
     required this.workWeekdays,
     required this.workPrompt,
     required this.personalPrompt,
+    this.workAppId = '',
+    this.personalAppId = '',
   });
 
   factory FrontendTemplateRoutingConfig.defaults() {
@@ -81,6 +88,8 @@ class FrontendTemplateRoutingConfig {
       workWeekdays: workWeekdays.isEmpty ? defaults.workWeekdays : workWeekdays,
       workPrompt: (json['work_prompt'] ?? '').toString(),
       personalPrompt: (json['personal_prompt'] ?? '').toString(),
+      workAppId: (json['work_app_id'] ?? '').toString(),
+      personalAppId: (json['personal_app_id'] ?? '').toString(),
     );
   }
 
@@ -97,6 +106,22 @@ class FrontendTemplateRoutingConfig {
     return profile == FrontendTemplateProfile.work ? workPrompt.trim() : personalPrompt.trim();
   }
 
+  /// Backend app/template id for [profile], or null when none is selected
+  /// (so the free-text prompt should be used instead).
+  String? appIdFor(FrontendTemplateProfile profile) {
+    final id = (profile == FrontendTemplateProfile.work ? workAppId : personalAppId).trim();
+    return id.isEmpty ? null : id;
+  }
+
+  bool usesTemplateFor(FrontendTemplateProfile profile) => appIdFor(profile) != null;
+
+  /// A profile is usable if it has either a backend template or a free-text prompt.
+  bool isConfiguredFor(FrontendTemplateProfile profile) => usesTemplateFor(profile) || promptFor(profile).isNotEmpty;
+
+  /// Both profiles have at least one of (template, prompt) — required to enable.
+  bool get isFullyConfigured =>
+      isConfiguredFor(FrontendTemplateProfile.work) && isConfiguredFor(FrontendTemplateProfile.personal);
+
   FrontendTemplateRoutingConfig copyWith({
     bool? enabled,
     bool? autoRunOnOpen,
@@ -105,6 +130,8 @@ class FrontendTemplateRoutingConfig {
     List<int>? workWeekdays,
     String? workPrompt,
     String? personalPrompt,
+    String? workAppId,
+    String? personalAppId,
   }) {
     return FrontendTemplateRoutingConfig(
       enabled: enabled ?? this.enabled,
@@ -114,6 +141,8 @@ class FrontendTemplateRoutingConfig {
       workWeekdays: workWeekdays ?? this.workWeekdays,
       workPrompt: workPrompt ?? this.workPrompt,
       personalPrompt: personalPrompt ?? this.personalPrompt,
+      workAppId: workAppId ?? this.workAppId,
+      personalAppId: personalAppId ?? this.personalAppId,
     );
   }
 
@@ -126,6 +155,8 @@ class FrontendTemplateRoutingConfig {
       'work_weekdays': workWeekdays,
       'work_prompt': workPrompt,
       'personal_prompt': personalPrompt,
+      'work_app_id': workAppId,
+      'personal_app_id': personalAppId,
     };
   }
 }

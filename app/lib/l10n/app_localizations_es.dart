@@ -9503,4 +9503,27 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get templateRoutingPersonalRoutedSummary => 'Resumen enrutado personal';
+
+  @override
+  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+
+  @override
+  String get templateRoutingWorkTemplate => 'Work template';
+
+  @override
+  String get templateRoutingPersonalTemplate => 'Personal template';
+
+  @override
+  String get templateRoutingTemplateNone => 'None — use prompt';
+
+  @override
+  String get templateRoutingManageApps => 'Enable summary apps';
+
+  @override
+  String get templateRoutingTemplateHint =>
+      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+
+  @override
+  String get templateRoutingProfileRequiredError =>
+      'Add a prompt or a template for both Work and Personal before enabling.';
 }

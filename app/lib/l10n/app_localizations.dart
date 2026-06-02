@@ -17678,6 +17678,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Personal Routed Summary'**
   String get templateRoutingPersonalRoutedSummary;
+
+  /// Header for the section to pick a backend app/template per routing profile
+  ///
+  /// In en, this message translates to:
+  /// **'Backend template (optional)'**
+  String get templateRoutingBackendTemplateSection;
+
+  /// Label for the backend template used during work hours
+  ///
+  /// In en, this message translates to:
+  /// **'Work template'**
+  String get templateRoutingWorkTemplate;
+
+  /// Label for the backend template used outside work hours
+  ///
+  /// In en, this message translates to:
+  /// **'Personal template'**
+  String get templateRoutingPersonalTemplate;
+
+  /// Dropdown option meaning no backend template; the free-text prompt is used instead
+  ///
+  /// In en, this message translates to:
+  /// **'None — use prompt'**
+  String get templateRoutingTemplateNone;
+
+  /// Link to the page where the user can enable summary-capable apps
+  ///
+  /// In en, this message translates to:
+  /// **'Enable summary apps'**
+  String get templateRoutingManageApps;
+
+  /// Helper text under the backend template pickers
+  ///
+  /// In en, this message translates to:
+  /// **'Pick an installed summary app for this profile, or keep None to use the prompt above.'**
+  String get templateRoutingTemplateHint;
+
+  /// Validation error when enabling routing without a prompt or template for each profile
+  ///
+  /// In en, this message translates to:
+  /// **'Add a prompt or a template for both Work and Personal before enabling.'**
+  String get templateRoutingProfileRequiredError;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
