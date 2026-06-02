@@ -351,7 +351,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const Divider(height: 1, color: Color(0xFF3C3C43)),
                 _buildProfileItem(
-                  title: 'Template Routing',
+                  title: context.l10n.templateRouting,
                   icon: const Icon(Icons.route_outlined, color: Color(0xFF8E8E93), size: 22),
                   onTap: () {
                     routeToPage(context, const FrontendTemplateRoutingSettingsPage());

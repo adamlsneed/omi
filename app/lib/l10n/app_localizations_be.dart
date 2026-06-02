@@ -9454,4 +9454,61 @@ class AppLocalizationsBe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Няправільны промакод.';
+
+  @override
+  String get templateRouting => 'Шаблон маршрутызацыі';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Аўтазапуск пры адкрыцці';
+
+  @override
+  String get templateRoutingWorkDays => 'Працоўныя дні';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'пн-пт';
+
+  @override
+  String get templateRoutingWorkStart => 'Пачатак працы';
+
+  @override
+  String get templateRoutingWorkEnd => 'Канец працы';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Праца падказка';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Асабістая падказка';
+
+  @override
+  String get templateRoutingSaved => 'Шаблон маршрутызацыі захаваны';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Выкарыстоўвайце 24-гадзінны час, напрыклад 08:00 і 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Пачатак працы павінен быць да заканчэння працы.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Дадайце абодва запыты перад уключэннем маршрутызацыі.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Прымяняецца лакальны шаблон...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Шаблон маршрутызацыі не вярнуў зводкі.';
+
+  @override
+  String get templateRoutingFailed => 'Памылка маршрутызацыі шаблона.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Лакальны шаблон маршрутызацыі';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Рэзюмэ маршруту';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Рэзюмэ накіраванай працы';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Асабістае рэзюмэ';
 }

@@ -260,6 +260,38 @@ For deterministic routing, the current codebase needs one of these mechanisms:
 
 Without that extra rules layer, automatic selection is useful but probabilistic.
 
+## Frontend Work/Personal Template Router
+
+Adam's fork includes a local mobile router that sits after BasedHardware's hosted backend has finished capture,
+transcription, and conversation processing.
+
+The router does not disable hosted backend template processing. Instead, it treats the backend result as the fallback
+and optionally generates a local overlay summary through the hosted test-prompt route:
+
+`POST https://api.omi.me/v1/conversations/{conversation_id}/test-prompt`
+
+The mobile implementation lives in:
+
+| Path | Responsibility |
+| --- | --- |
+| `app/lib/services/frontend_template_router.dart` | Local config/result models, work/personal schedule selection, prompt composition, cache hashing |
+| `app/lib/pages/settings/frontend_template_routing_settings_page.dart` | Profile settings for enabling the router, work hours, and prompt bodies |
+| `app/lib/pages/conversation_detail/conversation_detail_provider.dart` | Loads cached routed summaries and calls `/test-prompt` for completed conversations |
+| `app/lib/pages/conversation_detail/widgets.dart` | Displays the routed summary before backend app results when routing is enabled |
+
+Default routing config:
+
+- Disabled by default.
+- Work profile is Monday-Friday, 08:00 inclusive through 17:00 exclusive.
+- Conversations exactly at 17:00 route to personal.
+- Conversation `startedAt` is preferred; `createdAt` is the fallback.
+- Both work and personal prompts are required before enabling routing.
+- Routed summaries are cached locally by conversation ID, profile, conversation start time, prompt hash, and routing
+  schedule. Changing the prompts or work hours invalidates the cached overlay.
+
+This is the safest current way to get deterministic workday vs after-hours behavior while still using the subscription
+backend for auth, storage, transcription, and LLM execution.
+
 ## Action Items And Apple Reminders
 
 Action items are extracted separately from prompt-template app results. They are part of `Structured.action_items`, not `apps_results`.
@@ -305,8 +337,9 @@ Source affects capture framing, backend decoding, meeting detection, subscriptio
 
 These are the changes most likely to make Omi behave the way Adam wants:
 
-1. Add a first-class template router.
-   Use deterministic rules before the LLM suggestion step: source, calendar meeting title/attendees, folder, category, speaker/person, keywords, and preferred output type.
+1. Promote the local router into a first-class deterministic routing system.
+   Add rules beyond work hours: source, calendar meeting title/attendees, folder, category, speaker/person, keywords,
+   and preferred output type.
 
 2. Add a "run multiple templates" UI mode.
    The backend can run up to three suggested apps through `CONVERSATION_SUMMARIZED_APP_RUN_LIMIT`, but the app still needs a user-facing setting and clearer controls.

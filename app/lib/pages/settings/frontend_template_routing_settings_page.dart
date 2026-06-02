@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:omi/services/frontend_template_router.dart';
+import 'package:omi/utils/l10n_extensions.dart';
 
 class FrontendTemplateRoutingSettingsPage extends StatefulWidget {
   const FrontendTemplateRoutingSettingsPage({super.key});
@@ -47,15 +48,15 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
     setState(() => _error = null);
 
     if (start == null || end == null) {
-      setState(() => _error = 'Use 24-hour times like 08:00 and 17:00.');
+      setState(() => _error = context.l10n.templateRoutingTimeFormatError);
       return;
     }
     if (start >= end) {
-      setState(() => _error = 'Work start must be before work end.');
+      setState(() => _error = context.l10n.templateRoutingStartBeforeEndError);
       return;
     }
     if (_config.enabled && (workPrompt.isEmpty || personalPrompt.isEmpty)) {
-      setState(() => _error = 'Add both prompts before enabling routing.');
+      setState(() => _error = context.l10n.templateRoutingPromptsRequiredError);
       return;
     }
 
@@ -73,7 +74,7 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
       _saving = false;
       _config = nextConfig;
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Template routing saved')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.templateRoutingSaved)));
   }
 
   int? _parseTime(String raw) {
@@ -164,9 +165,9 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text(
-          'Template Routing',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+        title: Text(
+          context.l10n.templateRouting,
+          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         backgroundColor: Colors.black,
@@ -184,7 +185,10 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
                   activeThumbColor: Colors.white,
                   activeTrackColor: const Color(0xFF7C4DFF),
                   inactiveThumbColor: const Color(0xFF8E8E93),
-                  title: const Text('Enabled', style: TextStyle(color: Colors.white, fontSize: 17)),
+                  title: Text(
+                    context.l10n.permissionEnabled,
+                    style: const TextStyle(color: Colors.white, fontSize: 17),
+                  ),
                   onChanged: (value) => setState(() => _config = _config.copyWith(enabled: value)),
                 ),
                 _divider(),
@@ -193,7 +197,10 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
                   activeThumbColor: Colors.white,
                   activeTrackColor: const Color(0xFF7C4DFF),
                   inactiveThumbColor: const Color(0xFF8E8E93),
-                  title: const Text('Auto-run on open', style: TextStyle(color: Colors.white, fontSize: 17)),
+                  title: Text(
+                    context.l10n.templateRoutingAutoRunOnOpen,
+                    style: const TextStyle(color: Colors.white, fontSize: 17),
+                  ),
                   onChanged: (value) => setState(() => _config = _config.copyWith(autoRunOnOpen: value)),
                 ),
               ],
@@ -201,32 +208,35 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
             const SizedBox(height: 24),
             _section(
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          'Work days',
-                          style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w400),
+                          context.l10n.templateRoutingWorkDays,
+                          style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w400),
                         ),
                       ),
-                      Text('Mon-Fri', style: TextStyle(color: Color(0xFF8E8E93), fontSize: 16)),
+                      Text(
+                        context.l10n.templateRoutingWorkDaysMonFri,
+                        style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16),
+                      ),
                     ],
                   ),
                 ),
                 _divider(),
-                _timeField(label: 'Work start', controller: _workStartController),
+                _timeField(label: context.l10n.templateRoutingWorkStart, controller: _workStartController),
                 _divider(),
-                _timeField(label: 'Work end', controller: _workEndController),
+                _timeField(label: context.l10n.templateRoutingWorkEnd, controller: _workEndController),
               ],
             ),
             const SizedBox(height: 24),
             _section(
               children: [
-                _promptField(label: 'Work prompt', controller: _workPromptController),
+                _promptField(label: context.l10n.templateRoutingWorkPrompt, controller: _workPromptController),
                 _divider(),
-                _promptField(label: 'Personal prompt', controller: _personalPromptController),
+                _promptField(label: context.l10n.templateRoutingPersonalPrompt, controller: _personalPromptController),
               ],
             ),
             if (_error != null) ...[
@@ -245,7 +255,7 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               child: Text(
-                _saving ? 'Saving...' : 'Save',
+                _saving ? context.l10n.saving : context.l10n.save,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),

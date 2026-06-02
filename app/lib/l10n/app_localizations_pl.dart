@@ -9450,4 +9450,61 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Nieprawidłowy kod promocyjny.';
+
+  @override
+  String get templateRouting => 'Trasowanie szablonów';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatyczne uruchamianie po otwarciu';
+
+  @override
+  String get templateRoutingWorkDays => 'Dni pracy';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'pon.-pt';
+
+  @override
+  String get templateRoutingWorkStart => 'Rozpoczęcie pracy';
+
+  @override
+  String get templateRoutingWorkEnd => 'Koniec pracy';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Monit o pracę';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Podpowiedź osobista';
+
+  @override
+  String get templateRoutingSaved => 'Zapisano routing szablonu';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Używaj czasów 24-godzinnych, np. 08:00 i 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Rozpoczęcie pracy musi nastąpić przed zakończeniem pracy.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Dodaj oba monity przed włączeniem routingu.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Stosowanie szablonu lokalnego...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Routing szablonu nie zwrócił żadnego podsumowania.';
+
+  @override
+  String get templateRoutingFailed => 'Routing szablonu nie powiódł się.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokalny routing szablonów';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Podsumowanie kierowane';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Podsumowanie pracy kierowanej';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Podsumowanie przesłane osobiście';
 }

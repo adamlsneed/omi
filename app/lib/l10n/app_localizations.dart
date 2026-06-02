@@ -17564,6 +17564,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid promotion code.'**
   String get invalidPromotionCode;
+
+  /// Settings page title for local work/personal conversation template routing.
+  ///
+  /// In en, this message translates to:
+  /// **'Template Routing'**
+  String get templateRouting;
+
+  /// Toggle label for automatically generating a routed summary when a conversation opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-run on open'**
+  String get templateRoutingAutoRunOnOpen;
+
+  /// Label for the weekdays used by work template routing.
+  ///
+  /// In en, this message translates to:
+  /// **'Work days'**
+  String get templateRoutingWorkDays;
+
+  /// Short label meaning Monday through Friday.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon-Fri'**
+  String get templateRoutingWorkDaysMonFri;
+
+  /// Label for the start of work hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Work start'**
+  String get templateRoutingWorkStart;
+
+  /// Label for the end of work hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Work end'**
+  String get templateRoutingWorkEnd;
+
+  /// Label for the prompt used for work-hours conversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Work prompt'**
+  String get templateRoutingWorkPrompt;
+
+  /// Label for the prompt used for non-work conversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal prompt'**
+  String get templateRoutingPersonalPrompt;
+
+  /// Snackbar shown after template routing settings are saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Template routing saved'**
+  String get templateRoutingSaved;
+
+  /// Validation error for work-hour time fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 24-hour times like 08:00 and 17:00.'**
+  String get templateRoutingTimeFormatError;
+
+  /// Validation error when the start time is not before the end time.
+  ///
+  /// In en, this message translates to:
+  /// **'Work start must be before work end.'**
+  String get templateRoutingStartBeforeEndError;
+
+  /// Validation error when routing is enabled without both prompts.
+  ///
+  /// In en, this message translates to:
+  /// **'Add both prompts before enabling routing.'**
+  String get templateRoutingPromptsRequiredError;
+
+  /// Status text shown while a local routed summary is being generated.
+  ///
+  /// In en, this message translates to:
+  /// **'Applying local template...'**
+  String get templateRoutingApplyingLocalTemplate;
+
+  /// Error text when the routed prompt returns an empty summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Template routing returned no summary.'**
+  String get templateRoutingReturnedNoSummary;
+
+  /// Error text when routed summary generation fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Template routing failed.'**
+  String get templateRoutingFailed;
+
+  /// Subtitle for locally generated routed summaries.
+  ///
+  /// In en, this message translates to:
+  /// **'Local template routing'**
+  String get templateRoutingLocalDescription;
+
+  /// Generic label for a local routed conversation summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Routed Summary'**
+  String get templateRoutingRoutedSummary;
+
+  /// Label for a local routed summary generated with the work profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Routed Summary'**
+  String get templateRoutingWorkRoutedSummary;
+
+  /// Label for a local routed summary generated with the personal profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Routed Summary'**
+  String get templateRoutingPersonalRoutedSummary;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

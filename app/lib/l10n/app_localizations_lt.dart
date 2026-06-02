@@ -9438,4 +9438,61 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Neteisingas reklamos kodas.';
+
+  @override
+  String get templateRouting => 'Šablono maršrutas';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatinis paleidimas atidarius';
+
+  @override
+  String get templateRoutingWorkDays => 'Darbo dienos';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'P-Pn';
+
+  @override
+  String get templateRoutingWorkStart => 'Darbo pradžia';
+
+  @override
+  String get templateRoutingWorkEnd => 'Darbo pabaiga';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Darbo raginimas';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Asmeninis raginimas';
+
+  @override
+  String get templateRoutingSaved => 'Šablono maršrutas išsaugotas';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Naudokite 24 valandas, pvz., 08:00 ir 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Darbo pradžia turi būti prieš darbo pabaigą.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Prieš įjungdami maršrutą, pridėkite abu raginimus.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Taikomas vietinis šablonas...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Šablono maršrutas nepateikė suvestinės.';
+
+  @override
+  String get templateRoutingFailed => 'Nepavyko nukreipti šablono.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Vietinis šablono maršrutas';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Maršruto suvestinė';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Darbo maršruto suvestinė';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Asmeninė maršruto suvestinė';
 }

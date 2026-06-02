@@ -121,5 +121,23 @@ void main() {
         isFalse,
       );
     });
+
+    test('prompt hash changes when routing schedule changes', () {
+      final conversationTime = DateTime(2026, 5, 25, 9);
+      final baselineHash = FrontendTemplateRouter.expectedPromptHash(
+        config: config,
+        profile: FrontendTemplateProfile.work,
+        conversationLocalTime: conversationTime,
+        sourceName: 'omi',
+      );
+      final shiftedWorkHoursHash = FrontendTemplateRouter.expectedPromptHash(
+        config: config.copyWith(workStartMinutes: 7 * 60, workEndMinutes: 16 * 60),
+        profile: FrontendTemplateProfile.work,
+        conversationLocalTime: conversationTime,
+        sourceName: 'omi',
+      );
+
+      expect(shiftedWorkHoursHash, isNot(baselineHash));
+    });
   });
 }

@@ -9471,4 +9471,62 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Cod promoțional invalid.';
+
+  @override
+  String get templateRouting => 'Rutarea șablonului';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Rulare automată la deschidere';
+
+  @override
+  String get templateRoutingWorkDays => 'Zile de lucru';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Luni-Vineri';
+
+  @override
+  String get templateRoutingWorkStart => 'Începe lucrul';
+
+  @override
+  String get templateRoutingWorkEnd => 'Sfârșitul lucrării';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Promptitudine de lucru';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Solicitare personală';
+
+  @override
+  String get templateRoutingSaved => 'Rutarea șablonului a fost salvată';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Folosiți ore 24 de ore, cum ar fi 08:00 și 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError =>
+      'Începutul lucrărilor trebuie să fie înainte de încheierea lucrărilor.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Adăugați ambele solicitări înainte de a activa rutarea.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Se aplică șablonul local...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Rutarea șablonului nu a returnat niciun rezumat.';
+
+  @override
+  String get templateRoutingFailed => 'Rutarea șablonului a eșuat.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Dirijarea șablonului local';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Rezumat rutat';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Rezumat direcționat de lucru';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Rezumat personal rutat';
 }

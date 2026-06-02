@@ -9457,4 +9457,61 @@ class AppLocalizationsKn extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'ಅಮಾನ್ಯ ಪ್ರೋಮೋ ಕೋಡ್.';
+
+  @override
+  String get templateRouting => 'ಟೆಂಪ್ಲೇಟ್ ರೂಟಿಂಗ್';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'ತೆರೆದ ಮೇಲೆ ಸ್ವಯಂ-ರನ್';
+
+  @override
+  String get templateRoutingWorkDays => 'ಕೆಲಸದ ದಿನಗಳು';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'ಸೋಮ-ಶುಕ್ರ';
+
+  @override
+  String get templateRoutingWorkStart => 'ಕೆಲಸ ಪ್ರಾರಂಭ';
+
+  @override
+  String get templateRoutingWorkEnd => 'ಕೆಲಸದ ಅಂತ್ಯ';
+
+  @override
+  String get templateRoutingWorkPrompt => 'ಕೆಲಸ ಪ್ರಾಂಪ್ಟ್';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'ವೈಯಕ್ತಿಕ ಪ್ರಾಂಪ್ಟ್';
+
+  @override
+  String get templateRoutingSaved => 'ಟೆಂಪ್ಲೇಟ್ ರೂಟಿಂಗ್ ಅನ್ನು ಉಳಿಸ���ಾಗಿದೆ';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 ಮತ್ತು 17:00 ನಂತಹ 24-ಗಂಟೆಗಳ ಸಮಯವನ್ನು ಬಳಸಿ.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'ಕೆಲಸದ ಪ್ರಾರಂಭವು ಕೆಲಸ ಮುಗಿಯುವ ಮೊದಲು ಇರಬೇಕು.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'ರೂಟಿಂಗ್ ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸುವ ಮೊದಲು ಎರಡೂ ಪ್ರಾಂಪ್ಟ್‌ಗಳನ್ನು ಸೇರಿಸಿ.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'ಸ್ಥಳೀಯ ಟೆಂಪ್ಲೇಟ್ ಅನ್ನು ಅನ್ವಯಿಸಲಾಗುತ್ತಿದೆ...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'ಟೆಂಪ್ಲೇಟ್ ರೂಟಿಂಗ್ ಯಾವುದೇ ಸಾರಾಂಶವನ್ನು ಹಿಂತಿರುಗಿಸಿಲ್ಲ.';
+
+  @override
+  String get templateRoutingFailed => 'ಟೆಂಪ್ಲೇಟ್ ರೂಟಿಂಗ್ ವಿಫಲವಾಗಿದೆ.';
+
+  @override
+  String get templateRoutingLocalDescription => 'ಸ್ಥಳೀಯ ಟೆಂಪ್ಲೇಟ್ ರೂಟಿಂಗ್';
+
+  @override
+  String get templateRoutingRoutedSummary => 'ರೂಟೆಡ್ ಸಾರಾಂಶ';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'ಕೆಲಸದ ರೂಟೆಡ್ ಸಾರಾಂಶ';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'ವೈಯಕ್ತಿಕ ರೂಟೆಡ್ ಸಾರಾಂಶ';
 }

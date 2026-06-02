@@ -9503,4 +9503,62 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ungültiger Aktionscode.';
+
+  @override
+  String get templateRouting => 'Vorlagenrouting';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatischer Start beim Öffnen';
+
+  @override
+  String get templateRoutingWorkDays => 'Arbeitstage';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Mo-Fr';
+
+  @override
+  String get templateRoutingWorkStart => 'Arbeitsbeginn';
+
+  @override
+  String get templateRoutingWorkEnd => 'Arbeitsende';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Arbeitsaufforderung';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Persönliche Aufforderung';
+
+  @override
+  String get templateRoutingSaved => 'Vorlagenrouting gespeichert';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Verwenden Sie 24-Stunden-Zeiten wie 08:00 und 17:00 Uhr.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Arbeitsbeginn muss vor Arbeitsende liegen.';
+
+  @override
+  String get templateRoutingPromptsRequiredError =>
+      'Fügen Sie beide Eingabeaufforderungen hinzu, bevor Sie das Routing aktivieren.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Lokale Vorlage anwenden...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Das Vorlagenrouting hat keine Zusammenfassung zurückgegeben.';
+
+  @override
+  String get templateRoutingFailed => 'Das Weiterleiten der Vorlage ist fehlgeschlagen.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokales Template-Routing';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Zusammenfassung der Route';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Zusammenfassung der weitergeleiteten Arbeit';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Persönliche Route-Zusammenfassung';
 }

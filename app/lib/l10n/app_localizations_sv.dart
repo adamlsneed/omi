@@ -9429,4 +9429,61 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ogiltig kampanjkod.';
+
+  @override
+  String get templateRouting => 'Mall routing';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Autokörning på öppen';
+
+  @override
+  String get templateRoutingWorkDays => 'Arbetsdagar';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'mån-fre';
+
+  @override
+  String get templateRoutingWorkStart => 'Arbetet börjar';
+
+  @override
+  String get templateRoutingWorkEnd => 'Slut på arbetet';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Arbetsuppmaning';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Personlig uppmaning';
+
+  @override
+  String get templateRoutingSaved => 'Mallrouting sparad';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Använd 24-timmarstider som 08:00 och 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Arbetsstart måste vara före arbetets slut.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Lägg till båda uppmaningarna innan du aktiverar routing.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Använder lokal mall...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Mallrouting gav ingen sammanfattning.';
+
+  @override
+  String get templateRoutingFailed => 'Mallrouting misslyckades.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokal mall routing';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Sammanfattning av rutt';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Sammanfattning av arbetet';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Sammanfattning av personlig rutt';
 }

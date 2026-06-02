@@ -9454,4 +9454,62 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ongeldige promotiecode.';
+
+  @override
+  String get templateRouting => 'Sjabloonroutering';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatisch draaien bij openen';
+
+  @override
+  String get templateRoutingWorkDays => 'Werk dagen';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Ma-Vr';
+
+  @override
+  String get templateRoutingWorkStart => 'Het werk begint';
+
+  @override
+  String get templateRoutingWorkEnd => 'Einde werk';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Werk snel';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Persoonlijke prompt';
+
+  @override
+  String get templateRoutingSaved => 'Sjabloonroutering opgeslagen';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Gebruik 24-uurstijden zoals 08:00 en 17:00 uur.';
+
+  @override
+  String get templateRoutingStartBeforeEndError =>
+      'Het begin van het werk moet vóór het einde van het werk plaatsvinden.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Voeg beide aanwijzingen toe voordat u routering inschakelt.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Lokale sjabloon toepassen...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Sjabloonroutering heeft geen samenvatting geretourneerd.';
+
+  @override
+  String get templateRoutingFailed => 'Sjabloonroutering is mislukt.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokale sjabloonroutering';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Gerouteerde samenvatting';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Samenvatting van werkroutes';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Persoonlijk doorgestuurde samenvatting';
 }

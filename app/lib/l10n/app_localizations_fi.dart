@@ -9424,4 +9424,61 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Virheellinen tarjouskoodi.';
+
+  @override
+  String get templateRouting => 'Mallin reititys';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automaattinen käynnistys auki';
+
+  @override
+  String get templateRoutingWorkDays => 'Työpäivät';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'ma-pe';
+
+  @override
+  String get templateRoutingWorkStart => 'Työn aloitus';
+
+  @override
+  String get templateRoutingWorkEnd => 'Työn loppu';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Työn kehotus';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Henkilökohtainen kehotus';
+
+  @override
+  String get templateRoutingSaved => 'Mallin reititys tallennettu';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Käytä 24 tunnin kelloa, kuten 08:00 ja 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Työn alkamisen tulee olla ennen työn loppua.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Lisää molemmat kehotteet ennen kuin otat reitityksen käyttöön.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Otetaan paikallista mallia...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Mallin reititys ei palauttanut yhteenvetoa.';
+
+  @override
+  String get templateRoutingFailed => 'Mallin reititys epäonnistui.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Paikallinen mallin reititys';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Reititetty yhteenveto';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Work Routed Summary';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Henkilökohtainen reititetty yhteenveto';
 }

@@ -9421,4 +9421,61 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Kehtetu sooduskood.';
+
+  @override
+  String get templateRouting => 'Mallide marsruutimine';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automaatkäivitus avatud';
+
+  @override
+  String get templateRoutingWorkDays => 'Tööpäevad';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'E-R';
+
+  @override
+  String get templateRoutingWorkStart => 'Töö algus';
+
+  @override
+  String get templateRoutingWorkEnd => 'Töö lõpp';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Töövihje';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Isiklik viide';
+
+  @override
+  String get templateRoutingSaved => 'Malli marsruutimine on salvestatud';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Kasutage 24-tunniseid kellaaegu, näiteks 08:00 ja 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Töö algus peab olema enne töö lõppu.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Enne marsruutimise lubamist lisage mõlemad viibad.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Kohaliku malli rakendamine...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Malli marsruutimine ei tagastanud kokkuvõtet.';
+
+  @override
+  String get templateRoutingFailed => 'Malli marsruutimine ebaõnnestus.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Kohaliku malli marsruutimine';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Marsruudi kokkuvõte';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Töö marsruudi kokkuvõte';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Isiklik marsruudi kokkuvõte';
 }

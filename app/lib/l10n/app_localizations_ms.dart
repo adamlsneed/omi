@@ -9448,4 +9448,61 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Kod promo tidak sah.';
+
+  @override
+  String get templateRouting => 'Penghalaan Templat';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Jalankan automatik semasa terbuka';
+
+  @override
+  String get templateRoutingWorkDays => 'hari bekerja';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Isnin-Jumaat';
+
+  @override
+  String get templateRoutingWorkStart => 'Bermula kerja';
+
+  @override
+  String get templateRoutingWorkEnd => 'Kerja tamat';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Kerja segera';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Gesaan peribadi';
+
+  @override
+  String get templateRoutingSaved => 'Penghalaan templat disimpan';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Gunakan masa 24 jam seperti 08:00 dan 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Permulaan kerja mestilah sebelum kerja tamat.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Tambahkan kedua-dua gesaan sebelum mendayakan penghalaan.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Menggunakan templat tempatan...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Penghalaan templat tidak mengembalikan ringkasan.';
+
+  @override
+  String get templateRoutingFailed => 'Penghalaan templat gagal.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Penghalaan templat tempatan';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Ringkasan Dihalakan';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Ringkasan Laluan Kerja';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Ringkasan Laluan Peribadi';
 }

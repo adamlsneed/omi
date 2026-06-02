@@ -9254,4 +9254,61 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => '促销代码无效。';
+
+  @override
+  String get templateRouting => '模板路由';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => '打开时自动运行';
+
+  @override
+  String get templateRoutingWorkDays => '工作日';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => '周一至周五';
+
+  @override
+  String get templateRoutingWorkStart => '工作开始';
+
+  @override
+  String get templateRoutingWorkEnd => '工作结束';
+
+  @override
+  String get templateRoutingWorkPrompt => '工作提示';
+
+  @override
+  String get templateRoutingPersonalPrompt => '个人提示';
+
+  @override
+  String get templateRoutingSaved => '模板路由已保存';
+
+  @override
+  String get templateRoutingTimeFormatError => '使用 24 小时制时间，例如 08:00 和 17:00。';
+
+  @override
+  String get templateRoutingStartBeforeEndError => '工作开始必须在工作结束之前。';
+
+  @override
+  String get templateRoutingPromptsRequiredError => '在启用路由之前添加两个提示。';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => '正在应用本地模板...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => '模板路由未返回摘要。';
+
+  @override
+  String get templateRoutingFailed => '模板路由失败。';
+
+  @override
+  String get templateRoutingLocalDescription => '本地模板路由';
+
+  @override
+  String get templateRoutingRoutedSummary => '路由摘要';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => '工作路线总结';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => '个人路由摘要';
 }

@@ -9432,4 +9432,61 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'অবৈধ প্রোমো কোড।';
+
+  @override
+  String get templateRouting => 'টেমপ্লেট রাউটিং';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'স্বয়ংক্রিয়ভাবে খোলা';
+
+  @override
+  String get templateRoutingWorkDays => 'কাজের দিন';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'সোম-শুক্র';
+
+  @override
+  String get templateRoutingWorkStart => 'কাজ শুরু';
+
+  @override
+  String get templateRoutingWorkEnd => 'কাজ শেষ';
+
+  @override
+  String get templateRoutingWorkPrompt => 'কাজ প্রম্পট';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'ব্যক্তিগত প্রম্পট';
+
+  @override
+  String get templateRoutingSaved => 'টেমপ্লেট রাউটিং সংরক্ষিত';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 এবং 17:00 এর মত 24-ঘন্টা বার ব্যবহার করুন।';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'কাজ শেষ হওয়ার আগে কাজ শুরু হতে হবে।';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'রাউটিং সক্ষম করার আগে উভয় প্রম্পট যোগ করুন।';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'স্থানীয় টেমপ্লেট প্রয়োগ করা হচ্ছে...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'টেমপ্লেট রাউটিং কোনো সারসংক্ষেপ ফেরত দেয়নি।';
+
+  @override
+  String get templateRoutingFailed => 'টেমপ্লেট রাউটিং ব্যর্থ হয়েছে৷';
+
+  @override
+  String get templateRoutingLocalDescription => 'স্থানীয় টেমপ্লেট রাউটিং';
+
+  @override
+  String get templateRoutingRoutedSummary => 'রুটেড সারাংশ';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'কাজের রুটেড সারাংশ';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'ব্যক্তিগত রুটেড সারাংশ';
 }

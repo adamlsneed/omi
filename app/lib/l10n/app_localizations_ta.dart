@@ -9493,4 +9493,61 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'தவறான விளம்பர குறியீடு.';
+
+  @override
+  String get templateRouting => 'டெம்ப்ளேட் ரூட்டிங்';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'திறந்த நிலையில் தானாக இயங்கும்';
+
+  @override
+  String get templateRoutingWorkDays => 'வேலை நாட்கள்';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'திங்கள்-வெள்ளி';
+
+  @override
+  String get templateRoutingWorkStart => 'வேலை ஆரம்பம்';
+
+  @override
+  String get templateRoutingWorkEnd => 'வேலை முடிவு';
+
+  @override
+  String get templateRoutingWorkPrompt => 'உடனடியாக வேலை செய்யுங்கள்';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'தனிப்பட்ட அறிவுறுத்தல்';
+
+  @override
+  String get templateRoutingSaved => 'டெம்ப்ளேட் ரூட்டிங் சேமிக்கப்பட்டது';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 மற்றும் 17:00 போன்ற 24 மணிநேர நேரங்களைப் பயன்படுத்தவும்.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'வேலை முடிவதற்கு முன் வேலை தொடங்க வேண்டும்.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'வழித்தடத்தை இயக்கும் முன் இரண்டு அறிவுறுத்தல்களையும் சேர்க்கவும்.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'உள்ளூர் டெம்ப்ளேட்டைப் பயன்படுத்துகிறது...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'டெம்ப்ளேட் ரூட்டிங் சுருக்கம் இல்லை.';
+
+  @override
+  String get templateRoutingFailed => 'டெம்ப்ளேட் ரூட்டிங் தோல்வியடைந்தது.';
+
+  @override
+  String get templateRoutingLocalDescription => 'உள்ளூர் டெம்ப்ளேட் ரூட்டிங்';
+
+  @override
+  String get templateRoutingRoutedSummary => 'திசைதிருப்பப்பட்ட சுருக்கம்';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'பணியின் சுருக்கம்';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'தனிப்பட்ட வழிப்படுத்தப்பட்ட சுருக்கம்';
 }

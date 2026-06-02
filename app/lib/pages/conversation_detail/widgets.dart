@@ -29,6 +29,7 @@ import 'package:omi/pages/conversation_detail/widgets/summarized_apps_sheet.dart
 import 'package:omi/pages/conversations/widgets/move_to_folder_sheet.dart';
 import 'package:omi/pages/settings/developer.dart';
 import 'package:omi/providers/folder_provider.dart';
+import 'package:omi/services/frontend_template_router.dart';
 import 'package:omi/utils/folders/folder_icon_mapper.dart';
 import 'package:omi/utils/other/temp.dart';
 import 'package:omi/utils/other/time_utils.dart';
@@ -1086,6 +1087,23 @@ class GetAppsWidgets extends StatelessWidget {
     this.canStartEditing,
   });
 
+  String _routedSummaryLabel(BuildContext context, FrontendTemplateProfile? profile) {
+    return switch (profile) {
+      FrontendTemplateProfile.work => context.l10n.templateRoutingWorkRoutedSummary,
+      FrontendTemplateProfile.personal => context.l10n.templateRoutingPersonalRoutedSummary,
+      null => context.l10n.templateRoutingRoutedSummary,
+    };
+  }
+
+  String _routedSummaryErrorText(BuildContext context, String errorCode) {
+    return switch (errorCode) {
+      ConversationDetailProvider.routedSummaryMissingPromptsError => context.l10n.templateRoutingPromptsRequiredError,
+      ConversationDetailProvider.routedSummaryEmptyResponseError => context.l10n.templateRoutingReturnedNoSummary,
+      ConversationDetailProvider.routedSummaryFailedError => context.l10n.templateRoutingFailed,
+      _ => context.l10n.templateRoutingFailed,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ConversationDetailProvider>(
@@ -1108,8 +1126,9 @@ class GetAppsWidgets extends StatelessWidget {
                       searchQuery: searchQuery,
                       currentResultIndex: currentResultIndex,
                       canStartEditing: canStartEditing,
-                      fallbackAppName: isRoutedSummary ? provider.routedSummaryLabel : null,
-                      fallbackAppDescription: isRoutedSummary ? provider.routedSummaryDescription : null,
+                      fallbackAppName:
+                          isRoutedSummary ? _routedSummaryLabel(context, provider.routedSummary?.profile) : null,
+                      fallbackAppDescription: isRoutedSummary ? context.l10n.templateRoutingLocalDescription : null,
                       onEditStarted:
                           isRoutedSummary || onEditStarted == null ? null : () => onEditStarted!(summarizedApp.appId),
                       onEditCancelled: isRoutedSummary || onEditCancelled == null
@@ -1120,17 +1139,20 @@ class GetAppsWidgets extends StatelessWidget {
                           : (newContent) => onSaveSummary!(summarizedApp.appId, newContent),
                     ),
                     if (provider.routedSummaryLoading)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 12),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 12),
                         child: Row(
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               height: 14,
                               width: 14,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
                             ),
-                            SizedBox(width: 8),
-                            Text('Applying local template...', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                            const SizedBox(width: 8),
+                            Text(
+                              context.l10n.templateRoutingApplyingLocalTemplate,
+                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                            ),
                           ],
                         ),
                       ),
@@ -1141,13 +1163,13 @@ class GetAppsWidgets extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                provider.routedSummaryError!,
+                                _routedSummaryErrorText(context, provider.routedSummaryError!),
                                 style: const TextStyle(color: Colors.orangeAccent, fontSize: 13),
                               ),
                             ),
                             TextButton(
                               onPressed: () => provider.loadOrGenerateRoutedSummary(force: true),
-                              child: const Text('Retry'),
+                              child: Text(context.l10n.retry),
                             ),
                           ],
                         ),

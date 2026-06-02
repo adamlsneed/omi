@@ -9446,4 +9446,61 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Código promocional no válido.';
+
+  @override
+  String get templateRouting => 'Enrutamiento de plantilla';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Ejecución automática al abrir';
+
+  @override
+  String get templateRoutingWorkDays => 'Días laborables';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Lunes a viernes';
+
+  @override
+  String get templateRoutingWorkStart => 'inicio de trabajo';
+
+  @override
+  String get templateRoutingWorkEnd => 'Fin del trabajo';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Aviso de trabajo';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Aviso personal';
+
+  @override
+  String get templateRoutingSaved => 'Enrutamiento de plantilla guardado';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Utilice horarios de 24 horas, como 08:00 y 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'El inicio del trabajo debe ser antes del final del trabajo.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Agregue ambas indicaciones antes de habilitar el enrutamiento.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Aplicando plantilla local...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'El enrutamiento de la plantilla no arrojó ningún resumen.';
+
+  @override
+  String get templateRoutingFailed => 'Error en el enrutamiento de la plantilla.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Enrutamiento de plantilla local';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Resumen enrutado';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Resumen de ruta de trabajo';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Resumen enrutado personal';
 }

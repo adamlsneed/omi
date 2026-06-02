@@ -9416,4 +9416,61 @@ class AppLocalizationsSk extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Neplatný promo kód.';
+
+  @override
+  String get templateRouting => 'Smerovanie šablóny';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Automatické spustenie pri otvorenom stave';
+
+  @override
+  String get templateRoutingWorkDays => 'Pracovné dni';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Po-Pia';
+
+  @override
+  String get templateRoutingWorkStart => 'Začiatok práce';
+
+  @override
+  String get templateRoutingWorkEnd => 'Koniec práce';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Pracovná výzva';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Osobná výzva';
+
+  @override
+  String get templateRoutingSaved => 'Smerovanie šablóny bolo uložené';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Použite 24-hodinové časy ako 08:00 a 17:00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Začiatok práce musí byť pred koncom práce.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Pred povolením smerovania pridajte obe výzvy.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Používa sa lokálna šablóna...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Smerovanie šablóny nevrátilo žiadny súhrn.';
+
+  @override
+  String get templateRoutingFailed => 'Smerovanie šablóny zlyhalo.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Lokálne smerovanie šablóny';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Smerovaný súhrn';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Súhrn smerovania práce';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Osobné zhrnutie trasy';
 }

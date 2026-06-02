@@ -11174,5 +11174,81 @@
     },
     "promoCode": "Promo code",
     "enterPromoCode": "Enter promo code",
-    "invalidPromotionCode": "Invalid promotion code."
+    "invalidPromotionCode": "Invalid promotion code.",
+    "templateRouting": "Template Routing",
+    "@templateRouting": {
+        "description": "Settings page title for local work/personal conversation template routing."
+    },
+    "templateRoutingAutoRunOnOpen": "Auto-run on open",
+    "@templateRoutingAutoRunOnOpen": {
+        "description": "Toggle label for automatically generating a routed summary when a conversation opens."
+    },
+    "templateRoutingWorkDays": "Work days",
+    "@templateRoutingWorkDays": {
+        "description": "Label for the weekdays used by work template routing."
+    },
+    "templateRoutingWorkDaysMonFri": "Mon-Fri",
+    "@templateRoutingWorkDaysMonFri": {
+        "description": "Short label meaning Monday through Friday."
+    },
+    "templateRoutingWorkStart": "Work start",
+    "@templateRoutingWorkStart": {
+        "description": "Label for the start of work hours."
+    },
+    "templateRoutingWorkEnd": "Work end",
+    "@templateRoutingWorkEnd": {
+        "description": "Label for the end of work hours."
+    },
+    "templateRoutingWorkPrompt": "Work prompt",
+    "@templateRoutingWorkPrompt": {
+        "description": "Label for the prompt used for work-hours conversations."
+    },
+    "templateRoutingPersonalPrompt": "Personal prompt",
+    "@templateRoutingPersonalPrompt": {
+        "description": "Label for the prompt used for non-work conversations."
+    },
+    "templateRoutingSaved": "Template routing saved",
+    "@templateRoutingSaved": {
+        "description": "Snackbar shown after template routing settings are saved."
+    },
+    "templateRoutingTimeFormatError": "Use 24-hour times like 08:00 and 17:00.",
+    "@templateRoutingTimeFormatError": {
+        "description": "Validation error for work-hour time fields."
+    },
+    "templateRoutingStartBeforeEndError": "Work start must be before work end.",
+    "@templateRoutingStartBeforeEndError": {
+        "description": "Validation error when the start time is not before the end time."
+    },
+    "templateRoutingPromptsRequiredError": "Add both prompts before enabling routing.",
+    "@templateRoutingPromptsRequiredError": {
+        "description": "Validation error when routing is enabled without both prompts."
+    },
+    "templateRoutingApplyingLocalTemplate": "Applying local template...",
+    "@templateRoutingApplyingLocalTemplate": {
+        "description": "Status text shown while a local routed summary is being generated."
+    },
+    "templateRoutingReturnedNoSummary": "Template routing returned no summary.",
+    "@templateRoutingReturnedNoSummary": {
+        "description": "Error text when the routed prompt returns an empty summary."
+    },
+    "templateRoutingFailed": "Template routing failed.",
+    "@templateRoutingFailed": {
+        "description": "Error text when routed summary generation fails."
+    },
+    "templateRoutingLocalDescription": "Local template routing",
+    "@templateRoutingLocalDescription": {
+        "description": "Subtitle for locally generated routed summaries."
+    },
+    "templateRoutingRoutedSummary": "Routed Summary",
+    "@templateRoutingRoutedSummary": {
+        "description": "Generic label for a local routed conversation summary."
+    },
+    "templateRoutingWorkRoutedSummary": "Work Routed Summary",
+    "@templateRoutingWorkRoutedSummary": {
+        "description": "Label for a local routed summary generated with the work profile."
+    },
+    "templateRoutingPersonalRoutedSummary": "Personal Routed Summary",
+    "@templateRoutingPersonalRoutedSummary": {
+        "description": "Label for a local routed summary generated with the personal profile."
+    }
 }

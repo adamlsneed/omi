@@ -9509,4 +9509,61 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Code promo invalide.';
+
+  @override
+  String get templateRouting => 'Routage des modèles';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => 'Exécution automatique à l\'ouverture';
+
+  @override
+  String get templateRoutingWorkDays => 'Jours de travail';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => 'Du lundi au vendredi';
+
+  @override
+  String get templateRoutingWorkStart => 'Début des travaux';
+
+  @override
+  String get templateRoutingWorkEnd => 'Fin des travaux';
+
+  @override
+  String get templateRoutingWorkPrompt => 'Invite de travail';
+
+  @override
+  String get templateRoutingPersonalPrompt => 'Invite personnelle';
+
+  @override
+  String get templateRoutingSaved => 'Routage du modèle enregistré';
+
+  @override
+  String get templateRoutingTimeFormatError => 'Utilisez des horaires de 24 heures comme 08h00 et 17h00.';
+
+  @override
+  String get templateRoutingStartBeforeEndError => 'Le début des travaux doit avoir lieu avant la fin des travaux.';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'Ajoutez les deux invites avant d’activer le routage.';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'Application du modèle local...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'Le routage du modèle n\'a renvoyé aucun résumé.';
+
+  @override
+  String get templateRoutingFailed => 'Échec du routage du modèle.';
+
+  @override
+  String get templateRoutingLocalDescription => 'Routage de modèle local';
+
+  @override
+  String get templateRoutingRoutedSummary => 'Résumé acheminé';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'Récapitulatif du parcours de travail';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => 'Résumé personnel acheminé';
 }
