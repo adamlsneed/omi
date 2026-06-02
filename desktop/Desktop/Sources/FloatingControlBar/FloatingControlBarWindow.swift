@@ -922,7 +922,6 @@ class FloatingControlBarManager {
             window.dismissNotification(animated: false)
         }
         window?.orderOut(nil)
-        CursorPTTOverlayManager.shared.applyIdlePreference()
         scheduleSnoozeTimer()
         AnalyticsManager.shared.floatingBarToggled(visible: false, source: "snooze")
     }
@@ -935,7 +934,6 @@ class FloatingControlBarManager {
         if isEnabled {
             window?.makeKeyAndOrderFront(nil)
         }
-        CursorPTTOverlayManager.shared.applyIdlePreference()
     }
 
     private func scheduleSnoozeTimer() {
@@ -1107,11 +1105,9 @@ class FloatingControlBarManager {
         isEnabled = true
         if isSnoozed {
             log("FloatingControlBarManager: show() suppressed because bar is snoozed until \(snoozedUntil?.description ?? "?")")
-            CursorPTTOverlayManager.shared.applyIdlePreference()
             return
         }
         window?.makeKeyAndOrderFront(nil)
-        CursorPTTOverlayManager.shared.applyIdlePreference()
         log("FloatingControlBarManager: show() done, frame=\(window?.frame ?? .zero)")
 
         // Auto-focus input if AI conversation is open
@@ -1126,7 +1122,6 @@ class FloatingControlBarManager {
     func hide() {
         isEnabled = false
         window?.orderOut(nil)
-        CursorPTTOverlayManager.shared.applyIdlePreference()
     }
 
     /// Show the floating bar temporarily without changing the user's persisted preference.
@@ -1292,10 +1287,25 @@ class FloatingControlBarManager {
             }
         }
 
-        // Cursor overlay mode: bar stays hidden — do not show window for PTT queries
+        if !window.isVisible {
+            // Show window without persisting enabled state — if the user has the bar
+            // disabled, it will hide again when the AI conversation closes.
+            window.makeKeyAndOrderFront(nil)
+        }
+
+        // Cancel any in-flight windowDidResignKey dismiss animation before saving the
+        // pre-chat center. Without this, the stale completion block fires after the new
+        // query opens and immediately closes it.
         window.cancelPendingDismiss()
+
+        // Save pre-chat center so closeAIConversation can restore the original position.
+        // Without this, Escape after a PTT query places the bar at the response window's
+        // center instead of where it was before the chat opened.
         window.savePreChatCenterIfNeeded()
+
+        // Mark the query source before sending so playback behavior is correct.
         window.state.currentQueryFromVoice = fromVoice
+        window.orderFrontRegardless()
 
         // Auto-send the query. PTT bypasses the typed onSendQuery closure, so
         // we need to apply the same router rule here ourselves.
@@ -1334,7 +1344,6 @@ class FloatingControlBarManager {
             // Tear down the inline state we set up for the thinking spinner.
             barWindow.state.aiInputText = ""
             barWindow.closeAIConversation()
-            CursorPTTOverlayManager.shared.dismiss()
             return
         }
         // Chat route: continue with the normal inline flow. sendAIQuery will
@@ -1396,10 +1405,14 @@ class FloatingControlBarManager {
     private func presentNotification(_ notification: FloatingBarNotification, in window: FloatingControlBarWindow) {
         persistNotificationMessageIfNeeded(notification)
 
-        CursorPTTOverlayManager.shared.showNotification(notification)
-        // Also update the hidden bar's state so the dismiss queue and analytics remain consistent
-        window.showNotification(notification)
+        if !window.isVisible {
+            notificationWasTemporarilyShown = true
+            window.orderFrontRegardless()
+        } else {
+            notificationWasTemporarilyShown = false
+        }
 
+        window.showNotification(notification)
         AnalyticsManager.shared.notificationSent(
             notificationId: notification.id.uuidString,
             title: notification.title,
@@ -1407,12 +1420,11 @@ class FloatingControlBarManager {
             surface: "floating_bar"
         )
 
-        // Keep dismiss queue in sync so pending notifications advance correctly
         let dismissWorkItem = DispatchWorkItem { [weak self] in
             self?.dismissNotificationAndAdvanceQueue(trackDismissal: true)
         }
         notificationDismissWorkItem = dismissWorkItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.5, execute: dismissWorkItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: dismissWorkItem)
     }
 
     private func dismissNotificationAndAdvanceQueue(trackDismissal: Bool) {
@@ -1571,6 +1583,11 @@ class FloatingControlBarManager {
         return window?.state
     }
 
+    /// Resize the floating bar for PTT state changes.
+    func resizeForPTT(expanded: Bool) {
+        window?.resizeForPTTState(expanded: expanded)
+    }
+
     // MARK: - AI Query
 
     private func prepareVisibleQueryState(_ message: String, in barWindow: FloatingControlBarWindow, fromVoice: Bool) {
@@ -1630,6 +1647,7 @@ class FloatingControlBarManager {
         let screenshotData = await Task.detached { () -> Data? in
             return ScreenCaptureManager.captureScreenData()
         }.value
+        barWindow.orderFrontRegardless()
 
         AnalyticsManager.shared.floatingBarQuerySent(messageLength: message.count, hasScreenshot: screenshotData != nil)
 

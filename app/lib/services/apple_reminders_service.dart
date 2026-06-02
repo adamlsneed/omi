@@ -94,12 +94,13 @@ class AppleRemindersService {
     }
 
     try {
-      final result = await _channel.invokeMethod('addReminder', {
+      final args = <String, dynamic>{
         'title': title,
         'notes': notes,
         'dueDate': dueDate?.millisecondsSinceEpoch,
-        'listName': listName ?? 'Reminders',
-      });
+      };
+      if (listName != null) args['listName'] = listName;
+      final result = await _channel.invokeMethod('addReminder', args);
 
       if (result is String) {
         return result;
@@ -194,7 +195,9 @@ class AppleRemindersService {
     if (!isAvailable) return [];
 
     try {
-      final result = await _channel.invokeMethod('getReminders', {'listName': listName ?? 'Reminders'});
+      final args = <String, dynamic>{};
+      if (listName != null) args['listName'] = listName;
+      final result = await _channel.invokeMethod('getReminders', args);
       if (result is List) {
         return result.cast<String>();
       }
@@ -214,10 +217,9 @@ class AppleRemindersService {
     if (!isAvailable) return false;
 
     try {
-      final result = await _channel.invokeMethod('completeReminder', {
-        'title': title,
-        'listName': listName ?? 'Reminders',
-      });
+      final args = <String, dynamic>{'title': title};
+      if (listName != null) args['listName'] = listName;
+      final result = await _channel.invokeMethod('completeReminder', args);
       return result == true;
     } catch (e) {
       Logger.debug('Error completing reminder: $e');
@@ -238,7 +240,7 @@ class AppleRemindersService {
       }
     }
 
-    final calendarItemId = await addReminder(title: actionItemDescription, notes: 'From Omi', listName: 'Reminders');
+    final calendarItemId = await addReminder(title: actionItemDescription, notes: 'From Omi');
     return calendarItemId != null ? AppleRemindersResult.success : AppleRemindersResult.failed;
   }
 }
