@@ -126,7 +126,17 @@ final class OmiBleManager: NSObject {
 
         if let peripheral = peripherals[uuid] {
             if peripheral.state == .connected {
-                NSLog("[OmiBle] connectPeripheral: \(uuid) already connected, skipping")
+                // Already connected (e.g. BLE state restoration on relaunch): didConnect
+                // will NOT fire again, so re-run service discovery here. Otherwise the
+                // characteristic notify subscriptions (audio) are never re-established and
+                // no audio streams — i.e. "connected but no recordings".
+                NSLog("[OmiBle] connectPeripheral: \(uuid) already connected, re-discovering services")
+                peripheral.delegate = self
+                everConnected.insert(uuid)
+                if connectionStartTimes[uuid] == nil {
+                    connectionStartTimes[uuid] = Int64(Date().timeIntervalSince1970 * 1000)
+                }
+                peripheral.discoverServices(nil)
                 return
             }
             centralManager.connect(peripheral, options: nil)
@@ -562,9 +572,18 @@ extension OmiBleManager: CBCentralManagerDelegate {
                 peripherals[uuid] = peripheral
                 uuids.append(uuid)
 
-                // Re-establish connection if not already connected
+                // Re-establish connection if not already connected.
                 if peripheral.state != .connected {
                     central.connect(peripheral, options: nil)
+                } else {
+                    // Restored already-connected: didConnect won't fire, so kick off
+                    // service discovery directly to re-establish characteristic (audio)
+                    // subscriptions — otherwise no audio streams after relaunch.
+                    everConnected.insert(uuid)
+                    if connectionStartTimes[uuid] == nil {
+                        connectionStartTimes[uuid] = Int64(Date().timeIntervalSince1970 * 1000)
+                    }
+                    peripheral.discoverServices(nil)
                 }
             }
             flutterApi?.onStateRestored(peripheralUuids: uuids) { _ in }
