@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Penghalaan templat tempatan",
     "templateRoutingRoutedSummary": "Ringkasan Dihalakan",
     "templateRoutingWorkRoutedSummary": "Ringkasan Laluan Kerja",
-    "templateRoutingPersonalRoutedSummary": "Ringkasan Laluan Peribadi"
+    "templateRoutingPersonalRoutedSummary": "Ringkasan Laluan Peribadi",
+    "backgroundModeTitle": "Mod Latar Belakang",
+    "backgroundModeDescription": "Pastikan Omi anda terus merakam walaupun apl ditutup sepenuhnya.",
+    "backgroundModeNote": "Buat masa ini hanya berfungsi dengan peranti Omi dan sentiasa diperbaiki.",
+    "regenerateRecap": "Jana semula ringkasan",
+    "recapRegeneratedSnackbar": "Ringkasan dijana semula",
+    "recapRegenerateFailed": "Tidak dapat menjana semula ringkasan. Cuba sebentar lagi.",
+    "recapRegenerateCooldown": "Sila tunggu beberapa saat sebelum menjana semula.",
+    "recapRegenerateNoConversations": "Tiada perbualan untuk diringkaskan untuk hari ini.",
+    "templateRoutingBackendTemplateSection": "Templat backend (pilihan)",
+    "templateRoutingWorkTemplate": "Templat kerja",
+    "templateRoutingPersonalTemplate": "Templat peribadi",
+    "templateRoutingTemplateNone": "Tiada — guna gesaan",
+    "templateRoutingManageApps": "Aktifkan aplikasi ringkasan",
+    "templateRoutingTemplateHint": "Pilih aplikasi ringkasan yang dipasang untuk profil ini, atau biarkan «Tiada» untuk menggunakan gesaan di atas.",
+    "templateRoutingProfileRequiredError": "Tambah gesaan atau templat untuk profil Kerja dan Peribadi sebelum mengaktifkan."
 }

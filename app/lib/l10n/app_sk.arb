@@ -3126,5 +3126,20 @@
     "templateRoutingLocalDescription": "Lokálne smerovanie šablóny",
     "templateRoutingRoutedSummary": "Smerovaný súhrn",
     "templateRoutingWorkRoutedSummary": "Súhrn smerovania práce",
-    "templateRoutingPersonalRoutedSummary": "Osobné zhrnutie trasy"
+    "templateRoutingPersonalRoutedSummary": "Osobné zhrnutie trasy",
+    "backgroundModeTitle": "Režim na pozadí",
+    "backgroundModeDescription": "Udržujte nahrávanie Omi, aj keď je aplikácia úplne zatvorená.",
+    "backgroundModeNote": "Zatiaľ funguje len so zariadeniami Omi a priebežne sa vylepšuje.",
+    "regenerateRecap": "Znovu vygenerovať zhrnutie",
+    "recapRegeneratedSnackbar": "Zhrnutie znovu vygenerované",
+    "recapRegenerateFailed": "Zhrnutie sa nepodarilo znovu vygenerovať. Skúste neskôr.",
+    "recapRegenerateCooldown": "Pred opätovným generovaním prosím počkajte niekoľko sekúnd.",
+    "recapRegenerateNoConversations": "Pre tento deň nie sú žiadne konverzácie na zhrnutie.",
+    "templateRoutingBackendTemplateSection": "Šablóna backendu (nepovinné)",
+    "templateRoutingWorkTemplate": "Pracovná šablóna",
+    "templateRoutingPersonalTemplate": "Osobná šablóna",
+    "templateRoutingTemplateNone": "Žiadna — použiť výzvu",
+    "templateRoutingManageApps": "Povoliť aplikácie na zhrnutie",
+    "templateRoutingTemplateHint": "Vyberte nainštalovanú aplikáciu na zhrnutie pre tento profil alebo ponechajte „Žiadna\" a použite výzvu vyššie.",
+    "templateRoutingProfileRequiredError": "Pred aktiváciou pridajte výzvu alebo šablónu pre profily Pracovný aj Osobný."
 }

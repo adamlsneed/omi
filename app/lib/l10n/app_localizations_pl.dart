@@ -9509,25 +9509,49 @@ class AppLocalizationsPl extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Podsumowanie przesłane osobiście';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Szablon backendu (opcjonalnie)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Szablon pracy';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Szablon osobisty';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Brak — użyj monitu';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Włącz aplikacje do podsumowań';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Wybierz zainstalowaną aplikację do podsumowań dla tego profilu lub pozostaw „Brak\", aby używać monitu powyżej.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Dodaj monit lub szablon dla profili Praca i Osobisty przed włączeniem.';
+
+  @override
+  String get backgroundModeTitle => 'Tryb w tle';
+
+  @override
+  String get backgroundModeDescription => 'Utrzymuj nagrywanie Omi nawet po całkowitym zamknięciu aplikacji.';
+
+  @override
+  String get backgroundModeNote => 'Na razie działa tylko z urządzeniami Omi i jest stale ulepszany.';
+
+  @override
+  String get regenerateRecap => 'Wygeneruj podsumowanie ponownie';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Podsumowanie wygenerowane ponownie';
+
+  @override
+  String get recapRegenerateFailed => 'Nie udało się ponownie wygenerować podsumowania. Spróbuj później.';
+
+  @override
+  String get recapRegenerateCooldown => 'Poczekaj kilka sekund przed ponownym wygenerowaniem.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Brak rozmów do podsumowania w tym dniu.';
 }

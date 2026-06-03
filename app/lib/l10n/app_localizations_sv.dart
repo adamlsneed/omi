@@ -9488,25 +9488,49 @@ class AppLocalizationsSv extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Sammanfattning av personlig rutt';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Backend-mall (valfritt)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Arbetsmall';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Personlig mall';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Ingen — använd prompt';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Aktivera sammanfattningsappar';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Välj en installerad sammanfattningsapp för den här profilen eller behåll «Ingen» för att använda prompten ovan.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Lägg till en prompt eller mall för både Arbete och Personlig profil innan du aktiverar.';
+
+  @override
+  String get backgroundModeTitle => 'Bakgrundsläge';
+
+  @override
+  String get backgroundModeDescription => 'Håll din Omi inspelande även när appen är helt stängd.';
+
+  @override
+  String get backgroundModeNote => 'Fungerar än så länge bara med Omi-enheter och förbättras kontinuerligt.';
+
+  @override
+  String get regenerateRecap => 'Återskapa sammanfattningen';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Sammanfattningen återskapad';
+
+  @override
+  String get recapRegenerateFailed => 'Det gick inte att återskapa sammanfattningen. Försök igen senare.';
+
+  @override
+  String get recapRegenerateCooldown => 'Vänta några sekunder innan du genererar igen.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Inga samtal att sammanfatta för den här dagen.';
 }

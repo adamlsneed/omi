@@ -9313,25 +9313,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => '个人路由摘要';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => '后端模板（可选）';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => '工作模板';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => '个人模板';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => '无 — 使用提示词';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => '启用摘要应用';
 
   @override
-  String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+  String get templateRoutingTemplateHint => '为此配置文件选择一个已安装的摘要应用，或保留「无」以使用上方的提示词。';
 
   @override
-  String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+  String get templateRoutingProfileRequiredError => '启用前，请为工作和个人配置文件各添加一个提示词或模板。';
+
+  @override
+  String get backgroundModeTitle => '后台模式';
+
+  @override
+  String get backgroundModeDescription => '即使完全关闭应用，也能让你的 Omi 继续录音。';
+
+  @override
+  String get backgroundModeNote => '目前仅支持 Omi 设备，并在持续改进中。';
+
+  @override
+  String get regenerateRecap => '重新生成回顾';
+
+  @override
+  String get recapRegeneratedSnackbar => '已重新生成回顾';
+
+  @override
+  String get recapRegenerateFailed => '无法重新生成回顾。请稍后重试。';
+
+  @override
+  String get recapRegenerateCooldown => '请等待几秒后再重新生成。';
+
+  @override
+  String get recapRegenerateNoConversations => '这一天没有可以总结的对话。';
 }

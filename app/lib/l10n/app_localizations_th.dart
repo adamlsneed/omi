@@ -9433,25 +9433,49 @@ class AppLocalizationsTh extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'สรุปเส้นทางส่วนบุคคล';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'เทมเพลตแบ็กเอนด์ (ไม่บังคับ)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'เทมเพลตสำหรับงาน';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'เทมเพลตส่วนตัว';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'ไม่มี — ใช้คำสั่ง';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'เปิดใช้งานแอปสรุป';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'เลือกแอปสรุปที่ติดตั้งสำหรับโปรไฟล์นี้ หรือเลือก «ไม่มี» เพื่อใช้คำสั่งด้านบน';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'เพิ่มคำสั่งหรือเทมเพลตสำหรับทั้งโปรไฟล์งานและส่วนตัวก่อนเปิดใช้งาน';
+
+  @override
+  String get backgroundModeTitle => 'โหมดเบื้องหลัง';
+
+  @override
+  String get backgroundModeDescription => 'ให้ Omi ของคุณบันทึกต่อไปแม้ปิดแอปไปทั้งหมดแล้ว';
+
+  @override
+  String get backgroundModeNote => 'ขณะนี้ใช้ได้กับอุปกรณ์ Omi เท่านั้น และกำลังพัฒนาอย่างต่อเนื่อง';
+
+  @override
+  String get regenerateRecap => 'สร้างสรุปใหม่';
+
+  @override
+  String get recapRegeneratedSnackbar => 'สร้างสรุปใหม่แล้ว';
+
+  @override
+  String get recapRegenerateFailed => 'ไม่สามารถสร้างสรุปใหม่ได้ ลองอีกครั้งในภายหลัง';
+
+  @override
+  String get recapRegenerateCooldown => 'โปรดรอสักครู่ก่อนสร้างใหม่อีกครั้ง';
+
+  @override
+  String get recapRegenerateNoConversations => 'ไม่มีการสนทนาที่จะสรุปสำหรับวันนี้';
 }

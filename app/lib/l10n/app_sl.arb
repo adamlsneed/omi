@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "Usmerjanje lokalne predloge",
     "templateRoutingRoutedSummary": "Preusmerjeni povzetek",
     "templateRoutingWorkRoutedSummary": "Povzetek usmerjanja dela",
-    "templateRoutingPersonalRoutedSummary": "Osebno usmerjen povzetek"
+    "templateRoutingPersonalRoutedSummary": "Osebno usmerjen povzetek",
+    "backgroundModeTitle": "Način v ozadju",
+    "backgroundModeDescription": "Ohranite snemanje Omi tudi ko je aplikacija popolnoma zaprta.",
+    "backgroundModeNote": "Zaenkrat deluje le z napravami Omi in se nenehno izboljšuje.",
+    "regenerateRecap": "Ponovno ustvari povzetek",
+    "recapRegeneratedSnackbar": "Povzetek ponovno ustvarjen",
+    "recapRegenerateFailed": "Povzetka ni bilo mogoče ponovno ustvariti. Poskusite pozneje.",
+    "recapRegenerateCooldown": "Pred ponovnim ustvarjanjem počakajte nekaj sekund.",
+    "recapRegenerateNoConversations": "Za ta dan ni pogovorov za povzemanje.",
+    "templateRoutingBackendTemplateSection": "Predloga zaledja (neobvezno)",
+    "templateRoutingWorkTemplate": "Delovna predloga",
+    "templateRoutingPersonalTemplate": "Osebna predloga",
+    "templateRoutingTemplateNone": "Brez — uporabi poziv",
+    "templateRoutingManageApps": "Omogoči aplikacije za povzetke",
+    "templateRoutingTemplateHint": "Izberite nameščeno aplikacijo za povzetke za ta profil ali pustite „Brez\", da uporabite zgornji poziv.",
+    "templateRoutingProfileRequiredError": "Pred omogočanjem dodajte poziv ali predlogo za profila Delovno in Osebno."
 }

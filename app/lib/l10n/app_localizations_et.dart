@@ -9480,25 +9480,49 @@ class AppLocalizationsEt extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Isiklik marsruudi kokkuvõte';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Taustasüsteemi mall (valikuline)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Töömall';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Isiklik mall';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Puudub — kasuta vihjet';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Luba kokkuvõtterakendused';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Vali selle profiili jaoks installitud kokkuvõtterakendus või jäta „Puudub\", et kasutada ülaltoodud vihjet.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Lisa nii Töö kui ka Isikliku profiili jaoks vihjed või mallid enne aktiveerimist.';
+
+  @override
+  String get backgroundModeTitle => 'Taustarežiim';
+
+  @override
+  String get backgroundModeDescription => 'Hoia oma Omi salvestamas ka siis, kui rakendus on täielikult suletud.';
+
+  @override
+  String get backgroundModeNote => 'Praegu töötab ainult Omi seadmetega ja seda täiustatakse pidevalt.';
+
+  @override
+  String get regenerateRecap => 'Loo kokkuvõte uuesti';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Kokkuvõte loodi uuesti';
+
+  @override
+  String get recapRegenerateFailed => 'Kokkuvõtet ei õnnestunud uuesti luua. Proovi hiljem uuesti.';
+
+  @override
+  String get recapRegenerateCooldown => 'Palun oota mõni sekund enne uuesti loomist.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Selle päeva jaoks pole vestlusi, mida kokku võtta.';
 }

@@ -9487,25 +9487,49 @@ class AppLocalizationsFa extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'خلاصه مسیریابی شخصی';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'قالب بک‌اند (اختیاری)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'قالب کاری';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'قالب شخصی';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'هیچ‌کدام — از دستورالعمل استفاده شود';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'فعال‌سازی برنامه‌های خلاصه‌ساز';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'یک برنامه خلاصه‌ساز نصب‌شده برای این پروفایل انتخاب کنید یا «هیچ‌کدام» را برای استفاده از دستورالعمل بالا نگه دارید.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'قبل از فعال‌سازی، برای هر دو پروفایل کاری و شخصی یک دستورالعمل یا قالب اضافه کنید.';
+
+  @override
+  String get backgroundModeTitle => 'حالت پس‌زمینه';
+
+  @override
+  String get backgroundModeDescription => 'حتی وقتی برنامه کاملاً بسته است، ضبط Omi شما را ادامه دهید.';
+
+  @override
+  String get backgroundModeNote => 'فعلاً فقط با دستگاه‌های Omi کار می‌کند و به‌طور مداوم در حال بهبود است.';
+
+  @override
+  String get regenerateRecap => 'بازسازی خلاصه';
+
+  @override
+  String get recapRegeneratedSnackbar => 'خلاصه دوباره ساخته شد';
+
+  @override
+  String get recapRegenerateFailed => 'بازسازی خلاصه ممکن نشد. بعداً دوباره تلاش کنید.';
+
+  @override
+  String get recapRegenerateCooldown => 'لطفاً چند ثانیه قبل از بازسازی مجدد صبر کنید.';
+
+  @override
+  String get recapRegenerateNoConversations => 'هیچ مکالمه‌ای برای خلاصه‌سازی این روز وجود ندارد.';
 }

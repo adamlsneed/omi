@@ -9570,25 +9570,49 @@ class AppLocalizationsTl extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Personal na Ruta na Buod';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Template ng backend (opsyonal)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Template para sa trabaho';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Personal na template';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Wala — gamitin ang prompt';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'I-enable ang mga summary app';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Pumili ng naka-install na summary app para sa profile na ito, o panatilihin ang «Wala» para gamitin ang prompt sa itaas.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Magdagdag ng prompt o template para sa Trabaho at Personal na profile bago i-enable.';
+
+  @override
+  String get backgroundModeTitle => 'Background Mode';
+
+  @override
+  String get backgroundModeDescription => 'Panatilihing nagre-record ang iyong Omi kahit na ganap nang sarado ang app.';
+
+  @override
+  String get backgroundModeNote => 'Sa ngayon ay gumagana lang sa mga Omi device at patuloy na pinapabuti.';
+
+  @override
+  String get regenerateRecap => 'Buuin muli ang buod';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Nabuo muli ang buod';
+
+  @override
+  String get recapRegenerateFailed => 'Hindi nagawang muling buuin ang buod. Subukang muli mamaya.';
+
+  @override
+  String get recapRegenerateCooldown => 'Mangyaring maghintay ng ilang segundo bago bumuo muli.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Walang mga pag-uusap na ibubuod para sa araw na ito.';
 }

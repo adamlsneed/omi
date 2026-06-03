@@ -9524,25 +9524,50 @@ class AppLocalizationsHu extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Személyes útvonal-összefoglaló';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Backend sablon (opcionális)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Munka sablon';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Személyes sablon';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Nincs — prompt használata';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Összefoglaló alkalmazások engedélyezése';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Válasszon telepített összefoglaló alkalmazást ehhez a profilhoz, vagy hagyja „Nincs\" értéken a fenti prompt használatához.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Az aktiválás előtt adjon meg promptot vagy sablont a Munka és Személyes profilhoz is.';
+
+  @override
+  String get backgroundModeTitle => 'Háttérmód';
+
+  @override
+  String get backgroundModeDescription =>
+      'Tartsd az Omi-t felvételen akkor is, amikor az alkalmazás teljesen be van zárva.';
+
+  @override
+  String get backgroundModeNote => 'Egyelőre csak Omi eszközökkel működik, és folyamatosan fejlesztjük.';
+
+  @override
+  String get regenerateRecap => 'Összegzés újragenerálása';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Összegzés újragenerálva';
+
+  @override
+  String get recapRegenerateFailed => 'Nem sikerült újragenerálni az összegzést. Próbáld újra később.';
+
+  @override
+  String get recapRegenerateCooldown => 'Kérlek, várj néhány másodpercet az újragenerálás előtt.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Erre a napra nincsenek összegezhető beszélgetések.';
 }

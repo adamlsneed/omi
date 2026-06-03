@@ -9533,25 +9533,49 @@ class AppLocalizationsTe extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'వ్యక్తిగత రూటెడ్ సారాంశం';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'బ్యాకెండ్ టెంప్లేట్ (ఐచ్ఛికం)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'పని టెంప్లేట్';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'వ్యక్తిగత టెంప్లేట్';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'ఏదీ లేదు — ప్రాంప్ట్ ఉపయోగించు';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'సారాంశ యాప్‌లను ప్రారంభించు';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'ఈ ప్రొఫైల్ కోసం ఇన్‌స్టాల్ చేసిన సారాంశ యాప్‌ని ఎంచుకోండి, లేదా పై ప్రాంప్ట్‌ని ఉపయోగించడానికి «ఏదీ లేదు» ఉంచండి.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'ప్రారంభించే ముందు పని మరియు వ్యక్తిగత రెండు ప్రొఫైల్‌లకు ప్రాంప్ట్ లేదా టెంప్లేట్ జోడించండి.';
+
+  @override
+  String get backgroundModeTitle => 'నేపథ్య మోడ్';
+
+  @override
+  String get backgroundModeDescription => 'యాప్ పూర్తిగా మూసివేయబడినా మీ Omi రికార్డింగ్‌ను కొనసాగించండి.';
+
+  @override
+  String get backgroundModeNote => 'ప్రస్తుతం Omi పరికరాలతో మాత్రమే పనిచేస్తుంది మరియు నిరంతరం మెరుగుపరచబడుతోంది.';
+
+  @override
+  String get regenerateRecap => 'సారాంశాన్ని పునరుత్పత్తి చేయండి';
+
+  @override
+  String get recapRegeneratedSnackbar => 'సారాంశం పునరుత్పత్తి అయింది';
+
+  @override
+  String get recapRegenerateFailed => 'సారాంశాన్ని పునరుత్పత్తి చేయలేకపోయాము. తర్వాత మళ్లీ ప్రయత్నించండి.';
+
+  @override
+  String get recapRegenerateCooldown => 'మళ్లీ పునరుత్పత్తి చేయడానికి ముందు దయచేసి కొన్ని సెకన్లు వేచి ఉండండి.';
+
+  @override
+  String get recapRegenerateNoConversations => 'ఈ రోజుకి సారాంశీకరించడానికి సంభాషణలు లేవు.';
 }

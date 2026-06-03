@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Dirijarea șablonului local",
     "templateRoutingRoutedSummary": "Rezumat rutat",
     "templateRoutingWorkRoutedSummary": "Rezumat direcționat de lucru",
-    "templateRoutingPersonalRoutedSummary": "Rezumat personal rutat"
+    "templateRoutingPersonalRoutedSummary": "Rezumat personal rutat",
+    "backgroundModeTitle": "Mod în fundal",
+    "backgroundModeDescription": "Păstrează Omi în înregistrare chiar și când aplicația este complet închisă.",
+    "backgroundModeNote": "Deocamdată funcționează doar cu dispozitive Omi și este îmbunătățit continuu.",
+    "regenerateRecap": "Regenerează rezumatul",
+    "recapRegeneratedSnackbar": "Rezumat regenerat",
+    "recapRegenerateFailed": "Rezumatul nu a putut fi regenerat. Încercați din nou mai târziu.",
+    "recapRegenerateCooldown": "Vă rugăm să așteptați câteva secunde înainte de a regenera.",
+    "recapRegenerateNoConversations": "Nu există conversații de rezumat pentru această zi.",
+    "templateRoutingBackendTemplateSection": "Șablon backend (opțional)",
+    "templateRoutingWorkTemplate": "Șablon de lucru",
+    "templateRoutingPersonalTemplate": "Șablon personal",
+    "templateRoutingTemplateNone": "Niciunul — folosiți promptul",
+    "templateRoutingManageApps": "Activați aplicațiile de rezumat",
+    "templateRoutingTemplateHint": "Alegeți o aplicație de rezumat instalată pentru acest profil sau păstrați «Niciunul» pentru a folosi promptul de mai sus.",
+    "templateRoutingProfileRequiredError": "Adăugați un prompt sau un șablon pentru profilurile Serviciu și Personal înainte de activare."
 }

@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "உள்ளூர் டெம்ப்ளேட் ரூட்டிங்",
     "templateRoutingRoutedSummary": "திசைதிருப்பப்பட்ட சுருக்கம்",
     "templateRoutingWorkRoutedSummary": "பணியின் சுருக்கம்",
-    "templateRoutingPersonalRoutedSummary": "தனிப்பட்ட வழிப்படுத்தப்பட்ட சுருக்கம்"
+    "templateRoutingPersonalRoutedSummary": "தனிப்பட்ட வழிப்படுத்தப்பட்ட சுருக்கம்",
+    "backgroundModeTitle": "பின்னணி பயன்முறை",
+    "backgroundModeDescription": "ஆப்ஸ் முழுவதுமாக மூடப்பட்டிருந்தாலும் உங்கள் Omi பதிவைத் தொடரவும்.",
+    "backgroundModeNote": "தற்போது Omi சாதனங்களுடன் மட்டுமே செயல்படுகிறது, தொடர்ந்து மேம்படுத்தப்படுகிறது.",
+    "regenerateRecap": "சுருக்கத்தை மீண்டும் உருவாக்கு",
+    "recapRegeneratedSnackbar": "சுருக்கம் மீண்டும் உருவாக்கப்பட்டது",
+    "recapRegenerateFailed": "சுருக்கத்தை மீண்டும் உருவாக்க முடியவில்லை. பிறகு மீண்டும் முயற்சிக்கவும்.",
+    "recapRegenerateCooldown": "மீண்டும் உருவாக்குவதற்கு முன் சில வினாடிகள் காத்திருக்கவும்.",
+    "recapRegenerateNoConversations": "இந்த நாளுக்கு சுருக்கமாக மாற்ற உரையாடல்கள் இல்லை.",
+    "templateRoutingBackendTemplateSection": "பின்தள வார்ப்புரு (விருப்பத்தேர்வு)",
+    "templateRoutingWorkTemplate": "பணி வார்ப்புரு",
+    "templateRoutingPersonalTemplate": "தனிப்பட்ட வார்ப்புரு",
+    "templateRoutingTemplateNone": "ஏதுமில்லை — வழிகாட்டியை பயன்படுத்து",
+    "templateRoutingManageApps": "சுருக்க செயலிகளை இயக்கு",
+    "templateRoutingTemplateHint": "இந்த சுயவிவரத்திற்கு நிறுவப்பட்ட சுருக்க செயலியை தேர்வு செய்யவும், அல்லது மேலே உள்ள வழிகாட்டியை பயன்படுத்த «ஏதுமில்லை» வைத்திருக்கவும்.",
+    "templateRoutingProfileRequiredError": "இயக்குவதற்கு முன்பு பணி மற்றும் தனிப்பட்ட இரண்டு சுயவிவரங்களுக்கும் வழிகாட்டி அல்லது வார்ப்புரு சேர்க்கவும்."
 }

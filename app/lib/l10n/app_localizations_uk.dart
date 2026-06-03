@@ -9502,25 +9502,49 @@ class AppLocalizationsUk extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Особисте маршрутизоване резюме';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Шаблон бекенду (необов\'язково)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Робочий шаблон';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Особистий шаблон';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Без шаблону — використати підказку';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Увімкнути застосунки для резюме';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Виберіть встановлений застосунок для резюме для цього профілю або залиште «Без шаблону», щоб використовувати підказку вище.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Додайте підказку або шаблон для профілів Робочий і Особистий перед увімкненням.';
+
+  @override
+  String get backgroundModeTitle => 'Фоновий режим';
+
+  @override
+  String get backgroundModeDescription => 'Продовжуйте запис Omi, навіть коли застосунок повністю закрито.';
+
+  @override
+  String get backgroundModeNote => 'Наразі працює лише з пристроями Omi і постійно вдосконалюється.';
+
+  @override
+  String get regenerateRecap => 'Створити підсумок знову';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Підсумок створено знову';
+
+  @override
+  String get recapRegenerateFailed => 'Не вдалося створити підсумок заново. Спробуйте пізніше.';
+
+  @override
+  String get recapRegenerateCooldown => 'Зачекайте кілька секунд перед повторним створенням.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Немає розмов для підбиття підсумку за цей день.';
 }

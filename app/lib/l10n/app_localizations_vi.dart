@@ -9481,25 +9481,49 @@ class AppLocalizationsVi extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Tóm tắt định tuyến cá nhân';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Mẫu backend (tùy chọn)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Mẫu công việc';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Mẫu cá nhân';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Không có — dùng lời nhắc';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Bật ứng dụng tóm tắt';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Chọn ứng dụng tóm tắt đã cài đặt cho hồ sơ này hoặc giữ «Không có» để sử dụng lời nhắc ở trên.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Thêm lời nhắc hoặc mẫu cho cả hồ sơ Công việc và Cá nhân trước khi bật.';
+
+  @override
+  String get backgroundModeTitle => 'Chế độ nền';
+
+  @override
+  String get backgroundModeDescription => 'Giữ cho Omi của bạn tiếp tục ghi âm ngay cả khi ứng dụng đã đóng hoàn toàn.';
+
+  @override
+  String get backgroundModeNote => 'Hiện chỉ hoạt động với thiết bị Omi và đang được cải thiện liên tục.';
+
+  @override
+  String get regenerateRecap => 'Tạo lại tóm tắt';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Đã tạo lại tóm tắt';
+
+  @override
+  String get recapRegenerateFailed => 'Không thể tạo lại tóm tắt. Vui lòng thử lại sau.';
+
+  @override
+  String get recapRegenerateCooldown => 'Vui lòng đợi vài giây trước khi tạo lại.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Không có cuộc trò chuyện nào để tóm tắt cho ngày này.';
 }

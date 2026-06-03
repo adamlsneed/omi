@@ -3090,5 +3090,20 @@
     "templateRoutingLocalDescription": "Местно шаблонно маршрутизиране",
     "templateRoutingRoutedSummary": "Маршрутизирано резюме",
     "templateRoutingWorkRoutedSummary": "Резюме на пренасочената работа",
-    "templateRoutingPersonalRoutedSummary": "Лично пренасочено резюме"
+    "templateRoutingPersonalRoutedSummary": "Лично пренасочено резюме",
+    "backgroundModeTitle": "Фонов режим",
+    "backgroundModeDescription": "Запазете записа на Omi дори когато приложението е напълно затворено.",
+    "backgroundModeNote": "Засега работи само с устройства Omi и непрекъснато се подобрява.",
+    "regenerateRecap": "Регенерирай резюмето",
+    "recapRegeneratedSnackbar": "Резюмето е регенерирано",
+    "recapRegenerateFailed": "Резюмето не можа да бъде регенерирано. Опитайте отново по-късно.",
+    "recapRegenerateCooldown": "Моля, изчакайте няколко секунди преди повторно регенериране.",
+    "recapRegenerateNoConversations": "Няма разговори за обобщаване за този ден.",
+    "templateRoutingBackendTemplateSection": "Шаблон за бекенд (по избор)",
+    "templateRoutingWorkTemplate": "Работен шаблон",
+    "templateRoutingPersonalTemplate": "Личен шаблон",
+    "templateRoutingTemplateNone": "Без шаблон — използвай подканата",
+    "templateRoutingManageApps": "Активиране на приложения за обобщение",
+    "templateRoutingTemplateHint": "Изберете инсталирано приложение за обобщение за този профил или оставете „Без шаблон\", за да използвате подканата по-горе.",
+    "templateRoutingProfileRequiredError": "Добавете подканва или шаблон за профилите Работа и Личен, преди да активирате."
 }

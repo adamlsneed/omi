@@ -1133,20 +1133,23 @@ enum MemoryCategory: String, Codable, CaseIterable {
   case system
   case interesting
   case manual
+  case workflow
 
   var displayName: String {
     switch self {
-    case .system: return "System"
-    case .interesting: return "Interesting"
+    case .system: return "About You"
+    case .interesting: return "Insights"
     case .manual: return "Manual"
+    case .workflow: return "Workflow"
     }
   }
 
   var icon: String {
     switch self {
-    case .system: return "gearshape"
-    case .interesting: return "sparkles"
+    case .system: return "person"
+    case .interesting: return "lightbulb"
     case .manual: return "square.and.pencil"
+    case .workflow: return "arrow.triangle.branch"
     }
   }
 }
@@ -1333,6 +1336,45 @@ extension APIClient {
       // 404 = no in-progress conversation found — WS close handler already processed it
       return nil
     }
+  }
+}
+
+// MARK: - Create Conversation From Segments (on-device transcription upload)
+
+extension APIClient {
+  /// One transcript segment for the from-segments upload (matches backend DevTranscriptSegment).
+  struct UploadSegment: Encodable {
+    let text: String
+    let speaker: String
+    let speaker_id: Int?
+    let is_user: Bool
+    let person_id: String?
+    let start: Double
+    let end: Double
+  }
+
+  struct CreateConversationFromSegmentsRequest: Encodable {
+    let transcript_segments: [UploadSegment]
+    let source: String
+    let started_at: String?  // ISO8601
+    let finished_at: String?  // ISO8601
+    let language: String
+  }
+
+  struct CreateConversationFromSegmentsResponse: Decodable {
+    let id: String
+    let status: String
+    let discarded: Bool
+  }
+
+  /// Upload an already-transcribed (on-device Parakeet) conversation to the backend so it is
+  /// persisted, processed (memories/summaries), and synced to every device — the same pipeline a
+  /// cloud-transcribed conversation goes through, without the live `/v4/listen` websocket.
+  /// Endpoint: POST /v1/conversations/from-segments (Firebase-authed).
+  func createConversationFromSegments(_ request: CreateConversationFromSegmentsRequest)
+    async throws -> CreateConversationFromSegmentsResponse
+  {
+    return try await post("v1/conversations/from-segments", body: request, customBaseURL: nil)
   }
 }
 

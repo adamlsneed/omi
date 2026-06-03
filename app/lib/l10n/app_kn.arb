@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "ಸ್ಥಳೀಯ ಟೆಂಪ್ಲೇಟ್ ರೂಟಿಂಗ್",
     "templateRoutingRoutedSummary": "ರೂಟೆಡ್ ಸಾರಾಂಶ",
     "templateRoutingWorkRoutedSummary": "ಕೆಲಸದ ರೂಟೆಡ್ ಸಾರಾಂಶ",
-    "templateRoutingPersonalRoutedSummary": "ವೈಯಕ್ತಿಕ ರೂಟೆಡ್ ಸಾರಾಂಶ"
+    "templateRoutingPersonalRoutedSummary": "ವೈಯಕ್ತಿಕ ರೂಟೆಡ್ ಸಾರಾಂಶ",
+    "backgroundModeTitle": "ಹಿನ್ನೆಲೆ ಮೋಡ್",
+    "backgroundModeDescription": "ಆ್ಯಪ್ ಸಂಪೂರ್ಣವಾಗಿ ಮುಚ್ಚಿದ್ದರೂ ನಿಮ್ಮ Omi ರೆಕಾರ್ಡಿಂಗ್ ಮುಂದುವರಿಸಿ.",
+    "backgroundModeNote": "ಸದ್ಯಕ್ಕೆ Omi ಸಾಧನಗಳೊಂದಿಗೆ ಮಾತ್ರ ಕೆಲಸ ಮಾಡುತ್ತದೆ ಮತ್ತು ನಿರಂತರವಾಗಿ ಸುಧಾರಿಸಲಾಗುತ್ತಿದೆ.",
+    "regenerateRecap": "ಸಾರಾಂಶವನ್ನು ಪುನರುತ್ಪಾದಿಸಿ",
+    "recapRegeneratedSnackbar": "ಸಾರಾಂಶವನ್ನು ಪುನರುತ್ಪಾದಿಸಲಾಗಿದೆ",
+    "recapRegenerateFailed": "ಸಾರಾಂಶವನ್ನು ಪುನರುತ್ಪಾದಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "recapRegenerateCooldown": "ಪುನರುತ್ಪಾದಿಸುವ ಮೊದಲು ದಯವಿಟ್ಟು ಕೆಲವು ಸೆಕೆಂಡುಗಳು ನಿರೀಕ್ಷಿಸಿ.",
+    "recapRegenerateNoConversations": "ಈ ದಿನಕ್ಕೆ ಸಂಗ್ರಹಿಸಲು ಯಾವುದೇ ಸಂಭಾಷಣೆಗಳಿಲ್ಲ.",
+    "templateRoutingBackendTemplateSection": "ಬ್ಯಾಕೆಂಡ್ ಟೆಂಪ್ಲೆಟ್ (ಐಚ್ಛಿಕ)",
+    "templateRoutingWorkTemplate": "ಕೆಲಸದ ಟೆಂಪ್ಲೆಟ್",
+    "templateRoutingPersonalTemplate": "ವೈಯಕ್ತಿಕ ಟೆಂಪ್ಲೆಟ್",
+    "templateRoutingTemplateNone": "ಯಾವುದೂ ಇಲ್ಲ — ಪ್ರಾಂಪ್ಟ್ ಬಳಸಿ",
+    "templateRoutingManageApps": "ಸಾರಾಂಶ ಅಪ್ಲಿಕೇಶನ್‌ಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ",
+    "templateRoutingTemplateHint": "ಈ ಪ್ರೊಫೈಲ್‌ಗೆ ಸ್ಥಾಪಿಸಲಾದ ಸಾರಾಂಶ ಅಪ್ಲಿಕೇಶನ್ ಆಯ್ಕೆ ಮಾಡಿ, ಅಥವಾ ಮೇಲಿನ ಪ್ರಾಂಪ್ಟ್ ಬಳಸಲು «ಯಾವುದೂ ಇಲ್ಲ» ಇರಿಸಿ.",
+    "templateRoutingProfileRequiredError": "ಸಕ್ರಿಯಗೊಳಿಸುವ ಮೊದಲು ಕೆಲಸ ಮತ್ತು ವೈಯಕ್ತಿಕ ಎರಡೂ ಪ್ರೊಫೈಲ್‌ಗಳಿಗೆ ಪ್ರಾಂಪ್ಟ್ ಅಥವಾ ಟೆಂಪ್ಲೆಟ್ ಸೇರಿಸಿ."
 }

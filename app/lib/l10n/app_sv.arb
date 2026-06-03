@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Lokal mall routing",
     "templateRoutingRoutedSummary": "Sammanfattning av rutt",
     "templateRoutingWorkRoutedSummary": "Sammanfattning av arbetet",
-    "templateRoutingPersonalRoutedSummary": "Sammanfattning av personlig rutt"
+    "templateRoutingPersonalRoutedSummary": "Sammanfattning av personlig rutt",
+    "backgroundModeTitle": "Bakgrundsläge",
+    "backgroundModeDescription": "Håll din Omi inspelande även när appen är helt stängd.",
+    "backgroundModeNote": "Fungerar än så länge bara med Omi-enheter och förbättras kontinuerligt.",
+    "regenerateRecap": "Återskapa sammanfattningen",
+    "recapRegeneratedSnackbar": "Sammanfattningen återskapad",
+    "recapRegenerateFailed": "Det gick inte att återskapa sammanfattningen. Försök igen senare.",
+    "recapRegenerateCooldown": "Vänta några sekunder innan du genererar igen.",
+    "recapRegenerateNoConversations": "Inga samtal att sammanfatta för den här dagen.",
+    "templateRoutingBackendTemplateSection": "Backend-mall (valfritt)",
+    "templateRoutingWorkTemplate": "Arbetsmall",
+    "templateRoutingPersonalTemplate": "Personlig mall",
+    "templateRoutingTemplateNone": "Ingen — använd prompt",
+    "templateRoutingManageApps": "Aktivera sammanfattningsappar",
+    "templateRoutingTemplateHint": "Välj en installerad sammanfattningsapp för den här profilen eller behåll «Ingen» för att använda prompten ovan.",
+    "templateRoutingProfileRequiredError": "Lägg till en prompt eller mall för både Arbete och Personlig profil innan du aktiverar."
 }

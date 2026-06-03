@@ -9568,25 +9568,51 @@ class AppLocalizationsFr extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Résumé personnel acheminé';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Modèle backend (optionnel)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Modèle professionnel';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Modèle personnel';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Aucun — utiliser la invite';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Activer les applications de résumé';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Choisissez une application de résumé installée pour ce profil ou gardez « Aucun » pour utiliser l\'invite ci-dessus.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Ajoutez une invite ou un modèle pour les profils Professionnel et Personnel avant d\'activer.';
+
+  @override
+  String get backgroundModeTitle => 'Mode arrière-plan';
+
+  @override
+  String get backgroundModeDescription =>
+      'Gardez votre Omi en enregistrement même lorsque l\'application est entièrement fermée.';
+
+  @override
+  String get backgroundModeNote =>
+      'Fonctionne uniquement avec les appareils Omi pour l\'instant, et s\'améliore en continu.';
+
+  @override
+  String get regenerateRecap => 'Régénérer le récapitulatif';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Récapitulatif régénéré';
+
+  @override
+  String get recapRegenerateFailed => 'Impossible de régénérer le récapitulatif. Réessayez plus tard.';
+
+  @override
+  String get recapRegenerateCooldown => 'Veuillez patienter quelques secondes avant de régénérer.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Aucune conversation à résumer pour cette journée.';
 }

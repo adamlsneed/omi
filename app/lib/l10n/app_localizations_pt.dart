@@ -9489,25 +9489,50 @@ class AppLocalizationsPt extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Resumo de roteamento pessoal';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Modelo de backend (opcional)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Modelo de trabalho';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Modelo pessoal';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Nenhum — usar prompt';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Ativar aplicativos de resumo';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Escolha um aplicativo de resumo instalado para este perfil ou mantenha «Nenhum» para usar o prompt acima.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Adicione um prompt ou modelo para os perfis Trabalho e Pessoal antes de ativar.';
+
+  @override
+  String get backgroundModeTitle => 'Modo em segundo plano';
+
+  @override
+  String get backgroundModeDescription => 'Mantenha o seu Omi gravando mesmo quando o app está totalmente fechado.';
+
+  @override
+  String get backgroundModeNote =>
+      'Por enquanto funciona apenas com dispositivos Omi e está em constante aprimoramento.';
+
+  @override
+  String get regenerateRecap => 'Regenerar resumo';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Resumo regenerado';
+
+  @override
+  String get recapRegenerateFailed => 'Não foi possível regenerar o resumo. Tente novamente mais tarde.';
+
+  @override
+  String get recapRegenerateCooldown => 'Aguarde alguns segundos antes de regenerar novamente.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Nenhuma conversa para resumir neste dia.';
 }

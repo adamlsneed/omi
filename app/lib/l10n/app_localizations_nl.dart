@@ -9514,25 +9514,49 @@ class AppLocalizationsNl extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Persoonlijk doorgestuurde samenvatting';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Backend-sjabloon (optioneel)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Werksjabloon';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Persoonlijk sjabloon';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Geen — gebruik prompt';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Samenvattingsapps inschakelen';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Kies een geïnstalleerde samenvattingsapp voor dit profiel of laat «Geen» staan om de bovenstaande prompt te gebruiken.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Voeg een prompt of sjabloon toe voor zowel het Werk- als het Persoonlijke profiel voordat je inschakelt.';
+
+  @override
+  String get backgroundModeTitle => 'Achtergrondmodus';
+
+  @override
+  String get backgroundModeDescription => 'Houd je Omi aan het opnemen, zelfs wanneer de app volledig gesloten is.';
+
+  @override
+  String get backgroundModeNote => 'Werkt voorlopig alleen met Omi-apparaten en wordt voortdurend verbeterd.';
+
+  @override
+  String get regenerateRecap => 'Samenvatting opnieuw genereren';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Samenvatting opnieuw gegenereerd';
+
+  @override
+  String get recapRegenerateFailed => 'Kon de samenvatting niet opnieuw genereren. Probeer het later opnieuw.';
+
+  @override
+  String get recapRegenerateCooldown => 'Wacht een paar seconden voordat je opnieuw genereert.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Geen gesprekken om voor deze dag samen te vatten.';
 }

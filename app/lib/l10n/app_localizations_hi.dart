@@ -9462,25 +9462,49 @@ class AppLocalizationsHi extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'व्यक्तिगत रूटेड सारांश';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'बैकएंड टेम्पलेट (वैकल्पिक)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'कार्य टेम्पलेट';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'व्यक्तिगत टेम्पलेट';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'कोई नहीं — प्रॉम्प्ट उपयोग करें';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'सारांश ऐप्स सक्षम करें';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'इस प्रोफ़ाइल के लिए एक इंस्टॉल किया हुआ सारांश ऐप चुनें, या ऊपर के प्रॉम्प्ट का उपयोग करने के लिए \'कोई नहीं\' रखें।';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'सक्षम करने से पहले कार्य और व्यक्तिगत दोनों प्रोफ़ाइल के लिए एक प्रॉम्प्ट या टेम्पलेट जोड़ें।';
+
+  @override
+  String get backgroundModeTitle => 'बैकग्राउंड मोड';
+
+  @override
+  String get backgroundModeDescription => 'ऐप पूरी तरह बंद होने पर भी अपने Omi की रिकॉर्डिंग जारी रखें।';
+
+  @override
+  String get backgroundModeNote => 'फ़िलहाल केवल Omi डिवाइस के साथ काम करता है और इसे लगातार बेहतर बनाया जा रहा है।';
+
+  @override
+  String get regenerateRecap => 'रीकैप पुनः बनाएं';
+
+  @override
+  String get recapRegeneratedSnackbar => 'रीकैप पुनः बनाया गया';
+
+  @override
+  String get recapRegenerateFailed => 'रीकैप पुनः नहीं बनाया जा सका। बाद में पुनः प्रयास करें।';
+
+  @override
+  String get recapRegenerateCooldown => 'पुनः बनाने से पहले कुछ सेकंड प्रतीक्षा करें।';
+
+  @override
+  String get recapRegenerateNoConversations => 'इस दिन के लिए सारांश बनाने के लिए कोई बातचीत नहीं है।';
 }

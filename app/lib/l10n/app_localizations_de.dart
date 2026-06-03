@@ -9563,25 +9563,51 @@ class AppLocalizationsDe extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Persönliche Route-Zusammenfassung';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Backend-Vorlage (optional)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Arbeitsvorlage';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Persönliche Vorlage';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Keine — Eingabeaufforderung verwenden';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Zusammenfassungs-Apps aktivieren';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Wähle eine installierte Zusammenfassungs-App für dieses Profil oder behalte „Keine\", um die obige Eingabeaufforderung zu verwenden.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Füge für Arbeit und Persönlich je eine Eingabeaufforderung oder Vorlage hinzu, bevor du aktivierst.';
+
+  @override
+  String get backgroundModeTitle => 'Hintergrundmodus';
+
+  @override
+  String get backgroundModeDescription =>
+      'Lass deinen Omi weiter aufnehmen, auch wenn die App vollständig geschlossen ist.';
+
+  @override
+  String get backgroundModeNote => 'Funktioniert vorerst nur mit Omi-Geräten und wird kontinuierlich verbessert.';
+
+  @override
+  String get regenerateRecap => 'Zusammenfassung neu erstellen';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Zusammenfassung neu erstellt';
+
+  @override
+  String get recapRegenerateFailed =>
+      'Zusammenfassung konnte nicht neu erstellt werden. Bitte später erneut versuchen.';
+
+  @override
+  String get recapRegenerateCooldown => 'Bitte warte ein paar Sekunden, bevor du erneut generierst.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Keine Konversationen für diesen Tag zum Zusammenfassen.';
 }

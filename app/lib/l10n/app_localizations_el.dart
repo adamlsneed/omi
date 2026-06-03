@@ -9553,25 +9553,50 @@ class AppLocalizationsEl extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Περίληψη Προσωπικής δρομολόγησης';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Πρότυπο backend (προαιρετικό)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Πρότυπο εργασίας';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Προσωπικό πρότυπο';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Κανένα — χρήση προτροπής';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Ενεργοποίηση εφαρμογών σύνοψης';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Επιλέξτε μια εγκατεστημένη εφαρμογή σύνοψης για αυτό το προφίλ ή αφήστε «Κανένα» για να χρησιμοποιήσετε την παραπάνω προτροπή.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Προσθέστε μια προτροπή ή πρότυπο και για τα δύο προφίλ Εργασίας και Προσωπικού πριν ενεργοποιήσετε.';
+
+  @override
+  String get backgroundModeTitle => 'Λειτουργία παρασκηνίου';
+
+  @override
+  String get backgroundModeDescription =>
+      'Διατηρήστε την εγγραφή του Omi ακόμη και όταν η εφαρμογή είναι εντελώς κλειστή.';
+
+  @override
+  String get backgroundModeNote => 'Προς το παρόν λειτουργεί μόνο με συσκευές Omi και βελτιώνεται συνεχώς.';
+
+  @override
+  String get regenerateRecap => 'Αναδημιουργία ανακεφαλαίωσης';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Η ανακεφαλαίωση δημιουργήθηκε ξανά';
+
+  @override
+  String get recapRegenerateFailed => 'Δεν ήταν δυνατή η αναδημιουργία της ανακεφαλαίωσης. Δοκιμάστε ξανά αργότερα.';
+
+  @override
+  String get recapRegenerateCooldown => 'Παρακαλώ περιμένετε λίγα δευτερόλεπτα πριν δοκιμάσετε ξανά.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Δεν υπάρχουν συνομιλίες για ανακεφαλαίωση αυτής της ημέρας.';
 }

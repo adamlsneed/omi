@@ -3090,5 +3090,20 @@
     "templateRoutingLocalDescription": "Plantilla d'encaminament local",
     "templateRoutingRoutedSummary": "Resum de ruta",
     "templateRoutingWorkRoutedSummary": "Resum de la ruta del treball",
-    "templateRoutingPersonalRoutedSummary": "Resum de ruta personal"
+    "templateRoutingPersonalRoutedSummary": "Resum de ruta personal",
+    "backgroundModeTitle": "Mode en segon pla",
+    "backgroundModeDescription": "Mantén l'Omi gravant fins i tot quan l'aplicació està completament tancada.",
+    "backgroundModeNote": "De moment només funciona amb dispositius Omi i es millora contínuament.",
+    "regenerateRecap": "Regenera el resum",
+    "recapRegeneratedSnackbar": "Resum regenerat",
+    "recapRegenerateFailed": "No s'ha pogut regenerar el resum. Torna-ho a provar més tard.",
+    "recapRegenerateCooldown": "Espera uns segons abans de tornar a regenerar.",
+    "recapRegenerateNoConversations": "No hi ha converses per resumir d'aquest dia.",
+    "templateRoutingBackendTemplateSection": "Plantilla de backend (opcional)",
+    "templateRoutingWorkTemplate": "Plantilla de treball",
+    "templateRoutingPersonalTemplate": "Plantilla personal",
+    "templateRoutingTemplateNone": "Cap — utilitza el missatge",
+    "templateRoutingManageApps": "Activa les aplicacions de resum",
+    "templateRoutingTemplateHint": "Tria una aplicació de resum instal·lada per a aquest perfil o deixa «Cap» per usar el missatge anterior.",
+    "templateRoutingProfileRequiredError": "Afegeix un missatge o una plantilla per al perfil de Treball i Personal abans d'activar."
 }

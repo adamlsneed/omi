@@ -9533,25 +9533,49 @@ class AppLocalizationsMk extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Лично рутирано резиме';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Backend шаблон (опционално)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Работен шаблон';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Личен шаблон';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Ниедна — користи покана';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Овозможи апликации за резиме';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Изберете инсталирана апликација за резиме за овој профил или оставете „Ниедна\" за да ја користите поканата погоре.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Додајте покана или шаблон за профилите Работен и Личен пред да овозможите.';
+
+  @override
+  String get backgroundModeTitle => 'Режим во заднина';
+
+  @override
+  String get backgroundModeDescription => 'Зачувајте го снимањето на Omi дури и кога апликацијата е целосно затворена.';
+
+  @override
+  String get backgroundModeNote => 'Засега работи само со уреди Omi и постојано се подобрува.';
+
+  @override
+  String get regenerateRecap => 'Регенерирај резиме';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Резимето е регенерирано';
+
+  @override
+  String get recapRegenerateFailed => 'Не успеа регенерирањето на резимето. Обидете се повторно подоцна.';
+
+  @override
+  String get recapRegenerateCooldown => 'Почекајте неколку секунди пред повторно регенерирање.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Нема разговори за сумирање за овој ден.';
 }

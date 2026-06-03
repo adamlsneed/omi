@@ -9513,25 +9513,49 @@ class AppLocalizationsBe extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Асабістае рэзюмэ';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Шаблон бэкенду (неабавязкова)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Рабочы шаблон';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Асабісты шаблон';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Без шаблону — выкарыстоўваць запыт';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Уключыць праграмы для рэзюмэ';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Выберыце ўсталяваную праграму для рэзюмэ для гэтага профілю або пакіньце «Без шаблону», каб выкарыстоўваць запыт вышэй.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Дадайце запыт або шаблон для прафілю Праца і Асабісты, перш чым уключыць.';
+
+  @override
+  String get backgroundModeTitle => 'Фонавы рэжым';
+
+  @override
+  String get backgroundModeDescription => 'Працягвайце запіс Omi, нават калі праграма цалкам закрыта.';
+
+  @override
+  String get backgroundModeNote => 'Пакуль працуе толькі з прыладамі Omi і пастаянна ўдасканальваецца.';
+
+  @override
+  String get regenerateRecap => 'Згенераваць рэзюмэ паўторна';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Рэзюмэ перагенеравана';
+
+  @override
+  String get recapRegenerateFailed => 'Не атрымалася перагенераваць рэзюмэ. Паспрабуйце пазней.';
+
+  @override
+  String get recapRegenerateCooldown => 'Калі ласка, пачакайце некалькі секунд перад паўторнай генерацыяй.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Няма размоў для рэзюмавання гэтага дня.';
 }

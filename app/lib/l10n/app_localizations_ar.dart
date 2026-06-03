@@ -9428,25 +9428,48 @@ class AppLocalizationsAr extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'ملخص التوجيه الشخصي';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'قالب الخلفية (اختياري)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'قالب العمل';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'القالب الشخصي';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'لا شيء — استخدم التعليمات';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'تفعيل تطبيقات الملخص';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'اختر تطبيق ملخص مثبتاً لهذا الملف الشخصي، أو اترك الخيار «لا شيء» لاستخدام التعليمات أعلاه.';
 
   @override
-  String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+  String get templateRoutingProfileRequiredError => 'أضف تعليمات أو قالباً لملفي العمل والشخصي قبل التفعيل.';
+
+  @override
+  String get backgroundModeTitle => 'الوضع في الخلفية';
+
+  @override
+  String get backgroundModeDescription => 'حافِظ على تسجيل Omi حتى عند إغلاق التطبيق تمامًا.';
+
+  @override
+  String get backgroundModeNote => 'يعمل حاليًا مع أجهزة Omi فقط، ويجري تحسينه باستمرار.';
+
+  @override
+  String get regenerateRecap => 'إعادة إنشاء الملخص';
+
+  @override
+  String get recapRegeneratedSnackbar => 'تمت إعادة إنشاء الملخص';
+
+  @override
+  String get recapRegenerateFailed => 'تعذرت إعادة إنشاء الملخص. حاول مرة أخرى لاحقًا.';
+
+  @override
+  String get recapRegenerateCooldown => 'يرجى الانتظار بضع ثوانٍ قبل إعادة الإنشاء مرة أخرى.';
+
+  @override
+  String get recapRegenerateNoConversations => 'لا توجد محادثات لتلخيصها في هذا اليوم.';
 }

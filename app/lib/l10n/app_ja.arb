@@ -3122,5 +3122,20 @@
     "templateRoutingLocalDescription": "ローカルテンプレートルーティング",
     "templateRoutingRoutedSummary": "ルーティングされた概要",
     "templateRoutingWorkRoutedSummary": "ルーティングされた作業の概要",
-    "templateRoutingPersonalRoutedSummary": "個人ルーティン��の概要"
+    "templateRoutingPersonalRoutedSummary": "個人ルーティン��の概要",
+    "backgroundModeTitle": "バックグラウンドモード",
+    "backgroundModeDescription": "アプリを完全に閉じても Omi の録音を続けます。",
+    "backgroundModeNote": "現在は Omi デバイスのみ対応しており、継続的に改善しています。",
+    "regenerateRecap": "要約を再生成",
+    "recapRegeneratedSnackbar": "要約を再生成しました",
+    "recapRegenerateFailed": "要約を再生成できませんでした。後でもう一度お試しください。",
+    "recapRegenerateCooldown": "再生成する前に数秒お待ちください。",
+    "recapRegenerateNoConversations": "この日の要約対象となる会話はありません。",
+    "templateRoutingBackendTemplateSection": "バックエンドテンプレート（任意）",
+    "templateRoutingWorkTemplate": "仕事用テンプレート",
+    "templateRoutingPersonalTemplate": "個人用テンプレート",
+    "templateRoutingTemplateNone": "なし — プロンプトを使用",
+    "templateRoutingManageApps": "要約アプリを有効化",
+    "templateRoutingTemplateHint": "このプロフィール用にインストール済みの要約アプリを選択するか、「なし」のままにして上記のプロンプトを使用してください。",
+    "templateRoutingProfileRequiredError": "有効化する前に、仕事と個人の両方のプロフィールにプロンプトまたはテンプレートを追加してください。"
 }

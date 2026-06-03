@@ -3157,5 +3157,20 @@
     "templateRoutingLocalDescription": "Roteamento de modelo local",
     "templateRoutingRoutedSummary": "Resumo roteado",
     "templateRoutingWorkRoutedSummary": "Resumo do trabalho roteado",
-    "templateRoutingPersonalRoutedSummary": "Resumo de roteamento pessoal"
+    "templateRoutingPersonalRoutedSummary": "Resumo de roteamento pessoal",
+    "backgroundModeTitle": "Modo em segundo plano",
+    "backgroundModeDescription": "Mantenha o seu Omi gravando mesmo quando o app está totalmente fechado.",
+    "backgroundModeNote": "Por enquanto funciona apenas com dispositivos Omi e está em constante aprimoramento.",
+    "regenerateRecap": "Regenerar resumo",
+    "recapRegeneratedSnackbar": "Resumo regenerado",
+    "recapRegenerateFailed": "Não foi possível regenerar o resumo. Tente novamente mais tarde.",
+    "recapRegenerateCooldown": "Aguarde alguns segundos antes de regenerar novamente.",
+    "recapRegenerateNoConversations": "Nenhuma conversa para resumir neste dia.",
+    "templateRoutingBackendTemplateSection": "Modelo de backend (opcional)",
+    "templateRoutingWorkTemplate": "Modelo de trabalho",
+    "templateRoutingPersonalTemplate": "Modelo pessoal",
+    "templateRoutingTemplateNone": "Nenhum — usar prompt",
+    "templateRoutingManageApps": "Ativar aplicativos de resumo",
+    "templateRoutingTemplateHint": "Escolha um aplicativo de resumo instalado para este perfil ou mantenha «Nenhum» para usar o prompt acima.",
+    "templateRoutingProfileRequiredError": "Adicione um prompt ou modelo para os perfis Trabalho e Pessoal antes de ativar."
 }

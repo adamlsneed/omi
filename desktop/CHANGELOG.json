@@ -1,13 +1,67 @@
 {
   "unreleased": [
-    "Smarter task analyzer dedupe \u2014 per-chat/window throttle instead of one global 60s cooldown, so opening multiple chats in quick succession no longer drops tasks",
-    "Added file/screenshot attachments to chat (paperclip + drag-drop)",
-    "Task analyzer now extracts every distinct commitment in a frame instead of stopping after the first \u2014 a chat asking for two unrelated deliverables in one message creates two tasks",
-    "Fixed Tasks page \"+\" button doing nothing when the task list was empty",
-    "Task notifications fire within seconds instead of waiting up to 5 minutes \u2014 promote runs immediately on monitoring start and the safety-net cadence dropped from 5 min to 1 min",
-    "Rewind shows screenshots within ~5 seconds of launch instead of waiting up to a minute for the first video chunk to fill up"
+    "Fixed drag handle on Tasks page not appearing when hovering over a row",
+    "Fixed drag-to-reorder on Tasks page not persisting when date filters are active",
+    "Fixed drag-to-reorder on Tasks page — dragged row now visually dims while in flight"
   ],
   "releases": [
+    {
+      "version": "0.11.446",
+      "date": "2026-06-03",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.445",
+      "date": "2026-06-03",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.444",
+      "date": "2026-06-03",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.443",
+      "date": "2026-06-03",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.442",
+      "date": "2026-06-02",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.441",
+      "date": "2026-06-02",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.439",
+      "date": "2026-06-02",
+      "changes": [
+        "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.11.438",
+      "date": "2026-06-02",
+      "changes": [
+        "Memories filter now matches mobile (Manual, About You, Insights) and adds a Workflow category; removed the old Focus/Distracted/Productivity filters",
+        "Memories: one-time cache cleanup removes stale/duplicate entries so Manual shows only memories you created"
+      ]
+    },
     {
       "version": "0.11.437",
       "date": "2026-06-01",

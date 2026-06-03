@@ -3156,5 +3156,20 @@
     "templateRoutingLocalDescription": "Локальная маршрутизация шаблонов",
     "templateRoutingRoutedSummary": "Сводная информация о маршрутизации",
     "templateRoutingWorkRoutedSummary": "Сводная информация о маршрутизации работы",
-    "templateRoutingPersonalRoutedSummary": "Сводка по личному маршруту"
+    "templateRoutingPersonalRoutedSummary": "Сводка по личному маршруту",
+    "backgroundModeTitle": "Фоновый режим",
+    "backgroundModeDescription": "Продолжайте запись Omi, даже когда приложение полностью закрыто.",
+    "backgroundModeNote": "Пока работает только с устройствами Omi и постоянно улучшается.",
+    "regenerateRecap": "Создать резюме заново",
+    "recapRegeneratedSnackbar": "Резюме создано заново",
+    "recapRegenerateFailed": "Не удалось создать резюме заново. Попробуйте позже.",
+    "recapRegenerateCooldown": "Подождите несколько секунд перед повторным созданием.",
+    "recapRegenerateNoConversations": "Нет разговоров для резюмирования за этот день.",
+    "templateRoutingBackendTemplateSection": "Шаблон бэкенда (необязательно)",
+    "templateRoutingWorkTemplate": "Рабочий шаблон",
+    "templateRoutingPersonalTemplate": "Личный шаблон",
+    "templateRoutingTemplateNone": "Нет — использовать подсказку",
+    "templateRoutingManageApps": "Включить приложения для резюме",
+    "templateRoutingTemplateHint": "Выберите установленное приложение для резюме для этого профиля или оставьте «Нет», чтобы использовать подсказку выше.",
+    "templateRoutingProfileRequiredError": "Добавьте подсказку или шаблон для профилей Рабочий и Личный перед включением."
 }
