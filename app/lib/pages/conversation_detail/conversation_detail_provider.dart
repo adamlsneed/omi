@@ -445,6 +445,12 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       createdAt: currentConversation.createdAt,
     );
     final profile = FrontendTemplateRouter.selectProfile(localTime, config);
+    if (config.usesTemplateFor(profile)) {
+      // Template mode: the backend summary (reprocessed with the chosen app) is the
+      // source of truth — no local overlay to load.
+      routedSummary = null;
+      return;
+    }
     final promptHash = FrontendTemplateRouter.expectedPromptHash(
       config: config,
       profile: profile,
@@ -481,6 +487,15 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       createdAt: currentConversation.createdAt,
     );
     final profile = FrontendTemplateRouter.selectProfile(localTime, config);
+    if (config.usesTemplateFor(profile)) {
+      // Template mode: summarize via a backend app (reprocess), not the local overlay.
+      await _routeViaBackendTemplate(
+        appId: config.appIdFor(profile)!,
+        autoRunOnOpen: config.autoRunOnOpen,
+        force: force,
+      );
+      return;
+    }
     final promptHash = FrontendTemplateRouter.expectedPromptHash(
       config: config,
       profile: profile,
@@ -568,6 +583,46 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
         routedSummaryLoading = false;
         _routedSummaryRequestKey = null;
         notifyListeners();
+      }
+    }
+  }
+
+  /// Template mode for a routing profile: make the conversation's backend summary
+  /// come from [appId] by reprocessing with only that app. Runs at most once per
+  /// conversation+app (skips when the summary is already that app), respects
+  /// autoRunOnOpen, and clears any local prompt overlay (backend summary is shown).
+  Future<void> _routeViaBackendTemplate({
+    required String appId,
+    required bool autoRunOnOpen,
+    bool force = false,
+  }) async {
+    final current = conversationOrNull;
+    if (current == null) return;
+
+    final hadOverlay = routedSummary != null || routedSummaryLoading || routedSummaryError != null;
+    routedSummary = null;
+    routedSummaryLoading = false;
+    routedSummaryError = null;
+
+    final eligible = !current.discarded &&
+        current.status == ConversationStatus.completed &&
+        (autoRunOnOpen || force) &&
+        getSummarizedApp()?.appId != appId;
+    if (!eligible) {
+      if (hadOverlay) notifyListeners();
+      return;
+    }
+
+    final requestKey = '${current.id}:template:$appId';
+    if (_routedSummaryRequestKey == requestKey) return;
+    _routedSummaryRequestKey = requestKey;
+    if (hadOverlay) notifyListeners();
+
+    try {
+      await reprocessConversation(appId: appId);
+    } finally {
+      if (!_isDisposed && conversationOrNull?.id == current.id) {
+        _routedSummaryRequestKey = null;
       }
     }
   }
