@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "ניתוב תבניות מקומי",
     "templateRoutingRoutedSummary": "סיכום מנותב",
     "templateRoutingWorkRoutedSummary": "סיכום עבודה מנותב",
-    "templateRoutingPersonalRoutedSummary": "סיכום מנותב אישי"
+    "templateRoutingPersonalRoutedSummary": "סיכום מנותב אישי",
+    "backgroundModeTitle": "מצב רקע",
+    "backgroundModeDescription": "השאירו את ה-Omi מקליט גם כשהאפליקציה סגורה לחלוטין.",
+    "backgroundModeNote": "כרגע עובד רק עם מכשירי Omi ומשתפר באופן מתמיד.",
+    "regenerateRecap": "צור סיכום מחדש",
+    "recapRegeneratedSnackbar": "הסיכום נוצר מחדש",
+    "recapRegenerateFailed": "לא ניתן ליצור מחדש את הסיכום. נסה שוב מאוחר יותר.",
+    "recapRegenerateCooldown": "אנא המתן מספר שניות לפני יצירה מחודשת.",
+    "recapRegenerateNoConversations": "אין שיחות לסיכום עבור היום הזה.",
+    "templateRoutingBackendTemplateSection": "תבנית Backend (אופציונלי)",
+    "templateRoutingWorkTemplate": "תבנית עבודה",
+    "templateRoutingPersonalTemplate": "תבנית אישית",
+    "templateRoutingTemplateNone": "ללא — השתמש בהנחיה",
+    "templateRoutingManageApps": "הפעל אפליקציות סיכום",
+    "templateRoutingTemplateHint": "בחר אפליקציית סיכום מותקנת לפרופיל זה, או השאר «ללא» כדי להשתמש בהנחיה למעלה.",
+    "templateRoutingProfileRequiredError": "הוסף הנחיה או תבנית לפרופילי עבודה ואישי לפני הפעלה."
 }

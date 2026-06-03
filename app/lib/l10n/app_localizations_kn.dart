@@ -9516,25 +9516,49 @@ class AppLocalizationsKn extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'ವೈಯಕ್ತಿಕ ರೂಟೆಡ್ ಸಾರಾಂಶ';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'ಬ್ಯಾಕೆಂಡ್ ಟೆಂಪ್ಲೆಟ್ (ಐಚ್ಛಿಕ)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'ಕೆಲಸದ ಟೆಂಪ್ಲೆಟ್';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'ವೈಯಕ್ತಿಕ ಟೆಂಪ್ಲೆಟ್';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'ಯಾವುದೂ ಇಲ್ಲ — ಪ್ರಾಂಪ್ಟ್ ಬಳಸಿ';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'ಸಾರಾಂಶ ಅಪ್ಲಿಕೇಶನ್‌ಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'ಈ ಪ್ರೊಫೈಲ್‌ಗೆ ಸ್ಥಾಪಿಸಲಾದ ಸಾರಾಂಶ ಅಪ್ಲಿಕೇಶನ್ ಆಯ್ಕೆ ಮಾಡಿ, ಅಥವಾ ಮೇಲಿನ ಪ್ರಾಂಪ್ಟ್ ಬಳಸಲು «ಯಾವುದೂ ಇಲ್ಲ» ಇರಿಸಿ.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'ಸಕ್ರಿಯಗೊಳಿಸುವ ಮೊದಲು ಕೆಲಸ ಮತ್ತು ವೈಯಕ್ತಿಕ ಎರಡೂ ಪ್ರೊಫೈಲ್‌ಗಳಿಗೆ ಪ್ರಾಂಪ್ಟ್ ಅಥವಾ ಟೆಂಪ್ಲೆಟ್ ಸೇರಿಸಿ.';
+
+  @override
+  String get backgroundModeTitle => 'ಹಿನ್ನೆಲೆ ಮೋಡ್';
+
+  @override
+  String get backgroundModeDescription => 'ಆ್ಯಪ್ ಸಂಪೂರ್ಣವಾಗಿ ಮುಚ್ಚಿದ್ದರೂ ನಿಮ್ಮ Omi ರೆಕಾರ್ಡಿಂಗ್ ಮುಂದುವರಿಸಿ.';
+
+  @override
+  String get backgroundModeNote => 'ಸದ್ಯಕ್ಕೆ Omi ಸಾಧನಗಳೊಂದಿಗೆ ಮಾತ್ರ ಕೆಲಸ ಮಾಡುತ್ತದೆ ಮತ್ತು ನಿರಂತರವಾಗಿ ಸುಧಾರಿಸಲಾಗುತ್ತಿದೆ.';
+
+  @override
+  String get regenerateRecap => 'ಸಾರಾಂಶವನ್ನು ಪುನರುತ್ಪಾದಿಸಿ';
+
+  @override
+  String get recapRegeneratedSnackbar => 'ಸಾರಾಂಶವನ್ನು ಪುನರುತ್ಪಾದಿಸಲಾಗಿದೆ';
+
+  @override
+  String get recapRegenerateFailed => 'ಸಾರಾಂಶವನ್ನು ಪುನರುತ್ಪಾದಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+
+  @override
+  String get recapRegenerateCooldown => 'ಪುನರುತ್ಪಾದಿಸುವ ಮೊದಲು ದಯವಿಟ್ಟು ಕೆಲವು ಸೆಕೆಂಡುಗಳು ನಿರೀಕ್ಷಿಸಿ.';
+
+  @override
+  String get recapRegenerateNoConversations => 'ಈ ದಿನಕ್ಕೆ ಸಂಗ್ರಹಿಸಲು ಯಾವುದೇ ಸಂಭಾಷಣೆಗಳಿಲ್ಲ.';
 }

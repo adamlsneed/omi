@@ -9493,25 +9493,49 @@ class AppLocalizationsId extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Ringkasan Rute Pribadi';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Templat backend (opsional)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Templat kerja';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Templat pribadi';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Tidak ada — gunakan prompt';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Aktifkan aplikasi ringkasan';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Pilih aplikasi ringkasan yang terpasang untuk profil ini, atau biarkan «Tidak ada» untuk menggunakan prompt di atas.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Tambahkan prompt atau templat untuk profil Kerja dan Pribadi sebelum mengaktifkan.';
+
+  @override
+  String get backgroundModeTitle => 'Mode Latar Belakang';
+
+  @override
+  String get backgroundModeDescription => 'Biarkan Omi tetap merekam meskipun aplikasi ditutup sepenuhnya.';
+
+  @override
+  String get backgroundModeNote => 'Untuk saat ini hanya berfungsi dengan perangkat Omi dan terus ditingkatkan.';
+
+  @override
+  String get regenerateRecap => 'Buat ulang ringkasan';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Ringkasan dibuat ulang';
+
+  @override
+  String get recapRegenerateFailed => 'Tidak dapat membuat ulang ringkasan. Coba lagi nanti.';
+
+  @override
+  String get recapRegenerateCooldown => 'Mohon tunggu beberapa detik sebelum membuat ulang.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Tidak ada percakapan untuk diringkas pada hari ini.';
 }

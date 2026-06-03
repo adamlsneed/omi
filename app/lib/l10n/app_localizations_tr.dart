@@ -9495,25 +9495,49 @@ class AppLocalizationsTr extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Kişisel Yönlendirilmiş Özet';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Backend şablonu (isteğe bağlı)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'İş şablonu';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Kişisel şablon';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Yok — komut istemini kullan';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Özet uygulamalarını etkinleştir';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Bu profil için kurulu bir özet uygulaması seçin veya yukarıdaki komut istemini kullanmak için «Yok» bırakın.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Etkinleştirmeden önce hem İş hem de Kişisel profil için komut istemi veya şablon ekleyin.';
+
+  @override
+  String get backgroundModeTitle => 'Arka Plan Modu';
+
+  @override
+  String get backgroundModeDescription => 'Uygulama tamamen kapalıyken bile Omi\'nizi kayıtta tutun.';
+
+  @override
+  String get backgroundModeNote => 'Şimdilik yalnızca Omi cihazlarıyla çalışır ve sürekli geliştirilmektedir.';
+
+  @override
+  String get regenerateRecap => 'Özeti yeniden oluştur';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Özet yeniden oluşturuldu';
+
+  @override
+  String get recapRegenerateFailed => 'Özet yeniden oluşturulamadı. Lütfen daha sonra tekrar deneyin.';
+
+  @override
+  String get recapRegenerateCooldown => 'Yeniden oluşturmadan önce lütfen birkaç saniye bekleyin.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Bu gün için özetlenecek konuşma bulunamadı.';
 }

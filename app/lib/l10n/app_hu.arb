@@ -3217,5 +3217,20 @@
     "templateRoutingLocalDescription": "Helyi sablon útválasztás",
     "templateRoutingRoutedSummary": "Routed Summary",
     "templateRoutingWorkRoutedSummary": "Munkairányított összefoglaló",
-    "templateRoutingPersonalRoutedSummary": "Személyes útvonal-összefoglaló"
+    "templateRoutingPersonalRoutedSummary": "Személyes útvonal-összefoglaló",
+    "backgroundModeTitle": "Háttérmód",
+    "backgroundModeDescription": "Tartsd az Omi-t felvételen akkor is, amikor az alkalmazás teljesen be van zárva.",
+    "backgroundModeNote": "Egyelőre csak Omi eszközökkel működik, és folyamatosan fejlesztjük.",
+    "regenerateRecap": "Összegzés újragenerálása",
+    "recapRegeneratedSnackbar": "Összegzés újragenerálva",
+    "recapRegenerateFailed": "Nem sikerült újragenerálni az összegzést. Próbáld újra később.",
+    "recapRegenerateCooldown": "Kérlek, várj néhány másodpercet az újragenerálás előtt.",
+    "recapRegenerateNoConversations": "Erre a napra nincsenek összegezhető beszélgetések.",
+    "templateRoutingBackendTemplateSection": "Backend sablon (opcionális)",
+    "templateRoutingWorkTemplate": "Munka sablon",
+    "templateRoutingPersonalTemplate": "Személyes sablon",
+    "templateRoutingTemplateNone": "Nincs — prompt használata",
+    "templateRoutingManageApps": "Összefoglaló alkalmazások engedélyezése",
+    "templateRoutingTemplateHint": "Válasszon telepített összefoglaló alkalmazást ehhez a profilhoz, vagy hagyja „Nincs\" értéken a fenti prompt használatához.",
+    "templateRoutingProfileRequiredError": "Az aktiválás előtt adjon meg promptot vagy sablont a Munka és Személyes profilhoz is."
 }

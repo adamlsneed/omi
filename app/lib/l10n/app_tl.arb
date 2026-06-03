@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "Lokal na pagruruta ng template",
     "templateRoutingRoutedSummary": "Ruta na Buod",
     "templateRoutingWorkRoutedSummary": "Buod ng Ruta ng Trabaho",
-    "templateRoutingPersonalRoutedSummary": "Personal na Ruta na Buod"
+    "templateRoutingPersonalRoutedSummary": "Personal na Ruta na Buod",
+    "backgroundModeTitle": "Background Mode",
+    "backgroundModeDescription": "Panatilihing nagre-record ang iyong Omi kahit na ganap nang sarado ang app.",
+    "backgroundModeNote": "Sa ngayon ay gumagana lang sa mga Omi device at patuloy na pinapabuti.",
+    "regenerateRecap": "Buuin muli ang buod",
+    "recapRegeneratedSnackbar": "Nabuo muli ang buod",
+    "recapRegenerateFailed": "Hindi nagawang muling buuin ang buod. Subukang muli mamaya.",
+    "recapRegenerateCooldown": "Mangyaring maghintay ng ilang segundo bago bumuo muli.",
+    "recapRegenerateNoConversations": "Walang mga pag-uusap na ibubuod para sa araw na ito.",
+    "templateRoutingBackendTemplateSection": "Template ng backend (opsyonal)",
+    "templateRoutingWorkTemplate": "Template para sa trabaho",
+    "templateRoutingPersonalTemplate": "Personal na template",
+    "templateRoutingTemplateNone": "Wala — gamitin ang prompt",
+    "templateRoutingManageApps": "I-enable ang mga summary app",
+    "templateRoutingTemplateHint": "Pumili ng naka-install na summary app para sa profile na ito, o panatilihin ang «Wala» para gamitin ang prompt sa itaas.",
+    "templateRoutingProfileRequiredError": "Magdagdag ng prompt o template para sa Trabaho at Personal na profile bago i-enable."
 }

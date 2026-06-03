@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "Лакальны шаблон маршрутызацыі",
     "templateRoutingRoutedSummary": "Рэзюмэ маршруту",
     "templateRoutingWorkRoutedSummary": "Рэзюмэ накіраванай працы",
-    "templateRoutingPersonalRoutedSummary": "Асабістае рэзюмэ"
+    "templateRoutingPersonalRoutedSummary": "Асабістае рэзюмэ",
+    "backgroundModeTitle": "Фонавы рэжым",
+    "backgroundModeDescription": "Працягвайце запіс Omi, нават калі праграма цалкам закрыта.",
+    "backgroundModeNote": "Пакуль працуе толькі з прыладамі Omi і пастаянна ўдасканальваецца.",
+    "regenerateRecap": "Згенераваць рэзюмэ паўторна",
+    "recapRegeneratedSnackbar": "Рэзюмэ перагенеравана",
+    "recapRegenerateFailed": "Не атрымалася перагенераваць рэзюмэ. Паспрабуйце пазней.",
+    "recapRegenerateCooldown": "Калі ласка, пачакайце некалькі секунд перад паўторнай генерацыяй.",
+    "recapRegenerateNoConversations": "Няма размоў для рэзюмавання гэтага дня.",
+    "templateRoutingBackendTemplateSection": "Шаблон бэкенду (неабавязкова)",
+    "templateRoutingWorkTemplate": "Рабочы шаблон",
+    "templateRoutingPersonalTemplate": "Асабісты шаблон",
+    "templateRoutingTemplateNone": "Без шаблону — выкарыстоўваць запыт",
+    "templateRoutingManageApps": "Уключыць праграмы для рэзюмэ",
+    "templateRoutingTemplateHint": "Выберыце ўсталяваную праграму для рэзюмэ для гэтага профілю або пакіньце «Без шаблону», каб выкарыстоўваць запыт вышэй.",
+    "templateRoutingProfileRequiredError": "Дадайце запыт або шаблон для прафілю Праца і Асабісты, перш чым уключыць."
 }

@@ -9540,25 +9540,50 @@ class AppLocalizationsIt extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Riepilogo instradato personale';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Modello backend (facoltativo)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Modello di lavoro';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Modello personale';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Nessuno — usa il prompt';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Abilita le app di riepilogo';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Scegli un\'app di riepilogo installata per questo profilo, o lascia «Nessuno» per usare il prompt sopra.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Aggiungi un prompt o un modello per i profili Lavoro e Personale prima di abilitare.';
+
+  @override
+  String get backgroundModeTitle => 'Modalità in background';
+
+  @override
+  String get backgroundModeDescription =>
+      'Mantieni il tuo Omi in registrazione anche quando l\'app è completamente chiusa.';
+
+  @override
+  String get backgroundModeNote => 'Per ora funziona solo con i dispositivi Omi ed è in continuo miglioramento.';
+
+  @override
+  String get regenerateRecap => 'Rigenera il riepilogo';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Riepilogo rigenerato';
+
+  @override
+  String get recapRegenerateFailed => 'Impossibile rigenerare il riepilogo. Riprova più tardi.';
+
+  @override
+  String get recapRegenerateCooldown => 'Attendi qualche secondo prima di rigenerare.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Nessuna conversazione da riepilogare per questo giorno.';
 }

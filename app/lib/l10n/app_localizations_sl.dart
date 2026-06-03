@@ -9511,25 +9511,49 @@ class AppLocalizationsSl extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Osebno usmerjen povzetek';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Predloga zaledja (neobvezno)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Delovna predloga';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Osebna predloga';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Brez — uporabi poziv';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Omogoči aplikacije za povzetke';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Izberite nameščeno aplikacijo za povzetke za ta profil ali pustite „Brez\", da uporabite zgornji poziv.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Pred omogočanjem dodajte poziv ali predlogo za profila Delovno in Osebno.';
+
+  @override
+  String get backgroundModeTitle => 'Način v ozadju';
+
+  @override
+  String get backgroundModeDescription => 'Ohranite snemanje Omi tudi ko je aplikacija popolnoma zaprta.';
+
+  @override
+  String get backgroundModeNote => 'Zaenkrat deluje le z napravami Omi in se nenehno izboljšuje.';
+
+  @override
+  String get regenerateRecap => 'Ponovno ustvari povzetek';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Povzetek ponovno ustvarjen';
+
+  @override
+  String get recapRegenerateFailed => 'Povzetka ni bilo mogoče ponovno ustvariti. Poskusite pozneje.';
+
+  @override
+  String get recapRegenerateCooldown => 'Pred ponovnim ustvarjanjem počakajte nekaj sekund.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Za ta dan ni pogovorov za povzemanje.';
 }

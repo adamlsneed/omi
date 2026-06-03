@@ -3122,5 +3122,20 @@
     "templateRoutingLocalDescription": "स्थानीय टेम्पलेट रूटिंग",
     "templateRoutingRoutedSummary": "रूट किया गया सारांश",
     "templateRoutingWorkRoutedSummary": "कार्य रूटेड सारांश",
-    "templateRoutingPersonalRoutedSummary": "व्यक्तिगत रूटेड सारांश"
+    "templateRoutingPersonalRoutedSummary": "व्यक्तिगत रूटेड सारांश",
+    "backgroundModeTitle": "बैकग्राउंड मोड",
+    "backgroundModeDescription": "ऐप पूरी तरह बंद होने पर भी अपने Omi की रिकॉर्डिंग जारी रखें।",
+    "backgroundModeNote": "फ़िलहाल केवल Omi डिवाइस के साथ काम करता है और इसे लगातार बेहतर बनाया जा रहा है।",
+    "regenerateRecap": "रीकैप पुनः बनाएं",
+    "recapRegeneratedSnackbar": "रीकैप पुनः बनाया गया",
+    "recapRegenerateFailed": "रीकैप पुनः नहीं बनाया जा सका। बाद में पुनः प्रयास करें।",
+    "recapRegenerateCooldown": "पुनः बनाने से पहले कुछ सेकंड प्रतीक्षा करें।",
+    "recapRegenerateNoConversations": "इस दिन के लिए सारांश बनाने के लिए कोई बातचीत नहीं है।",
+    "templateRoutingBackendTemplateSection": "बैकएंड टेम्पलेट (वैकल्पिक)",
+    "templateRoutingWorkTemplate": "कार्य टेम्पलेट",
+    "templateRoutingPersonalTemplate": "व्यक्तिगत टेम्पलेट",
+    "templateRoutingTemplateNone": "कोई नहीं — प्रॉम्प्ट उपयोग करें",
+    "templateRoutingManageApps": "सारांश ऐप्स सक्षम करें",
+    "templateRoutingTemplateHint": "इस प्रोफ़ाइल के लिए एक इंस्टॉल किया हुआ सारांश ऐप चुनें, या ऊपर के प्रॉम्प्ट का उपयोग करने के लिए 'कोई नहीं' रखें।",
+    "templateRoutingProfileRequiredError": "सक्षम करने से पहले कार्य और व्यक्तिगत दोनों प्रोफ़ाइल के लिए एक प्रॉम्प्ट या टेम्पलेट जोड़ें।"
 }

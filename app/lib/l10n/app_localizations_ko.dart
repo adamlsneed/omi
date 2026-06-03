@@ -9330,25 +9330,47 @@ class AppLocalizationsKo extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => '개인 라우팅 요약';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => '백엔드 템플릿 (선택 사항)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => '업무 템플릿';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => '개인 템플릿';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => '없음 — 프롬프트 사용';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => '요약 앱 활성화';
 
   @override
-  String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+  String get templateRoutingTemplateHint => '이 프로필에 설치된 요약 앱을 선택하거나, 위의 프롬프트를 사용하려면 «없음»을 유지하세요.';
 
   @override
-  String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+  String get templateRoutingProfileRequiredError => '활성화하기 전에 업무와 개인 프로필 모두에 프롬프트 또는 템플릿을 추가하세요.';
+
+  @override
+  String get backgroundModeTitle => '백그라운드 모드';
+
+  @override
+  String get backgroundModeDescription => '앱을 완전히 닫아도 Omi 녹음을 계속 유지합니다.';
+
+  @override
+  String get backgroundModeNote => '현재는 Omi 기기에서만 작동하며 지속적으로 개선되고 있습니다.';
+
+  @override
+  String get regenerateRecap => '요약 재생성';
+
+  @override
+  String get recapRegeneratedSnackbar => '요약이 재생성되었습니다';
+
+  @override
+  String get recapRegenerateFailed => '요약을 재생성할 수 없습니다. 나중에 다시 시도하세요.';
+
+  @override
+  String get recapRegenerateCooldown => '다시 생성하기 전에 몇 초 기다려 주세요.';
+
+  @override
+  String get recapRegenerateNoConversations => '이 날짜에 요약할 대화가 없습니다.';
 }

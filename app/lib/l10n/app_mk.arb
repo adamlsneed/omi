@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "Локално рутирање на шаблоните",
     "templateRoutingRoutedSummary": "Насочено резиме",
     "templateRoutingWorkRoutedSummary": "Резиме за насочување на работа",
-    "templateRoutingPersonalRoutedSummary": "Лично рутирано резиме"
+    "templateRoutingPersonalRoutedSummary": "Лично рутирано резиме",
+    "backgroundModeTitle": "Режим во заднина",
+    "backgroundModeDescription": "Зачувајте го снимањето на Omi дури и кога апликацијата е целосно затворена.",
+    "backgroundModeNote": "Засега работи само со уреди Omi и постојано се подобрува.",
+    "regenerateRecap": "Регенерирај резиме",
+    "recapRegeneratedSnackbar": "Резимето е регенерирано",
+    "recapRegenerateFailed": "Не успеа регенерирањето на резимето. Обидете се повторно подоцна.",
+    "recapRegenerateCooldown": "Почекајте неколку секунди пред повторно регенерирање.",
+    "recapRegenerateNoConversations": "Нема разговори за сумирање за овој ден.",
+    "templateRoutingBackendTemplateSection": "Backend шаблон (опционално)",
+    "templateRoutingWorkTemplate": "Работен шаблон",
+    "templateRoutingPersonalTemplate": "Личен шаблон",
+    "templateRoutingTemplateNone": "Ниедна — користи покана",
+    "templateRoutingManageApps": "Овозможи апликации за резиме",
+    "templateRoutingTemplateHint": "Изберете инсталирана апликација за резиме за овој профил или оставете „Ниедна\" за да ја користите поканата погоре.",
+    "templateRoutingProfileRequiredError": "Додајте покана или шаблон за профилите Работен и Личен пред да овозможите."
 }

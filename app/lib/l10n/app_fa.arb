@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "مسیریابی قالب م��لی",
     "templateRoutingRoutedSummary": "خلاصه مسیریابی",
     "templateRoutingWorkRoutedSummary": "خلاصه کار مسیریابی",
-    "templateRoutingPersonalRoutedSummary": "خلاصه مسیریابی شخصی"
+    "templateRoutingPersonalRoutedSummary": "خلاصه مسیریابی شخصی",
+    "backgroundModeTitle": "حالت پس‌زمینه",
+    "backgroundModeDescription": "حتی وقتی برنامه کاملاً بسته است، ضبط Omi شما را ادامه دهید.",
+    "backgroundModeNote": "فعلاً فقط با دستگاه‌های Omi کار می‌کند و به‌طور مداوم در حال بهبود است.",
+    "regenerateRecap": "بازسازی خلاصه",
+    "recapRegeneratedSnackbar": "خلاصه دوباره ساخته شد",
+    "recapRegenerateFailed": "بازسازی خلاصه ممکن نشد. بعداً دوباره تلاش کنید.",
+    "recapRegenerateCooldown": "لطفاً چند ثانیه قبل از بازسازی مجدد صبر کنید.",
+    "recapRegenerateNoConversations": "هیچ مکالمه‌ای برای خلاصه‌سازی این روز وجود ندارد.",
+    "templateRoutingBackendTemplateSection": "قالب بک‌اند (اختیاری)",
+    "templateRoutingWorkTemplate": "قالب کاری",
+    "templateRoutingPersonalTemplate": "قالب شخصی",
+    "templateRoutingTemplateNone": "هیچ‌کدام — از دستورالعمل استفاده شود",
+    "templateRoutingManageApps": "فعال‌سازی برنامه‌های خلاصه‌ساز",
+    "templateRoutingTemplateHint": "یک برنامه خلاصه‌ساز نصب‌شده برای این پروفایل انتخاب کنید یا «هیچ‌کدام» را برای استفاده از دستورالعمل بالا نگه دارید.",
+    "templateRoutingProfileRequiredError": "قبل از فعال‌سازی، برای هر دو پروفایل کاری و شخصی یک دستورالعمل یا قالب اضافه کنید."
 }

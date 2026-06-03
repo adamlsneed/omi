@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Kohaliku malli marsruutimine",
     "templateRoutingRoutedSummary": "Marsruudi kokkuvõte",
     "templateRoutingWorkRoutedSummary": "Töö marsruudi kokkuvõte",
-    "templateRoutingPersonalRoutedSummary": "Isiklik marsruudi kokkuvõte"
+    "templateRoutingPersonalRoutedSummary": "Isiklik marsruudi kokkuvõte",
+    "backgroundModeTitle": "Taustarežiim",
+    "backgroundModeDescription": "Hoia oma Omi salvestamas ka siis, kui rakendus on täielikult suletud.",
+    "backgroundModeNote": "Praegu töötab ainult Omi seadmetega ja seda täiustatakse pidevalt.",
+    "regenerateRecap": "Loo kokkuvõte uuesti",
+    "recapRegeneratedSnackbar": "Kokkuvõte loodi uuesti",
+    "recapRegenerateFailed": "Kokkuvõtet ei õnnestunud uuesti luua. Proovi hiljem uuesti.",
+    "recapRegenerateCooldown": "Palun oota mõni sekund enne uuesti loomist.",
+    "recapRegenerateNoConversations": "Selle päeva jaoks pole vestlusi, mida kokku võtta.",
+    "templateRoutingBackendTemplateSection": "Taustasüsteemi mall (valikuline)",
+    "templateRoutingWorkTemplate": "Töömall",
+    "templateRoutingPersonalTemplate": "Isiklik mall",
+    "templateRoutingTemplateNone": "Puudub — kasuta vihjet",
+    "templateRoutingManageApps": "Luba kokkuvõtterakendused",
+    "templateRoutingTemplateHint": "Vali selle profiili jaoks installitud kokkuvõtterakendus või jäta „Puudub\", et kasutada ülaltoodud vihjet.",
+    "templateRoutingProfileRequiredError": "Lisa nii Töö kui ka Isikliku profiili jaoks vihjed või mallid enne aktiveerimist."
 }

@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Vietējās veidnes maršrutēšana",
     "templateRoutingRoutedSummary": "Maršruta kopsavilkums",
     "templateRoutingWorkRoutedSummary": "Darba maršruta kopsavilkums",
-    "templateRoutingPersonalRoutedSummary": "Personiskais maršruta kopsavilkums"
+    "templateRoutingPersonalRoutedSummary": "Personiskais maršruta kopsavilkums",
+    "backgroundModeTitle": "Fona režīms",
+    "backgroundModeDescription": "Saglabājiet Omi ierakstīšanu pat tad, kad lietotne ir pilnībā aizvērta.",
+    "backgroundModeNote": "Pagaidām darbojas tikai ar Omi ierīcēm un tiek nepārtraukti uzlabota.",
+    "regenerateRecap": "Atjaunot kopsavilkumu",
+    "recapRegeneratedSnackbar": "Kopsavilkums atjaunots",
+    "recapRegenerateFailed": "Kopsavilkumu neizdevās atjaunot. Mēģiniet vēlāk vēlreiz.",
+    "recapRegenerateCooldown": "Lūdzu, pagaidiet dažas sekundes pirms atkārtotas ģenerēšanas.",
+    "recapRegenerateNoConversations": "Šajā dienā nav sarunu, ko apkopot.",
+    "templateRoutingBackendTemplateSection": "Aizmugursistēmas veidne (neobligāti)",
+    "templateRoutingWorkTemplate": "Darba veidne",
+    "templateRoutingPersonalTemplate": "Personīgā veidne",
+    "templateRoutingTemplateNone": "Nav — izmantot uzvedni",
+    "templateRoutingManageApps": "Iespējot kopsavilkuma lietotnes",
+    "templateRoutingTemplateHint": "Izvēlieties instalētu kopsavilkuma lietotni šim profilam vai atstājiet „Nav\", lai izmantotu augstāk esošo uzvedni.",
+    "templateRoutingProfileRequiredError": "Pirms iespējošanas pievienojiet uzvedni vai veidni gan Darba, gan Personīgajam profilam."
 }

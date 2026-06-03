@@ -9500,25 +9500,49 @@ class AppLocalizationsUr extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'ذاتی روٹڈ خلاصہ';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'بیک اینڈ ٹیمپلیٹ (اختیاری)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'کام کا ٹیمپلیٹ';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'ذاتی ٹیمپلیٹ';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'کوئی نہیں — پرامپٹ استعمال کریں';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'خلاصہ ایپس فعال کریں';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'اس پروفائل کے لیے کوئی نصب شدہ خلاصہ ایپ منتخب کریں، یا اوپر والا پرامپٹ استعمال کرنے کے لیے «کوئی نہیں» رکھیں۔';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'فعال کرنے سے پہلے کام اور ذاتی دونوں پروفائلز کے لیے پرامپٹ یا ٹیمپلیٹ شامل کریں۔';
+
+  @override
+  String get backgroundModeTitle => 'بیک گراؤنڈ موڈ';
+
+  @override
+  String get backgroundModeDescription => 'ایپ مکمل طور پر بند ہونے پر بھی اپنے Omi کی ریکارڈنگ جاری رکھیں۔';
+
+  @override
+  String get backgroundModeNote => 'فی الحال صرف Omi آلات کے ساتھ کام کرتا ہے اور مسلسل بہتر بنایا جا رہا ہے۔';
+
+  @override
+  String get regenerateRecap => 'خلاصہ دوبارہ بنائیں';
+
+  @override
+  String get recapRegeneratedSnackbar => 'خلاصہ دوبارہ بن گیا';
+
+  @override
+  String get recapRegenerateFailed => 'خلاصہ دوبارہ نہیں بنایا جا سکا۔ بعد میں دوبارہ کوشش کریں۔';
+
+  @override
+  String get recapRegenerateCooldown => 'دوبارہ بنانے سے پہلے براہ کرم چند سیکنڈ انتظار کریں۔';
+
+  @override
+  String get recapRegenerateNoConversations => 'اس دن کے لیے خلاصہ کرنے کے لیے کوئی گفتگو نہیں ہے۔';
 }

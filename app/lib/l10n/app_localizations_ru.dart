@@ -9517,25 +9517,49 @@ class AppLocalizationsRu extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Сводка по личному маршруту';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Шаблон бэкенда (необязательно)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Рабочий шаблон';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Личный шаблон';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Нет — использовать подсказку';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Включить приложения для резюме';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Выберите установленное приложение для резюме для этого профиля или оставьте «Нет», чтобы использовать подсказку выше.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Добавьте подсказку или шаблон для профилей Рабочий и Личный перед включением.';
+
+  @override
+  String get backgroundModeTitle => 'Фоновый режим';
+
+  @override
+  String get backgroundModeDescription => 'Продолжайте запись Omi, даже когда приложение полностью закрыто.';
+
+  @override
+  String get backgroundModeNote => 'Пока работает только с устройствами Omi и постоянно улучшается.';
+
+  @override
+  String get regenerateRecap => 'Создать резюме заново';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Резюме создано заново';
+
+  @override
+  String get recapRegenerateFailed => 'Не удалось создать резюме заново. Попробуйте позже.';
+
+  @override
+  String get recapRegenerateCooldown => 'Подождите несколько секунд перед повторным созданием.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Нет разговоров для резюмирования за этот день.';
 }

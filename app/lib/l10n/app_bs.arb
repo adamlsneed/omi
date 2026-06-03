@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "Lokalno rutiranje šablona",
     "templateRoutingRoutedSummary": "Routed Summary",
     "templateRoutingWorkRoutedSummary": "Work Routed Summary",
-    "templateRoutingPersonalRoutedSummary": "Personal Routed Summary"
+    "templateRoutingPersonalRoutedSummary": "Personal Routed Summary",
+    "backgroundModeTitle": "Pozadinski način rada",
+    "backgroundModeDescription": "Zadržite Omi snimanje čak i kada je aplikacija potpuno zatvorena.",
+    "backgroundModeNote": "Zasad radi samo s Omi uređajima i kontinuirano se poboljšava.",
+    "regenerateRecap": "Ponovo generiši rezime",
+    "recapRegeneratedSnackbar": "Rezime je ponovo generisan",
+    "recapRegenerateFailed": "Nije moguće ponovo generisati rezime. Pokušajte ponovo kasnije.",
+    "recapRegenerateCooldown": "Molimo sačekajte nekoliko sekundi prije ponovnog generisanja.",
+    "recapRegenerateNoConversations": "Nema razgovora za sažimanje za ovaj dan.",
+    "templateRoutingBackendTemplateSection": "Predložak pozadinskog dijela (opcionalno)",
+    "templateRoutingWorkTemplate": "Radni predložak",
+    "templateRoutingPersonalTemplate": "Lični predložak",
+    "templateRoutingTemplateNone": "Ništa — koristi upit",
+    "templateRoutingManageApps": "Omogući aplikacije za sažimanje",
+    "templateRoutingTemplateHint": "Odaberite instaliranu aplikaciju za sažimanje za ovaj profil ili ostavite „Ništa\" da koristite gornji upit.",
+    "templateRoutingProfileRequiredError": "Dodajte upit ili predložak za Radni i Lični profil prije omogućavanja."
 }

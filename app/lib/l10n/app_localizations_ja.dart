@@ -9327,25 +9327,47 @@ class AppLocalizationsJa extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => '個人ルーティン��の概要';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'バックエンドテンプレート（任意）';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => '仕事用テンプレート';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => '個人用テンプレート';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'なし — プロンプトを使用';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => '要約アプリを有効化';
 
   @override
-  String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+  String get templateRoutingTemplateHint => 'このプロフィール用にインストール済みの要約アプリを選択するか、「なし」のままにして上記のプロンプトを使用してください。';
 
   @override
-  String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+  String get templateRoutingProfileRequiredError => '有効化する前に、仕事と個人の両方のプロフィールにプロンプトまたはテンプレートを追加してください。';
+
+  @override
+  String get backgroundModeTitle => 'バックグラウンドモード';
+
+  @override
+  String get backgroundModeDescription => 'アプリを完全に閉じても Omi の録音を続けます。';
+
+  @override
+  String get backgroundModeNote => '現在は Omi デバイスのみ対応しており、継続的に改善しています。';
+
+  @override
+  String get regenerateRecap => '要約を再生成';
+
+  @override
+  String get recapRegeneratedSnackbar => '要約を再生成しました';
+
+  @override
+  String get recapRegenerateFailed => '要約を再生成できませんでした。後でもう一度お試しください。';
+
+  @override
+  String get recapRegenerateCooldown => '再生成する前に数秒お待ちください。';
+
+  @override
+  String get recapRegenerateNoConversations => 'この日の要約対象となる会話はありません。';
 }

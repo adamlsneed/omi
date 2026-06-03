@@ -9491,25 +9491,49 @@ class AppLocalizationsBn extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'ব্যক্তিগত রুটেড সারাংশ';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'ব্যাকএন্ড টেমপ্লেট (ঐচ্ছিক)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'কাজের টেমপ্লেট';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'ব্যক্তিগত টেমপ্লেট';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'কিছু না — প্রম্পট ব্যবহার করুন';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'সারসংক্ষেপ অ্যাপ চালু করুন';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'এই প্রোফাইলের জন্য একটি ইনস্টল করা সারসংক্ষেপ অ্যাপ বেছে নিন, অথবা উপরের প্রম্পট ব্যবহার করতে \'কিছু না\' রাখুন।';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'চালু করার আগে কাজ এবং ব্যক্তিগত উভয় প্রোফাইলের জন্য একটি প্রম্পট বা টেমপ্লেট যোগ করুন।';
+
+  @override
+  String get backgroundModeTitle => 'ব্যাকগ্রাউন্ড মোড';
+
+  @override
+  String get backgroundModeDescription => 'অ্যাপ সম্পূর্ণ বন্ধ থাকলেও আপনার Omi রেকর্ডিং চালু রাখুন।';
+
+  @override
+  String get backgroundModeNote => 'আপাতত শুধু Omi ডিভাইসের সাথে কাজ করে এবং ক্রমাগত উন্নত করা হচ্ছে।';
+
+  @override
+  String get regenerateRecap => 'রিক্যাপ পুনরায় তৈরি করুন';
+
+  @override
+  String get recapRegeneratedSnackbar => 'রিক্যাপ পুনরায় তৈরি হয়েছে';
+
+  @override
+  String get recapRegenerateFailed => 'রিক্যাপ পুনরায় তৈরি করা যায়নি। পরে আবার চেষ্টা করুন।';
+
+  @override
+  String get recapRegenerateCooldown => 'পুনরায় তৈরি করার আগে কয়েক সেকেন্ড অপেক্ষা করুন।';
+
+  @override
+  String get recapRegenerateNoConversations => 'এই দিনের জন্য সংক্ষেপ করার কোনো কথোপকথন নেই।';
 }

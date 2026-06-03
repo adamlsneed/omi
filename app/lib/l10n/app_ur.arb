@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "مقامی ٹیمپلیٹ روٹنگ",
     "templateRoutingRoutedSummary": "روٹ شدہ خلاصہ",
     "templateRoutingWorkRoutedSummary": "ورک روٹڈ خلاصہ",
-    "templateRoutingPersonalRoutedSummary": "ذاتی روٹڈ خلاصہ"
+    "templateRoutingPersonalRoutedSummary": "ذاتی روٹڈ خلاصہ",
+    "backgroundModeTitle": "بیک گراؤنڈ موڈ",
+    "backgroundModeDescription": "ایپ مکمل طور پر بند ہونے پر بھی اپنے Omi کی ریکارڈنگ جاری رکھیں۔",
+    "backgroundModeNote": "فی الحال صرف Omi آلات کے ساتھ کام کرتا ہے اور مسلسل بہتر بنایا جا رہا ہے۔",
+    "regenerateRecap": "خلاصہ دوبارہ بنائیں",
+    "recapRegeneratedSnackbar": "خلاصہ دوبارہ بن گیا",
+    "recapRegenerateFailed": "خلاصہ دوبارہ نہیں بنایا جا سکا۔ بعد میں دوبارہ کوشش کریں۔",
+    "recapRegenerateCooldown": "دوبارہ بنانے سے پہلے براہ کرم چند سیکنڈ انتظار کریں۔",
+    "recapRegenerateNoConversations": "اس دن کے لیے خلاصہ کرنے کے لیے کوئی گفتگو نہیں ہے۔",
+    "templateRoutingBackendTemplateSection": "بیک اینڈ ٹیمپلیٹ (اختیاری)",
+    "templateRoutingWorkTemplate": "کام کا ٹیمپلیٹ",
+    "templateRoutingPersonalTemplate": "ذاتی ٹیمپلیٹ",
+    "templateRoutingTemplateNone": "کوئی نہیں — پرامپٹ استعمال کریں",
+    "templateRoutingManageApps": "خلاصہ ایپس فعال کریں",
+    "templateRoutingTemplateHint": "اس پروفائل کے لیے کوئی نصب شدہ خلاصہ ایپ منتخب کریں، یا اوپر والا پرامپٹ استعمال کرنے کے لیے «کوئی نہیں» رکھیں۔",
+    "templateRoutingProfileRequiredError": "فعال کرنے سے پہلے کام اور ذاتی دونوں پروفائلز کے لیے پرامپٹ یا ٹیمپلیٹ شامل کریں۔"
 }

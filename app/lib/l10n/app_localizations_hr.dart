@@ -9516,25 +9516,49 @@ class AppLocalizationsHr extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Osobni preusmjereni sažetak';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Predložak pozadinskog dijela (neobavezno)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Radni predložak';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Osobni predložak';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Ništa — koristi upit';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Omogući aplikacije za sažimanje';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Odaberi instaliranu aplikaciju za sažimanje za ovaj profil ili ostavi „Ništa\" za korištenje gornjeg upita.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Dodaj upit ili predložak za Radni i Osobni profil prije omogućavanja.';
+
+  @override
+  String get backgroundModeTitle => 'Pozadinski način rada';
+
+  @override
+  String get backgroundModeDescription => 'Zadržite Omi snimanje čak i kada je aplikacija potpuno zatvorena.';
+
+  @override
+  String get backgroundModeNote => 'Zasad radi samo s Omi uređajima i neprestano se poboljšava.';
+
+  @override
+  String get regenerateRecap => 'Ponovno generiraj sažetak';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Sažetak je ponovno generiran';
+
+  @override
+  String get recapRegenerateFailed => 'Nije bilo moguće ponovno generirati sažetak. Pokušajte kasnije.';
+
+  @override
+  String get recapRegenerateCooldown => 'Pričekajte nekoliko sekundi prije ponovnog generiranja.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Nema razgovora za sažimanje za ovaj dan.';
 }

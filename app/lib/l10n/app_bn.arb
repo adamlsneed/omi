@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "স্থানীয় টেমপ্লেট রাউটিং",
     "templateRoutingRoutedSummary": "রুটেড সারাংশ",
     "templateRoutingWorkRoutedSummary": "কাজের রুটেড সারাংশ",
-    "templateRoutingPersonalRoutedSummary": "ব্যক্তিগত রুটেড সারাংশ"
+    "templateRoutingPersonalRoutedSummary": "ব্যক্তিগত রুটেড সারাংশ",
+    "backgroundModeTitle": "ব্যাকগ্রাউন্ড মোড",
+    "backgroundModeDescription": "অ্যাপ সম্পূর্ণ বন্ধ থাকলেও আপনার Omi রেকর্ডিং চালু রাখুন।",
+    "backgroundModeNote": "আপাতত শুধু Omi ডিভাইসের সাথে কাজ করে এবং ক্রমাগত উন্নত করা হচ্ছে।",
+    "regenerateRecap": "রিক্যাপ পুনরায় তৈরি করুন",
+    "recapRegeneratedSnackbar": "রিক্যাপ পুনরায় তৈরি হয়েছে",
+    "recapRegenerateFailed": "রিক্যাপ পুনরায় তৈরি করা যায়নি। পরে আবার চেষ্টা করুন।",
+    "recapRegenerateCooldown": "পুনরায় তৈরি করার আগে কয়েক সেকেন্ড অপেক্ষা করুন।",
+    "recapRegenerateNoConversations": "এই দিনের জন্য সংক্ষেপ করার কোনো কথোপকথন নেই।",
+    "templateRoutingBackendTemplateSection": "ব্যাকএন্ড টেমপ্লেট (ঐচ্ছিক)",
+    "templateRoutingWorkTemplate": "কাজের টেমপ্লেট",
+    "templateRoutingPersonalTemplate": "ব্যক্তিগত টেমপ্লেট",
+    "templateRoutingTemplateNone": "কিছু না — প্রম্পট ব্যবহার করুন",
+    "templateRoutingManageApps": "সারসংক্ষেপ অ্যাপ চালু করুন",
+    "templateRoutingTemplateHint": "এই প্রোফাইলের জন্য একটি ইনস্টল করা সারসংক্ষেপ অ্যাপ বেছে নিন, অথবা উপরের প্রম্পট ব্যবহার করতে 'কিছু না' রাখুন।",
+    "templateRoutingProfileRequiredError": "চালু করার আগে কাজ এবং ব্যক্তিগত উভয় প্রোফাইলের জন্য একটি প্রম্পট বা টেমপ্লেট যোগ করুন।"
 }

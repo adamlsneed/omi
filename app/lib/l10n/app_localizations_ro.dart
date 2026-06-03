@@ -9531,25 +9531,49 @@ class AppLocalizationsRo extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Rezumat personal rutat';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Șablon backend (opțional)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Șablon de lucru';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Șablon personal';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Niciunul — folosiți promptul';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Activați aplicațiile de rezumat';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Alegeți o aplicație de rezumat instalată pentru acest profil sau păstrați «Niciunul» pentru a folosi promptul de mai sus.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Adăugați un prompt sau un șablon pentru profilurile Serviciu și Personal înainte de activare.';
+
+  @override
+  String get backgroundModeTitle => 'Mod în fundal';
+
+  @override
+  String get backgroundModeDescription => 'Păstrează Omi în înregistrare chiar și când aplicația este complet închisă.';
+
+  @override
+  String get backgroundModeNote => 'Deocamdată funcționează doar cu dispozitive Omi și este îmbunătățit continuu.';
+
+  @override
+  String get regenerateRecap => 'Regenerează rezumatul';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Rezumat regenerat';
+
+  @override
+  String get recapRegenerateFailed => 'Rezumatul nu a putut fi regenerat. Încercați din nou mai târziu.';
+
+  @override
+  String get recapRegenerateCooldown => 'Vă rugăm să așteptați câteva secunde înainte de a regenera.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Nu există conversații de rezumat pentru această zi.';
 }

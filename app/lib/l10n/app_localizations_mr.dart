@@ -9494,25 +9494,49 @@ class AppLocalizationsMr extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'वैयक्तिक राउटेड सारांश';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'बॅकएंड टेम्पलेट (पर्यायी)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'कामाचे टेम्पलेट';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'वैयक्तिक टेम्पलेट';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'काहीही नाही — प्रॉम्प्ट वापरा';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'सारांश अॅप्स सक्षम करा';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'या प्रोफाइलसाठी स्थापित केलेले सारांश अॅप निवडा, किंवा वरील प्रॉम्प्ट वापरण्यासाठी \'काहीही नाही\' ठेवा.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'सक्षम करण्यापूर्वी काम आणि वैयक्तिक दोन्ही प्रोफाइलसाठी प्रॉम्प्ट किंवा टेम्पलेट जोडा.';
+
+  @override
+  String get backgroundModeTitle => 'बॅकग्राउंड मोड';
+
+  @override
+  String get backgroundModeDescription => 'अ‍ॅप पूर्णपणे बंद असतानाही तुमचे Omi रेकॉर्डिंग सुरू ठेवा.';
+
+  @override
+  String get backgroundModeNote => 'सध्या फक्त Omi उपकरणांसह कार्य करते आणि सतत सुधारित केले जात आहे.';
+
+  @override
+  String get regenerateRecap => 'सारांश पुन्हा तयार करा';
+
+  @override
+  String get recapRegeneratedSnackbar => 'सारांश पुन्हा तयार केला';
+
+  @override
+  String get recapRegenerateFailed => 'सारांश पुन्हा तयार करता आला नाही. नंतर पुन्हा प्रयत्न करा.';
+
+  @override
+  String get recapRegenerateCooldown => 'पुन्हा तयार करण्यापूर्वी कृपया काही सेकंद थांबा.';
+
+  @override
+  String get recapRegenerateNoConversations => 'या दिवसासाठी सारांश करण्यासाठी कोणतेही संभाषण नाही.';
 }

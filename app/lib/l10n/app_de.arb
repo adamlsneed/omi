@@ -3089,5 +3089,20 @@
     "templateRoutingLocalDescription": "Lokales Template-Routing",
     "templateRoutingRoutedSummary": "Zusammenfassung der Route",
     "templateRoutingWorkRoutedSummary": "Zusammenfassung der weitergeleiteten Arbeit",
-    "templateRoutingPersonalRoutedSummary": "Persönliche Route-Zusammenfassung"
+    "templateRoutingPersonalRoutedSummary": "Persönliche Route-Zusammenfassung",
+    "backgroundModeTitle": "Hintergrundmodus",
+    "backgroundModeDescription": "Lass deinen Omi weiter aufnehmen, auch wenn die App vollständig geschlossen ist.",
+    "backgroundModeNote": "Funktioniert vorerst nur mit Omi-Geräten und wird kontinuierlich verbessert.",
+    "regenerateRecap": "Zusammenfassung neu erstellen",
+    "recapRegeneratedSnackbar": "Zusammenfassung neu erstellt",
+    "recapRegenerateFailed": "Zusammenfassung konnte nicht neu erstellt werden. Bitte später erneut versuchen.",
+    "recapRegenerateCooldown": "Bitte warte ein paar Sekunden, bevor du erneut generierst.",
+    "recapRegenerateNoConversations": "Keine Konversationen für diesen Tag zum Zusammenfassen.",
+    "templateRoutingBackendTemplateSection": "Backend-Vorlage (optional)",
+    "templateRoutingWorkTemplate": "Arbeitsvorlage",
+    "templateRoutingPersonalTemplate": "Persönliche Vorlage",
+    "templateRoutingTemplateNone": "Keine — Eingabeaufforderung verwenden",
+    "templateRoutingManageApps": "Zusammenfassungs-Apps aktivieren",
+    "templateRoutingTemplateHint": "Wähle eine installierte Zusammenfassungs-App für dieses Profil oder behalte „Keine\", um die obige Eingabeaufforderung zu verwenden.",
+    "templateRoutingProfileRequiredError": "Füge für Arbeit und Persönlich je eine Eingabeaufforderung oder Vorlage hinzu, bevor du aktivierst."
 }

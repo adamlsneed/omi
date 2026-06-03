@@ -9475,25 +9475,49 @@ class AppLocalizationsSk extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Osobné zhrnutie trasy';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Šablóna backendu (nepovinné)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Pracovná šablóna';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Osobná šablóna';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Žiadna — použiť výzvu';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Povoliť aplikácie na zhrnutie';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Vyberte nainštalovanú aplikáciu na zhrnutie pre tento profil alebo ponechajte „Žiadna\" a použite výzvu vyššie.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Pred aktiváciou pridajte výzvu alebo šablónu pre profily Pracovný aj Osobný.';
+
+  @override
+  String get backgroundModeTitle => 'Režim na pozadí';
+
+  @override
+  String get backgroundModeDescription => 'Udržujte nahrávanie Omi, aj keď je aplikácia úplne zatvorená.';
+
+  @override
+  String get backgroundModeNote => 'Zatiaľ funguje len so zariadeniami Omi a priebežne sa vylepšuje.';
+
+  @override
+  String get regenerateRecap => 'Znovu vygenerovať zhrnutie';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Zhrnutie znovu vygenerované';
+
+  @override
+  String get recapRegenerateFailed => 'Zhrnutie sa nepodarilo znovu vygenerovať. Skúste neskôr.';
+
+  @override
+  String get recapRegenerateCooldown => 'Pred opätovným generovaním prosím počkajte niekoľko sekúnd.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Pre tento deň nie sú žiadne konverzácie na zhrnutie.';
 }

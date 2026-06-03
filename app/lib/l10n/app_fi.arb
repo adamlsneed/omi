@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Paikallinen mallin reititys",
     "templateRoutingRoutedSummary": "Reititetty yhteenveto",
     "templateRoutingWorkRoutedSummary": "Work Routed Summary",
-    "templateRoutingPersonalRoutedSummary": "Henkilökohtainen reititetty yhteenveto"
+    "templateRoutingPersonalRoutedSummary": "Henkilökohtainen reititetty yhteenveto",
+    "backgroundModeTitle": "Taustatila",
+    "backgroundModeDescription": "Pidä Omi tallentamassa, vaikka sovellus olisi kokonaan suljettu.",
+    "backgroundModeNote": "Toimii toistaiseksi vain Omi-laitteiden kanssa ja sitä kehitetään jatkuvasti.",
+    "regenerateRecap": "Luo yhteenveto uudelleen",
+    "recapRegeneratedSnackbar": "Yhteenveto luotu uudelleen",
+    "recapRegenerateFailed": "Yhteenvedon uudelleenluonti epäonnistui. Yritä myöhemmin uudelleen.",
+    "recapRegenerateCooldown": "Odota muutama sekunti ennen uudelleen luomista.",
+    "recapRegenerateNoConversations": "Tänä päivänä ei ole keskusteluja yhteenvedettäväksi.",
+    "templateRoutingBackendTemplateSection": "Taustapalvelun malli (valinnainen)",
+    "templateRoutingWorkTemplate": "Työmalli",
+    "templateRoutingPersonalTemplate": "Henkilökohtainen malli",
+    "templateRoutingTemplateNone": "Ei mitään — käytä kehotetta",
+    "templateRoutingManageApps": "Ota tiivistelmäsovellukset käyttöön",
+    "templateRoutingTemplateHint": "Valitse asennettu tiivistelmäsovellus tälle profiilille tai pidä „Ei mitään\" käyttääksesi yllä olevaa kehotetta.",
+    "templateRoutingProfileRequiredError": "Lisää kehote tai malli sekä Työ- että Henkilökohtaiselle profiilille ennen käyttöönottoa."
 }

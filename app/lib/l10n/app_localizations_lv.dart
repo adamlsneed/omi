@@ -9505,25 +9505,49 @@ class AppLocalizationsLv extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Personiskais maršruta kopsavilkums';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Aizmugursistēmas veidne (neobligāti)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Darba veidne';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Personīgā veidne';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Nav — izmantot uzvedni';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Iespējot kopsavilkuma lietotnes';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Izvēlieties instalētu kopsavilkuma lietotni šim profilam vai atstājiet „Nav\", lai izmantotu augstāk esošo uzvedni.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Pirms iespējošanas pievienojiet uzvedni vai veidni gan Darba, gan Personīgajam profilam.';
+
+  @override
+  String get backgroundModeTitle => 'Fona režīms';
+
+  @override
+  String get backgroundModeDescription => 'Saglabājiet Omi ierakstīšanu pat tad, kad lietotne ir pilnībā aizvērta.';
+
+  @override
+  String get backgroundModeNote => 'Pagaidām darbojas tikai ar Omi ierīcēm un tiek nepārtraukti uzlabota.';
+
+  @override
+  String get regenerateRecap => 'Atjaunot kopsavilkumu';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Kopsavilkums atjaunots';
+
+  @override
+  String get recapRegenerateFailed => 'Kopsavilkumu neizdevās atjaunot. Mēģiniet vēlāk vēlreiz.';
+
+  @override
+  String get recapRegenerateCooldown => 'Lūdzu, pagaidiet dažas sekundes pirms atkārtotas ģenerēšanas.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Šajā dienā nav sarunu, ko apkopot.';
 }

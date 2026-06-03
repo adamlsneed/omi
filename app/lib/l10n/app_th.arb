@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "การกำหนดเส้นทางเทมเพลตในเครื่อง",
     "templateRoutingRoutedSummary": "สรุปเส้นทาง",
     "templateRoutingWorkRoutedSummary": "สรุปเส้นทางการทำงาน",
-    "templateRoutingPersonalRoutedSummary": "สรุปเส้นทางส่วนบุคคล"
+    "templateRoutingPersonalRoutedSummary": "สรุปเส้นทางส่วนบุคคล",
+    "backgroundModeTitle": "โหมดเบื้องหลัง",
+    "backgroundModeDescription": "ให้ Omi ของคุณบันทึกต่อไปแม้ปิดแอปไปทั้งหมดแล้ว",
+    "backgroundModeNote": "ขณะนี้ใช้ได้กับอุปกรณ์ Omi เท่านั้น และกำลังพัฒนาอย่างต่อเนื่อง",
+    "regenerateRecap": "สร้างสรุปใหม่",
+    "recapRegeneratedSnackbar": "สร้างสรุปใหม่แล้ว",
+    "recapRegenerateFailed": "ไม่สามารถสร้างสรุปใหม่ได้ ลองอีกครั้งในภายหลัง",
+    "recapRegenerateCooldown": "โปรดรอสักครู่ก่อนสร้างใหม่อีกครั้ง",
+    "recapRegenerateNoConversations": "ไม่มีการสนทนาที่จะสรุปสำหรับวันนี้",
+    "templateRoutingBackendTemplateSection": "เทมเพลตแบ็กเอนด์ (ไม่บังคับ)",
+    "templateRoutingWorkTemplate": "เทมเพลตสำหรับงาน",
+    "templateRoutingPersonalTemplate": "เทมเพลตส่วนตัว",
+    "templateRoutingTemplateNone": "ไม่มี — ใช้คำสั่ง",
+    "templateRoutingManageApps": "เปิดใช้งานแอปสรุป",
+    "templateRoutingTemplateHint": "เลือกแอปสรุปที่ติดตั้งสำหรับโปรไฟล์นี้ หรือเลือก «ไม่มี» เพื่อใช้คำสั่งด้านบน",
+    "templateRoutingProfileRequiredError": "เพิ่มคำสั่งหรือเทมเพลตสำหรับทั้งโปรไฟล์งานและส่วนตัวก่อนเปิดใช้งาน"
 }

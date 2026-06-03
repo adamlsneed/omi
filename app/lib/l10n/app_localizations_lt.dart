@@ -9497,25 +9497,49 @@ class AppLocalizationsLt extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Asmeninė maršruto suvestinė';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Vidinė šablono dalis (neprivaloma)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Darbo šablonas';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Asmeninis šablonas';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Nėra — naudoti raginimą';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Įjungti santraukų programas';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Pasirinkite įdiegtą santraukų programą šiam profiliui arba palikite „Nėra\", kad naudotumėte viršuje esantį raginimą.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Prieš įjungiant pridėkite raginimą arba šabloną tiek Darbo, tiek Asmeniniam profiliui.';
+
+  @override
+  String get backgroundModeTitle => 'Fono režimas';
+
+  @override
+  String get backgroundModeDescription => 'Palikite Omi įrašinėti net kai programėlė visiškai uždaryta.';
+
+  @override
+  String get backgroundModeNote => 'Kol kas veikia tik su Omi įrenginiais ir nuolat tobulinama.';
+
+  @override
+  String get regenerateRecap => 'Sukurti santrauką iš naujo';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Santrauka sukurta iš naujo';
+
+  @override
+  String get recapRegenerateFailed => 'Nepavyko iš naujo sukurti santraukos. Bandykite vėliau.';
+
+  @override
+  String get recapRegenerateCooldown => 'Palaukite kelias sekundes prieš generuodami iš naujo.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Šiai dienai nėra pokalbių, kuriuos būtų galima apibendrinti.';
 }

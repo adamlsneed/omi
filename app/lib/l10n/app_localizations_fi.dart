@@ -9483,25 +9483,49 @@ class AppLocalizationsFi extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'Henkilökohtainen reititetty yhteenveto';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'Taustapalvelun malli (valinnainen)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'Työmalli';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'Henkilökohtainen malli';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'Ei mitään — käytä kehotetta';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'Ota tiivistelmäsovellukset käyttöön';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'Valitse asennettu tiivistelmäsovellus tälle profiilille tai pidä „Ei mitään\" käyttääksesi yllä olevaa kehotetta.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'Lisää kehote tai malli sekä Työ- että Henkilökohtaiselle profiilille ennen käyttöönottoa.';
+
+  @override
+  String get backgroundModeTitle => 'Taustatila';
+
+  @override
+  String get backgroundModeDescription => 'Pidä Omi tallentamassa, vaikka sovellus olisi kokonaan suljettu.';
+
+  @override
+  String get backgroundModeNote => 'Toimii toistaiseksi vain Omi-laitteiden kanssa ja sitä kehitetään jatkuvasti.';
+
+  @override
+  String get regenerateRecap => 'Luo yhteenveto uudelleen';
+
+  @override
+  String get recapRegeneratedSnackbar => 'Yhteenveto luotu uudelleen';
+
+  @override
+  String get recapRegenerateFailed => 'Yhteenvedon uudelleenluonti epäonnistui. Yritä myöhemmin uudelleen.';
+
+  @override
+  String get recapRegenerateCooldown => 'Odota muutama sekunti ennen uudelleen luomista.';
+
+  @override
+  String get recapRegenerateNoConversations => 'Tänä päivänä ei ole keskusteluja yhteenvedettäväksi.';
 }

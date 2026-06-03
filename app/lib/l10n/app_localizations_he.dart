@@ -9413,25 +9413,48 @@ class AppLocalizationsHe extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'סיכום מנותב אישי';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'תבנית Backend (אופציונלי)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'תבנית עבודה';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'תבנית אישית';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'ללא — השתמש בהנחיה';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'הפעל אפליקציות סיכום';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'בחר אפליקציית סיכום מותקנת לפרופיל זה, או השאר «ללא» כדי להשתמש בהנחיה למעלה.';
 
   @override
-  String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+  String get templateRoutingProfileRequiredError => 'הוסף הנחיה או תבנית לפרופילי עבודה ואישי לפני הפעלה.';
+
+  @override
+  String get backgroundModeTitle => 'מצב רקע';
+
+  @override
+  String get backgroundModeDescription => 'השאירו את ה-Omi מקליט גם כשהאפליקציה סגורה לחלוטין.';
+
+  @override
+  String get backgroundModeNote => 'כרגע עובד רק עם מכשירי Omi ומשתפר באופן מתמיד.';
+
+  @override
+  String get regenerateRecap => 'צור סיכום מחדש';
+
+  @override
+  String get recapRegeneratedSnackbar => 'הסיכום נוצר מחדש';
+
+  @override
+  String get recapRegenerateFailed => 'לא ניתן ליצור מחדש את הסיכום. נסה שוב מאוחר יותר.';
+
+  @override
+  String get recapRegenerateCooldown => 'אנא המתן מספר שניות לפני יצירה מחודשת.';
+
+  @override
+  String get recapRegenerateNoConversations => 'אין שיחות לסיכום עבור היום הזה.';
 }

@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "로컬 템플릿 라우팅",
     "templateRoutingRoutedSummary": "전달된 요약",
     "templateRoutingWorkRoutedSummary": "업무 전달 요약",
-    "templateRoutingPersonalRoutedSummary": "개인 라우팅 요약"
+    "templateRoutingPersonalRoutedSummary": "개인 라우팅 요약",
+    "backgroundModeTitle": "백그라운드 모드",
+    "backgroundModeDescription": "앱을 완전히 닫아도 Omi 녹음을 계속 유지합니다.",
+    "backgroundModeNote": "현재는 Omi 기기에서만 작동하며 지속적으로 개선되고 있습니다.",
+    "regenerateRecap": "요약 재생성",
+    "recapRegeneratedSnackbar": "요약이 재생성되었습니다",
+    "recapRegenerateFailed": "요약을 재생성할 수 없습니다. 나중에 다시 시도하세요.",
+    "recapRegenerateCooldown": "다시 생성하기 전에 몇 초 기다려 주세요.",
+    "recapRegenerateNoConversations": "이 날짜에 요약할 대화가 없습니다.",
+    "templateRoutingBackendTemplateSection": "백엔드 템플릿 (선택 사항)",
+    "templateRoutingWorkTemplate": "업무 템플릿",
+    "templateRoutingPersonalTemplate": "개인 템플릿",
+    "templateRoutingTemplateNone": "없음 — 프롬프트 사용",
+    "templateRoutingManageApps": "요약 앱 활성화",
+    "templateRoutingTemplateHint": "이 프로필에 설치된 요약 앱을 선택하거나, 위의 프롬프트를 사용하려면 «없음»을 유지하세요.",
+    "templateRoutingProfileRequiredError": "활성화하기 전에 업무와 개인 프로필 모두에 프롬프트 또는 템플릿을 추가하세요."
 }

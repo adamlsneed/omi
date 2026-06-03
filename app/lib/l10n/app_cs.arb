@@ -3090,5 +3090,20 @@
     "templateRoutingLocalDescription": "Místní směrování šablony",
     "templateRoutingRoutedSummary": "Směrovaný souhrn",
     "templateRoutingWorkRoutedSummary": "Shrnutí práce",
-    "templateRoutingPersonalRoutedSummary": "Osobní shrnutí cesty"
+    "templateRoutingPersonalRoutedSummary": "Osobní shrnutí cesty",
+    "backgroundModeTitle": "Režim na pozadí",
+    "backgroundModeDescription": "Udržujte nahrávání Omi, i když je aplikace úplně zavřená.",
+    "backgroundModeNote": "Zatím funguje pouze se zařízeními Omi a průběžně se vylepšuje.",
+    "regenerateRecap": "Znovu vygenerovat shrnutí",
+    "recapRegeneratedSnackbar": "Shrnutí bylo znovu vygenerováno",
+    "recapRegenerateFailed": "Shrnutí se nepodařilo znovu vygenerovat. Zkuste to později.",
+    "recapRegenerateCooldown": "Před opětovným generováním prosím počkejte několik sekund.",
+    "recapRegenerateNoConversations": "Pro tento den nejsou žádné konverzace k shrnutí.",
+    "templateRoutingBackendTemplateSection": "Šablona backendu (nepovinné)",
+    "templateRoutingWorkTemplate": "Pracovní šablona",
+    "templateRoutingPersonalTemplate": "Osobní šablona",
+    "templateRoutingTemplateNone": "Žádná — použít výzvu",
+    "templateRoutingManageApps": "Povolit aplikace pro shrnutí",
+    "templateRoutingTemplateHint": "Vyberte nainstalovanou aplikaci pro shrnutí pro tento profil nebo ponechte „Žádná\" a použijte výzvu výše.",
+    "templateRoutingProfileRequiredError": "Před aktivací přidejte výzvu nebo šablonu pro profily Pracovní i Osobní."
 }

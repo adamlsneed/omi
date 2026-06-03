@@ -10826,5 +10826,20 @@
     "templateRoutingLocalDescription": "Локално рутирање ш��блона",
     "templateRoutingRoutedSummary": "Роутед Суммари",
     "templateRoutingWorkRoutedSummary": "Ворк Роутед Резиме",
-    "templateRoutingPersonalRoutedSummary": "Персонал Роутед Суммари"
+    "templateRoutingPersonalRoutedSummary": "Персонал Роутед Суммари",
+    "backgroundModeTitle": "Позадински режим",
+    "backgroundModeDescription": "Задржите Omi снимање чак и када је апликација потпуно затворена.",
+    "backgroundModeNote": "Засад ради само са Omi уређајима и непрекидно се побољшава.",
+    "regenerateRecap": "Поново генериши резиме",
+    "recapRegeneratedSnackbar": "Резиме је поново генерисан",
+    "recapRegenerateFailed": "Није могуће поново генерисати резиме. Покушајте поново касније.",
+    "recapRegenerateCooldown": "Сачекајте неколико секунди пре поновног генерисања.",
+    "recapRegenerateNoConversations": "Нема разговора за сумирање за овај дан.",
+    "templateRoutingBackendTemplateSection": "Backend шаблон (опционо)",
+    "templateRoutingWorkTemplate": "Радни шаблон",
+    "templateRoutingPersonalTemplate": "Лични шаблон",
+    "templateRoutingTemplateNone": "Ниједан — користи позив",
+    "templateRoutingManageApps": "Омогући апликације за резиме",
+    "templateRoutingTemplateHint": "Изаберите инсталирану апликацију за резиме за овај профил или оставите „Ниједан\" да бисте користили горњи позив.",
+    "templateRoutingProfileRequiredError": "Додајте позив или шаблон за Радни и Лични профил пре омогућавања."
 }

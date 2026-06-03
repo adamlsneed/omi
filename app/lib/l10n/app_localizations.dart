@@ -17720,6 +17720,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a prompt or a template for both Work and Personal before enabling.'**
   String get templateRoutingProfileRequiredError;
+
+  /// Title for the background connection mode toggle in device settings (Android only)
+  ///
+  /// In en, this message translates to:
+  /// **'Background Mode'**
+  String get backgroundModeTitle;
+
+  /// Subtitle explaining the background mode toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your Omi recording even when the app is fully closed.'**
+  String get backgroundModeDescription;
+
+  /// Caveat note shown in the Background Mode sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Works with Omi devices only for now, and is being improved continuously.'**
+  String get backgroundModeNote;
+
+  /// No description provided for @regenerateRecap.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate recap'**
+  String get regenerateRecap;
+
+  /// No description provided for @recapRegeneratedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Recap regenerated'**
+  String get recapRegeneratedSnackbar;
+
+  /// No description provided for @recapRegenerateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t regenerate the recap. Try again later.'**
+  String get recapRegenerateFailed;
+
+  /// No description provided for @recapRegenerateCooldown.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait a few seconds before regenerating again.'**
+  String get recapRegenerateCooldown;
+
+  /// No description provided for @recapRegenerateNoConversations.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations to summarize for this day.'**
+  String get recapRegenerateNoConversations;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -9552,25 +9552,49 @@ class AppLocalizationsTa extends AppLocalizations {
   String get templateRoutingPersonalRoutedSummary => 'தனிப்பட்ட வழிப்படுத்தப்பட்ட சுருக்கம்';
 
   @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
+  String get templateRoutingBackendTemplateSection => 'பின்தள வார்ப்புரு (விருப்பத்தேர்வு)';
 
   @override
-  String get templateRoutingWorkTemplate => 'Work template';
+  String get templateRoutingWorkTemplate => 'பணி வார்ப்புரு';
 
   @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
+  String get templateRoutingPersonalTemplate => 'தனிப்பட்ட வார்ப்புரு';
 
   @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
+  String get templateRoutingTemplateNone => 'ஏதுமில்லை — வழிகாட்டியை பயன்படுத்து';
 
   @override
-  String get templateRoutingManageApps => 'Enable summary apps';
+  String get templateRoutingManageApps => 'சுருக்க செயலிகளை இயக்கு';
 
   @override
   String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
+      'இந்த சுயவிவரத்திற்கு நிறுவப்பட்ட சுருக்க செயலியை தேர்வு செய்யவும், அல்லது மேலே உள்ள வழிகாட்டியை பயன்படுத்த «ஏதுமில்லை» வைத்திருக்கவும்.';
 
   @override
   String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
+      'இயக்குவதற்கு முன்பு பணி மற்றும் தனிப்பட்ட இரண்டு சுயவிவரங்களுக்கும் வழிகாட்டி அல்லது வார்ப்புரு சேர்க்கவும்.';
+
+  @override
+  String get backgroundModeTitle => 'பின்னணி பயன்முறை';
+
+  @override
+  String get backgroundModeDescription => 'ஆப்ஸ் முழுவதுமாக மூடப்பட்டிருந்தாலும் உங்கள் Omi பதிவைத் தொடரவும்.';
+
+  @override
+  String get backgroundModeNote => 'தற்போது Omi சாதனங்களுடன் மட்டுமே செயல்படுகிறது, தொடர்ந்து மேம்படுத்தப்படுகிறது.';
+
+  @override
+  String get regenerateRecap => 'சுருக்கத்தை மீண்டும் உருவாக்கு';
+
+  @override
+  String get recapRegeneratedSnackbar => 'சுருக்கம் மீண்டும் உருவாக்கப்பட்டது';
+
+  @override
+  String get recapRegenerateFailed => 'சுருக்கத்தை மீண்டும் உருவாக்க முடியவில்லை. பிறகு மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get recapRegenerateCooldown => 'மீண்டும் உருவாக்குவதற்கு முன் சில வினாடிகள் காத்திருக்கவும்.';
+
+  @override
+  String get recapRegenerateNoConversations => 'இந்த நாளுக்கு சுருக்கமாக மாற்ற உரையாடல்கள் இல்லை.';
 }

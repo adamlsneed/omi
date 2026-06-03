@@ -3121,5 +3121,20 @@
     "templateRoutingLocalDescription": "Τοπική δρομολόγηση προτύπων",
     "templateRoutingRoutedSummary": "Περίληψη δρομολόγησης",
     "templateRoutingWorkRoutedSummary": "Περίληψη δρομολογημένης εργασίας",
-    "templateRoutingPersonalRoutedSummary": "Περίληψη Προσωπικής δρομολόγησης"
+    "templateRoutingPersonalRoutedSummary": "Περίληψη Προσωπικής δρομολόγησης",
+    "backgroundModeTitle": "Λειτουργία παρασκηνίου",
+    "backgroundModeDescription": "Διατηρήστε την εγγραφή του Omi ακόμη και όταν η εφαρμογή είναι εντελώς κλειστή.",
+    "backgroundModeNote": "Προς το παρόν λειτουργεί μόνο με συσκευές Omi και βελτιώνεται συνεχώς.",
+    "regenerateRecap": "Αναδημιουργία ανακεφαλαίωσης",
+    "recapRegeneratedSnackbar": "Η ανακεφαλαίωση δημιουργήθηκε ξανά",
+    "recapRegenerateFailed": "Δεν ήταν δυνατή η αναδημιουργία της ανακεφαλαίωσης. Δοκιμάστε ξανά αργότερα.",
+    "recapRegenerateCooldown": "Παρακαλώ περιμένετε λίγα δευτερόλεπτα πριν δοκιμάσετε ξανά.",
+    "recapRegenerateNoConversations": "Δεν υπάρχουν συνομιλίες για ανακεφαλαίωση αυτής της ημέρας.",
+    "templateRoutingBackendTemplateSection": "Πρότυπο backend (προαιρετικό)",
+    "templateRoutingWorkTemplate": "Πρότυπο εργασίας",
+    "templateRoutingPersonalTemplate": "Προσωπικό πρότυπο",
+    "templateRoutingTemplateNone": "Κανένα — χρήση προτροπής",
+    "templateRoutingManageApps": "Ενεργοποίηση εφαρμογών σύνοψης",
+    "templateRoutingTemplateHint": "Επιλέξτε μια εγκατεστημένη εφαρμογή σύνοψης για αυτό το προφίλ ή αφήστε «Κανένα» για να χρησιμοποιήσετε την παραπάνω προτροπή.",
+    "templateRoutingProfileRequiredError": "Προσθέστε μια προτροπή ή πρότυπο και για τα δύο προφίλ Εργασίας και Προσωπικού πριν ενεργοποιήσετε."
 }

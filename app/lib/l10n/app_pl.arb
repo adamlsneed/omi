@@ -3156,5 +3156,20 @@
     "templateRoutingLocalDescription": "Lokalny routing szablonów",
     "templateRoutingRoutedSummary": "Podsumowanie kierowane",
     "templateRoutingWorkRoutedSummary": "Podsumowanie pracy kierowanej",
-    "templateRoutingPersonalRoutedSummary": "Podsumowanie przesłane osobiście"
+    "templateRoutingPersonalRoutedSummary": "Podsumowanie przesłane osobiście",
+    "backgroundModeTitle": "Tryb w tle",
+    "backgroundModeDescription": "Utrzymuj nagrywanie Omi nawet po całkowitym zamknięciu aplikacji.",
+    "backgroundModeNote": "Na razie działa tylko z urządzeniami Omi i jest stale ulepszany.",
+    "regenerateRecap": "Wygeneruj podsumowanie ponownie",
+    "recapRegeneratedSnackbar": "Podsumowanie wygenerowane ponownie",
+    "recapRegenerateFailed": "Nie udało się ponownie wygenerować podsumowania. Spróbuj później.",
+    "recapRegenerateCooldown": "Poczekaj kilka sekund przed ponownym wygenerowaniem.",
+    "recapRegenerateNoConversations": "Brak rozmów do podsumowania w tym dniu.",
+    "templateRoutingBackendTemplateSection": "Szablon backendu (opcjonalnie)",
+    "templateRoutingWorkTemplate": "Szablon pracy",
+    "templateRoutingPersonalTemplate": "Szablon osobisty",
+    "templateRoutingTemplateNone": "Brak — użyj monitu",
+    "templateRoutingManageApps": "Włącz aplikacje do podsumowań",
+    "templateRoutingTemplateHint": "Wybierz zainstalowaną aplikację do podsumowań dla tego profilu lub pozostaw „Brak\", aby używać monitu powyżej.",
+    "templateRoutingProfileRequiredError": "Dodaj monit lub szablon dla profili Praca i Osobisty przed włączeniem."
 }

@@ -3143,5 +3143,20 @@
     "templateRoutingLocalDescription": "本地模板路由",
     "templateRoutingRoutedSummary": "路由摘要",
     "templateRoutingWorkRoutedSummary": "工作路线总结",
-    "templateRoutingPersonalRoutedSummary": "个人路由摘要"
+    "templateRoutingPersonalRoutedSummary": "个人路由摘要",
+    "backgroundModeTitle": "后台模式",
+    "backgroundModeDescription": "即使完全关闭应用，也能让你的 Omi 继续录音。",
+    "backgroundModeNote": "目前仅支持 Omi 设备，并在持续改进中。",
+    "regenerateRecap": "重新生成回顾",
+    "recapRegeneratedSnackbar": "已重新生成回顾",
+    "recapRegenerateFailed": "无法重新生成回顾。请稍后重试。",
+    "recapRegenerateCooldown": "请等待几秒后再重新生成。",
+    "recapRegenerateNoConversations": "这一天没有可以总结的对话。",
+    "templateRoutingBackendTemplateSection": "后端模板（可选）",
+    "templateRoutingWorkTemplate": "工作模板",
+    "templateRoutingPersonalTemplate": "个人模板",
+    "templateRoutingTemplateNone": "无 — 使用提示词",
+    "templateRoutingManageApps": "启用摘要应用",
+    "templateRoutingTemplateHint": "为此配置文件选择一个已安装的摘要应用，或保留「无」以使用上方的提示词。",
+    "templateRoutingProfileRequiredError": "启用前，请为工作和个人配置文件各添加一个提示词或模板。"
 }

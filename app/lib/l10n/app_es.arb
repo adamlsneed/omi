@@ -3122,5 +3122,20 @@
     "templateRoutingLocalDescription": "Enrutamiento de plantilla local",
     "templateRoutingRoutedSummary": "Resumen enrutado",
     "templateRoutingWorkRoutedSummary": "Resumen de ruta de trabajo",
-    "templateRoutingPersonalRoutedSummary": "Resumen enrutado personal"
+    "templateRoutingPersonalRoutedSummary": "Resumen enrutado personal",
+    "backgroundModeTitle": "Modo en segundo plano",
+    "backgroundModeDescription": "Mantén tu Omi grabando incluso cuando la app está completamente cerrada.",
+    "backgroundModeNote": "Por ahora solo funciona con dispositivos Omi y se mejora continuamente.",
+    "regenerateRecap": "Regenerar resumen",
+    "recapRegeneratedSnackbar": "Resumen regenerado",
+    "recapRegenerateFailed": "No se pudo regenerar el resumen. Inténtalo de nuevo más tarde.",
+    "recapRegenerateCooldown": "Espera unos segundos antes de regenerar de nuevo.",
+    "recapRegenerateNoConversations": "No hay conversaciones para resumir en este día.",
+    "templateRoutingBackendTemplateSection": "Plantilla de backend (opcional)",
+    "templateRoutingWorkTemplate": "Plantilla de trabajo",
+    "templateRoutingPersonalTemplate": "Plantilla personal",
+    "templateRoutingTemplateNone": "Ninguna — usar indicación",
+    "templateRoutingManageApps": "Activar aplicaciones de resumen",
+    "templateRoutingTemplateHint": "Elige una aplicación de resumen instalada para este perfil o mantén «Ninguna» para usar la indicación anterior.",
+    "templateRoutingProfileRequiredError": "Añade una indicación o plantilla para los perfiles de Trabajo y Personal antes de activar."
 }
