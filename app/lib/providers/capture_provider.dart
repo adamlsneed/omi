@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_provider_utilities/flutter_provider_utilities.dart';
+import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -31,6 +32,7 @@ import 'package:omi/env/env.dart';
 import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
+import 'package:omi/providers/folder_provider.dart';
 import 'package:omi/providers/message_provider.dart';
 import 'package:omi/providers/people_provider.dart';
 import 'package:omi/providers/usage_provider.dart';
@@ -912,7 +914,9 @@ class CaptureProvider extends ChangeNotifier
       Logger.debug('idea-capture: device was paused, resuming for capture');
       await resumeDeviceRecording();
     }
-    await _setDeviceIdeaCaptureLed(deviceId, true);
+    await _setDeviceIdeaCaptureLed(deviceId, true); // solid green on new firmware
+    // Pendant buzz (long) confirms entry — works on current firmware too (modes 1-3).
+    await _playSpeakerHaptic(deviceId, 3);
     HapticFeedback.mediumImpact();
     notifyListeners();
   }
@@ -922,11 +926,29 @@ class CaptureProvider extends ChangeNotifier
     PlatformManager.instance.analytics.omiDoubleTap(feature: 'idea_capture_end');
     _ideaCaptureActive = false;
     await _setDeviceIdeaCaptureLed(deviceId, false);
+    // Pendant buzz (short) confirms exit/save.
+    await _playSpeakerHaptic(deviceId, 1);
     HapticFeedback.lightImpact();
     notifyListeners();
     // force_process bypasses the server discard gate, so any length is saved;
     // the result is then filed under the "Ideas" folder.
     await forceProcessingCurrentConversation(asIdea: true);
+  }
+
+  // idea-capture: refresh the folder tab strip + conversation list so a freshly
+  // filed idea (and the lazily-created "Ideas" folder) appear without a manual
+  // pull-to-refresh. Uses the global navigator context since FolderProvider is
+  // registered after CaptureProvider and isn't wired into this provider.
+  Future<void> _refreshIdeaDestination() async {
+    try {
+      await conversationProvider?.refreshConversations();
+      final ctx = globalNavigatorKey.currentContext;
+      if (ctx != null && ctx.mounted) {
+        await Provider.of<FolderProvider>(ctx, listen: false).loadFolders();
+      }
+    } catch (e) {
+      Logger.debug('idea-capture: refresh destination failed: $e');
+    }
   }
 
   /// idea-capture: resolve (or lazily create) the "Ideas" destination folder.
@@ -967,6 +989,7 @@ class CaptureProvider extends ChangeNotifier
     try {
       final ok = await moveConversationToFolderApi(conversationId, folderId);
       Logger.debug('idea-capture: filed conversation $conversationId under Ideas: $ok');
+      await _refreshIdeaDestination();
     } catch (e) {
       Logger.debug('idea-capture: move to Ideas failed: $e');
     }
