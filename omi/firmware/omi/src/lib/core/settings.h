@@ -89,6 +89,31 @@ void app_settings_set_double_tap_pause_feedback_enabled(bool enabled);
 bool app_settings_is_double_tap_pause_feedback_enabled(void);
 
 /**
+ * @brief Set the runtime "idea capture mode" flag.
+ *
+ * idea-capture: app-driven, not persisted; resets to inactive on reboot.
+ * When active, set_led_state() shows a solid green LED with precedence over
+ * the normal mute/charging/connected states.
+ *
+ * @param active true to enter idea capture mode, false to leave it.
+ */
+void app_settings_set_idea_capture_active(bool active);
+
+/**
+ * @brief Toggle the runtime "idea capture mode" flag.
+ *
+ * @return true when idea capture mode is now active, false when inactive.
+ */
+bool app_settings_toggle_idea_capture_active(void);
+
+/**
+ * @brief Check whether idea capture mode is active.
+ *
+ * @return true when the pendant is in idea capture mode (solid green LED).
+ */
+bool app_settings_is_idea_capture_active(void);
+
+/**
  * @brief Save the RTC timestamp setting.
  *
  * @param ts The new RTC timestamp.

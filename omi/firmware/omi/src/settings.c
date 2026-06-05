@@ -16,6 +16,8 @@ static uint8_t dim_light_ratio = DEFAULT_DIM_LIGHT_RATIO;
 static uint8_t mic_gain = DEFAULT_MIC_GAIN;
 static atomic_t recording_paused;
 static atomic_t double_tap_pause_feedback_enabled = ATOMIC_INIT(1);
+// idea-capture: app-driven "idea capture mode" flag; drives the solid-green LED.
+static atomic_t idea_capture_active;
 static struct rtc_time rtc_timestamp = {0};
 static uint64_t rtc_epoch = 0;
 
@@ -280,6 +282,30 @@ bool app_settings_toggle_recording_paused(void)
 bool app_settings_is_recording_paused(void)
 {
     return atomic_get(&recording_paused) != 0;
+}
+
+// idea-capture: runtime "idea capture mode" flag (not persisted; resets on reboot).
+void app_settings_set_idea_capture_active(bool active)
+{
+    atomic_set(&idea_capture_active, active ? 1 : 0);
+}
+
+bool app_settings_toggle_idea_capture_active(void)
+{
+    atomic_val_t current;
+    atomic_val_t next;
+
+    do {
+        current = atomic_get(&idea_capture_active);
+        next = current == 0 ? 1 : 0;
+    } while (!atomic_cas(&idea_capture_active, current, next));
+
+    return next != 0;
+}
+
+bool app_settings_is_idea_capture_active(void)
+{
+    return atomic_get(&idea_capture_active) != 0;
 }
 
 void app_settings_set_double_tap_pause_feedback_enabled(bool enabled)

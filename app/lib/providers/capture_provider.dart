@@ -15,11 +15,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:omi/backend/http/api/conversations.dart';
+import 'package:omi/backend/http/api/folders.dart';
 import 'package:omi/backend/http/api/users.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/services/auth_service.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/folder.dart';
 import 'package:omi/backend/schema/geolocation.dart';
 import 'package:omi/backend/schema/message.dart';
 import 'package:omi/backend/schema/person.dart';
@@ -411,6 +413,15 @@ class CaptureProvider extends ChangeNotifier
     notifyListeners();
   }
 
+  // idea-capture: hold-action options (mirrors SharedPreferencesUtil().holdAction).
+  static const int holdActionCaptureIdea = 0;
+  static const int holdActionNone = 1;
+  static const int holdActionProcess = 2;
+
+  // idea-capture: true while the pendant is in idea-capture mode (solid green LED).
+  bool _ideaCaptureActive = false;
+  bool get isIdeaCaptureActive => _ideaCaptureActive;
+
   bool _transcriptServiceReady = false;
 
   bool get transcriptServiceReady => _transcriptServiceReady && _isConnected;
@@ -724,6 +735,14 @@ class CaptureProvider extends ChangeNotifier
         if (buttonState == 5 && _voiceCommandSession != null && _voiceSessionStartedByLegacyLongPress) {
           debugPrint("Legacy: Release detected - ending voice command");
           _endVoiceCommandSession(deviceId);
+          return;
+        }
+
+        // idea-capture: press & hold release (state 5, ~0.3-3s hold) when not in a
+        // legacy voice session -> run the configurable hold action.
+        if (buttonState == 5 && _voiceCommandSession == null) {
+          debugPrint("Press & hold release detected");
+          _handleHoldAction(deviceId);
         }
       },
     );
@@ -831,6 +850,126 @@ class CaptureProvider extends ChangeNotifier
       return false;
     }
     return connection.performPlayToSpeakerHaptic(level);
+  }
+
+  // idea-capture: drive the pendant's solid-green idea-capture LED over BLE.
+  Future<void> _setDeviceIdeaCaptureLed(String deviceId, bool active) async {
+    try {
+      final connection = await ServiceManager.instance().device.ensureConnection(deviceId);
+      await connection?.setIdeaCaptureMode(active);
+    } catch (e) {
+      Logger.debug('idea-capture: failed to set LED: $e');
+    }
+  }
+
+  // idea-capture: dispatch the configurable press & hold action.
+  void _handleHoldAction(String deviceId) {
+    if (_isProcessingButtonEvent) {
+      Logger.debug('Hold action: already processing, ignoring');
+      return;
+    }
+    final action = SharedPreferencesUtil().holdAction;
+    switch (action) {
+      case holdActionNone:
+        Logger.debug('Hold action: none');
+        return;
+      case holdActionProcess:
+        Logger.debug('Hold action: process conversation');
+        PlatformManager.instance.analytics.omiDoubleTap(feature: 'hold_process_conversation');
+        forceProcessingCurrentConversation();
+        return;
+      case holdActionCaptureIdea:
+      default:
+        toggleIdeaCaptureMode(deviceId);
+        return;
+    }
+  }
+
+  /// idea-capture: toggle idea-capture mode. Entering turns the pendant LED solid
+  /// green and ensures recording is live; leaving force-processes the captured
+  /// window (bypassing the short-conversation discard) and files it under "Ideas".
+  Future<void> toggleIdeaCaptureMode(String deviceId) async {
+    _isProcessingButtonEvent = true;
+    try {
+      if (!_ideaCaptureActive) {
+        await _enterIdeaCaptureMode(deviceId);
+      } else {
+        await _exitIdeaCaptureModeAndSave(deviceId);
+      }
+    } catch (e) {
+      Logger.debug('idea-capture: toggle failed: $e');
+    } finally {
+      _isProcessingButtonEvent = false;
+    }
+  }
+
+  Future<void> _enterIdeaCaptureMode(String deviceId) async {
+    Logger.debug('idea-capture: entering idea capture mode');
+    PlatformManager.instance.analytics.omiDoubleTap(feature: 'idea_capture_start');
+    _ideaCaptureActive = true;
+    // Ensure audio is actually flowing so the idea is captured (resume if muted).
+    if (_isPaused) {
+      Logger.debug('idea-capture: device was paused, resuming for capture');
+      await resumeDeviceRecording();
+    }
+    await _setDeviceIdeaCaptureLed(deviceId, true);
+    HapticFeedback.mediumImpact();
+    notifyListeners();
+  }
+
+  Future<void> _exitIdeaCaptureModeAndSave(String deviceId) async {
+    Logger.debug('idea-capture: exiting idea capture mode, saving idea');
+    PlatformManager.instance.analytics.omiDoubleTap(feature: 'idea_capture_end');
+    _ideaCaptureActive = false;
+    await _setDeviceIdeaCaptureLed(deviceId, false);
+    HapticFeedback.lightImpact();
+    notifyListeners();
+    // force_process bypasses the server discard gate, so any length is saved;
+    // the result is then filed under the "Ideas" folder.
+    await forceProcessingCurrentConversation(asIdea: true);
+  }
+
+  /// idea-capture: resolve (or lazily create) the "Ideas" destination folder.
+  Future<String?> _ensureIdeaFolder() async {
+    try {
+      final folders = await getFolders();
+      final cachedId = SharedPreferencesUtil().ideaFolderId;
+      Folder? existing;
+      for (final f in folders) {
+        if ((cachedId.isNotEmpty && f.id == cachedId) || f.name.toLowerCase() == 'ideas') {
+          existing = f;
+          break;
+        }
+      }
+      existing ??= await createFolderApi(
+        name: 'Ideas',
+        description: 'Captured ideas — intentional, fleeting thoughts saved from the pendant or app.',
+        color: '#22C55E',
+        icon: '💡',
+      );
+      if (existing != null) {
+        SharedPreferencesUtil().ideaFolderId = existing.id;
+        return existing.id;
+      }
+    } catch (e) {
+      Logger.debug('idea-capture: ensure folder failed: $e');
+    }
+    return null;
+  }
+
+  /// idea-capture: move a freshly-created conversation into the Ideas folder.
+  Future<void> _fileConversationAsIdea(String conversationId) async {
+    final folderId = await _ensureIdeaFolder();
+    if (folderId == null) {
+      Logger.debug('idea-capture: no Ideas folder, leaving conversation $conversationId in place');
+      return;
+    }
+    try {
+      final ok = await moveConversationToFolderApi(conversationId, folderId);
+      Logger.debug('idea-capture: filed conversation $conversationId under Ideas: $ok');
+    } catch (e) {
+      Logger.debug('idea-capture: move to Ideas failed: $e');
+    }
   }
 
   Future<void> _syncDoubleTapPauseFeedback(String deviceId) async {
@@ -1591,7 +1730,10 @@ class CaptureProvider extends ChangeNotifier
     }
   }
 
-  Future<void> forceProcessingCurrentConversation() async {
+  /// Force-process the current in-progress conversation (bypasses the server's
+  /// short-conversation discard). When [asIdea] is true the resulting
+  /// conversation is filed under the "Ideas" folder. // idea-capture
+  Future<void> forceProcessingCurrentConversation({bool asIdea = false}) async {
     final sessionStart = _sessionStartSeconds;
 
     // Force-drain tail buffer before clearing state
@@ -1615,6 +1757,11 @@ class CaptureProvider extends ChangeNotifier
       conversationProvider!.removeProcessingConversation('0');
       result.conversation!.isNew = true;
       _processConversationCreated(result.conversation, result.messages);
+
+      // idea-capture: file the captured conversation under the Ideas folder.
+      if (asIdea) {
+        await _fileConversationAsIdea(result.conversation!.id);
+      }
 
       // Stamp WALs with conversation ID and auto-sync
       if (sessionStart > 0 && result.conversation != null) {

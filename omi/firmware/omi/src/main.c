@@ -109,6 +109,16 @@ void set_led_state(void)
         return;
     }
 
+    // idea-capture: solid green takes precedence over mute/charging/connected
+    // while idea capture mode is active. Distinct from the charging green, which
+    // blinks (or is only solid at >= full-battery while on the charger).
+    if (app_settings_is_idea_capture_active()) {
+        set_led_red(false);
+        set_led_green(true);
+        set_led_blue(false);
+        return;
+    }
+
     if (app_settings_is_recording_paused()) {
         // Amber is intentionally far from the normal connected/recording blue.
         set_led_green(true);
