@@ -740,14 +740,19 @@ class CaptureProvider extends ChangeNotifier
           return;
         }
 
-        // idea-capture: dedicated HOLD event (state 6) is emitted ONLY by the
-        // custom firmware at the ~1s threshold (before the 3s power-off). It is
-        // unambiguous, unlike the generic release (state 5) which fires on any
-        // >0.3s press and would misfire on normal taps — so we do NOT bind to
-        // state 5. On stock firmware no state 6 arrives; use the in-app button.
+        // idea-capture: the custom firmware drives the LED itself at the ~1s hold
+        // and tells us the new state explicitly — ENTER (6) or EXIT (7). We follow
+        // that state (never toggle), so a dropped BLE packet can't invert it. The
+        // firmware already set the LED, so the app does NOT drive it here.
         if (buttonState == 6 && _voiceCommandSession == null) {
-          debugPrint("idea-capture: HOLD event detected");
-          _handleHoldAction(deviceId);
+          debugPrint("idea-capture: HOLD ENTER");
+          _onIdeaCaptureSignal(deviceId, active: true);
+          return;
+        }
+        if (buttonState == 7 && _voiceCommandSession == null) {
+          debugPrint("idea-capture: HOLD EXIT");
+          _onIdeaCaptureSignal(deviceId, active: false);
+          return;
         }
       },
     );
@@ -867,46 +872,49 @@ class CaptureProvider extends ChangeNotifier
     }
   }
 
-  // idea-capture: dispatch the configurable press & hold action.
-  void _handleHoldAction(String deviceId) {
+  /// idea-capture: follow the firmware's explicit hold signal — ENTER(6)/EXIT(7).
+  /// We set state to match the firmware (never toggle), so a dropped BLE packet
+  /// can't invert it. The firmware already drove the LED, so driveLed: false.
+  Future<void> _onIdeaCaptureSignal(String deviceId, {required bool active}) async {
     if (_isProcessingButtonEvent) {
-      Logger.debug('Hold action: already processing, ignoring');
+      Logger.debug('idea-capture: already processing, ignoring signal active=$active');
       return;
     }
-    final action = SharedPreferencesUtil().holdAction;
-    switch (action) {
-      case holdActionNone:
-        Logger.debug('Hold action: none');
-        return;
-      case holdActionProcess:
-        Logger.debug('Hold action: process conversation');
-        PlatformManager.instance.analytics.omiDoubleTap(feature: 'hold_process_conversation');
-        forceProcessingCurrentConversation();
-        return;
-      case holdActionCaptureIdea:
-      default:
-        toggleIdeaCaptureMode(deviceId);
-        return;
+    if (active == _ideaCaptureActive) {
+      Logger.debug('idea-capture: signal active=$active already matches state, ignoring');
+      return;
+    }
+    _isProcessingButtonEvent = true;
+    try {
+      if (active) {
+        await _enterIdeaCaptureMode(deviceId, driveLed: false);
+      } else {
+        await _exitIdeaCaptureModeAndSave(deviceId, driveLed: false);
+      }
+    } catch (e) {
+      Logger.debug('idea-capture: signal handling failed: $e');
+    } finally {
+      _isProcessingButtonEvent = false;
     }
   }
 
   /// idea-capture: toggle idea-capture from the app UI (works regardless of the
-  /// pendant button). Resolves the recording device for LED/haptic; the capture
-  /// itself works even with no device (LED/buzz simply no-op).
+  /// pendant button). The app drives the LED here since there's no firmware hold.
   Future<void> toggleIdeaCaptureFromApp() async {
     await toggleIdeaCaptureMode(_recordingDevice?.id ?? '');
   }
 
-  /// idea-capture: toggle idea-capture mode. Entering turns the pendant LED solid
-  /// green and ensures recording is live; leaving force-processes the captured
-  /// window (bypassing the short-conversation discard) and files it under "Ideas".
+  /// idea-capture: toggle idea-capture mode from the in-app button. Entering sets
+  /// the pendant LED solid green and ensures recording is live; leaving
+  /// force-processes the captured window (bypassing the short-conversation
+  /// discard) and files it under "Ideas".
   Future<void> toggleIdeaCaptureMode(String deviceId) async {
     _isProcessingButtonEvent = true;
     try {
       if (!_ideaCaptureActive) {
-        await _enterIdeaCaptureMode(deviceId);
+        await _enterIdeaCaptureMode(deviceId, driveLed: true);
       } else {
-        await _exitIdeaCaptureModeAndSave(deviceId);
+        await _exitIdeaCaptureModeAndSave(deviceId, driveLed: true);
       }
     } catch (e) {
       Logger.debug('idea-capture: toggle failed: $e');
@@ -915,8 +923,8 @@ class CaptureProvider extends ChangeNotifier
     }
   }
 
-  Future<void> _enterIdeaCaptureMode(String deviceId) async {
-    Logger.debug('idea-capture: entering idea capture mode');
+  Future<void> _enterIdeaCaptureMode(String deviceId, {bool driveLed = true}) async {
+    Logger.debug('idea-capture: entering idea capture mode (driveLed=$driveLed)');
     PlatformManager.instance.analytics.omiDoubleTap(feature: 'idea_capture_start');
     _ideaCaptureActive = true;
     // Ensure audio is actually flowing so the idea is captured (resume if muted).
@@ -924,19 +932,22 @@ class CaptureProvider extends ChangeNotifier
       Logger.debug('idea-capture: device was paused, resuming for capture');
       await resumeDeviceRecording();
     }
-    await _setDeviceIdeaCaptureLed(deviceId, true); // solid green on new firmware
-    // Pendant buzz (long) confirms entry — works on current firmware too (modes 1-3).
-    await _playSpeakerHaptic(deviceId, 3);
+    // Pendant button path: firmware already lit the LED. App button path: drive it.
+    if (driveLed) {
+      await _setDeviceIdeaCaptureLed(deviceId, true);
+    }
+    await _playSpeakerHaptic(deviceId, 3); // buzz if a motor is present (no-op otherwise)
     HapticFeedback.mediumImpact();
     notifyListeners();
   }
 
-  Future<void> _exitIdeaCaptureModeAndSave(String deviceId) async {
-    Logger.debug('idea-capture: exiting idea capture mode, saving idea');
+  Future<void> _exitIdeaCaptureModeAndSave(String deviceId, {bool driveLed = true}) async {
+    Logger.debug('idea-capture: exiting idea capture mode, saving idea (driveLed=$driveLed)');
     PlatformManager.instance.analytics.omiDoubleTap(feature: 'idea_capture_end');
     _ideaCaptureActive = false;
-    await _setDeviceIdeaCaptureLed(deviceId, false);
-    // Pendant buzz (short) confirms exit/save.
+    if (driveLed) {
+      await _setDeviceIdeaCaptureLed(deviceId, false);
+    }
     await _playSpeakerHaptic(deviceId, 1);
     HapticFeedback.lightImpact();
     notifyListeners();

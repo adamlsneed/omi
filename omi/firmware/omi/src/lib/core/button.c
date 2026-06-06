@@ -83,7 +83,11 @@ K_WORK_DELAYABLE_DEFINE(button_work, check_button_level);
 #define LONG_TAP 3
 #define BUTTON_PRESS 4
 #define BUTTON_RELEASE 5
-#define HOLD_TAP 6 // idea-capture: deliberate ~1s hold (before the 3s power-off)
+// idea-capture: deliberate ~1s hold (before the 3s power-off). The firmware drives
+// the LED itself and tells the app whether this hold ENTERED (6) or EXITED (7)
+// idea-capture mode, so the app follows firmware state (no toggle drift).
+#define HOLD_ENTER 6
+#define HOLD_EXIT 7
 
 // 4 is button down, 5 is button up
 static FSM_STATE_T current_button_state = IDLE;
@@ -142,10 +146,11 @@ static inline void notify_long_tap()
 
 // idea-capture: deliberate ~1s hold (between the tap window and the 3s power-off).
 // Unambiguous, unlike the generic release (state 5) which fires on any >0.3s press.
-static inline void notify_hold()
+// `active` reflects the new idea-capture state so the app follows, never toggles.
+static inline void notify_hold(bool active)
 {
-    final_button_state[0] = HOLD_TAP;
-    LOG_INF("Button hold");
+    final_button_state[0] = active ? HOLD_ENTER : HOLD_EXIT;
+    LOG_INF("Button hold (%s)", active ? "enter" : "exit");
     struct bt_conn *conn = get_current_connection();
     if (conn != NULL) {
         bt_gatt_notify(conn, &button_service.attrs[1], &final_button_state, sizeof(final_button_state));
@@ -253,15 +258,18 @@ void check_button_level(struct k_work *work_item)
         notify_double_tap();
     }
 
-    // idea-capture: hold, one time event (notify app + instant buzz so the user
-    // knows the gesture registered without guessing the timing window)
+    // idea-capture: hold, one time event. The firmware toggles idea-capture mode
+    // and drives the LED ITSELF (instant green, no app round-trip) so the user has
+    // reliable feedback, then tells the app the new state (enter=6 / exit=7).
     if (event == BUTTON_EVENT_HOLD && btn_last_event != BUTTON_EVENT_HOLD) {
         LOG_INF("hold detected\n");
         btn_last_event = event;
-        notify_hold();
+        bool active = app_settings_toggle_idea_capture_active();
+        set_led_state();
 #ifdef CONFIG_OMI_ENABLE_HAPTIC
         play_haptic_milli(150U);
 #endif
+        notify_hold(active);
     }
 
     // Long press, one time event

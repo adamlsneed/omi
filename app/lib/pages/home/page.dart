@@ -832,6 +832,35 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                   bool shouldShowSearchButton = convoProvider.previousQuery.isEmpty;
                   return Row(
                     children: [
+                      // idea-capture: quick-capture toggle (an action button, not a
+                      // setting). Green while capturing; mirrors the pendant hold.
+                      Builder(
+                        builder: (context) {
+                          final capturing = context.watch<CaptureProvider>().isIdeaCaptureActive;
+                          return Container(
+                            width: 36,
+                            height: 36,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: capturing ? const Color(0xFF22C55E) : const Color(0xFF1F1F25),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                FontAwesomeIcons.lightbulb,
+                                size: 16,
+                                color: capturing ? Colors.white : Colors.white70,
+                              ),
+                              tooltip: capturing ? 'Saving idea' : 'Capture idea',
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                context.read<CaptureProvider>().toggleIdeaCaptureFromApp();
+                              },
+                            ),
+                          );
+                        },
+                      ),
                       // Search button - show when no active search, clicking closes search bar
                       if (shouldShowSearchButton)
                         Container(
