@@ -61,7 +61,37 @@ Use these defaults during conflict resolution:
 | Mobile task, reminders, and local UX features | Preserve fork additions | These are Adam's fork-specific product changes |
 | L10n ARB and generated Dart files | Start from upstream and add fork keys back | Avoid losing upstream translations while keeping local UI strings |
 | Firmware protocol, BLE, storage, and sync | Prefer upstream | Devices need current BasedHardware protocol behavior |
+| Fork firmware additions (idea-capture) | Preserve, and renumber on collision | Button states `6`/`7` + haptic modes `8`/`9` are fork-only; an upstream merge may reuse those numeric slots without a conflict marker — see [Fork Firmware Reservations](#fork-firmware-reservations-idea-capture) |
 | Docs and local setup notes | Combine | Keep upstream docs and add fork-specific guardrails |
+
+## Fork Firmware Reservations (idea-capture)
+
+The fork carries a firmware-driven **idea-capture** feature (shipped on `main`, PR #51, fw `3.0.21`). It extends two existing BLE characteristics with fork-only numeric values plus a runtime flag. Upstream does not know these slots are taken, so a firmware merge can silently reuse the same numbers for an unrelated feature. **These collisions do not produce conflict markers** — the numbers compile fine and the device just does the wrong thing. Check them by hand after any firmware merge.
+
+Reserved values (firmware constants under `omi/firmware/omi/src/`):
+
+| Slot | Value | Firmware constant | App constant |
+| --- | --- | --- | --- |
+| Button characteristic state | `6` | `HOLD_ENTER` (`lib/core/button.c`) | `buttonState == 6` (`app/lib/providers/capture_provider.dart`) |
+| Button characteristic state | `7` | `HOLD_EXIT` (`lib/core/button.c`) | `buttonState == 7` (`app/lib/providers/capture_provider.dart`) |
+| Haptic characteristic mode | `8` | `HAPTIC_MODE_IDEA_CAPTURE_ON` (`haptic.c`) | `_hapticModeIdeaCaptureOn` (`app/lib/services/devices/omi_connection.dart`) |
+| Haptic characteristic mode | `9` | `HAPTIC_MODE_IDEA_CAPTURE_OFF` (`haptic.c`) | `_hapticModeIdeaCaptureOff` (`app/lib/services/devices/omi_connection.dart`) |
+
+Upstream currently uses button states `1`–`5` (single-tap / double-tap / long-tap / press / release) and haptic modes `0`–`7`. The fork's values sit just above those ranges.
+
+Rules on a firmware merge:
+
+- **New control commands stay MODE/STATE VALUES on the existing characteristics** — never add a new GATT characteristic for them. iOS caches the GATT table across a DFU, so a new characteristic silently fails to appear until the BLE cache is cleared.
+- If upstream adds a **new button state** at `6`/`7` or a **new haptic mode** at `8`/`9`, the fork keeps its feature and **renumbers the idea-capture value upward** to the next free slot, then updates the firmware constant **and** its matching app constant in the same commit. The two sides must agree or the gesture breaks.
+- Confirm the numbers still line up before flashing (grep both sides — see [Files To Check After A Merge](#files-to-check-after-a-merge)).
+
+Preserve these fork-only firmware additions on every merge (grep anchor `idea-capture` marks each hook):
+
+- `lib/core/button.c` — `HOLD_ENTER`/`HOLD_EXIT`, the 1s `HOLD_PRESS_TIME` gesture, `notify_hold()`.
+- `haptic.c` — modes `8`/`9`, the solid-green LED + buzz cases.
+- `main.c` — the `set_led_state()` idea-capture green branch and its precedence over mute/charging/connected.
+- `settings.c` / `lib/core/settings.h` — the runtime `idea_capture_active` flag (app-driven, not persisted; resets to inactive on reboot).
+- `VERSION` + `omi.conf` (`CONFIG_BT_DIS_FW_REV_STR`, currently `3.0.21`) — keep the fork's version **higher** than upstream, or OTA rejects the build as a rollback.
 
 ## Backend Invariant
 
@@ -97,6 +127,13 @@ Conflict markers:
 rg -n "^(<<<<<<<|=======|>>>>>>>)" .
 ```
 
+Fork firmware reservations (idea-capture), after any firmware merge — confirm button states `6`/`7` and haptic modes `8`/`9` are still unique on both the firmware and app sides (see [Fork Firmware Reservations](#fork-firmware-reservations-idea-capture)):
+
+```bash
+rg -n "idea-capture" omi/firmware/omi/src app/lib/providers/capture_provider.dart app/lib/services/devices
+rg -n "HOLD_ENTER|HOLD_EXIT|HAPTIC_MODE_IDEA_CAPTURE" omi/firmware/omi/src
+```
+
 L10n consistency:
 
 ```bash
@@ -128,4 +165,4 @@ If a tool is missing locally, record that explicitly in the final notes instead 
 
 ## Current Fork Notes
 
-The fork currently carries local desktop and mobile behavior on top of upstream. Known fork-specific changes include Apple Reminders task export strings, desktop auth/session polish, and local setup guidance for Adam's hosted-backend builds. Preserve those unless Adam asks to drop them.
+The fork currently carries local desktop, mobile, and firmware behavior on top of upstream. Known fork-specific changes include Apple Reminders task export strings, desktop auth/session polish, local setup guidance for Adam's hosted-backend builds, and the firmware-driven **idea-capture** feature (custom CV1 firmware + app, PR #51 — see [Fork Firmware Reservations](#fork-firmware-reservations-idea-capture)). Preserve those unless Adam asks to drop them.
