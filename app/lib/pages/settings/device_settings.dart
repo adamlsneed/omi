@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:omi/providers/capture_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:omi/backend/preferences.dart';
@@ -775,6 +776,14 @@ class _DeviceSettingsState extends State<DeviceSettings> {
             title: 'Press & hold',
             chipValue: _getHoldActionLabel(SharedPreferencesUtil().holdAction),
             onTap: _showHoldActionSheet,
+          ),
+          // idea-capture: in-app capture toggle (works without the pendant button).
+          const Divider(height: 1, color: Color(0xFF3C3C43)),
+          _buildProfileStyleItem(
+            icon: FontAwesomeIcons.lightbulb,
+            title: 'Capture idea',
+            chipValue: context.watch<CaptureProvider>().isIdeaCaptureActive ? 'Recording — tap to save' : 'Tap to start',
+            onTap: () => context.read<CaptureProvider>().toggleIdeaCaptureFromApp(),
           ),
           // LED Brightness
           if (_isDimRatioLoaded && _hasDimmingFeature == true) ...[

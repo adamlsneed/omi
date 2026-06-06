@@ -740,10 +740,13 @@ class CaptureProvider extends ChangeNotifier
           return;
         }
 
-        // idea-capture: press & hold release (state 5, ~0.3-3s hold) when not in a
-        // legacy voice session -> run the configurable hold action.
-        if (buttonState == 5 && _voiceCommandSession == null) {
-          debugPrint("Press & hold release detected");
+        // idea-capture: dedicated HOLD event (state 6) is emitted ONLY by the
+        // custom firmware at the ~1s threshold (before the 3s power-off). It is
+        // unambiguous, unlike the generic release (state 5) which fires on any
+        // >0.3s press and would misfire on normal taps — so we do NOT bind to
+        // state 5. On stock firmware no state 6 arrives; use the in-app button.
+        if (buttonState == 6 && _voiceCommandSession == null) {
+          debugPrint("idea-capture: HOLD event detected");
           _handleHoldAction(deviceId);
         }
       },
@@ -885,6 +888,13 @@ class CaptureProvider extends ChangeNotifier
         toggleIdeaCaptureMode(deviceId);
         return;
     }
+  }
+
+  /// idea-capture: toggle idea-capture from the app UI (works regardless of the
+  /// pendant button). Resolves the recording device for LED/haptic; the capture
+  /// itself works even with no device (LED/buzz simply no-op).
+  Future<void> toggleIdeaCaptureFromApp() async {
+    await toggleIdeaCaptureMode(_recordingDevice?.id ?? '');
   }
 
   /// idea-capture: toggle idea-capture mode. Entering turns the pendant LED solid
