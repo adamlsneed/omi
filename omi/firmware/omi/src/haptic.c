@@ -15,6 +15,12 @@ LOG_MODULE_REGISTER(haptic, CONFIG_LOG_DEFAULT_LEVEL);
 #define HAPTIC_MODE_RECORDING_RESUME 5
 #define HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_ENABLE 6
 #define HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_DISABLE 7
+// idea-capture: modes 8/9 drive the solid-green "idea capture mode" LED.
+// New control commands are added as MODE VALUES on this existing characteristic
+// (never as new GATT characteristics) because iOS caches the GATT table and can
+// miss newly added characteristics after a DFU.
+#define HAPTIC_MODE_IDEA_CAPTURE_ON 8
+#define HAPTIC_MODE_IDEA_CAPTURE_OFF 9
 
 static const struct gpio_dt_spec haptic_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(motor_pin), gpios, {0});
 extern void set_led_state(void);
@@ -100,6 +106,20 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
     case HAPTIC_MODE_DOUBLE_TAP_PAUSE_FEEDBACK_DISABLE:
         app_settings_set_double_tap_pause_feedback_enabled(false);
         LOG_INF("Double tap pause feedback disabled");
+        break;
+    case HAPTIC_MODE_IDEA_CAPTURE_ON:
+        // idea-capture: enter idea capture mode -> solid green LED + double buzz
+        app_settings_set_idea_capture_active(true);
+        play_haptic_milli(200);
+        set_led_state();
+        LOG_INF("Idea capture mode ON");
+        break;
+    case HAPTIC_MODE_IDEA_CAPTURE_OFF:
+        // idea-capture: leave idea capture mode -> restore normal LED + short buzz
+        app_settings_set_idea_capture_active(false);
+        play_haptic_milli(100);
+        set_led_state();
+        LOG_INF("Idea capture mode OFF");
         break;
     default:
         LOG_WRN("Haptic write: Invalid value %d", value);

@@ -26,6 +26,9 @@ class OmiDeviceConnection extends DeviceConnection {
   static const int _hapticModeRecordingResume = 5;
   static const int _hapticModeDoubleTapPauseFeedbackEnable = 6;
   static const int _hapticModeDoubleTapPauseFeedbackDisable = 7;
+  // idea-capture: modes 8/9 drive the solid-green idea-capture LED on the pendant.
+  static const int _hapticModeIdeaCaptureOn = 8;
+  static const int _hapticModeIdeaCaptureOff = 9;
 
   OmiDeviceConnection(super.device, super.transport);
 
@@ -902,6 +905,21 @@ class OmiDeviceConnection extends DeviceConnection {
       Logger.debug('OmiDeviceConnection: Set double tap pause feedback enabled: $enabled');
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error setting double tap pause feedback: $e');
+    }
+  }
+
+  // idea-capture: tell the pendant to enter/leave idea capture mode (solid green LED).
+  // Reuses the haptic characteristic mode path for the same reason mute does:
+  // iOS can cache the GATT table and miss new characteristics after a DFU.
+  @override
+  Future<void> performSetIdeaCaptureMode(bool active) async {
+    try {
+      await transport.writeCharacteristic(speakerDataStreamServiceUuid, speakerDataStreamCharacteristicUuid, [
+        active ? _hapticModeIdeaCaptureOn : _hapticModeIdeaCaptureOff,
+      ]);
+      Logger.debug('OmiDeviceConnection: Set idea capture mode: $active');
+    } catch (e) {
+      Logger.debug('OmiDeviceConnection: Error setting idea capture mode: $e');
     }
   }
 

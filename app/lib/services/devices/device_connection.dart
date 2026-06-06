@@ -378,6 +378,16 @@ abstract class DeviceConnection {
 
   Future<void> performSetDoubleTapPauseFeedbackEnabled(bool enabled) async {}
 
+  // idea-capture: drive the pendant's idea-capture LED (solid green). No-op for
+  // devices that don't support it; OmiDeviceConnection overrides this.
+  Future<void> setIdeaCaptureMode(bool active) async {
+    if (await isConnected()) {
+      return await performSetIdeaCaptureMode(active);
+    }
+  }
+
+  Future<void> performSetIdeaCaptureMode(bool active) async {}
+
   // storage here
 
   // --- New multi-file storage protocol (firmware with LittleFS) ---
