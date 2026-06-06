@@ -1960,7 +1960,7 @@ class AppState: ObservableObject {
   /// idea-capture: true while a capture is in flight (guards re-entrancy, drives UI feedback).
   @Published var isCapturingIdea = false
 
-  private static let ideaFolderIdKey = "desktop_ideaFolderId"
+  static let ideaFolderIdKey = "desktop_ideaFolderId"
 
   /// idea-capture: resolve (or lazily create) the "Ideas" destination folder, caching its id.
   private func ensureIdeaFolder() async -> String? {
