@@ -212,6 +212,53 @@ struct OMIApp: App {
   }
 }
 
+/// A menu-bar on/off toggle that draws its state explicitly. A stock `NSSwitch`
+/// only paints its accent ("on") color when the app is the active app — so with
+/// the Omi window open in the background, the app is inactive and the switch
+/// desaturates to gray, making on and off indistinguishable. This control fills
+/// its own track, so the state stays legible regardless of app-active state.
+final class MenuToggleControl: NSControl {
+  var isOn: Bool = false {
+    didSet { needsDisplay = true }
+  }
+
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+    wantsLayer = true
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  override var intrinsicContentSize: NSSize { NSSize(width: 38, height: 21) }
+
+  // Draw our own fill rather than inheriting the menu's vibrancy, which would
+  // desaturate the track and re-introduce the inactive-app legibility problem.
+  override var allowsVibrancy: Bool { false }
+
+  override func draw(_ dirtyRect: NSRect) {
+    let track = bounds.insetBy(dx: 0.5, dy: 0.5)
+    let radius = track.height / 2
+    let trackPath = NSBezierPath(roundedRect: track, xRadius: radius, yRadius: radius)
+    (isOn ? NSColor.controlAccentColor : NSColor.tertiaryLabelColor).setFill()
+    trackPath.fill()
+
+    let inset: CGFloat = 2
+    let knobDiameter = track.height - inset * 2
+    let knobX = isOn ? track.maxX - knobDiameter - inset : track.minX + inset
+    let knobRect = NSRect(
+      x: knobX, y: track.minY + inset, width: knobDiameter, height: knobDiameter)
+    NSColor.white.setFill()
+    NSBezierPath(ovalIn: knobRect).fill()
+  }
+
+  override func mouseDown(with event: NSEvent) {
+    isOn.toggle()
+    if let action = action, let target = target {
+      NSApp.sendAction(action, to: target, from: self)
+    }
+  }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   static var openMainWindow: (() -> Void)?
 
@@ -222,8 +269,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var userDefaultsObserver: NSObjectProtocol?
   private var dockIconVisibilityObserver: NSObjectProtocol?
   private var statusBarItem: NSStatusItem?
-  private var screenCaptureSwitch: NSSwitch?
-  private var audioRecordingSwitch: NSSwitch?
+  private var screenCaptureSwitch: MenuToggleControl?
+  private var audioRecordingSwitch: MenuToggleControl?
   private var relaunchOnLoginSuppressedForOnboarding = false
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -1054,18 +1101,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     label.textColor = .labelColor
     view.addSubview(label)
 
-    // Toggle switch — use .small for consistent rendering across items
-    let toggle = NSSwitch()
-    toggle.controlSize = .small
-    toggle.state = isOn ? .on : .off
+    // Toggle — custom-drawn so the on/off state stays legible even when the app is
+    // not frontmost. A stock NSSwitch greys out its accent ("on") color whenever
+    // the app is inactive (window open in the background), making on and off look
+    // identical; MenuToggleControl fills its own track instead.
+    let toggleSize = NSSize(width: 38, height: 21)
+    let toggle = MenuToggleControl(
+      frame: NSRect(x: 0, y: 0, width: toggleSize.width, height: toggleSize.height))
+    toggle.isOn = isOn
     toggle.target = self
     toggle.action = action
-    toggle.sizeToFit()
     // Right-aligned position, pinned to right edge even when menu resizes the view
-    let toggleX = width - toggle.frame.width - 16
-    let toggleY = (height - toggle.frame.height) / 2
+    let toggleX = width - toggleSize.width - 16
+    let toggleY = (height - toggleSize.height) / 2
     toggle.frame = NSRect(
-      x: toggleX, y: toggleY, width: toggle.frame.width, height: toggle.frame.height)
+      x: toggleX, y: toggleY, width: toggleSize.width, height: toggleSize.height)
     toggle.autoresizingMask = [.minXMargin]
     view.addSubview(toggle)
 
@@ -1079,8 +1129,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     return view
   }
 
-  @MainActor @objc private func screenCaptureToggled(_ sender: NSSwitch) {
-    let enabled = sender.state == .on
+  @MainActor @objc private func screenCaptureToggled(_ sender: MenuToggleControl) {
+    let enabled = sender.isOn
     log("AppDelegate: [MENUBAR] Screen capture toggled: \(enabled)")
     AnalyticsManager.shared.menuBarActionClicked(
       action: enabled ? "screen_capture_on" : "screen_capture_off")
@@ -1090,14 +1140,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       // Paywall gate: trial expired / usage limit hit. Refuse to enable,
       // revert the toggle, and surface the same upgrade popup as everywhere else.
       if AppState.isPaywalledEffective {
-        sender.state = .off
+        sender.isOn = false
         NotificationCenter.default.post(
           name: .showUsageLimitPopup, object: nil, userInfo: ["reason": "trial_expired"])
         return
       }
       if !ProactiveAssistantsPlugin.shared.hasScreenRecordingPermission {
         // No permission — revert toggle and open preferences
-        sender.state = .off
+        sender.isOn = false
         ProactiveAssistantsPlugin.shared.openScreenRecordingPreferences()
         return
       }
@@ -1106,7 +1156,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         DispatchQueue.main.async {
           if !success {
             log("AppDelegate: [MENUBAR] Screen capture failed to start: \(error ?? "unknown")")
-            sender.state = .off
+            sender.isOn = false
             AssistantSettings.shared.screenAnalysisEnabled = false
           }
         }
@@ -1117,8 +1167,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
   }
 
-  @MainActor @objc private func audioRecordingToggled(_ sender: NSSwitch) {
-    let enabled = sender.state == .on
+  @MainActor @objc private func audioRecordingToggled(_ sender: MenuToggleControl) {
+    let enabled = sender.isOn
     log("AppDelegate: [MENUBAR] Audio recording toggled: \(enabled)")
     AnalyticsManager.shared.menuBarActionClicked(
       action: enabled ? "audio_recording_on" : "audio_recording_off")
@@ -1127,7 +1177,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Paywall gate: trial expired / usage limit hit. Refuse to enable,
     // revert the toggle, and surface the same upgrade popup as everywhere else.
     if enabled && AppState.isPaywalledEffective {
-      sender.state = .off
+      sender.isOn = false
       NotificationCenter.default.post(
         name: .showUsageLimitPopup, object: nil, userInfo: ["reason": "trial_expired"])
       return
@@ -1158,10 +1208,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Refresh toggle states to match current runtime state. When paywalled,
     // force both OFF — the features can't run until the user upgrades.
     let paywalled = AppState.isPaywalledEffective
-    screenCaptureSwitch?.state =
-      (!paywalled && ProactiveAssistantsPlugin.shared.isMonitoring) ? .on : .off
-    audioRecordingSwitch?.state =
-      (!paywalled && AssistantSettings.shared.transcriptionEnabled) ? .on : .off
+    screenCaptureSwitch?.isOn =
+      (!paywalled && ProactiveAssistantsPlugin.shared.isMonitoring)
+    audioRecordingSwitch?.isOn =
+      (!paywalled && AssistantSettings.shared.transcriptionEnabled)
   }
 
   func menuDidClose(_ menu: NSMenu) {
