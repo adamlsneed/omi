@@ -2211,6 +2211,10 @@ class CaptureProvider extends ChangeNotifier
     // Write mute state first — before BLE cancel which may fire other events
     await BatteryWidgetService().updateMuteState(true);
     _isPaused = true;
+    // Phone haptic for mute confirmation — the pendant motor is the only device
+    // feedback channel and it's non-functional on some units, so confirm on the
+    // phone (the device-side buzz is still requested below for units that have it).
+    HapticFeedback.mediumImpact();
     updateRecordingState(RecordingState.pause);
     notifyListeners();
     await _setDeviceRecordingPaused(true);
@@ -2223,6 +2227,8 @@ class CaptureProvider extends ChangeNotifier
   Future<void> resumeDeviceRecording() async {
     if (_recordingDevice == null) return;
     _isPaused = false;
+    // Phone haptic for unmute confirmation (see pauseDeviceRecording).
+    HapticFeedback.lightImpact();
     // Update widget immediately — don't wait for streaming setup
     BatteryWidgetService().updateMuteState(false);
     await _setDeviceRecordingPaused(false);
