@@ -415,11 +415,6 @@ class CaptureProvider extends ChangeNotifier
     notifyListeners();
   }
 
-  // idea-capture: hold-action options (mirrors SharedPreferencesUtil().holdAction).
-  static const int holdActionCaptureIdea = 0;
-  static const int holdActionNone = 1;
-  static const int holdActionProcess = 2;
-
   // idea-capture: true while the pendant is in idea-capture mode (solid green LED).
   bool _ideaCaptureActive = false;
   bool get isIdeaCaptureActive => _ideaCaptureActive;

@@ -1167,6 +1167,24 @@ abstract class AppLocalizations {
   /// **'Mic Gain'**
   String get micGain;
 
+  /// Label for the press & hold (~1s) pendant gesture row in device settings
+  ///
+  /// In en, this message translates to:
+  /// **'Press & hold'**
+  String get pressAndHold;
+
+  /// Idea-capture gesture/action label; also the lightbulb toggle tooltip when not capturing
+  ///
+  /// In en, this message translates to:
+  /// **'Capture idea'**
+  String get captureIdea;
+
+  /// Idea-capture lightbulb toggle tooltip while a capture is in progress
+  ///
+  /// In en, this message translates to:
+  /// **'Saving idea'**
+  String get savingIdea;
+
   /// Disconnect device button
   ///
   /// In en, this message translates to:

@@ -506,6 +506,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get micGain => '麦克风增益';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => '断开连接';
 
   @override

@@ -675,6 +675,18 @@
     "@micGain": {
         "description": "Microphone gain setting"
     },
+    "pressAndHold": "Press & hold",
+    "@pressAndHold": {
+        "description": "Label for the press & hold (~1s) pendant gesture row in device settings"
+    },
+    "captureIdea": "Capture idea",
+    "@captureIdea": {
+        "description": "Idea-capture gesture/action label; also the lightbulb toggle tooltip when not capturing"
+    },
+    "savingIdea": "Saving idea",
+    "@savingIdea": {
+        "description": "Idea-capture lightbulb toggle tooltip while a capture is in progress"
+    },
     "disconnect": "Disconnect",
     "@disconnect": {
         "description": "Disconnect device button"

@@ -506,6 +506,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get micGain => '마이크 게인';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => '연결 해제';
 
   @override

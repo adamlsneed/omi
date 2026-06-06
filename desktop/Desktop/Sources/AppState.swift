@@ -1948,6 +1948,67 @@ class AppState: ObservableObject {
     }
   }
 
+  // MARK: - Idea Capture (desktop quick-capture)
+
+  // idea-capture: desktop has no pendant, so "Capture Idea" is a one-shot app
+  // action. It force-processes the in-progress conversation (force_process
+  // bypasses the backend short-conversation discard gate, so any length saves)
+  // and files the result under a dedicated "Ideas" folder. Mirrors the mobile
+  // CaptureProvider.forceProcessingCurrentConversation(asIdea: true) path; see
+  // docs/developer/upstream-sync-and-backend-policy.mdx for the shared behavior.
+
+  /// idea-capture: true while a capture is in flight (guards re-entrancy, drives UI feedback).
+  @Published var isCapturingIdea = false
+
+  static let ideaFolderIdKey = "desktop_ideaFolderId"
+
+  /// idea-capture: resolve (or lazily create) the "Ideas" destination folder, caching its id.
+  private func ensureIdeaFolder() async -> String? {
+    do {
+      let folders = try await APIClient.shared.getFolders()
+      let cachedId = UserDefaults.standard.string(forKey: Self.ideaFolderIdKey) ?? ""
+      if let existing = folders.first(where: {
+        (!cachedId.isEmpty && $0.id == cachedId) || $0.name.lowercased() == "ideas"
+      }) {
+        UserDefaults.standard.set(existing.id, forKey: Self.ideaFolderIdKey)
+        return existing.id
+      }
+      let created = try await APIClient.shared.createFolder(
+        name: "Ideas",
+        description:
+          "Captured ideas — intentional, fleeting thoughts saved from the pendant or app.",
+        color: "#22C55E")
+      UserDefaults.standard.set(created.id, forKey: Self.ideaFolderIdKey)
+      return created.id
+    } catch {
+      logError("idea-capture: ensure folder failed", error: error)
+      return nil
+    }
+  }
+
+  /// idea-capture: force-process the in-progress conversation and file it under "Ideas".
+  func captureCurrentConversationAsIdea() async {
+    guard !isCapturingIdea else { return }
+    isCapturingIdea = true
+    defer { isCapturingIdea = false }
+    do {
+      guard let conversation = try await APIClient.shared.forceProcessConversation() else {
+        log("idea-capture: no in-progress conversation to capture")
+        return
+      }
+      if let folderId = await ensureIdeaFolder() {
+        try await APIClient.shared.moveConversationToFolder(
+          conversationId: conversation.id, folderId: folderId)
+        log("idea-capture: filed conversation \(conversation.id) under Ideas")
+      } else {
+        log("idea-capture: no Ideas folder, leaving conversation \(conversation.id) in place")
+      }
+      await loadConversations()
+    } catch {
+      logError("idea-capture: capture failed", error: error)
+    }
+  }
+
   /// Reconcile a local session by checking if a matching conversation exists on the backend.
   /// If found, marks the session as completed. Otherwise leaves it as pendingUpload for retry.
   private func reconcileSession(sessionId: Int64, startTime: Date) async {

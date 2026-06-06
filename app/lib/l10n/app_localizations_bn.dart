@@ -515,6 +515,15 @@ class AppLocalizationsBn extends AppLocalizations {
   String get micGain => 'মাইক গেইন';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'সংযোগ বিচ্ছিন্ন করুন';
 
   @override

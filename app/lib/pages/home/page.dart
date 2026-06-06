@@ -852,7 +852,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                                 size: 16,
                                 color: capturing ? Colors.white : Colors.white70,
                               ),
-                              tooltip: capturing ? 'Saving idea' : 'Capture idea',
+                              tooltip: capturing ? context.l10n.savingIdea : context.l10n.captureIdea,
                               onPressed: () {
                                 HapticFeedback.mediumImpact();
                                 context.read<CaptureProvider>().toggleIdeaCaptureFromApp();

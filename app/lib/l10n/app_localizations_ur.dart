@@ -515,6 +515,15 @@ class AppLocalizationsUr extends AppLocalizations {
   String get micGain => 'مائک کا حصول';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'منقطع کریں';
 
   @override

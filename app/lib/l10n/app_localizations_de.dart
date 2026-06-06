@@ -520,6 +520,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get micGain => 'Mikrofonverstärkung';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'Trennen';
 
   @override

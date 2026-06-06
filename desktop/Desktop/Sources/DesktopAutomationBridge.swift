@@ -235,6 +235,26 @@ final class DesktopAutomationActionRegistry {
         provider: provider, relayBaseURL: base, authHeader: authHeader, pcm16k: data)
       return await harness.run(timeoutSeconds: timeout)
     }
+
+    // idea-capture: mirror the menu-bar "Capture Idea" command (force-process the
+    // in-progress conversation and file it under the "Ideas" folder). Returns the
+    // resulting Ideas folder so a caller can verify the conversation was filed.
+    register(
+      name: "capture_idea",
+      summary: "Force-process the in-progress conversation and file it under the \"Ideas\" folder"
+    ) { _ in
+      guard let state = AppState.current else { return ["error": "no AppState"] }
+      await state.captureCurrentConversationAsIdea()
+      let folderId = UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey) ?? ""
+      var result = ["ideaFolderId": folderId]
+      if !folderId.isEmpty, let folders = try? await APIClient.shared.getFolders(),
+        let ideas = folders.first(where: { $0.id == folderId })
+      {
+        result["ideaFolderName"] = ideas.name
+        result["ideaFolderConversationCount"] = String(ideas.conversationCount)
+      }
+      return result
+    }
   }
 }
 
