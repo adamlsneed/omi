@@ -83,6 +83,7 @@ K_WORK_DELAYABLE_DEFINE(button_work, check_button_level);
 #define LONG_TAP 3
 #define BUTTON_PRESS 4
 #define BUTTON_RELEASE 5
+#define HOLD_TAP 6 // idea-capture: deliberate ~1s hold (before the 3s power-off)
 
 // 4 is button down, 5 is button up
 static FSM_STATE_T current_button_state = IDLE;
@@ -139,17 +140,31 @@ static inline void notify_long_tap()
     }
 }
 
+// idea-capture: deliberate ~1s hold (between the tap window and the 3s power-off).
+// Unambiguous, unlike the generic release (state 5) which fires on any >0.3s press.
+static inline void notify_hold()
+{
+    final_button_state[0] = HOLD_TAP;
+    LOG_INF("Button hold");
+    struct bt_conn *conn = get_current_connection();
+    if (conn != NULL) {
+        bt_gatt_notify(conn, &button_service.attrs[1], &final_button_state, sizeof(final_button_state));
+    }
+}
+
 #define BUTTON_PRESSED 1
 #define BUTTON_RELEASED 0
 
 #define TAP_THRESHOLD 300     // 300 ms for single tap
 #define DOUBLE_TAP_WINDOW 600 // 600 ms maximum for double-tap
+#define HOLD_PRESS_TIME 1000  // idea-capture: 1000 ms deliberate hold gesture
 #define LONG_PRESS_TIME 3000  // 3000 ms for long press (power off)
 
 typedef enum {
     BUTTON_EVENT_NONE,
     BUTTON_EVENT_SINGLE_TAP,
     BUTTON_EVENT_DOUBLE_TAP,
+    BUTTON_EVENT_HOLD, // idea-capture
     BUTTON_EVENT_LONG_PRESS,
     BUTTON_EVENT_RELEASE
 } ButtonEvent;
@@ -203,6 +218,13 @@ void check_button_level(struct k_work *work_item)
         }
     }
 
+    // idea-capture: deliberate hold (>=1s, <3s), one-time while still pressed
+    if (btn_is_pressed && btn_last_event != BUTTON_EVENT_HOLD &&
+        (current_time - btn_press_start_time) * BUTTON_CHECK_INTERVAL >= HOLD_PRESS_TIME &&
+        (current_time - btn_press_start_time) * BUTTON_CHECK_INTERVAL < LONG_PRESS_TIME) {
+        event = BUTTON_EVENT_HOLD;
+    }
+
     // Check for long press
     if (btn_is_pressed && (current_time - btn_press_start_time) * BUTTON_CHECK_INTERVAL >= LONG_PRESS_TIME) {
         event = BUTTON_EVENT_LONG_PRESS;
@@ -229,6 +251,17 @@ void check_button_level(struct k_work *work_item)
             set_led_state();
         }
         notify_double_tap();
+    }
+
+    // idea-capture: hold, one time event (notify app + instant buzz so the user
+    // knows the gesture registered without guessing the timing window)
+    if (event == BUTTON_EVENT_HOLD && btn_last_event != BUTTON_EVENT_HOLD) {
+        LOG_INF("hold detected\n");
+        btn_last_event = event;
+        notify_hold();
+#ifdef CONFIG_OMI_ENABLE_HAPTIC
+        play_haptic_milli(150U);
+#endif
     }
 
     // Long press, one time event
