@@ -516,6 +516,15 @@ class AppLocalizationsMs extends AppLocalizations {
   String get micGain => 'Gandaan Mikrofon';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'Putuskan Sambungan';
 
   @override

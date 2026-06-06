@@ -516,6 +516,15 @@ class AppLocalizationsMr extends AppLocalizations {
   String get micGain => 'मायक्रोफोन लाभ';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'डिस्कनेक्ट करा';
 
   @override

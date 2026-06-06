@@ -517,6 +517,15 @@ class AppLocalizationsTe extends AppLocalizations {
   String get micGain => 'మైక్రోఫోన్ లాభం';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'డిస్‌కనెక్ట్ చేయండి';
 
   @override

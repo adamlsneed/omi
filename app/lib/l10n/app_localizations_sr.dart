@@ -515,6 +515,15 @@ class AppLocalizationsSr extends AppLocalizations {
   String get micGain => 'Дојачање микрофона';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'Прекини повезаност';
 
   @override

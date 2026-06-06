@@ -362,81 +362,6 @@ class _DeviceSettingsState extends State<DeviceSettings> {
     unawaited(_syncDoubleTapActionToDevice(action));
   }
 
-  // idea-capture: press & hold action labels (0 = capture idea, 1 = none, 2 = process).
-  String _getHoldActionLabel(int action) {
-    switch (action) {
-      case 1:
-        return 'None';
-      case 2:
-        return context.l10n.endConversation;
-      case 0:
-      default:
-        return 'Capture idea';
-    }
-  }
-
-  void _setHoldAction(int action, BuildContext sheetContext) {
-    setState(() => SharedPreferencesUtil().holdAction = action);
-    if (sheetContext.mounted) Navigator.pop(sheetContext);
-  }
-
-  void _showHoldActionSheet() {
-    int currentAction = SharedPreferencesUtil().holdAction;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1C1C1E),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 16),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(color: const Color(0xFF3C3C43), borderRadius: BorderRadius.circular(2)),
-              ),
-              const Text(
-                'Press & hold action',
-                style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: Text(
-                  'Hold the button ~1 second to toggle. Capture idea turns the LED green and files the snippet under your Ideas folder.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF8E8E93), fontSize: 13),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: const Text('Capture idea', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w400)),
-                trailing: currentAction == 0 ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                onTap: () => _setHoldAction(0, sheetContext),
-              ),
-              ListTile(
-                title: Text(
-                  context.l10n.endAndProcess,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w400),
-                ),
-                trailing: currentAction == 2 ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                onTap: () => _setHoldAction(2, sheetContext),
-              ),
-              ListTile(
-                title: const Text('None', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w400)),
-                trailing: currentAction == 1 ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
-                onTap: () => _setHoldAction(1, sheetContext),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _showDoubleTapActionSheet() {
     int currentAction = SharedPreferencesUtil().doubleTapAction;
 
@@ -768,13 +693,15 @@ class _DeviceSettingsState extends State<DeviceSettings> {
             chipValue: _getDoubleTapActionLabel(doubleTapAction),
             onTap: _showDoubleTapActionSheet,
           ),
-          // idea-capture: Press & hold (~1s)
+          // idea-capture: Press & hold (~1s). Firmware hardwires this gesture to
+          // idea-capture, so this row is informational (no picker) — see
+          // docs/developer/upstream-sync-and-backend-policy.mdx.
           const Divider(height: 1, color: Color(0xFF3C3C43)),
           _buildProfileStyleItem(
             icon: FontAwesomeIcons.handBackFist,
-            title: 'Press & hold',
-            chipValue: _getHoldActionLabel(SharedPreferencesUtil().holdAction),
-            onTap: _showHoldActionSheet,
+            title: context.l10n.pressAndHold,
+            chipValue: context.l10n.captureIdea,
+            showChevron: false,
           ),
           // LED Brightness
           if (_isDimRatioLoaded && _hasDimmingFeature == true) ...[

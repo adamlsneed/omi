@@ -513,6 +513,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get micGain => 'Ganho do microfone';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'Desconectar';
 
   @override

@@ -517,6 +517,15 @@ class AppLocalizationsVi extends AppLocalizations {
   String get micGain => 'Độ tăng micro';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'Ngắt kết nối';
 
   @override

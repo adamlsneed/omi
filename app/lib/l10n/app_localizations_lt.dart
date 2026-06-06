@@ -516,6 +516,15 @@ class AppLocalizationsLt extends AppLocalizations {
   String get micGain => 'Mikrofono stiprinimas';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'Atjungti';
 
   @override

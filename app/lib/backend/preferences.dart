@@ -75,12 +75,6 @@ class SharedPreferencesUtil {
 
   set doubleTapPausesMuting(bool value) => doubleTapAction = value ? 1 : 0;
 
-  // idea-capture: press & hold (~1s) behavior.
-  // 0 = capture idea (default), 1 = none/disabled, 2 = end + process conversation
-  int get holdAction => getInt('holdAction');
-
-  set holdAction(int value) => saveInt('holdAction', value);
-
   // idea-capture: cached id of the "Ideas" folder (destination for captured ideas).
   String get ideaFolderId => getString('ideaFolderId');
 

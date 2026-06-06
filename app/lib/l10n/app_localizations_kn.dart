@@ -517,6 +517,15 @@ class AppLocalizationsKn extends AppLocalizations {
   String get micGain => 'Mic ಲಾಭ';
 
   @override
+  String get pressAndHold => 'Press & hold';
+
+  @override
+  String get captureIdea => 'Capture idea';
+
+  @override
+  String get savingIdea => 'Saving idea';
+
+  @override
   String get disconnect => 'ಸಂಪರ್ಕ ಬಿಚ್ಛಿನ್ನ';
 
   @override
