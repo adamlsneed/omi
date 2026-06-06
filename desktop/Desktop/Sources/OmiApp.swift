@@ -892,6 +892,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     audioRecordingItem.view = audioRecordingView
     menu.addItem(audioRecordingItem)
 
+    // idea-capture: one-shot quick capture (desktop has no pendant). Force-processes
+    // the in-progress conversation and files it under the "Ideas" folder. Only useful
+    // when signed in, since it hits the hosted backend.
+    if AuthState.shared.isSignedIn {
+      let captureIdeaItem = NSMenuItem(
+        title: "Capture Idea", action: #selector(captureIdeaFromMenu), keyEquivalent: "")
+      captureIdeaItem.target = self
+      menu.addItem(captureIdeaItem)
+    }
+
     menu.addItem(NSMenuItem.separator())
 
     // Open app item
@@ -1130,6 +1140,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       object: nil,
       userInfo: ["enabled": enabled]
     )
+  }
+
+  // idea-capture: one-shot quick capture from the menu bar. Force-processes the
+  // in-progress conversation and files it under the "Ideas" folder via AppState.
+  @MainActor @objc private func captureIdeaFromMenu() {
+    log("AppDelegate: [MENUBAR] Capture Idea triggered")
+    AnalyticsManager.shared.menuBarActionClicked(action: "capture_idea")
+    guard let state = AppState.current else { return }
+    Task { await state.captureCurrentConversationAsIdea() }
   }
 
   // MARK: - NSMenuDelegate
