@@ -244,7 +244,7 @@ final class DesktopAutomationActionRegistry {
       summary: "Force-process the in-progress conversation and file it under the \"Ideas\" folder"
     ) { _ in
       guard let state = AppState.current else { return ["error": "no AppState"] }
-      await state.captureCurrentConversationAsIdea()
+      await state.captureCurrentConversationAsIdea(notify: false)
       let folderId = UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey) ?? ""
       var result = ["ideaFolderId": folderId]
       if !folderId.isEmpty, let folders = try? await APIClient.shared.getFolders(),
