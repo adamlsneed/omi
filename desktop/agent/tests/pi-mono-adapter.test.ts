@@ -150,24 +150,13 @@ describe("PiMonoAdapter prompt correlation", () => {
 });
 
 describe("PiMonoAdapter source-level invariants", () => {
-  const piMonoSrc = readFileSync(
-    fileURLToPath(new URL("../src/adapters/pi-mono.ts", import.meta.url)),
-    "utf8"
-  );
+  // The pi subprocess env (no token in env, no ambient ANTHROPIC_API_KEY) is
+  // verified behaviorally by "PiMonoAdapter spawn args" below. This guards the
+  // bridge side (index.ts), which has no behavioral harness.
   const bridgeSrc = readFileSync(
     fileURLToPath(new URL("../src/index.ts", import.meta.url)),
     "utf8"
   );
-
-  it("does not put the Firebase token directly in the pi subprocess env", () => {
-    expect(piMonoSrc).toMatch(/OMI_API_KEY_FILE/);
-    expect(piMonoSrc).not.toMatch(/env\.OMI_API_KEY\s*=\s*this\.config\.authToken\s*;?/);
-  });
-
-  it("does not allow ambient ANTHROPIC_API_KEY into the child env", () => {
-    expect(piMonoSrc).toContain("makeSubprocessEnv");
-    expect(piMonoSrc).not.toMatch(/["']ANTHROPIC_API_KEY["']/);
-  });
 
   it("reads the Swift-provided auth token from a private file", () => {
     expect(bridgeSrc).toContain("OMI_AUTH_TOKEN_FILE");
