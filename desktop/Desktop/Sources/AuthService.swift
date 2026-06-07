@@ -677,10 +677,10 @@ class AuthService {
                     extractedFamilyName = parts.count > 1 ? String(parts[1]) : nil
                 }
 
-                NSLog("OMI AUTH: Extracted from id_token - name: %@ %@, email: %@",
-                      extractedGivenName ?? "(none)",
-                      extractedFamilyName ?? "",
-                      extractedEmail ?? "(none)")
+                // Avoid writing the user's name/email to the system log; record presence only.
+                NSLog("OMI AUTH: Extracted from id_token - hasName: %@, hasEmail: %@",
+                      extractedGivenName != nil ? "yes" : "no",
+                      extractedEmail != nil ? "yes" : "no")
             }
         }
 
