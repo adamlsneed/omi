@@ -31,6 +31,7 @@ import { spawn, type ChildProcess } from "child_process";
 import { createInterface } from "readline";
 import { dirname, join } from "path";
 import { resolveSession, needsModelUpdate, filterSessionsToWarm, getRetryDeleteKey, type SessionEntry } from "./session-manager.js";
+import { buildMcpServers } from "./mcp-servers.js";
 import { fileURLToPath } from "url";
 import { createServer as createNetServer, type Socket } from "net";
 import { tmpdir } from "os";
@@ -560,61 +561,10 @@ async function initializeAcp(): Promise<void> {
 
 // --- MCP server config builder ---
 
-type McpServerConfig = {
-  name: string;
-  command: string;
-  args: string[];
-  env: Array<{ name: string; value: string }>;
-};
-
-function buildMcpServers(mode: string, cwd?: string, sessionKey?: string): McpServerConfig[] {
-  const servers: McpServerConfig[] = [];
-
-  // omi-tools (stdio, connects back via Unix socket)
-  const omiToolsEnv: Array<{ name: string; value: string }> = [
-    { name: "OMI_BRIDGE_PIPE", value: omiToolsPipePath },
-    { name: "OMI_QUERY_MODE", value: mode },
-  ];
-  if (cwd) {
-    omiToolsEnv.push({ name: "OMI_WORKSPACE", value: cwd });
-  }
-  if (sessionKey === "onboarding") {
-    omiToolsEnv.push({ name: "OMI_ONBOARDING", value: "true" });
-  }
-  servers.push({
-    name: "omi-tools",
-    command: process.execPath,
-    args: [omiToolsStdioScript],
-    env: omiToolsEnv,
-  });
-
-  // Playwright MCP server
-  const playwrightArgs = [playwrightCli];
-  const usePlaywrightExtension =
-    process.env.PLAYWRIGHT_USE_EXTENSION === "true" ||
-    process.env.PLAYWRIGHT_MCP_EXTENSION === "true";
-  const playwrightEnv: Array<{ name: string; value: string }> = [];
-  if (usePlaywrightExtension) {
-    playwrightArgs.push("--extension");
-    playwrightEnv.push({
-      name: "PLAYWRIGHT_MCP_EXTENSION",
-      value: "true",
-    });
-  }
-  if (process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN) {
-    playwrightEnv.push({
-      name: "PLAYWRIGHT_MCP_EXTENSION_TOKEN",
-      value: process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN,
-    });
-  }
-  servers.push({
-    name: "playwright",
-    command: process.execPath,
-    args: playwrightArgs,
-    env: playwrightEnv,
-  });
-
-  return servers;
+// buildMcpServers lives in ./mcp-servers.ts; these deps are read live (the pipe
+// path is set during startup) and passed in on each call.
+function currentMcpServerDeps() {
+  return { omiToolsPipePath, omiToolsStdioScript, playwrightCli };
 }
 
 // --- Session pre-warming ---
@@ -659,7 +609,7 @@ async function preWarmSession(cwd?: string, sessionConfigs?: WarmupSessionConfig
         try {
           const sessionParams: Record<string, unknown> = {
             cwd: warmCwd,
-            mcpServers: buildMcpServers("act", warmCwd, cfg.key),
+            mcpServers: buildMcpServers(currentMcpServerDeps(), "act", warmCwd, cfg.key),
             ...(cfg.systemPrompt ? { _meta: { systemPrompt: cfg.systemPrompt } } : {}),
           };
 
@@ -706,7 +656,7 @@ async function warmAnthropicCache(
       const warmupSessionKey = `${cfg.key}-cache-warm`;
       const sessionParams: Record<string, unknown> = {
         cwd: warmCwd,
-        mcpServers: buildMcpServers("act", warmCwd, warmupSessionKey),
+        mcpServers: buildMcpServers(currentMcpServerDeps(), "act", warmCwd, warmupSessionKey),
         _meta: { systemPrompt: cfg.systemPrompt },
       };
       const created = (await acpRequest("session/new", sessionParams)) as { sessionId: string };
@@ -777,7 +727,7 @@ async function handleQuery(msg: QueryMessage): Promise<void> {
         await acpRequest("session/resume", {
           sessionId: msg.resume,
           cwd: requestedCwd,
-          mcpServers: buildMcpServers(mode, requestedCwd, sessionKey),
+          mcpServers: buildMcpServers(currentMcpServerDeps(), mode, requestedCwd, sessionKey),
         });
         sessionId = msg.resume;
         if (requestedModel) {
@@ -794,7 +744,7 @@ async function handleQuery(msg: QueryMessage): Promise<void> {
     if (!sessionId) {
       const sessionParams: Record<string, unknown> = {
         cwd: requestedCwd,
-        mcpServers: buildMcpServers(mode, requestedCwd, sessionKey),
+        mcpServers: buildMcpServers(currentMcpServerDeps(), mode, requestedCwd, sessionKey),
         ...(msg.systemPrompt ? { _meta: { systemPrompt: msg.systemPrompt } } : {}),
       };
       const sessionResult = (await acpRequest("session/new", sessionParams)) as { sessionId: string };

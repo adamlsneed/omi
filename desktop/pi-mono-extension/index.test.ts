@@ -24,6 +24,7 @@ import {
   appendAudit,
   __resetAuditWarnedForTest,
   OMI_TOOLS,
+  BROWSER_TOOL_SPECS,
   OMI_TOOL_TIMEOUT_MS,
   __connectOmiPipeForTest,
   __callSwiftToolForTest,
@@ -972,6 +973,20 @@ test("OMI_TOOLS: unique tool names", () => {
 test("OMI_TOOLS: all have promptSnippet for system prompt injection", () => {
   for (const tool of OMI_TOOLS) {
     assert.ok(tool.promptSnippet, `${tool.name} missing promptSnippet`);
+  }
+});
+
+test("BROWSER_TOOL_SPECS: registers the Chrome browser tools for the pi-mono harness", () => {
+  const names = BROWSER_TOOL_SPECS.map(t => t.name);
+  for (const expected of ["browser_snapshot", "browser_navigate", "browser_click", "browser_type"]) {
+    assert.ok(names.includes(expected), `missing browser tool ${expected}`);
+  }
+  assert.equal(new Set(names).size, names.length, "duplicate browser tool names");
+});
+
+test("BROWSER_TOOL_SPECS: every browser tool has a promptSnippet", () => {
+  for (const spec of BROWSER_TOOL_SPECS) {
+    assert.ok(spec.promptSnippet, `${spec.name} missing promptSnippet`);
   }
 });
 

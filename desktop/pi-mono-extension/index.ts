@@ -528,7 +528,7 @@ interface McpToolCallResult {
   isError?: boolean;
 }
 
-const BROWSER_TOOL_SPECS: BrowserToolSpec[] = [
+export const BROWSER_TOOL_SPECS: BrowserToolSpec[] = [
   {
     name: "browser_snapshot",
     label: "Browser Snapshot",
