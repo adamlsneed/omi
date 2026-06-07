@@ -605,7 +605,7 @@ class CaptureProvider extends ChangeNotifier
   void _startVoiceCommandTimeout(String deviceId) {
     _voiceCommandTimeoutTimer?.cancel();
     _voiceCommandTimeoutTimer = Timer(const Duration(seconds: 15), () {
-      debugPrint("Voice command timeout - auto-ending session after 15s");
+      Logger.debug("Voice command timeout - auto-ending session after 15s");
       if (_voiceCommandSession != null) {
         _endVoiceCommandSession(deviceId);
       }
@@ -695,10 +695,10 @@ class CaptureProvider extends ChangeNotifier
         // Single tap (buttonState == 1) - toggle voice question mode
         // Tap once to start, tap again to end
         if (buttonState == 1) {
-          debugPrint("Single tap detected");
+          Logger.debug("Single tap detected");
           if (_voiceCommandSession == null) {
             // Start voice question session (new toggle mode)
-            debugPrint("Starting voice question session (toggle mode)");
+            Logger.debug("Starting voice question session (toggle mode)");
             // Cut off any in-flight voice playback from a prior reply so the
             // new recording starts clean.
             if (OmiVoicePlaybackService.instance.isSpeaking) {
@@ -711,7 +711,7 @@ class CaptureProvider extends ChangeNotifier
             _playSpeakerHaptic(deviceId, 1);
           } else if (!_voiceSessionStartedByLegacyLongPress) {
             // Only end on second tap if session was started by toggle mode (not legacy)
-            debugPrint("Ending voice question session (toggle mode)");
+            Logger.debug("Ending voice question session (toggle mode)");
             _endVoiceCommandSession(deviceId);
           }
           return;
@@ -719,7 +719,7 @@ class CaptureProvider extends ChangeNotifier
 
         // Legacy support: start long press (for voice commands) - older firmware
         if (buttonState == 3 && _voiceCommandSession == null) {
-          debugPrint("Legacy: Long press start detected");
+          Logger.debug("Legacy: Long press start detected");
           _voiceCommandSession = DateTime.now();
           _commandBytes = [];
           _voiceSessionStartedByLegacyLongPress = true; // Legacy hold-to-talk mode
@@ -730,7 +730,7 @@ class CaptureProvider extends ChangeNotifier
         // Legacy support: release (end voice command) - older firmware
         // Only end on release if session was started by legacy long press (buttonState 3)
         if (buttonState == 5 && _voiceCommandSession != null && _voiceSessionStartedByLegacyLongPress) {
-          debugPrint("Legacy: Release detected - ending voice command");
+          Logger.debug("Legacy: Release detected - ending voice command");
           _endVoiceCommandSession(deviceId);
           return;
         }
@@ -740,12 +740,12 @@ class CaptureProvider extends ChangeNotifier
         // that state (never toggle), so a dropped BLE packet can't invert it. The
         // firmware already set the LED, so the app does NOT drive it here.
         if (buttonState == 6 && _voiceCommandSession == null) {
-          debugPrint("idea-capture: HOLD ENTER");
+          Logger.debug("idea-capture: HOLD ENTER");
           _onIdeaCaptureSignal(deviceId, active: true);
           return;
         }
         if (buttonState == 7 && _voiceCommandSession == null) {
-          debugPrint("idea-capture: HOLD EXIT");
+          Logger.debug("idea-capture: HOLD EXIT");
           _onIdeaCaptureSignal(deviceId, active: false);
           return;
         }
