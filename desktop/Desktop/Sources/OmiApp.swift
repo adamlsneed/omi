@@ -262,6 +262,12 @@ final class MenuToggleControl: NSControl {
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   static var openMainWindow: (() -> Void)?
 
+  // idea-capture: set in applicationDidFinishLaunching so other subsystems (the
+  // capture-confirmation notification's tap handlers) can reach the delegate without
+  // an `NSApp.delegate as? AppDelegate` cast, which is unreliable under the SwiftUI
+  // NSApplicationDelegateAdaptor. Mirrors the `openMainWindow` static-closure pattern.
+  static var revealIdeaFolderHandler: (@MainActor () -> Void)?
+
   private var sentryHeartbeatTimer: Timer?
   private var globalHotkeyMonitor: Any?
   private var localHotkeyMonitor: Any?
@@ -271,6 +277,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var statusBarItem: NSStatusItem?
   private var screenCaptureSwitch: MenuToggleControl?
   private var audioRecordingSwitch: MenuToggleControl?
+  private weak var captureIdeaMenuItem: NSMenuItem?
+  private var ideaCaptureObserver: NSObjectProtocol?
   private var relaunchOnLoginSuppressedForOnboarding = false
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -292,6 +300,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     log("AppDelegate: applicationDidFinishLaunching started (mode: \(OMIApp.launchMode.rawValue))")
     log("AppDelegate: AuthState.isSignedIn=\(AuthState.shared.isSignedIn)")
+
+    // idea-capture: expose the Ideas-folder reveal so notification tap handlers can call it.
+    AppDelegate.revealIdeaFolderHandler = { [weak self] in self?.revealIdeaFolder() }
+
+    // idea-capture: keep the menu item + status icon in sync the moment a session
+    // starts/stops (the menu may be closed when the user clicks Stop from elsewhere).
+    ideaCaptureObserver = NotificationCenter.default.addObserver(
+      forName: .ideaCaptureStateChanged, object: nil, queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated { self?.updateCaptureIdeaMenuItem() }
+    }
 
     // Refresh the "Auto" realtime-voice model pick from Artificial Analysis (daily, cached).
     AutoModelSelector.shared.refreshIfStale()
@@ -946,7 +965,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       let captureIdeaItem = NSMenuItem(
         title: "Capture Idea", action: #selector(captureIdeaFromMenu), keyEquivalent: "")
       captureIdeaItem.target = self
+      captureIdeaItem.toolTip =
+        "Start recording an idea; click again to stop and save it to your Ideas folder"
       menu.addItem(captureIdeaItem)
+      captureIdeaMenuItem = captureIdeaItem
+      updateCaptureIdeaMenuItem()  // style for current (active/idle) state
     }
 
     menu.addItem(NSMenuItem.separator())
@@ -1192,13 +1215,68 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     )
   }
 
-  // idea-capture: one-shot quick capture from the menu bar. Force-processes the
-  // in-progress conversation and files it under the "Ideas" folder via AppState.
+  // idea-capture: menu-bar toggle. First click starts recording an idea (turns the mic
+  // on if needed); second click stops and files it under "Ideas".
   @MainActor @objc private func captureIdeaFromMenu() {
-    log("AppDelegate: [MENUBAR] Capture Idea triggered")
-    AnalyticsManager.shared.menuBarActionClicked(action: "capture_idea")
     guard let state = AppState.current else { return }
-    Task { await state.captureCurrentConversationAsIdea() }
+    let starting = !state.isIdeaCaptureActive
+    log("AppDelegate: [MENUBAR] Idea capture toggle (\(starting ? "start" : "stop"))")
+    AnalyticsManager.shared.menuBarActionClicked(
+      action: starting ? "idea_capture_start" : "idea_capture_stop")
+    Task { await state.toggleIdeaCapture() }
+  }
+
+  /// idea-capture: reflect session state on the menu item — a red "Stop Idea Capture"
+  /// (with a red stop glyph) while recording, vs "Capture Idea" when idle.
+  @MainActor private func updateCaptureIdeaMenuItem() {
+    guard let item = captureIdeaMenuItem else { return }
+    let active = AppState.current?.isIdeaCaptureActive ?? false
+    if active {
+      item.attributedTitle = NSAttributedString(
+        string: "Stop Idea Capture",
+        attributes: [
+          .foregroundColor: NSColor.systemRed,
+          .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
+        ])
+      let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        .applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
+      let img = NSImage(
+        systemSymbolName: "stop.circle.fill", accessibilityDescription: "Stop Idea Capture")?
+        .withSymbolConfiguration(cfg)
+      img?.isTemplate = false
+      item.image = img
+    } else {
+      item.attributedTitle = nil
+      item.title = "Capture Idea"
+      let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
+      item.image = NSImage(systemSymbolName: "lightbulb", accessibilityDescription: "Capture Idea")?
+        .withSymbolConfiguration(cfg)
+    }
+  }
+
+  // idea-capture: reveal the Ideas folder in the main window. Invoked when the user
+  // taps the capture confirmation (system banner via NotificationService, or the
+  // floating-bar preview via FloatingControlBarManager).
+  @MainActor func revealIdeaFolder() {
+    log("AppDelegate: [MENUBAR] Reveal Ideas folder requested")
+    // Raise (or open) the main window, mirroring openOmiFromMenu.
+    var foundWindow = revealMainWindowIfAvailable()
+    if !foundWindow {
+      Self.openMainWindow?()
+      foundWindow = revealMainWindowIfAvailable()
+    }
+    NSApp.activate(ignoringOtherApps: true)
+    // Switch to Conversations and filter to Ideas. Delay slightly so a freshly
+    // opened window's view hierarchy is mounted and listening before we post.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+      NotificationCenter.default.post(
+        name: .navigateToSidebarItem, object: nil,
+        userInfo: ["rawValue": SidebarNavItem.conversations.rawValue])
+      let folderId = UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey) ?? ""
+      if let state = AppState.current {
+        Task { await state.setFolderFilter(folderId.isEmpty ? nil : folderId) }
+      }
+    }
   }
 
   // MARK: - NSMenuDelegate
@@ -1212,6 +1290,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       (!paywalled && ProactiveAssistantsPlugin.shared.isMonitoring)
     audioRecordingSwitch?.isOn =
       (!paywalled && AssistantSettings.shared.transcriptionEnabled)
+    // idea-capture: reflect the active/idle session state (red "Stop Idea Capture").
+    updateCaptureIdeaMenuItem()
   }
 
   func menuDidClose(_ menu: NSMenu) {
