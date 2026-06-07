@@ -39,8 +39,7 @@ enum RewindPrivacyFilter {
         }
 
         if browser.contains("safari") {
-            return titleLower == "private browsing"
-                || titleLower.contains("private browsing")
+            return titleLower.contains("private browsing")
         }
 
         if browser.contains("firefox") {
@@ -50,7 +49,6 @@ enum RewindPrivacyFilter {
 
         if browser.contains("edge") {
             return titleLower.contains("inprivate")
-                || titleLower.contains("inprivate browsing")
         }
 
         return false
