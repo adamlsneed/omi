@@ -155,7 +155,7 @@ static ssize_t storage_read_characteristic(struct bt_conn *conn,
             storage_stats_next_refresh_ms = now + 500;
         }
     }
-
+    
     /* Phone app expects (little-endian):
      *   [0..3]  total_used_bytes  (uint32)
      *   [4..7]  file_count        (uint32)
@@ -167,7 +167,7 @@ static ssize_t storage_read_characteristic(struct bt_conn *conn,
     payload[1] = cached_file_count;             /* number of audio files */
     payload[2] = 0;                      /* free_bytes — TODO: implement disk_access_ioctl */
     payload[3] = 0;                      /* status_flags: bit0=charging, bit1=warning, bit2=error */
-
+    
     LOG_INF("Storage read: used=%u bytes, files=%u", payload[0], payload[1]);
     return bt_gatt_attr_read(conn, attr, buf, len, offset, payload, sizeof(payload));
 }
@@ -267,7 +267,7 @@ static int refresh_file_list_cache(void)
         sync_file_count = 0;
         return ret;
     }
-
+    
     LOG_INF("File list refreshed: %d files", sync_file_count);
     return sync_file_count;
 }
@@ -312,28 +312,28 @@ static int send_file_list_response(struct bt_conn *conn)
     if (response_file_count < 0) {
         response_file_count = 0;
     }
-
+    
     /* Use storage_buffer to build response (max 4440 bytes) */
     /* Each file: ts(4) + size(4) = 8 bytes, max ~550 files */
     int resp_len = 0;
-
+    
     storage_buffer[resp_len++] = (uint8_t)response_file_count;
-
+    
     for (int i = 0; i < response_file_count && resp_len + STORAGE_FILE_LIST_ENTRY_SIZE <= STORAGE_BUFFER_SIZE; i++) {
         uint32_t timestamp = (uint32_t)strtoul(sync_file_list[i], NULL, 16);
         uint32_t size = sync_file_sizes[i];
-
+        
         storage_buffer[resp_len++] = (timestamp >> 24) & 0xFF;
         storage_buffer[resp_len++] = (timestamp >> 16) & 0xFF;
         storage_buffer[resp_len++] = (timestamp >> 8) & 0xFF;
         storage_buffer[resp_len++] = timestamp & 0xFF;
-
+        
         storage_buffer[resp_len++] = (size >> 24) & 0xFF;
         storage_buffer[resp_len++] = (size >> 16) & 0xFF;
         storage_buffer[resp_len++] = (size >> 8) & 0xFF;
         storage_buffer[resp_len++] = size & 0xFF;
     }
-
+    
     LOG_INF("Sending file list: %d/%d files, %d bytes (att_payload=%u)",
             response_file_count,
             sync_file_count,
@@ -351,19 +351,19 @@ static int setup_file_transfer(int file_index, uint32_t start_offset)
         LOG_ERR("File index out of range: %d", file_index);
         return -1;
     }
-
+    
     strncpy(current_read_filename, sync_file_list[file_index], MAX_FILENAME_LEN - 1);
     current_read_offset = start_offset;
     current_sync_file_index = file_index;
     transfer_end_status = 0;
-
+    
     if (current_read_offset < sync_file_sizes[file_index]) {
         remaining_length = sync_file_sizes[file_index] - current_read_offset;
     } else {
         remaining_length = 0;
     }
-
-    LOG_INF("Setup transfer: file[%d]=%s, offset=%u, remaining=%u",
+    
+    LOG_INF("Setup transfer: file[%d]=%s, offset=%u, remaining=%u", 
             file_index, current_read_filename, current_read_offset, remaining_length);
     return 0;
 }
@@ -398,49 +398,49 @@ static uint8_t parse_storage_command(void *buf, uint16_t len, struct bt_conn *co
     if (len < 1) {
         return INVALID_COMMAND;
     }
-
+    
     const uint8_t command = ((uint8_t *) buf)[0];
     LOG_INF("Storage command: 0x%02X, len=%d", command, len);
-
+    
     /* ===== NEW MULTI-FILE COMMANDS ===== */
-
+    
     if (command == CMD_LIST_FILES) {
         list_files_requested = 1;  /* Defer to storage thread to avoid stack overflow */
         return 0xFF;  /* Will be processed in storage thread */
     }
-
+    
     if (command == CMD_READ_FILE) {
         if (len < 2) return INVALID_COMMAND;
-
+        
         uint8_t file_index = ((uint8_t *) buf)[1];
         uint32_t request_offset = 0;
         if (len >= 6) {
-            request_offset = ((uint8_t *) buf)[2] << 24 | ((uint8_t *) buf)[3] << 16 |
+            request_offset = ((uint8_t *) buf)[2] << 24 | ((uint8_t *) buf)[3] << 16 | 
                             ((uint8_t *) buf)[4] << 8 | ((uint8_t *) buf)[5];
         }
-
+        
         if (sync_file_count == 0) {
             int ret = refresh_file_list_cache();
             if (ret < 0) {
                 return storage_status_from_error(ret, STORAGE_NOT_READY);
             }
         }
-
+        
         if (file_index >= sync_file_count) {
             return FILE_INDEX_OUT_OF_RANGE;
         }
-
+        
         if (setup_file_transfer(file_index, request_offset) < 0) {
             return FILE_NOT_FOUND;
         }
-
+        
         transport_started = 1;
         return 0;
     }
-
+    
     if (command == CMD_DELETE_FILE) {
         if (len < 2) return INVALID_COMMAND;
-
+        
         uint8_t file_index = ((uint8_t *) buf)[1];
         if (sync_file_count == 0) {
             /* File list not cached, defer refresh + delete to storage thread */
@@ -450,7 +450,7 @@ static uint8_t parse_storage_command(void *buf, uint16_t len, struct bt_conn *co
         if (file_index >= sync_file_count) {
             return FILE_INDEX_OUT_OF_RANGE;
         }
-
+        
         delete_file_index = file_index;  /* Defer to storage thread */
         return 0xFF;
     }
@@ -488,14 +488,14 @@ static ssize_t storage_write_handler(struct bt_conn *conn,
     LOG_INF("was sent %d  ", ((uint8_t *) buf)[0]);
 
     uint8_t result = parse_storage_command((void *)buf, len, conn);
-
+    
     /* 0xFF means response was already sent */
     if (result != 0xFF) {
         uint8_t result_buffer[1] = {result};
         LOG_INF("length of storage write: %d, result: %d", len, result);
         storage_notify(conn, &result_buffer, 1);
     }
-
+    
     return len;
 }
 
@@ -513,7 +513,7 @@ static void write_to_gatt(struct bt_conn *conn)
         sync_speed_reset(SYNC_SPEED_MODE_BLE);
     }
     uint16_t ble_chunk = get_ble_chunk_size(conn, current_sync_file_index >= 0);
-
+    
     if (current_sync_file_index < 0) {
         LOG_ERR("write_to_gatt called without active multi-file transfer");
         remaining_length = 0;
@@ -522,7 +522,7 @@ static void write_to_gatt(struct bt_conn *conn)
 
     /* New protocol: add 4-byte timestamp prefix */
     uint32_t timestamp = (uint32_t)strtoul(sync_file_list[current_sync_file_index], NULL, 16);
-
+        
         /* Build timestamp header once */
         ble_notify_buf[0] = (timestamp >> 24) & 0xFF;
         ble_notify_buf[1] = (timestamp >> 16) & 0xFF;
@@ -639,7 +639,7 @@ void storage_write(void)
             int8_t idx = delete_file_index;
             delete_file_index = -1;
             uint8_t result = 0;
-
+            
             /* Ensure file list is cached */
             if (sync_file_count == 0) {
                 int ret = refresh_file_list_cache();
@@ -647,7 +647,7 @@ void storage_write(void)
                     result = storage_status_from_error(ret, STORAGE_NOT_READY);
                 }
             }
-
+            
             if (result == 0 && idx >= sync_file_count) {
                 result = FILE_INDEX_OUT_OF_RANGE;
             } else if (result == 0) {
@@ -656,7 +656,7 @@ void storage_write(void)
                     result = storage_status_from_error(delete_ret, FILE_NOT_FOUND);
                 }
             }
-
+            
             if (conn) {
                 storage_notify(conn, &result, 1);
             }

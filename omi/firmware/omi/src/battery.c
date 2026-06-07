@@ -125,7 +125,7 @@ uint8_t update_ema_filter(uint32_t current_ema, uint8_t new_value)
     uint64_t new_ema = (alpha * new_value) + (alpha_complement * current_ema);
 
     // Scale result back to 8-bit, with rounding up
-    return (uint8_t) ((new_ema + 32768) >> 16);
+    return (uint8_t)((new_ema + 32768) >> 16);
 }
 
 static void battery_charging_callback(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
@@ -266,8 +266,7 @@ int battery_get_percentage(uint8_t *battery_percentage, uint16_t battery_millivo
     } else {
         // Find the appropriate range in the battery profile
         for (int i = 0; i < BATTERY_STATES_COUNT - 1; i++) {
-            if (battery_millivolt <= battery_states[i].millivolts &&
-                battery_millivolt > battery_states[i + 1].millivolts) {
+            if (battery_millivolt <= battery_states[i].millivolts && battery_millivolt > battery_states[i + 1].millivolts) {
 
                 // Linear interpolation between the two closest points
                 uint16_t voltage_range = battery_states[i].millivolts - battery_states[i + 1].millivolts;
