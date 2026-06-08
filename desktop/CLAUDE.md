@@ -33,25 +33,19 @@ See `.claude/skills/user-logs/SKILL.md` for full documentation and API queries.
 - This is the `desktop/` subfolder of the **OMI monorepo** (`BasedHardware/omi`)
 - macOS Swift app + Rust backend live here
 
-## Release Pipeline
+## Release Pipeline (fork)
 
-Merging `desktop/**` changes to `main` triggers a fully automated release:
+> This fork does NOT auto-release. Upstream's Codemagic/auto-release workflows
+> were removed, so merging `desktop/**` to `main` only lands code — it builds and
+> ships nothing. The old "merge → Codemagic → Sparkle" flow no longer applies.
 
-1. **GitHub Actions** (`desktop_auto_release.yml`) — auto-increments version, pushes a `v*-macos` tag
-2. **Codemagic** (`codemagic.yaml`, workflow `omi-desktop-swift-release`) — triggered by the tag, runs on Mac mini M2:
-   - Builds universal binary (arm64 + x86_64)
-   - Signs with Developer ID, notarizes with Apple
-   - Creates DMG + Sparkle ZIP
-   - Publishes GitHub release, uploads to GCS, registers in Firestore
-   - Deploys Rust backend to Cloud Run
-3. **Sparkle auto-update** delivers the new version to users
+Releases are cut manually and distributed via Homebrew. **Full guide: [`RELEASE.md`](RELEASE.md).**
 
-**Codemagic CLI & API:**
-- Token: `$CODEMAGIC_API_TOKEN` (set in `~/.zshrc`)
-- App ID: `66c95e6ec76853c447b8bcbb`
-- List builds: `curl -s -H "x-auth-token: $CODEMAGIC_API_TOKEN" "https://api.codemagic.io/builds?appId=66c95e6ec76853c447b8bcbb" | python3 -c "import json,sys; [print(f\"{b.get('status','?'):12} tag={b.get('tag','-'):30} start={(b.get('startedAt') or '-')[:19]}\") for b in json.load(sys.stdin).get('builds',[])[:5]]"`
-
-To promote: `./scripts/promote_release.sh <tag>` (staging → beta → stable).
+- Cut a release: `cd desktop && ./release.sh --bump` (builds `-c release`, signs with
+  Developer ID + `Omi-Release.entitlements`, notarizes, publishes a GitHub Release on
+  `adamlsneed/omi`, and bumps the Homebrew cask in `adamlsneed/homebrew-omi`).
+- Install/update on a Mac: `brew install --cask adamlsneed/omi/omi` then `brew upgrade`.
+- This dev Mac keeps using `./run.sh` (debug build) for development.
 
 ## Firebase Connection
 Use `/firebase` command or see `.claude/skills/firebase/SKILL.md`
@@ -111,7 +105,7 @@ See `.claude/settings.json` for connection details.
 - **No Xcode project** — this is a Swift Package Manager project
 - **Build command**: `xcrun swift build -c debug --package-path Desktop` (the `xcrun` prefix is required to match the SDK version)
 - **Full dev run**: `./run.sh` — builds Swift app, starts Rust backend, starts Cloudflare tunnel, launches app
-- **Release builds**: Handled entirely by Codemagic CI (no local release script needed)
+- **Release builds**: `cd desktop && ./release.sh --bump` (notarized + Homebrew; see `RELEASE.md`). Not Codemagic.
 - **DO NOT** use bare `swift build` — it will fail with SDK version mismatch
 - **DO NOT** use `xcodebuild` — there is no `.xcodeproj`
 - **DO NOT** launch the app directly from `build/` — always use `./run.sh` or `./reset-and-run.sh`. These scripts install to `/Applications/Omi Dev.app` and launch from there, which is required for macOS "Quit & Reopen" (after granting permissions) to find the correct binary. Launching from `build/` causes stale binaries to run after permission restarts.
