@@ -40,7 +40,9 @@ SKIP_NOTARIZE=1 SKIP_PUBLISH=1 ./release.sh 0.0.1-test   # build + sign only
 SKIP_PUBLISH=1 ./release.sh 0.1.0                         # + notarize, no publish
 ```
 
-## Install / update (each Mac)
+## Install / update (your OTHER Macs)
+Homebrew is for the machines that just run the app, not your dev box. On your dev
+Mac, use `./run.sh` (debug build from the working tree) — see `CLAUDE.md`/`AGENTS.md`.
 ```
 brew install --cask adamlsneed/omi/omi
 brew upgrade                                  # pulls new versions
