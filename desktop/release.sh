@@ -181,22 +181,43 @@ cp -f omi_icon.icns "$APP_BUNDLE/Contents/Resources/OmiIcon.icns" 2>/dev/null ||
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 # No provisioning profile: release entitlements drop applesignin, so none is needed.
 
-# --- Sign (Developer ID + hardened runtime + Omi-Release.entitlements) ---
+# --- Sign (Developer ID + hardened runtime + secure timestamp, inside-out) ---
+# Notarization requires EVERY Mach-O (node native .node modules, bundled dylibs,
+# Sparkle's nested Updater.app/XPC helpers) signed with Developer ID + hardened
+# runtime + a secure timestamp (--timestamp). Sign deepest-first, app last.
 step "Signing"
 SIGN_IDENTITY="${OMI_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')}"
 [ -n "$SIGN_IDENTITY" ] || { echo "ERROR: no Developer ID Application identity found"; exit 1; }
 echo "    identity: $SIGN_IDENTITY"
 chmod -R u+w "$APP_BUNDLE"; xattr -cr "$APP_BUNDLE"
-sign() { codesign --force --options runtime "$@"; }
+sign() { codesign --force --options runtime --timestamp "$@"; }
+
+step "Signing nested Mach-O under Resources (node native modules, dylibs)"
+while IFS= read -r -d '' f; do
+  case "$f" in
+    *.node|*.dylib|*.so) sign --sign "$SIGN_IDENTITY" "$f";;
+    *) if file -b "$f" 2>/dev/null | grep -q "Mach-O"; then sign --sign "$SIGN_IDENTITY" "$f"; fi;;
+  esac
+done < <(find "$APP_BUNDLE/Contents/Resources" -type f \( -name '*.node' -o -name '*.dylib' -o -name '*.so' -o -perm +111 \) -print0)
+
+# Bundled node runtime (JIT entitlements; re-sign over the generic pass above)
+[ -f "$BUNDLED_NODE" ] && sign --entitlements Desktop/Node.entitlements --sign "$SIGN_IDENTITY" "$BUNDLED_NODE"
+
+# Sparkle nested helpers, deepest first, then the framework
+SPK_VER="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/Current"
+for nested in "XPCServices/Downloader.xpc" "XPCServices/Installer.xpc" "Autoupdate" "Updater.app"; do
+  [ -e "$SPK_VER/$nested" ] && sign --sign "$SIGN_IDENTITY" "$SPK_VER/$nested"
+done
+
+step "Signing frameworks + app"
 for fw in Sparkle.framework Sentry.framework onnxruntime.framework; do
   [ -d "$APP_BUNDLE/Contents/Frameworks/$fw" ] && sign --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/$fw"
 done
 for lib in libsharpyuv.0.dylib libwebp.7.dylib; do
   [ -f "$APP_BUNDLE/Contents/Frameworks/$lib" ] && sign --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/$lib"
 done
-[ -f "$BUNDLED_NODE" ] && sign --entitlements Desktop/Node.entitlements --sign "$SIGN_IDENTITY" "$BUNDLED_NODE"
 sign --entitlements Desktop/Omi-Release.entitlements --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
-codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+codesign --verify --strict --verbose=2 "$APP_BUNDLE"
 
 # --- Notarize ---
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
@@ -247,4 +268,5 @@ CASK
 (cd "$CASK_TMP/tap" && git add Casks/omi.rb && git commit -q -m "omi $VERSION" && git push -q)
 rm -rf "$CASK_TMP"
 
-step "Done. Install: brew install --cask $TAP_REPO/omi   |   Update: brew upgrade"
+TAP_SHORT="${TAP_REPO/\/homebrew-//}"  # adamlsneed/homebrew-omi -> adamlsneed/omi
+step "Done. Install: brew install --cask $TAP_SHORT/omi   |   Update: brew upgrade"
