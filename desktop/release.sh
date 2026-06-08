@@ -33,9 +33,34 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION="${1:-}"
-if [ -z "$VERSION" ]; then
-  echo "Usage: ./release.sh <version>   (e.g. ./release.sh 0.1.0)" >&2
+# --- Version resolution (explicit, or --bump from the latest published tag) ---
+latest_version() {
+  # Highest existing desktop-fork-v* tag on origin, as bare x.y.z.
+  git ls-remote --tags origin 'desktop-fork-v*' 2>/dev/null \
+    | sed -E 's#.*refs/tags/desktop-fork-v##; s/\^\{\}$//' \
+    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    | sort -t. -k1,1n -k2,2n -k3,3n | tail -1
+}
+bump_version() { # <x.y.z> <patch|minor|major>
+  local major minor patch
+  IFS=. read -r major minor patch <<< "${1#v}"
+  case "$2" in
+    major) echo "$((major + 1)).0.0";;
+    minor) echo "$major.$((minor + 1)).0";;
+    *)     echo "$major.$minor.$((patch + 1))";;
+  esac
+}
+
+if [ "${1:-}" = "--bump" ]; then
+  CUR="$(latest_version)"
+  [ -n "$CUR" ] || { echo "ERROR: --bump found no existing desktop-fork-v* release; pass an explicit version for the first one." >&2; exit 2; }
+  VERSION="$(bump_version "$CUR" "${2:-patch}")"
+  echo "==> --bump ${2:-patch}: $CUR -> $VERSION"
+elif [ -n "${1:-}" ]; then
+  VERSION="${1#v}"
+else
+  echo "Usage: ./release.sh <version>                    (e.g. ./release.sh 0.1.1)" >&2
+  echo "       ./release.sh --bump [patch|minor|major]   (default: patch; derives next from latest release)" >&2
   exit 2
 fi
 

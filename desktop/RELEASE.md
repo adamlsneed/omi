@@ -23,8 +23,12 @@ is signed/notarized/distributed differently.
 ## Cut a release
 ```
 cd desktop
-./release.sh <version>        # e.g. ./release.sh 0.1.0
+./release.sh --bump          # auto-increment patch from the latest release (0.1.0 -> 0.1.1)
+./release.sh --bump minor    # 0.1.0 -> 0.2.0   (also: --bump major)
+./release.sh 0.3.0           # or pin an explicit version
 ```
+`--bump` derives the next version from the highest published `desktop-fork-v*` tag,
+so you don't have to track the current number.
 This builds `-c release`, signs with `Omi-Release.entitlements` (omits the
 `get-task-allow` / `applesignin` entitlements that previously blocked notarization),
 notarizes + staples, publishes a GitHub Release on `adamlsneed/omi` (tag
