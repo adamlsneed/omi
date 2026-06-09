@@ -542,9 +542,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       guard let self = self else { return }
       Task { @MainActor in
         self.updateOnboardingLifecyclePolicy(reason: "user_defaults_changed")
-        self.applyDockIconVisibilityPolicy(reason: "user_defaults_changed")
       }
     }
+    // Dock-icon policy is driven by the explicit preference notification below (and the
+    // launch call), not by the catch-all UserDefaults observer above — so it only runs
+    // when the user actually changes the setting, not on every unrelated defaults write.
     dockIconVisibilityObserver = NotificationCenter.default.addObserver(
       forName: .dockIconVisibilityPreferenceDidChange,
       object: nil,
@@ -794,6 +796,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     if statusBarItem != nil {
       refreshMenuBarIcon()
+    }
+
+    // Bringing the Dock icon back (.accessory -> .regular) is unreliable on its own:
+    // macOS frequently doesn't actually re-add the icon, and the switch drops the app
+    // behind whatever is frontmost. Re-assert activation on the next runloop tick (once
+    // the policy change has settled) and pull the main window back to the front, the
+    // same dance the launch path uses.
+    if policy == .regular {
+      DispatchQueue.main.async {
+        NSApp.activate(ignoringOtherApps: true)
+        _ = self.revealMainWindowIfAvailable()
+      }
     }
   }
 
