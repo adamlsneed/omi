@@ -374,6 +374,11 @@ fi
 step "Preparing agent runtime..."
 "$(dirname "$0")/scripts/prepare-agent-runtime.sh" --local-node
 
+# Upstream's prepare-agent-runtime.sh builds agent/dist but no longer defines
+# AGENT_DIR, leaving the "Copying agent" step a silent no-op. The fork bundles
+# the agent and symlinks pi-mono-extension/node_modules to it, so keep it set.
+AGENT_DIR="$(dirname "$0")/agent"
+
 PI_MONO_EXT_DIR="$(dirname "$0")/pi-mono-extension"
 
 step "Preparing bundled Node.js runtime..."
