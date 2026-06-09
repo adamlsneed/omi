@@ -14,7 +14,7 @@ Disabled automatic deployment workflows:
 - `gcp_backend_pusher_auto_deploy.yml`
 - `gcp_backend_agent_proxy_auto_deploy.yml`
 
-Local and Codemagic desktop builds should use:
+Local desktop builds should use:
 
 ```text
 OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app/

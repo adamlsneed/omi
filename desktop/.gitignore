@@ -49,6 +49,8 @@ scripts/*
 !scripts/prepare-node-resource.sh
 !scripts/test-prepare-node-resource.sh
 !scripts/prepare-agent-runtime.sh
+!scripts/omi-dev-smoke.sh
+!scripts/test-omi-dev-smoke.sh
 
 # Swift compiler diagnostics cache
 *.dia
