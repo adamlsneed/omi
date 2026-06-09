@@ -259,6 +259,101 @@ final class MenuToggleControl: NSControl {
   }
 }
 
+/// idea-capture: a full-width, clickable menu row for "Capture Idea". A stock
+/// NSMenuItem dismisses the whole menu on click, so the recording-state restyle was
+/// never seen on the click that started it. This custom view handles the click in
+/// place (like MenuToggleControl) so the menu stays open and the row flips to its red
+/// "Stop Idea Capture" state under the cursor. State is driven by `isActive`, set from
+/// AppState.isIdeaCaptureActive, so a session started/stopped elsewhere stays in sync.
+final class IdeaCaptureItemControl: NSControl {
+  var isActive: Bool = false {
+    didSet {
+      guard isActive != oldValue else { return }
+      setAccessibilityLabel(title)
+      needsDisplay = true
+    }
+  }
+
+  private var isHovering = false {
+    didSet {
+      guard isHovering != oldValue else { return }
+      needsDisplay = true
+    }
+  }
+
+  private var title: String { isActive ? "Stop Idea Capture" : "Capture Idea" }
+
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+    wantsLayer = true
+    setAccessibilityRole(.button)
+    setAccessibilityLabel(title)
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  override var intrinsicContentSize: NSSize { NSSize(width: 260, height: 36) }
+
+  // Draw our own colors rather than inheriting the menu's vibrancy, which would
+  // desaturate the red recording state (same reason as MenuToggleControl).
+  override var allowsVibrancy: Bool { false }
+
+  override func updateTrackingAreas() {
+    super.updateTrackingAreas()
+    for area in trackingAreas { removeTrackingArea(area) }
+    addTrackingArea(
+      NSTrackingArea(
+        rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+        owner: self, userInfo: nil))
+  }
+
+  override func mouseEntered(with event: NSEvent) { isHovering = true }
+  override func mouseExited(with event: NSEvent) { isHovering = false }
+
+  override func draw(_ dirtyRect: NSRect) {
+    // Hover highlight: a rounded selection fill so the row reads as a real button,
+    // matching native menu-item selection (accent background, light content).
+    if isHovering {
+      let r = bounds.insetBy(dx: 5, dy: 1)
+      NSColor.selectedContentBackgroundColor.setFill()
+      NSBezierPath(roundedRect: r, xRadius: 4, yRadius: 4).fill()
+    }
+
+    let contentColor: NSColor =
+      isHovering
+      ? .alternateSelectedControlTextColor : (isActive ? .systemRed : .secondaryLabelColor)
+    let textColor: NSColor =
+      isHovering ? .alternateSelectedControlTextColor : (isActive ? .systemRed : .labelColor)
+
+    // Icon — red stop glyph while recording, lightbulb when idle.
+    let iconName = isActive ? "stop.circle.fill" : "lightbulb"
+    let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: isActive ? .semibold : .medium)
+      .applying(NSImage.SymbolConfiguration(paletteColors: [contentColor]))
+    if let img = NSImage(systemSymbolName: iconName, accessibilityDescription: title)?
+      .withSymbolConfiguration(cfg)
+    {
+      img.isTemplate = false
+      let s = img.size
+      let ix = 16 + (18 - s.width) / 2
+      let iy = (bounds.height - s.height) / 2
+      img.draw(in: NSRect(x: ix, y: iy, width: s.width, height: s.height))
+    }
+
+    // Label.
+    let font = NSFont.systemFont(ofSize: 13, weight: isActive ? .semibold : .regular)
+    let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: textColor, .font: font]
+    let str = NSAttributedString(string: title, attributes: attrs)
+    let textY = (bounds.height - str.size().height) / 2
+    str.draw(in: NSRect(x: 42, y: textY, width: bounds.width - 58, height: str.size().height))
+  }
+
+  override func mouseDown(with event: NSEvent) {
+    if let action = action, let target = target {
+      NSApp.sendAction(action, to: target, from: self)
+    }
+  }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   static var openMainWindow: (() -> Void)?
 
@@ -277,8 +372,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var statusBarItem: NSStatusItem?
   private var screenCaptureSwitch: MenuToggleControl?
   private var audioRecordingSwitch: MenuToggleControl?
-  private weak var captureIdeaMenuItem: NSMenuItem?
+  private weak var captureIdeaControl: IdeaCaptureItemControl?
   private var ideaCaptureObserver: NSObjectProtocol?
+  private var transcriptionStateObserver: NSObjectProtocol?
   private var relaunchOnLoginSuppressedForOnboarding = false
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -310,6 +406,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       forName: .ideaCaptureStateChanged, object: nil, queue: .main
     ) { [weak self] _ in
       MainActor.assumeIsolated { self?.updateCaptureIdeaMenuItem() }
+    }
+
+    // Keep the menu's Audio Recording switch live while the menu stays open: idea
+    // capture turns the mic on at start and can turn it back off at stop, both via
+    // .toggleTranscriptionRequested. Without this the switch only refreshes on the
+    // next menuWillOpen, so it looks stale mid-session.
+    transcriptionStateObserver = NotificationCenter.default.addObserver(
+      forName: .toggleTranscriptionRequested, object: nil, queue: .main
+    ) { [weak self] note in
+      MainActor.assumeIsolated {
+        let enabled =
+          (note.userInfo?["enabled"] as? Bool) ?? AssistantSettings.shared.transcriptionEnabled
+        self?.audioRecordingSwitch?.isOn = !AppState.isPaywalledEffective && enabled
+      }
     }
 
     // Refresh the "Auto" realtime-voice model pick from Artificial Analysis (daily, cached).
@@ -542,9 +652,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       guard let self = self else { return }
       Task { @MainActor in
         self.updateOnboardingLifecyclePolicy(reason: "user_defaults_changed")
-        self.applyDockIconVisibilityPolicy(reason: "user_defaults_changed")
       }
     }
+    // Dock-icon policy is driven by the explicit preference notification below (and the
+    // launch call), not by the catch-all UserDefaults observer above — so it only runs
+    // when the user actually changes the setting, not on every unrelated defaults write.
     dockIconVisibilityObserver = NotificationCenter.default.addObserver(
       forName: .dockIconVisibilityPreferenceDidChange,
       object: nil,
@@ -795,6 +907,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     if statusBarItem != nil {
       refreshMenuBarIcon()
     }
+
+    // Bringing the Dock icon back (.accessory -> .regular) is unreliable on its own:
+    // macOS frequently doesn't actually re-add the icon, and the switch drops the app
+    // behind whatever is frontmost. Re-assert activation on the next runloop tick (once
+    // the policy change has settled) and pull the main window back to the front, the
+    // same dance the launch path uses.
+    if policy == .regular {
+      DispatchQueue.main.async {
+        NSApp.activate(ignoringOtherApps: true)
+        _ = self.revealMainWindowIfAvailable()
+      }
+    }
   }
 
   private func makeMenuBarLogoIcon() -> NSImage {
@@ -958,18 +1082,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     audioRecordingItem.view = audioRecordingView
     menu.addItem(audioRecordingItem)
 
-    // idea-capture: one-shot quick capture (desktop has no pendant). Force-processes
+    // idea-capture: start/stop quick capture (desktop has no pendant). Force-processes
     // the in-progress conversation and files it under the "Ideas" folder. Only useful
-    // when signed in, since it hits the hosted backend.
+    // when signed in, since it hits the hosted backend. A custom control (not a stock
+    // NSMenuItem) so the click flips the row in place and keeps the menu open.
     if AuthState.shared.isSignedIn {
-      let captureIdeaItem = NSMenuItem(
-        title: "Capture Idea", action: #selector(captureIdeaFromMenu), keyEquivalent: "")
-      captureIdeaItem.target = self
+      let captureIdeaItem = NSMenuItem()
+      // Title is not drawn when a custom view is set, but VoiceOver/automation read it
+      // as the item's accessibility label (the control draws its own text, so without
+      // this the item would expose no label).
+      captureIdeaItem.title = "Capture Idea"
+      let control = IdeaCaptureItemControl(frame: NSRect(x: 0, y: 0, width: 260, height: 36))
+      control.target = self
+      control.action = #selector(captureIdeaFromMenu)
+      captureIdeaItem.view = control
       captureIdeaItem.toolTip =
         "Start recording an idea; click again to stop and save it to your Ideas folder"
       menu.addItem(captureIdeaItem)
-      captureIdeaMenuItem = captureIdeaItem
-      updateCaptureIdeaMenuItem()  // style for current (active/idle) state
+      captureIdeaControl = control
+      updateCaptureIdeaMenuItem()  // reflect current (active/idle) state
     }
 
     menu.addItem(NSMenuItem.separator())
@@ -1226,32 +1357,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     Task { await state.toggleIdeaCapture() }
   }
 
-  /// idea-capture: reflect session state on the menu item — a red "Stop Idea Capture"
-  /// (with a red stop glyph) while recording, vs "Capture Idea" when idle.
+  /// idea-capture: reflect session state on the menu row — the control repaints itself
+  /// to the red "Stop Idea Capture" state while recording, vs "Capture Idea" when idle.
   @MainActor private func updateCaptureIdeaMenuItem() {
-    guard let item = captureIdeaMenuItem else { return }
-    let active = AppState.current?.isIdeaCaptureActive ?? false
-    if active {
-      item.attributedTitle = NSAttributedString(
-        string: "Stop Idea Capture",
-        attributes: [
-          .foregroundColor: NSColor.systemRed,
-          .font: NSFont.systemFont(ofSize: 14, weight: .semibold),
-        ])
-      let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-        .applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
-      let img = NSImage(
-        systemSymbolName: "stop.circle.fill", accessibilityDescription: "Stop Idea Capture")?
-        .withSymbolConfiguration(cfg)
-      img?.isTemplate = false
-      item.image = img
-    } else {
-      item.attributedTitle = nil
-      item.title = "Capture Idea"
-      let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-      item.image = NSImage(systemSymbolName: "lightbulb", accessibilityDescription: "Capture Idea")?
-        .withSymbolConfiguration(cfg)
-    }
+    captureIdeaControl?.isActive = AppState.current?.isIdeaCaptureActive ?? false
   }
 
   // idea-capture: reveal the Ideas folder in the main window. Invoked when the user
