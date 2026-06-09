@@ -1,6 +1,8 @@
 {
   "unreleased": [
-    "Reworked menu-bar Capture Idea into a start/stop toggle that records an idea (turning the mic on automatically), then saves it to your Ideas folder with an on-screen confirmation"
+    "Reworked menu-bar Capture Idea into a start/stop toggle that records an idea (turning the mic on automatically), then saves it to your Ideas folder with an on-screen confirmation",
+    "Fixed the Dock Icon setting: re-enabling now reliably brings the icon back and keeps the window in front instead of dropping it behind other apps",
+    "Made the General > Dock Icon switch read intuitively (on = icon visible)"
   ],
   "releases": [
     {
