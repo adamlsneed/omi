@@ -904,6 +904,10 @@ class CaptureProvider extends ChangeNotifier
   /// force-processes the captured window (bypassing the short-conversation
   /// discard) and files it under "Ideas".
   Future<void> toggleIdeaCaptureMode(String deviceId) async {
+    if (_isProcessingButtonEvent) {
+      Logger.debug('idea-capture: already processing, ignoring app toggle');
+      return;
+    }
     _isProcessingButtonEvent = true;
     try {
       if (!_ideaCaptureActive) {
