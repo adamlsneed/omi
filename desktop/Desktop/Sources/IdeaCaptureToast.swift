@@ -16,6 +16,13 @@ final class IdeaCaptureToast {
   private var dismissWork: DispatchWorkItem?
   private var onTap: (@MainActor () -> Void)?
 
+  /// idea-capture: click detection for the "tap to open" toast. The panel is borderless,
+  /// non-activating, and usually shown while another app is frontmost, so AppKit does not
+  /// route a click's mouseDown into it (the click lands on the panel but is never
+  /// delivered to a view, no matter the acceptsFirstMouse / canBecomeKey flags). Detect
+  /// the tap by location with event monitors instead, which fire regardless of key state.
+  private var clickMonitors: [Any] = []
+
   /// Show a toast top-center on the active display. `onTap`, when set, runs if the
   /// user clicks the toast (and dismisses it) — used to jump to the Ideas folder.
   /// Fixed window size — avoids any auto-sizing path. Letting AppKit resize a
@@ -32,10 +39,7 @@ final class IdeaCaptureToast {
     self.onTap = onTap
 
     let content = ToastView(
-      symbol: symbol, title: title, message: message,
-      tappable: onTap != nil,
-      onTap: { [weak self] in self?.handleTap() }
-    )
+      symbol: symbol, title: title, message: message, tappable: onTap != nil)
     let hosting = NSHostingView(rootView: content)
     hosting.sizingOptions = []  // never impose content-size constraints on the window
     hosting.translatesAutoresizingMaskIntoConstraints = true
@@ -62,6 +66,12 @@ final class IdeaCaptureToast {
       panel.animator().alphaValue = 1
     }
 
+    if onTap != nil {
+      installClickMonitors()
+    } else {
+      removeClickMonitors()
+    }
+
     dismissWork?.cancel()
     guard autoDismiss else { return }
     let work = DispatchWorkItem { [weak self] in self?.dismiss() }
@@ -69,8 +79,36 @@ final class IdeaCaptureToast {
     DispatchQueue.main.asyncAfter(deadline: .now() + 2.8, execute: work)
   }
 
+  /// idea-capture: watch for a left click on the toast. The global monitor catches clicks
+  /// while another app is frontmost; the local one while this app is. A click inside the
+  /// toast frame triggers onTap; anything else is ignored.
+  private func installClickMonitors() {
+    removeClickMonitors()
+    let global = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] _ in
+      MainActor.assumeIsolated { self?.handleMonitorClick() }
+    }
+    let local = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+      MainActor.assumeIsolated { self?.handleMonitorClick() }
+      return event
+    }
+    clickMonitors = [global, local].compactMap { $0 }
+  }
+
+  private func removeClickMonitors() {
+    for monitor in clickMonitors { NSEvent.removeMonitor(monitor) }
+    clickMonitors.removeAll()
+  }
+
+  private func handleMonitorClick() {
+    guard onTap != nil, let panel = panel, panel.isVisible else { return }
+    if panel.frame.contains(NSEvent.mouseLocation) { handleTap() }
+  }
+
   private func handleTap() {
+    removeClickMonitors()
     let action = onTap
+    onTap = nil  // guard against a second monitor callback for the same click
+    log("IdeaCaptureToast: tap received")
     dismiss()
     action?()
   }
@@ -78,6 +116,7 @@ final class IdeaCaptureToast {
   private func dismiss() {
     dismissWork?.cancel()
     dismissWork = nil
+    removeClickMonitors()
     guard let panel = panel else { return }
     NSAnimationContext.runAnimationGroup(
       { ctx in
@@ -116,7 +155,6 @@ private struct ToastView: View {
   let title: String
   let message: String
   let tappable: Bool
-  let onTap: @MainActor () -> Void
 
   var body: some View {
     ZStack {
@@ -153,7 +191,5 @@ private struct ToastView: View {
     }
     .padding(14)  // room inside the transparent window for the shadow
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .contentShape(Rectangle())
-    .onTapGesture { if tappable { onTap() } }
   }
 }
