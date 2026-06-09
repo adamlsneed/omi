@@ -69,8 +69,6 @@ for mod_name in [
     if mod_name not in sys.modules:
         _stub_module(mod_name)
 
-sys.modules["database.redis_db"].try_acquire_user_platform_write_lock = MagicMock(return_value=True)
-
 # Stub google.cloud.firestore sentinels
 firestore_stub = sys.modules["google.cloud.firestore"]
 firestore_stub.Increment = lambda x: f"__increment_{x}__"
@@ -1696,7 +1694,7 @@ class TestGenerateTitleEndpoint:
             session_id='s1',
             messages=[TitleMessageInput(text='hi', sender='human'), TitleMessageInput(text='hello', sender='ai')],
         )
-        with patch.dict('sys.modules', {'utils.llm.clients': MagicMock(get_llm=MagicMock(return_value=mock_llm))}):
+        with patch.dict('sys.modules', {'utils.llm.clients': MagicMock(llm_mini=mock_llm)}):
             result = generate_session_title(request, uid='u1')
 
         assert result == {'title': 'Project Discussion'}
@@ -1715,7 +1713,7 @@ class TestGenerateTitleEndpoint:
             session_id='s1',
             messages=[TitleMessageInput(text='hi', sender='human')],
         )
-        with patch.dict('sys.modules', {'utils.llm.clients': MagicMock(get_llm=MagicMock(return_value=mock_llm))}):
+        with patch.dict('sys.modules', {'utils.llm.clients': MagicMock(llm_mini=mock_llm)}):
             result = generate_session_title(request, uid='u1')
 
         assert result == {'title': 'New Chat'}

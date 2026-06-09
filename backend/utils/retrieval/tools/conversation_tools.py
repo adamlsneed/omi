@@ -31,25 +31,6 @@ except ImportError:
     agent_config_context = contextvars.ContextVar('agent_config', default=None)
 
 
-def _resolve_tool_config(config: Optional[RunnableConfig], tool_name: str) -> Optional[RunnableConfig]:
-    if config is not None:
-        try:
-            if config.get('configurable', {}).get('user_id'):
-                return config
-        except AttributeError:
-            pass
-
-    try:
-        context_config = agent_config_context.get()
-        if context_config and context_config.get('configurable', {}).get('user_id'):
-            logger.info(f"🔧 {tool_name} - got config from context variable")
-            return context_config
-    except (AttributeError, LookupError):
-        logger.warning(f"❌ {tool_name} - config not found in context variable")
-
-    return config
-
-
 @tool
 def get_conversations_tool(
     start_date: Optional[str] = None,
@@ -122,8 +103,15 @@ def get_conversations_tool(
     logger.info(f"   include_timestamps: {include_timestamps}")
     # print(f"   config: {config}")
 
-    # LangChain may pass a non-null config without our configurable user context.
-    config = _resolve_tool_config(config, 'get_conversations_tool')
+    # Get config from parameter or context variable (like other tools do)
+    if config is None:
+        try:
+            config = agent_config_context.get()
+            if config:
+                logger.info(f"🔧 get_conversations_tool - got config from context variable")
+        except LookupError:
+            logger.warning(f"❌ get_conversations_tool - config not found in context variable")
+            config = None
 
     if config is None:
         logger.info(f"❌ get_conversations_tool - config is None")
@@ -345,8 +333,15 @@ def search_conversations_tool(
     """
     logger.info(f"🔧 search_conversations_tool called with query: {query}")
 
-    # LangChain may pass a non-null config without our configurable user context.
-    config = _resolve_tool_config(config, 'search_conversations_tool')
+    # Get config from parameter or context variable (like other tools do)
+    if config is None:
+        try:
+            config = agent_config_context.get()
+            if config:
+                logger.info(f"🔧 search_conversations_tool - got config from context variable")
+        except LookupError:
+            logger.warning(f"❌ search_conversations_tool - config not found in context variable")
+            config = None
 
     if config is None:
         logger.info(f"❌ search_conversations_tool - config is None")

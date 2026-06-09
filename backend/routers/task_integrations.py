@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
 import os
 import secrets
@@ -139,8 +139,6 @@ class TaskIntegrationData(BaseModel):
     connected: bool = True
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
-    auto_export_enabled: Optional[bool] = None
-    auto_export_disabled_sources: Optional[List[str]] = None
 
     # Asana-specific fields
     user_gid: Optional[str] = None

@@ -438,14 +438,10 @@ class TestConversationToolFiltering:
         conversations_db.get_conversations = MagicMock(return_value=data)
         users_db.get_people_by_ids = MagicMock(return_value=[])
 
-        from utils.retrieval.tools import conversation_tools
+        from utils.retrieval.tools.conversation_tools import get_conversations_tool
 
         config = {'configurable': {'user_id': 'test-uid', 'conversations_collected': []}}
-        token = conversation_tools.agent_config_context.set(config)
-        try:
-            result = conversation_tools.get_conversations_tool.invoke({'limit': 10, 'offset': 0})
-        finally:
-            conversation_tools.agent_config_context.reset(token)
+        result = get_conversations_tool.invoke({'limit': 10, 'offset': 0}, config=config)
         # Result is a string with "Conversation #N" format; should have exactly 1 conversation
         assert 'Conversation #1' in result
         assert 'Conversation #2' not in result  # Only 1 unlocked conv should appear
@@ -464,14 +460,10 @@ class TestConversationToolFiltering:
         vector_db.query_vectors = MagicMock(return_value=[{'id': 'conv-1'}, {'id': 'conv-2'}])
         users_db.get_people_by_ids = MagicMock(return_value=[])
 
-        from utils.retrieval.tools import conversation_tools
+        from utils.retrieval.tools.conversation_tools import search_conversations_tool
 
         config = {'configurable': {'user_id': 'test-uid', 'conversations_collected': []}}
-        token = conversation_tools.agent_config_context.set(config)
-        try:
-            result = conversation_tools.search_conversations_tool.invoke({'query': 'test'})
-        finally:
-            conversation_tools.agent_config_context.reset(token)
+        result = search_conversations_tool.invoke({'query': 'test'}, config=config)
         # Only 1 unlocked conv should appear
         assert 'Conversation #1' in result
         assert 'Conversation #2' not in result
@@ -495,14 +487,10 @@ class TestMemoryToolFiltering:
         unlocked_mem['content'] = 'UNLOCKED_VISIBLE_CONTENT'
         memory_db.get_memories = MagicMock(return_value=[locked_mem, unlocked_mem])
 
-        from utils.retrieval.tools import memory_tools
+        from utils.retrieval.tools.memory_tools import get_memories_tool
 
         config = {'configurable': {'user_id': 'test-uid'}}
-        token = memory_tools.agent_config_context.set(config)
-        try:
-            result = memory_tools.get_memories_tool.invoke({'limit': 10, 'offset': 0})
-        finally:
-            memory_tools.agent_config_context.reset(token)
+        result = get_memories_tool.invoke({'limit': 10, 'offset': 0}, config=config)
         # Only unlocked memory content should appear; locked must be filtered
         assert 'UNLOCKED_VISIBLE_CONTENT' in result
         assert 'LOCKED_SECRET_CONTENT' not in result
@@ -1338,8 +1326,7 @@ class TestSuggestGoalLockFilter:
         mock_track.__exit__ = MagicMock(return_value=False)
 
         with patch('utils.llm.goals.track_usage', return_value=mock_track):
-            with patch('utils.llm.goals.get_llm') as mock_get_llm:
-                mock_llm = mock_get_llm.return_value
+            with patch('utils.llm.goals.llm_mini') as mock_llm:
                 mock_llm.invoke.return_value = mock_llm_response
 
                 from utils.llm.goals import suggest_goal

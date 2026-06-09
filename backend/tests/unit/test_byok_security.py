@@ -31,10 +31,6 @@ sys.modules.setdefault('database.llm_usage', MagicMock())
 sys.modules.setdefault('database.announcements', MagicMock())
 sys.modules.setdefault('utils.other.storage', MagicMock())
 
-import database as _database_pkg
-
-_database_pkg.users = sys.modules['database.users']
-
 import warnings
 
 from langchain_openai import ChatOpenAI
