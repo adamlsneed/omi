@@ -132,19 +132,17 @@ The desktop app is a **Swift Package Manager** project (no Xcode project, no `.x
 - Release builds are handled entirely by Codemagic CI (no local release script).
 - For PRs that change function signatures or cross-file types, run a clean release build before merge: `cd desktop && rm -rf .build && xcrun swift build -c release --triple arm64-apple-macosx` — incremental debug builds miss stale-cache type errors that Codemagic's clean release build catches later.
 
-#### Named Test Bundles
+#### Local Deploys Always Target "Omi Dev"
 
-When testing a feature or fix, **always create a separate named bundle** so it runs side-by-side with dev/prod:
+All local deploys go to the single existing install, on top of it:
 ```bash
-cd desktop && OMI_APP_NAME="omi-fix-rewind" ./run.sh
+cd desktop && ./run.sh
 ```
-This installs `/Applications/omi-fix-rewind.app` with bundle id `com.omi.omi-fix-rewind`, with its own permissions, database, and auth state.
+This builds and installs `/Applications/Omi Dev.app` (bundle id `com.omi.desktop-dev`), replacing the previous deploy. Permissions, database, and auth state persist across deploys.
 
 Rules:
-- **ALWAYS prefix the name with `omi-`** (e.g. `omi-fix-rewind`, `omi-vision-test`) so bundles group together in `/Applications/`.
-- NEVER use bare `./run.sh` when testing a specific change — it overwrites "Omi Dev".
+- **NEVER use `OMI_APP_NAME` for local deploys.** Do not create named bundles (`omi-<feature>` etc.) — always deploy as "Omi Dev" over the existing install.
 - NEVER kill or interfere with "Omi", "Omi Beta" — those are production installs.
-- Keep app name and bundle suffix identical (e.g. `omi-search.app` → `com.omi.omi-search`).
 
 #### Self-Testing the App (end-to-end)
 
@@ -152,19 +150,14 @@ Rules:
 
 Agents can and should self-test the running app — don't stop at a successful compile. The fast path skips the slow parts (web login, sidebar click-through):
 
-1. **Build + launch a named bundle:** `cd desktop && OMI_APP_NAME="omi-<feature>" ./run.sh` (add `OMI_SKIP_TUNNEL=1` for a local backend without a tunnel; `OMI_SKIP_BACKEND=1 OMI_DESKTOP_API_URL=…` to point at a remote backend).
-2. **Boot signed-in (no browser):** sign into "Omi Dev" once, then clone the session into the named bundle **before launch** (UserDefaults is read at startup):
-   ```bash
-   cd desktop && ./scripts/omi-auth-dump.sh                  # capture the Omi Dev session
-   ./scripts/omi-auth-seed.sh com.omi.omi-<feature>          # replay into the test bundle
-   ```
-   On next launch `restoreAuthState()` picks it up and boots already-signed-in.
+1. **Build + launch:** `cd desktop && ./run.sh` — deploys as "Omi Dev" on top of the existing install (add `OMI_SKIP_TUNNEL=1` for a local backend without a tunnel; `OMI_SKIP_BACKEND=1 OMI_DESKTOP_API_URL=…` to point at a remote backend). Never use `OMI_APP_NAME`.
+2. **Boot signed-in (no browser):** "Omi Dev" keeps its auth state between deploys, so once it's signed in, redeploys boot already-signed-in.
 3. **Inspect / drive the app:**
    - **Prefer the local bridge — it never touches the cursor.** It calls the app's real code in-process (no synthetic mouse events), so it won't take over the user's machine. Use it before reaching for `agent-swift click`/`cliclick`/computer-use. Auto-enables on non-prod bundles; run several at once by giving each its own `OMI_AUTOMATION_PORT` (default 47777).
    - `./scripts/omi-ctl state` — app-state snapshot (selected tab, auth, onboarding).
    - `./scripts/omi-ctl navigate <screen> [settings-section]` — jump straight to a screen in ~150ms (`omi-ctl screens` lists targets).
    - `./scripts/omi-ctl actions` then `./scripts/omi-ctl action <name> [k=v …]` — discover and run semantic actions (e.g. `refresh_all_data`, `toggle_transcription enabled=false`). Add new ones in `DesktopAutomationActionRegistry`. See `desktop/e2e/SKILL.md` §2b.
-   - `agent-swift connect --bundle-id com.omi.omi-<feature>` then `snapshot -i`, `find role textfield fill "…"`, `click @eN`, `screenshot /tmp/evidence.png` — only for UI the bridge can't reach yet (`click` moves the cursor).
+   - `agent-swift connect --bundle-id com.omi.desktop-dev` then `snapshot -i`, `find role textfield fill "…"`, `click @eN`, `screenshot /tmp/evidence.png` — only for UI the bridge can't reach yet (`click` moves the cursor).
 4. **Read logs to confirm behavior:**
    - App + chat bridge: `/private/tmp/omi-dev.log` (dev builds) or `/private/tmp/omi.log`.
    - Local Rust backend: stdout of the `./run.sh` process.
@@ -176,8 +169,8 @@ Agents can and should self-test the running app — don't stop at a successful c
 After any Swift UI edit, verify programmatically with [agent-swift](https://github.com/beastoin/agent-swift) (macOS Accessibility API, no app-side instrumentation). Install once: `brew install beastoin/tap/agent-swift`; grant Accessibility permission to Terminal.app.
 
 Edit → Verify → Evidence loop:
-1. Edit code, rebuild + launch: `cd desktop && OMI_APP_NAME="omi-<feature>" ./run.sh`
-2. Connect: `agent-swift connect --bundle-id com.omi.omi-<feature>`
+1. Edit code, rebuild + launch: `cd desktop && ./run.sh` (deploys as "Omi Dev" over the existing install)
+2. Connect: `agent-swift connect --bundle-id com.omi.desktop-dev`
 3. Verify: `agent-swift snapshot -i` (interactive elements only)
 4. Interact: `agent-swift click @e3` / `fill @e5 "text"` / `find role button click`
 5. Assert: `agent-swift is exists @e3` / `wait text "Settings"`

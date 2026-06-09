@@ -113,25 +113,21 @@ See `.claude/settings.json` for connection details.
 - **"Omi Beta"** (bundle ID: `com.omi.computer-macos`) is built by Codemagic CI only
 - To check which app is currently running: `ps aux | grep "Omi"`
 
-### Testing with Named Bundles
-When the user asks to test a feature or bug fix, **always create a separate named bundle** so it can run side-by-side with the existing dev/prod apps:
+### Local Deploys Always Target "Omi Dev"
+When testing a feature or bug fix, **always deploy as "Omi Dev" on top of the existing install**:
 ```bash
-OMI_APP_NAME="omi-fix-rewind" ./run.sh
+./run.sh
 ```
-This creates `/Applications/omi-fix-rewind.app` with bundle ID `com.omi.omi-fix-rewind`, completely independent of "Omi Dev" and "Omi Beta". Name it after the feature/bug being tested. The user can then run multiple test builds simultaneously without interfering with each other or the production app.
+This rebuilds and replaces `/Applications/Omi Dev.app` (bundle ID: `com.omi.desktop-dev`). Permissions, database, and auth state persist across deploys, so once signed in it boots already-signed-in.
 
 **Rules:**
-- NEVER use the default `./run.sh` (which overwrites "Omi Dev") when testing a specific feature — always set `OMI_APP_NAME`
-- **ALWAYS prefix the name with `omi-`** (e.g., `omi-fix-rewind`, `omi-6512-polling`, `omi-vision-test`) so named bundles are visually grouped in `/Applications/` alongside "Omi Dev" and "Omi Beta"
-- Keep the name short and descriptive (it becomes both the app name and bundle ID suffix)
-- The named bundle gets its own permissions, database, and auth state — the user may need to re-grant permissions and sign in
-- To connect agent-swift: `agent-swift connect --bundle-id com.omi.omi-fix-rewind`
-- **Skip the web login:** sign into "Omi Dev" once, then `./scripts/omi-auth-dump.sh && ./scripts/omi-auth-seed.sh com.omi.omi-fix-rewind` clones the session so the named bundle boots signed-in
+- **NEVER use `OMI_APP_NAME` for local deploys** — do not create named bundles (`omi-<feature>` etc.); always deploy as "Omi Dev" over the existing install
+- To connect agent-swift: `agent-swift connect --bundle-id com.omi.desktop-dev`
 - **Jump to a screen without clicking:** the automation bridge auto-enables on non-prod bundles — `./scripts/omi-ctl navigate <screen>` (e.g. `rewind`, `memories`, `settings rewind`). See "Fast-Path for Local Iteration" in `e2e/SKILL.md`.
 
 ### After Implementing Changes
 - `xcrun swift build` is for **compile checks only** — it does NOT start the backend
-- To actually test, ALWAYS use `./run.sh` with `OMI_APP_NAME` — it starts Rust backend + Cloudflare tunnel + Swift app together
+- To actually test, ALWAYS use `./run.sh` (deploys as "Omi Dev") — it starts Rust backend + Cloudflare tunnel + Swift app together
 - **When the user says "test it"**, use the `test-local` skill to build, run, and verify via macOS automation
 
 ### Verifying UI Changes (agent-swift)

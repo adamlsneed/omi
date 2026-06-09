@@ -81,10 +81,9 @@ Useful variants:
 OMI_SKIP_TUNNEL=1 ./run.sh
 OMI_SKIP_BACKEND=1 OMI_DESKTOP_API_URL=https://desktop-backend.example.com ./run.sh
 ./run.sh --yolo
-OMI_APP_NAME="search" ./run.sh
 ```
 
-Named app builds must keep the app name and bundle suffix aligned. `OMI_APP_NAME="search"` produces `search.app`, bundle id `com.omi.search`, and URL scheme `omi-search`.
+Local deploys always target "Omi Dev" (`/Applications/Omi Dev.app`, bundle id `com.omi.desktop-dev`), replacing the existing install. Do not use `OMI_APP_NAME` to deploy under another name.
 
 ## Build Notes
 
@@ -144,7 +143,7 @@ For named builds, replace `BUNDLE_ID` with `com.omi.<name-slug>`. After resettin
 ## Troubleshooting
 
 - Missing backend credentials: use `./run.sh --yolo` for hosted mode, or copy a service account JSON to `desktop/Backend-Rust/google-credentials.json` when running the local Rust backend.
-- OAuth callback opens the wrong app: remove stale copies from Downloads/Desktop, run `./run.sh`, and verify the named bundle id and URL scheme match.
+- OAuth callback opens the wrong app: remove stale copies from Downloads/Desktop, run `./run.sh`, and verify the bundle id and URL scheme match.
 - Screen Recording says granted but capture fails: reset ScreenCapture for the active bundle id, reinstall through `run.sh`, then grant again in System Settings.
 - Menu bar icon is missing or generic: remove stale DMG/app copies and relaunch from `/Applications/`.
 - Auth works once then fails after rebuild: confirm `FIREBASE_API_KEY` and `OMI_PYTHON_API_URL` are present in the env copied into the app bundle.

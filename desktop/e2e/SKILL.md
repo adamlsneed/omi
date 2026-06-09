@@ -12,14 +12,8 @@ This skill teaches you the Omi desktop macOS app's navigation structure, screen 
 
 Two things make iterating on the desktop app slow: signing in (web OAuth) and clicking through the UI to reach a screen. Both are solved — use these before reaching for `agent-swift`.
 
-### 1. Skip the web login (seed auth once, reuse forever)
-Dev/named bundles store auth in UserDefaults (not Keychain), so a signed-in session can be cloned between bundles. Sign in **once** in "Omi Dev", then replay it into any test bundle:
-```bash
-cd desktop
-./scripts/omi-auth-dump.sh                                  # capture Omi Dev's session -> tmp/desktop-auth.json
-./scripts/omi-auth-seed.sh com.omi.omi-myfeature           # replay into a named bundle (run BEFORE launch)
-```
-The seeded bundle boots already signed-in and past onboarding — no browser. The captured Firebase idToken expires (~1h); re-run `omi-auth-dump.sh` after signing in again if backend calls start 401ing. **Scope:** this is for dev iteration only — when validating the onboarding or auth flows themselves (or running flow-walker E2E), use the real flow per Guard Conditions below.
+### 1. Skip the web login
+Local deploys always target "Omi Dev" (`com.omi.desktop-dev`), installing on top of the existing app — never deploy under another name with `OMI_APP_NAME`. "Omi Dev" stores auth in UserDefaults and keeps it across redeploys, so sign in **once** and every later `./run.sh` boots already signed-in and past onboarding — no browser. If backend calls start 401ing, sign in again. **Scope:** this is for dev iteration only — when validating the onboarding or auth flows themselves (or running flow-walker E2E), use the real flow per Guard Conditions below.
 
 ### 2. Jump straight to any screen (automation bridge)
 The app runs a local HTTP control bridge (`DesktopAutomationBridge.swift`) that **auto-enables on every non-production bundle** (off on prod). `scripts/omi-ctl` drives it — jump to a screen in ~150ms instead of clicking through the sidebar:
@@ -30,7 +24,7 @@ The app runs a local HTTP control bridge (`DesktopAutomationBridge.swift`) that 
 ./scripts/omi-ctl state                       # read selected tab / auth / onboarding state as JSON
 ./scripts/omi-ctl screens                     # list valid targets
 ```
-Disable with `OMI_DISABLE_LOCAL_AUTOMATION=1` to run a dev build "clean". Running several named bundles at once? Give each its own `OMI_AUTOMATION_PORT` (default 47777).
+Disable with `OMI_DISABLE_LOCAL_AUTOMATION=1` to run a dev build "clean".
 
 ### 2b. Run semantic actions (cursor-free, in-process)
 Beyond navigation, the bridge exposes named **actions** that invoke the app's real
@@ -50,11 +44,10 @@ the resulting state snapshot.
 ### The full loop
 ```bash
 cd desktop
-OMI_APP_NAME="omi-myfeature" ./run.sh &                 # build + launch once
-./scripts/omi-auth-seed.sh com.omi.omi-myfeature        # (first run, or after re-dump) — relaunch to apply
+./run.sh &                                               # build + launch (deploys as "Omi Dev" over the existing install; never use OMI_APP_NAME)
 ./scripts/omi-ctl wait-ready
 ./scripts/omi-ctl navigate memories                      # jump to the screen you changed
-agent-swift connect --bundle-id com.omi.omi-myfeature    # then drive/inspect with agent-swift
+agent-swift connect --bundle-id com.omi.desktop-dev      # then drive/inspect with agent-swift
 agent-swift snapshot -i --json
 ```
 After a code change, an incremental `xcrun swift build` + relaunch is fast — the slow parts (login, navigation) are gone. For pure visual checks without launching at all, SwiftUI snapshot tests are an option, but most pages are entangled with `AppState.shared`/Firebase singletons, so the live-app bridge loop above is usually the better path.

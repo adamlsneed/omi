@@ -57,7 +57,7 @@ Use these defaults during conflict resolution:
 | --- | --- | --- |
 | Hosted backend URLs and auth | Keep BasedHardware production hosted config | Adam's paid subscription depends on hosted Omi services |
 | Desktop Rust backend API/paywall/BYOK code | Prefer upstream unless fork behavior is explicit | Upstream owns current subscription and service contracts |
-| Python backend routes, payments, subscription plans | Prefer upstream unless editing a fork feature | Hosted backend compatibility matters more than local drift |
+| Python backend (`backend/`) | Always take upstream exactly: after the merge, `git checkout upstream/main -- backend/`, delete fork-only backend files, commit with `--no-verify` so the format hook cannot reintroduce drift | The fork never modifies `backend/`; it runs against BasedHardware's hosted backend |
 | Mobile task, reminders, and local UX features | Preserve fork additions | These are Adam's fork-specific product changes |
 | L10n ARB and generated Dart files | Start from upstream and add fork keys back | Avoid losing upstream translations while keeping local UI strings |
 | Firmware protocol, BLE, storage, and sync | Prefer upstream | Devices need current BasedHardware protocol behavior |
@@ -108,6 +108,7 @@ OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app
 Practical rules:
 
 - Prefer `desktop/run.sh --yolo` for desktop app testing.
+- Local desktop deploys always target "Omi Dev" (`/Applications/Omi Dev.app`, bundle id `com.omi.desktop-dev`), installing on top of the existing app. Never set `OMI_APP_NAME` to deploy under another name.
 - Keep mobile `.env` and `.dev.env` pointed at `https://api.omi.me/` for subscription-backed testing.
 - Do not replace hosted endpoints with personal tunnels, local URLs, or private service deployments in committed files.
 - Use local Python or Rust backend URLs only inside ignored environment files and only for backend-specific debugging.
