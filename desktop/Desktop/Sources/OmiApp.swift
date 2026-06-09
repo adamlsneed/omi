@@ -374,6 +374,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
   private var audioRecordingSwitch: MenuToggleControl?
   private weak var captureIdeaControl: IdeaCaptureItemControl?
   private var ideaCaptureObserver: NSObjectProtocol?
+  private var transcriptionStateObserver: NSObjectProtocol?
   private var relaunchOnLoginSuppressedForOnboarding = false
 
   func applicationDidFinishLaunching(_ notification: Notification) {
@@ -405,6 +406,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       forName: .ideaCaptureStateChanged, object: nil, queue: .main
     ) { [weak self] _ in
       MainActor.assumeIsolated { self?.updateCaptureIdeaMenuItem() }
+    }
+
+    // Keep the menu's Audio Recording switch live while the menu stays open: idea
+    // capture turns the mic on at start and can turn it back off at stop, both via
+    // .toggleTranscriptionRequested. Without this the switch only refreshes on the
+    // next menuWillOpen, so it looks stale mid-session.
+    transcriptionStateObserver = NotificationCenter.default.addObserver(
+      forName: .toggleTranscriptionRequested, object: nil, queue: .main
+    ) { [weak self] note in
+      MainActor.assumeIsolated {
+        let enabled =
+          (note.userInfo?["enabled"] as? Bool) ?? AssistantSettings.shared.transcriptionEnabled
+        self?.audioRecordingSwitch?.isOn = !AppState.isPaywalledEffective && enabled
+      }
     }
 
     // Refresh the "Auto" realtime-voice model pick from Artificial Analysis (daily, cached).
