@@ -2055,6 +2055,15 @@ class AppState: ObservableObject {
       return
     }
 
+    // Flip state and confirm immediately so the click registers instantly — the menu
+    // row flips to "Stop Idea Capture" in place and the toast appears now, before the
+    // mic spin-up and the boundary-cutting network call below.
+    isIdeaCaptureActive = true
+    NotificationCenter.default.post(name: .ideaCaptureStateChanged, object: nil)
+    IdeaCaptureToast.shared.show(
+      symbol: "record.circle.fill", title: "Recording idea…",
+      message: "Click \u{201C}Stop Idea Capture\u{201D} in the menu when you\u{2019}re done.")
+
     micEnabledBeforeIdeaCapture = AssistantSettings.shared.transcriptionEnabled
     if !AssistantSettings.shared.transcriptionEnabled {
       AssistantSettings.shared.transcriptionEnabled = true
@@ -2063,12 +2072,6 @@ class AppState: ObservableObject {
     }
     // Close any prior in-progress conversation so the idea starts fresh.
     _ = try? await APIClient.shared.forceProcessConversation()
-
-    isIdeaCaptureActive = true
-    NotificationCenter.default.post(name: .ideaCaptureStateChanged, object: nil)
-    IdeaCaptureToast.shared.show(
-      symbol: "record.circle.fill", title: "Recording idea…",
-      message: "Click \u{201C}Stop Idea Capture\u{201D} in the menu when you\u{2019}re done.")
   }
 
   /// idea-capture: stop the session, file what was recorded under "Ideas", and restore
