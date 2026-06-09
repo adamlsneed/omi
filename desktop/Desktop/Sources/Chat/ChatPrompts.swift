@@ -1170,7 +1170,6 @@ struct ChatPrompts {
     static let schemaFooter = """
     **FTS5 full-text search tables** (use MATCH for keyword search, BM25 for ranking):
     - screenshots_fts(ocrText, windowTitle, appName)
-    - screenshots.captureTrigger records why the frame was captured; screenshots.textSource records whether text came from OCR, accessibility, hybrid, deferred OCR, or no text.
     - action_items_fts(description)
     - staged_tasks_fts(description)
     - task_chat_messages_fts(messageText)

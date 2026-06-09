@@ -510,7 +510,9 @@ struct ConversationDetailView: View {
 
         do {
             try await APIClient.shared.updateConversationTitle(id: conversation.id, title: newTitle)
-            loadedConversation = ConversationTitleUpdatePolicy.updatedConversation(displayConversation, title: newTitle)
+            var updated = displayConversation
+            updated.structured.title = newTitle
+            loadedConversation = updated
             try? await TranscriptionStorage.shared.updateTitleByBackendId(conversation.id, title: newTitle)
             onTitleUpdated?(newTitle)
         } catch {

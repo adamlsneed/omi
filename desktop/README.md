@@ -95,13 +95,11 @@ xcrun swift build -c debug --package-path Desktop
 
 Do not use bare `swift build` from `desktop/`; it can pick the wrong SDK/toolchain.
 
-## Signed DMG And Release
+## Signed Release (fork)
 
-Local development builds are installed by `run.sh`. Production releases are created by CI:
-
-1. GitHub Actions tags `desktop/**` changes.
-2. Codemagic builds a universal binary, signs with Developer ID, notarizes, creates the DMG and Sparkle ZIP, uploads artifacts, and registers release metadata.
-3. Sparkle serves updates from the Rust backend appcast route.
+Local development builds are installed by `run.sh`. Upstream's CI release pipeline
+(GitHub Actions tag + Codemagic + Sparkle) is disabled in this fork; releases are cut
+manually with `./release.sh --bump` and distributed via Homebrew. See [`RELEASE.md`](RELEASE.md).
 
 DMG resources live in `dmg-assets/`. Release entitlements live in `Desktop/Omi-Release.entitlements`.
 

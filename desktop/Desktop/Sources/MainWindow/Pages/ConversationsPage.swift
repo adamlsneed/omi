@@ -116,7 +116,9 @@ struct ConversationsPage: View {
             }
           },
           onTitleUpdated: { title in
-            selectedConversation = ConversationTitleUpdatePolicy.updatedConversation(selected, title: title)
+            var updated = selected
+            updated.structured.title = title
+            selectedConversation = updated
             appState.updateConversationTitle(selected.id, title: title)
 
             // Refresh to get updated data if conversation still exists

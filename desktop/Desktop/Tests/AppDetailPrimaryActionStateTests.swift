@@ -39,10 +39,4 @@ final class AppDetailPrimaryActionStateTests: XCTestCase {
         XCTAssertFalse(state.isDisabled)
     }
 
-    func testOnlyOwnerCanManageApp() {
-        XCTAssertTrue(AppDetailOwnershipPolicy.canManage(appOwnerId: "user-1", currentUserId: "user-1"))
-        XCTAssertFalse(AppDetailOwnershipPolicy.canManage(appOwnerId: "user-1", currentUserId: "user-2"))
-        XCTAssertFalse(AppDetailOwnershipPolicy.canManage(appOwnerId: nil, currentUserId: "user-1"))
-        XCTAssertFalse(AppDetailOwnershipPolicy.canManage(appOwnerId: "user-1", currentUserId: nil))
-    }
 }

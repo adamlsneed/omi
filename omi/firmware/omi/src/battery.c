@@ -34,6 +34,7 @@ static bool is_first_measurement = true;
 static uint8_t ema_init_counter = 0;
 
 static const struct device *const adc_dev = DEVICE_DT_GET(DT_NODELABEL(adc));
+static const struct gpio_dt_spec power_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(power_pin), gpios, {0});
 static const struct gpio_dt_spec bat_read_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(bat_read_pin), gpios, {0});
 static const struct gpio_dt_spec bat_chg_pin = GPIO_DT_SPEC_GET_OR(DT_NODELABEL(bat_chg_pin), gpios, {0});
 
@@ -232,7 +233,7 @@ int battery_get_millivolt(uint16_t *battery_millivolt)
     // Calculate battery voltage using the voltage divider formula
     *battery_millivolt = (uint16_t) (adc_raw_val * ((float) (R1 + R2) / R2));
     LOG_INF("Battery voltage (mV): %d", *battery_millivolt);
-
+    
     // Restore bat_read_pin to INPUT state to save power/avoid affecting other circuits
     err = gpio_pin_configure_dt(&bat_read_pin, GPIO_INPUT);
     if (err < 0) {
@@ -240,7 +241,7 @@ int battery_get_millivolt(uint16_t *battery_millivolt)
         k_mutex_unlock(&battery_mut);
         return err;
     }
-
+    
     if (is_first_measurement) {
         LOG_INF("First measurement, skipping to allow voltage to stabilize");
         is_first_measurement = false;
@@ -267,12 +268,12 @@ int battery_get_percentage(uint8_t *battery_percentage, uint16_t battery_millivo
         // Find the appropriate range in the battery profile
         for (int i = 0; i < BATTERY_STATES_COUNT - 1; i++) {
             if (battery_millivolt <= battery_states[i].millivolts && battery_millivolt > battery_states[i + 1].millivolts) {
-
+    
                 // Linear interpolation between the two closest points
                 uint16_t voltage_range = battery_states[i].millivolts - battery_states[i + 1].millivolts;
                 uint8_t percentage_range = battery_states[i].percentage - battery_states[i + 1].percentage;
                 uint16_t voltage_diff = battery_states[i].millivolts - battery_millivolt;
-
+    
                 raw_percentage = battery_states[i].percentage - (voltage_diff * percentage_range) / voltage_range;
                 break;
             }
@@ -292,12 +293,12 @@ int battery_get_percentage(uint8_t *battery_percentage, uint16_t battery_millivo
     if (!ema_initialized) {
         battery_percentage_ema = raw_percentage;
         ema_init_counter++;
-
+        
         // Run filter for FILTER_INIT_CYCLES to stabilize
         if (ema_init_counter >= FILTER_INIT_CYCLES) {
             ema_initialized = true;
         }
-
+        
         *battery_percentage = raw_percentage;
     } else {
         // Apply EMA filter to smooth out percentage changes

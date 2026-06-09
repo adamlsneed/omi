@@ -222,13 +222,6 @@ struct AppDetailExternalOpenTarget {
     }
 }
 
-struct AppDetailOwnershipPolicy {
-    static func canManage(appOwnerId: String?, currentUserId: String?) -> Bool {
-        guard let appOwnerId, let currentUserId else { return false }
-        return appOwnerId == currentUserId
-    }
-}
-
 enum AppDetailSummaryPreferenceActionKind {
     case setDefault
     case currentDefault
@@ -2596,10 +2589,8 @@ struct AppDetailSheet: View {
     }
 
     private var canManageApp: Bool {
-        AppDetailOwnershipPolicy.canManage(
-            appOwnerId: appDetails?.uid,
-            currentUserId: AuthState.shared.userId
-        )
+        guard let ownerId = appDetails?.uid, let userId = AuthState.shared.userId else { return false }
+        return ownerId == userId
     }
 
     private var displayName: String { appDetails?.name ?? app.name }

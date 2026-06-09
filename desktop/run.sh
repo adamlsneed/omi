@@ -808,6 +808,8 @@ echo "========================================"
 echo ""
 
 auth_debug "BEFORE launch: $(defaults read "$BUNDLE_ID" auth_isSignedIn 2>&1 || true)"
+# Used only for the direct-binary fallback: `open` launches via launchd, which
+# does not inherit this shell's environment, so sanitizing it there is a no-op.
 SANITIZED_LAUNCH_ENV=(
     "HOME=$HOME"
     "USER=$USER"
@@ -819,11 +821,11 @@ SANITIZED_LAUNCH_ENV=(
     "__CF_USER_TEXT_ENCODING=${__CF_USER_TEXT_ENCODING:-0x$(id -u):0:0}"
 )
 if [ "${#AUTOMATION_ARGS[@]}" -gt 0 ]; then
-    if ! /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" /usr/bin/open "$APP_PATH" --args "${AUTOMATION_ARGS[@]}"; then
+    if ! /usr/bin/open "$APP_PATH" --args "${AUTOMATION_ARGS[@]}"; then
         /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" "$APP_PATH/Contents/MacOS/$BINARY_NAME" "${AUTOMATION_ARGS[@]}" &
     fi
 else
-    if ! /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" /usr/bin/open "$APP_PATH"; then
+    if ! /usr/bin/open "$APP_PATH"; then
         /usr/bin/env -i "${SANITIZED_LAUNCH_ENV[@]}" "$APP_PATH/Contents/MacOS/$BINARY_NAME" &
     fi
 fi

@@ -59,17 +59,14 @@ struct SettingsPage: View {
 
 struct SubscriptionPlanCatalogMerger {
   /// Merge primary and fallback plan catalogs, preferring primary data.
-  /// Defensive filtering prevents dictionary crashes when the backend returns
-  /// incomplete plan or price records.
+  /// Placeholder rows with empty ids are dropped so they cannot shadow real plans.
   static func merge(
     primary: [SubscriptionPlanOption],
     fallback: [SubscriptionPlanOption]
   ) -> [SubscriptionPlanOption] {
     let validFallback = fallback.filter { !$0.id.isEmpty }
     let validPrimary = primary.filter { !$0.id.isEmpty }
-    var mergedById: [String: SubscriptionPlanOption] = Dictionary(
-      minimumCapacity: validFallback.count + validPrimary.count
-    )
+    var mergedById: [String: SubscriptionPlanOption] = [:]
 
     for plan in validFallback {
       mergedById[plan.id] = sanitizedPlan(plan)

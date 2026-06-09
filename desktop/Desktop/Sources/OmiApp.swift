@@ -4,9 +4,6 @@ import Sentry
 import Sparkle
 import SwiftUI
 
-// SwiftUI host entry point and AppDelegate wiring for launch, menu bar,
-// auth callbacks, Sparkle updates, and installed-bundle cleanup.
-
 // MARK: - Launch Mode
 /// Determines which UI to show based on command-line arguments
 enum LaunchMode: String {
@@ -72,7 +69,6 @@ class AuthState: ObservableObject {
   }
 }
 
-/// Main desktop app scene container.
 @main
 struct OMIApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
