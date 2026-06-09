@@ -129,7 +129,7 @@ The desktop app is a **Swift Package Manager** project (no Xcode project, no `.x
 - `OMI_SKIP_BACKEND=1` — app only, use remote backend via `OMI_DESKTOP_API_URL`. `OMI_SKIP_TUNNEL=1` — no Cloudflare tunnel.
 - Compile-only check: `cd desktop && xcrun swift build -c debug --package-path Desktop` (the `xcrun` prefix is required to match the SDK).
 - **DO NOT** use bare `swift build`, `xcodebuild`, or launch from `build/` directly. Always launch via `cd desktop && ./run.sh` (installs to `/Applications/` and registers with LaunchServices, required for permission "Quit & Reopen").
-- Release builds are handled entirely by Codemagic CI (no local release script).
+- Release builds: `cd desktop && ./release.sh --bump` (notarized + Homebrew; see `desktop/RELEASE.md`). Not Codemagic.
 - For PRs that change function signatures or cross-file types, run a clean release build before merge: `cd desktop && rm -rf .build && xcrun swift build -c release --triple arm64-apple-macosx` — incremental debug builds miss stale-cache type errors that Codemagic's clean release build catches later.
 
 #### Local Deploys Always Target "Omi Dev"
