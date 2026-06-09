@@ -77,8 +77,6 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
     uint8_t value = ((uint8_t *) buf)[0];
     LOG_INF("Haptic write received: value %d", value);
 
-    // Values 4 and 5 reuse the existing haptic characteristic as a pause control path.
-    // iOS can cache the GATT table and miss newly added characteristics after DFU.
     switch (value) {
     case 1:
         play_haptic_milli(100);
@@ -133,7 +131,7 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
 
 int haptic_init(void)
 {
-    if (!haptic_pin.port || !gpio_is_ready_dt(&haptic_pin)) {
+    if (!gpio_is_ready_dt(&haptic_pin)) {
         LOG_ERR("Haptic GPIO device is not ready");
         return -ENODEV;
     }

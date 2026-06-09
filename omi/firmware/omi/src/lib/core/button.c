@@ -13,13 +13,14 @@
 #include <zephyr/sys/poweroff.h>
 
 #include "haptic.h"
-#include "imu.h"
 #include "led.h"
 #include "mic.h"
 #include "settings.h"
 #include "speaker.h"
 #include "transport.h"
 #include "wdog_facade.h"
+
+#include "imu.h"
 #ifdef CONFIG_OMI_ENABLE_OFFLINE_STORAGE
 #include "sd_card.h"
 #endif
@@ -91,9 +92,17 @@ K_WORK_DELAYABLE_DEFINE(button_work, check_button_level);
 
 // 4 is button down, 5 is button up
 static FSM_STATE_T current_button_state = IDLE;
+static uint32_t inc_count_1 = 0;
+static uint32_t inc_count_0 = 0;
 
 static int final_button_state[2] = {0, 0};
+const static int threshold = 10;
 
+static void reset_count()
+{
+    inc_count_0 = 0;
+    inc_count_1 = 0;
+}
 static inline void notify_press()
 {
     final_button_state[0] = BUTTON_PRESS;
@@ -144,9 +153,7 @@ static inline void notify_long_tap()
     }
 }
 
-// idea-capture: deliberate ~1s hold (between the tap window and the 3s power-off).
-// Unambiguous, unlike the generic release (state 5) which fires on any >0.3s press.
-// `active` reflects the new idea-capture state so the app follows, never toggles.
+// idea-capture: notify the hold gesture; rationale at the HOLD_ENTER/HOLD_EXIT defines.
 static inline void notify_hold(bool active)
 {
     final_button_state[0] = active ? HOLD_ENTER : HOLD_EXIT;
@@ -258,9 +265,8 @@ void check_button_level(struct k_work *work_item)
         notify_double_tap();
     }
 
-    // idea-capture: hold, one time event. The firmware toggles idea-capture mode
-    // and drives the LED ITSELF (instant green, no app round-trip) so the user has
-    // reliable feedback, then tells the app the new state (enter=6 / exit=7).
+    // idea-capture: hold, one-time event. Firmware drives the LED itself so feedback
+    // is instant, then notifies the app of the new state.
     if (event == BUTTON_EVENT_HOLD && btn_last_event != BUTTON_EVENT_HOLD) {
         LOG_INF("hold detected\n");
         btn_last_event = event;

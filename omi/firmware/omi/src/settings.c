@@ -258,15 +258,7 @@ void app_settings_set_recording_paused(bool paused)
 
 bool app_settings_toggle_recording_paused(void)
 {
-    atomic_val_t current;
-    atomic_val_t next;
-
-    do {
-        current = atomic_get(&recording_paused);
-        next = current == 0 ? 1 : 0;
-    } while (!atomic_cas(&recording_paused, current, next));
-
-    return next != 0;
+    return atomic_xor(&recording_paused, 1) == 0;
 }
 
 bool app_settings_is_recording_paused(void)
@@ -282,15 +274,7 @@ void app_settings_set_idea_capture_active(bool active)
 
 bool app_settings_toggle_idea_capture_active(void)
 {
-    atomic_val_t current;
-    atomic_val_t next;
-
-    do {
-        current = atomic_get(&idea_capture_active);
-        next = current == 0 ? 1 : 0;
-    } while (!atomic_cas(&idea_capture_active, current, next));
-
-    return next != 0;
+    return atomic_xor(&idea_capture_active, 1) == 0;
 }
 
 bool app_settings_is_idea_capture_active(void)
