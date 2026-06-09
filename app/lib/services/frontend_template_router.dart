@@ -358,9 +358,20 @@ class FrontendTemplateRoutingStore {
     return loadResults()[conversationId];
   }
 
+  /// Cached overlays are regenerable views (already invalidated on any prompt or
+  /// schedule change via promptHash), so the cache is bounded: evicted entries
+  /// simply regenerate the next time their conversation is opened.
+  static const int maxCachedResults = 500;
+
   Future<bool> saveResult(FrontendTemplateRoutingResult result) {
     final results = loadResults();
     results[result.conversationId] = result;
+    if (results.length > maxCachedResults) {
+      final byAge = results.values.toList()..sort((a, b) => b.generatedAt.compareTo(a.generatedAt));
+      results
+        ..clear()
+        ..addEntries(byAge.take(maxCachedResults).map((r) => MapEntry(r.conversationId, r)));
+    }
     final encoded = results.map((conversationId, result) => MapEntry(conversationId, result.toJson()));
     return preferences.saveString(SharedPreferencesUtil.frontendTemplateRoutingResultsKey, jsonEncode(encoded));
   }
