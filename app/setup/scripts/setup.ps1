@@ -104,9 +104,9 @@ function SetupProvisioningProfile {
 
 
 function SetupAppEnv {
-    $API_BASE_URL = "https://api.omiapi.com/"
-    # Using Set-Content with UTF8 encoding
-    $content = "API_BASE_URL=$API_BASE_URL"
+    $API_BASE_URL = "https://api.omi.me/"
+    # Keep Windows setup aligned with the hosted BasedHardware backend used by setup.sh.
+    $content = "API_BASE_URL=$API_BASE_URL`nUSE_WEB_AUTH=true`nUSE_AUTH_CUSTOM_TOKEN=true`nSTAGING_API_URL="
     [System.IO.File]::WriteAllText((Join-Path (Get-Location) ".dev.env"), $content, [System.Text.Encoding]::UTF8)
 }
 

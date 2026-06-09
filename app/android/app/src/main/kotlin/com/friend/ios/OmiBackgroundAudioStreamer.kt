@@ -18,7 +18,7 @@ class OmiBackgroundAudioStreamer(private val context: Context) {
     companion object {
         private const val TAG = "OmiBle.BgAudio"
         private const val FLUTTER_PREFS = "FlutterSharedPreferences"
-        private const val DEFAULT_API_BASE_URL = "https://api.omiapi.com/"
+        private const val DEFAULT_API_BASE_URL = "https://api.omi.me/"
         private const val MAX_PENDING_FRAMES = 200
         private const val RECONNECT_BACKOFF_MS = 3_000L
         private const val MAX_CACHED_TRANSCRIPT_MESSAGES = 200

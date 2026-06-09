@@ -142,6 +142,7 @@ function setup_app_env() {
   echo API_BASE_URL=$API_BASE_URL > .dev.env
   echo USE_WEB_AUTH=true >> .dev.env
   echo USE_AUTH_CUSTOM_TOKEN=true >> .dev.env
+  echo STAGING_API_URL= >> .dev.env
 }
 
 # #######################
