@@ -523,15 +523,6 @@ class AppLocalizationsEt extends AppLocalizations {
   String get micGain => 'Mikrofoni võimendus';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Katkesta ühendus';
 
   @override
@@ -4700,7 +4691,10 @@ class AppLocalizationsEt extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription ja on $triggerDescription.';
   }
 
@@ -9288,144 +9282,6 @@ class AppLocalizationsEt extends AppLocalizations {
   String get syncCardBackendBusy => 'Omi serverid on hõivatud — sinu salvestised sünkroonitakse, kui maht vabaneb';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used/$limit mälestust loodud sel kuul';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi sünkroonimise seaded';
-
-  @override
-  String get enterHotspotCredentials => 'Sisestage oma telefoni leviala mandaadid';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi sünkroonimine kasutab teie telefoni levialana. Leidke nimi ja parool menüüst Seaded > Isiklik leviala.';
-
-  @override
-  String get hotspotNameSsid => 'Leviala nimi (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'nt iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Sisestage leviala parool';
-
-  @override
-  String get pleaseEnterHotspotName => 'Palun sisestage leviala nimi';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi mandaadid salvestatud';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi mandaadid kustutatud';
-
-  @override
-  String get fastTransfer => 'Kiire edastus';
-
-  @override
-  String get transferMethod => 'Edastusmeetod';
-
-  @override
-  String get fast => 'Kiire';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Seadme WiFi lubamine ebaõnnestus. Palun proovige uuesti.';
-
-  @override
-  String get deviceNoFastTransfer => 'Teie seade ei toeta kiiret ülekannet. Kasutage selle asemel Bluetooth-i.';
-
-  @override
-  String get enableHotspotMessage => 'Palun lülitage oma telefoni kuumkoht sisse ja proovige uuesti.';
-
-  @override
-  String get transferStartFailed => 'Ülekande alustamine ebaõnnestus. Palun proovige uuesti.';
-
-  @override
-  String get invalidWifiCredentials => 'Vigased WiFi andmed. Kontrollige oma kuumkoha seadeid.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi ühendus ebaõnnestus. Palun proovige uuesti.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi sünkroonimine ebaõnnestus';
-
-  @override
-  String get wifiSync => 'WiFi sünkroonimine';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Ühendus ebaõnnestus';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Luba $deviceName WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Lülitatud kiirele ülekandele';
-
-  @override
-  String get fastTransferEnabled => 'Kiire edastus lubatud';
-
-  @override
-  String get enableFastTransfer => 'Luba kiire edastus';
-
-  @override
-  String get fastTransferDescription =>
-      'Kiire edastus kasutab WiFi-d ~5x kiiremate kiiruste jaoks. Teie telefon ühendub ajutiselt edastuse ajal Omi seadme WiFi-võrguga.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Interneti-juurdepääs on edastuse ajal peatatud';
-
-  @override
-  String get chooseTransferMethodDescription => 'Valige, kuidas salvestised edastatakse Omi seadmest telefoni.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s WiFi kaudu';
-
-  @override
-  String get fiveTimesFaster => '5X KIIREM';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Loob otseühenduse WiFi kaudu Omi seadmega. Teie telefon katkestab ajutiselt ühenduse tavalise WiFi-ga edastuse ajal.';
-
-  @override
-  String get locationPermissionRequired => 'Asukoha luba nõutav';
-
-  @override
-  String get locationPermissionContent =>
-      'Kiire edastus vajab asukoha luba WiFi-ühenduse kontrollimiseks. Jätkamiseks andke palun asukoha luba.';
-
-  @override
-  String get chooseTransferMethod => 'Valige ülekandemeetod';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s WiFi kaudu';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'Seade ei toeta WiFi sünkroniseerimist, lülitumine Bluetoothile';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Lisa ülesanded automaatselt Apple Remindersisse';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Kui see on lubatud, lisatakse Omi loodud ülesanded automaatselt meeldetuletustesse. Kui see on välja lülitatud, saad ülesandeid endiselt käsitsi lisada.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Lisa valitud Apple Remindersisse';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Mõnda valitud ülesannet ei saanud lisada.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Valitud ülesanded on juba eksporditud.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Praeguse püsivara versiooni ei õnnestunud tuvastada';
 
   @override
@@ -9436,86 +9292,6 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Kehtetu sooduskood.';
-
-  @override
-  String get templateRouting => 'Mallide marsruutimine';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Automaatkäivitus avatud';
-
-  @override
-  String get templateRoutingWorkDays => 'Tööpäevad';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'E-R';
-
-  @override
-  String get templateRoutingWorkStart => 'Töö algus';
-
-  @override
-  String get templateRoutingWorkEnd => 'Töö lõpp';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Töövihje';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Isiklik viide';
-
-  @override
-  String get templateRoutingSaved => 'Malli marsruutimine on salvestatud';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Kasutage 24-tunniseid kellaaegu, näiteks 08:00 ja 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Töö algus peab olema enne töö lõppu.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Enne marsruutimise lubamist lisage mõlemad viibad.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Kohaliku malli rakendamine...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Malli marsruutimine ei tagastanud kokkuvõtet.';
-
-  @override
-  String get templateRoutingFailed => 'Malli marsruutimine ebaõnnestus.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Kohaliku malli marsruutimine';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Marsruudi kokkuvõte';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Töö marsruudi kokkuvõte';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Isiklik marsruudi kokkuvõte';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Taustasüsteemi mall (valikuline)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Töömall';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Isiklik mall';
-
-  @override
-  String get templateRoutingTemplateNone => 'Puudub — kasuta vihjet';
-
-  @override
-  String get templateRoutingManageApps => 'Luba kokkuvõtterakendused';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Vali selle profiili jaoks installitud kokkuvõtterakendus või jäta „Puudub\", et kasutada ülaltoodud vihjet.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Lisa nii Töö kui ka Isikliku profiili jaoks vihjed või mallid enne aktiveerimist.';
 
   @override
   String get backgroundModeTitle => 'Taustarežiim';

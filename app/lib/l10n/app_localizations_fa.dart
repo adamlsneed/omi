@@ -522,15 +522,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get micGain => 'بهره میکروفن';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'قطع‌کردن';
 
   @override
@@ -4705,7 +4696,10 @@ class AppLocalizationsFa extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription و $triggerDescription.';
   }
 
@@ -9293,146 +9287,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get syncCardBackendBusy => 'سرورهای Omi شلوغ هستند — ضبط‌های شما به‌محض آزاد شدن ظرفیت همگام‌سازی می‌شوند';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used از $limit یادداشت این ماه ایجاد‌شده است';
-  }
-
-  @override
-  String get wifiSyncSettings => 'تنظیمات نقطه اتصال Wi-Fi';
-
-  @override
-  String get enterHotspotCredentials => 'اطلاعات اعتباری نقطه اتصال تلفن خود را وارد کنید';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'هم‌راه‌سازی Wi-Fi از تلفن شما به‌عنوان نقطه اتصال استفاده می‌کند. نام نقطه اتصال و رمز عبور خود را در تنظیمات > Personal Hotspot بیابید.';
-
-  @override
-  String get hotspotNameSsid => 'نام نقطه اتصال (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'مثال: iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'رمز عبور نقطه اتصال را وارد کنید';
-
-  @override
-  String get pleaseEnterHotspotName => 'لطفا نام نقطه اتصال را وارد کنید';
-
-  @override
-  String get wifiCredentialsSaved => 'اطلاعات اعتباری Wi-Fi ذخیره شد';
-
-  @override
-  String get wifiCredentialsCleared => 'اطلاعات اعتباری Wi-Fi پاک‌شد';
-
-  @override
-  String get fastTransfer => 'انتقال سریع';
-
-  @override
-  String get transferMethod => 'روش انتقال';
-
-  @override
-  String get fast => 'سریع';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'فعال کردن WiFi در دستگاه ناموفق بود. لطفاً دوباره تلاش کنید.';
-
-  @override
-  String get deviceNoFastTransfer =>
-      'دستگاه شما از Fast Transfer پشتیبانی نمی کند. به جای آن از Bluetooth استفاده کنید.';
-
-  @override
-  String get enableHotspotMessage => 'لطفاً hotspot تلفن خود را فعال کنید و دوباره تلاش کنید.';
-
-  @override
-  String get transferStartFailed => 'شروع انتقال ناموفق بود. لطفاً دوباره تلاش کنید.';
-
-  @override
-  String get invalidWifiCredentials => 'اعتبارات WiFi نامعتبر است. تنظیمات hotspot خود را بررسی کنید.';
-
-  @override
-  String get wifiConnectionFailed => 'اتصال WiFi ناموفق بود. لطفاً دوباره تلاش کنید.';
-
-  @override
-  String get wifiSyncFailed => 'هماهنگ سازی WiFi ناموفق بود';
-
-  @override
-  String get wifiSync => 'هماهنگ سازی WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'اتصال ناموفق';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'فعال کردن WiFi $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'به انتقال سریع تغییر یافت';
-
-  @override
-  String get fastTransferEnabled => 'انتقال سریع فعال شد';
-
-  @override
-  String get enableFastTransfer => 'فعال‌کردن انتقال سریع';
-
-  @override
-  String get fastTransferDescription =>
-      'انتقال سریع از Wi-Fi برای سرعت تقریباً 5 برابر سریع‌تر استفاده می‌کند. تلفن شما به‌طور موقت در طی انتقال به شبکه Wi-Fi دستگاه Omi متصل خواهد شد.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'دسترسی به اینترنت در طی انتقال متوقف است';
-
-  @override
-  String get chooseTransferMethodDescription => 'نحوه انتقال ضبط‌شده‌ها از دستگاه Omi به تلفن خود را انتخاب کنید.';
-
-  @override
-  String get wifiSpeed => 'تقریباً 150 کیلوبایت بر ثانیه از طریق Wi-Fi';
-
-  @override
-  String get fiveTimesFaster => '5 برابر سریع‌تر';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'اتصال مستقیم Wi-Fi را به دستگاه Omi ایجاد می‌کند. تلفن شما به‌طور موقت از Wi-Fi معمولی خود در طی انتقال قطع می‌شود.';
-
-  @override
-  String get locationPermissionRequired => 'اجازهِ مکان مورد نیاز است';
-
-  @override
-  String get locationPermissionContent =>
-      'انتقال سریع برای تأیید اتصال Wi-Fi به اجازهِ مکان نیاز دارد. لطفاً برای ادامه اجازهِ مکان را اعطا کنید.';
-
-  @override
-  String get chooseTransferMethod => 'انتخاب روش انتقال';
-
-  @override
-  String get fastTransferSpeed => 'تقریباً 150 کیلوبایت بر ثانیه از طریق Wi-Fi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'دستگاه از هماهنگ‌سازی Wi-Fi پشتیبانی نمی‌کند، تغییر به Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'افزودن خودکار وظایف به Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'وقتی فعال باشد، وظایفی که Omi ایجاد می‌کند به‌طور خودکار به Reminders اضافه می‌شوند. وقتی این گزینه خاموش است همچنان می‌توانید وظایف را دستی اضافه کنید.';
-
-  @override
-  String get addSelectedToAppleReminders => 'افزودن موارد انتخاب‌شده به Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'برخی کارهای انتخاب‌شده اضافه نشدند.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'کارهای انتخاب‌شده قبلاً صادر شده‌اند.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'تعیین نسخه فعلی سفت‌افزار امکان‌پذیر نیست';
 
   @override
@@ -9443,86 +9297,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'کد تخفیف نامعتبر.';
-
-  @override
-  String get templateRouting => 'مسیریابی الگو';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'اجرای خودکار در حالت باز';
-
-  @override
-  String get templateRoutingWorkDays => 'روزهای کاری';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'دوشنبه - جمعه';
-
-  @override
-  String get templateRoutingWorkStart => 'شروع کار';
-
-  @override
-  String get templateRoutingWorkEnd => 'پایان کار';
-
-  @override
-  String get templateRoutingWorkPrompt => 'سریع کار';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'درخواست شخصی';
-
-  @override
-  String get templateRoutingSaved => 'مسیریابی الگو ذخیره شد';
-
-  @override
-  String get templateRoutingTimeFormatError => 'از ساعات 24 ساعته مانند 08:00 و 17:00 استفاده کنید.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'شروع کار باید قبل از پایان کار باشد.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'قبل از فعال کردن مسیریابی، هر دو فرمان را اضافه کنید.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'در حال اعمال الگوی محلی...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'مسیریابی الگو هیچ خلاصه ای برگرداند.';
-
-  @override
-  String get templateRoutingFailed => 'مسیریابی الگو ناموفق بود.';
-
-  @override
-  String get templateRoutingLocalDescription => 'مسیریابی قالب م��لی';
-
-  @override
-  String get templateRoutingRoutedSummary => 'خلاصه مسیریابی';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'خلاصه کار مسیریابی';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'خلاصه مسیریابی شخصی';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'قالب بک‌اند (اختیاری)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'قالب کاری';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'قالب شخصی';
-
-  @override
-  String get templateRoutingTemplateNone => 'هیچ‌کدام — از دستورالعمل استفاده شود';
-
-  @override
-  String get templateRoutingManageApps => 'فعال‌سازی برنامه‌های خلاصه‌ساز';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'یک برنامه خلاصه‌ساز نصب‌شده برای این پروفایل انتخاب کنید یا «هیچ‌کدام» را برای استفاده از دستورالعمل بالا نگه دارید.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'قبل از فعال‌سازی، برای هر دو پروفایل کاری و شخصی یک دستورالعمل یا قالب اضافه کنید.';
 
   @override
   String get backgroundModeTitle => 'حالت پس‌زمینه';

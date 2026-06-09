@@ -523,15 +523,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get micGain => 'Độ tăng micro';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Ngắt kết nối';
 
   @override
@@ -4709,7 +4700,10 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription và $triggerDescription.';
   }
 
@@ -9289,144 +9283,6 @@ class AppLocalizationsVi extends AppLocalizations {
       'Máy chủ Omi đang quá tải — bản ghi của bạn sẽ được đồng bộ khi dung lượng được khôi phục';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return 'Đã tạo $used trong số $limit ký ức trong tháng này';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Cài đặt đồng bộ WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'Nhập thông tin đăng nhập điểm phát sóng điện thoại';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'Đồng bộ WiFi sử dụng điện thoại của bạn làm điểm phát sóng. Tìm tên và mật khẩu trong Cài đặt > Điểm truy cập cá nhân.';
-
-  @override
-  String get hotspotNameSsid => 'Tên điểm phát sóng (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'vd: iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Nhập mật khẩu điểm phát sóng';
-
-  @override
-  String get pleaseEnterHotspotName => 'Vui lòng nhập tên điểm phát sóng';
-
-  @override
-  String get wifiCredentialsSaved => 'Đã lưu thông tin WiFi';
-
-  @override
-  String get wifiCredentialsCleared => 'Đã xóa thông tin WiFi';
-
-  @override
-  String get fastTransfer => 'Truyền nhanh';
-
-  @override
-  String get transferMethod => 'Phương thức truyền';
-
-  @override
-  String get fast => 'Nhanh';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Không thể bật WiFi trên thiết bị. Vui lòng thử lại.';
-
-  @override
-  String get deviceNoFastTransfer => 'Thiết bị của bạn không hỗ trợ Chuyển Nhanh. Sử dụng Bluetooth thay thế.';
-
-  @override
-  String get enableHotspotMessage => 'Vui lòng bật điểm phát sóng trên điện thoại và thử lại.';
-
-  @override
-  String get transferStartFailed => 'Không thể bắt đầu chuyển. Vui lòng thử lại.';
-
-  @override
-  String get invalidWifiCredentials => 'Thông tin WiFi không hợp lệ. Kiểm tra cài đặt điểm phát sóng của bạn.';
-
-  @override
-  String get wifiConnectionFailed => 'Kết nối WiFi thất bại. Vui lòng thử lại.';
-
-  @override
-  String get wifiSyncFailed => 'Đồng bộ WiFi Thất bại';
-
-  @override
-  String get wifiSync => 'Đồng bộ WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Kết nối Thất bại';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Bật WiFi của $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Đã chuyển sang Chuyển Nhanh';
-
-  @override
-  String get fastTransferEnabled => 'Đã bật truyền nhanh';
-
-  @override
-  String get enableFastTransfer => 'Bật truyền nhanh';
-
-  @override
-  String get fastTransferDescription =>
-      'Truyền nhanh sử dụng WiFi để đạt tốc độ nhanh hơn ~5 lần. Điện thoại của bạn sẽ tạm thời kết nối với mạng WiFi của thiết bị Omi trong quá trình truyền.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Truy cập internet bị tạm dừng trong quá trình truyền';
-
-  @override
-  String get chooseTransferMethodDescription => 'Chọn cách truyền bản ghi từ thiết bị Omi sang điện thoại của bạn.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s qua WiFi';
-
-  @override
-  String get fiveTimesFaster => 'NHANH HƠN 5 LẦN';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Tạo kết nối WiFi trực tiếp đến thiết bị Omi. Điện thoại của bạn tạm thời ngắt kết nối WiFi thông thường trong quá trình truyền.';
-
-  @override
-  String get locationPermissionRequired => 'Cần Quyền Vị trí';
-
-  @override
-  String get locationPermissionContent =>
-      'Ứng dụng cần quyền truy cập vị trí để hoạt động đúng. Vui lòng cấp quyền trong cài đặt.';
-
-  @override
-  String get chooseTransferMethod => 'Chọn phương thức chuyển';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s qua WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'Thiết bị không hỗ trợ đồng bộ WiFi, chuyển sang Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Tự động thêm tác vụ vào Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Khi bật, các tác vụ Omi tạo sẽ tự động được thêm vào Nhắc nhở. Bạn vẫn có thể thêm tác vụ thủ công khi tùy chọn này tắt.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Thêm mục đã chọn vào Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Không thể thêm một số công việc đã chọn.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Các công việc đã chọn đã được xuất.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Không thể xác định phiên bản firmware hiện tại';
 
   @override
@@ -9437,86 +9293,6 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Mã khuyến mãi không hợp lệ.';
-
-  @override
-  String get templateRouting => 'Định tuyến mẫu';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Tự động chạy khi mở';
-
-  @override
-  String get templateRoutingWorkDays => 'Ngày làm việc';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Thứ Hai-Thứ Sáu';
-
-  @override
-  String get templateRoutingWorkStart => 'Bắt đầu công việc';
-
-  @override
-  String get templateRoutingWorkEnd => 'Kết thúc công việc';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Lời nhắc công việc';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Lời nhắc cá nhân';
-
-  @override
-  String get templateRoutingSaved => 'Đã lưu định tuyến mẫu';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Sử dụng thời gian 24 giờ như 08:00 và 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Thời gian bắt đầu công việc phải trước khi kết thúc công việc.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Thêm cả hai lời nhắc trước khi bật định tuyến.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Đang áp dụng mẫu cục bộ...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Định tuyến mẫu không trả về bản tóm tắt.';
-
-  @override
-  String get templateRoutingFailed => 'Định tuyến mẫu không thành công.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Định tuyến mẫu cục bộ';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Tóm tắt định tuyến';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Tóm tắt lộ trình công việc';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Tóm tắt định tuyến cá nhân';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Mẫu backend (tùy chọn)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Mẫu công việc';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Mẫu cá nhân';
-
-  @override
-  String get templateRoutingTemplateNone => 'Không có — dùng lời nhắc';
-
-  @override
-  String get templateRoutingManageApps => 'Bật ứng dụng tóm tắt';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Chọn ứng dụng tóm tắt đã cài đặt cho hồ sơ này hoặc giữ «Không có» để sử dụng lời nhắc ở trên.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Thêm lời nhắc hoặc mẫu cho cả hồ sơ Công việc và Cá nhân trước khi bật.';
 
   @override
   String get backgroundModeTitle => 'Chế độ nền';

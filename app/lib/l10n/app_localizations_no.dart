@@ -522,15 +522,6 @@ class AppLocalizationsNo extends AppLocalizations {
   String get micGain => 'Mikrofonforsterkning';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Koble fra';
 
   @override
@@ -4703,7 +4694,10 @@ class AppLocalizationsNo extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription og er $triggerDescription.';
   }
 
@@ -9288,144 +9282,6 @@ class AppLocalizationsNo extends AppLocalizations {
       'Omis servere er travle — opptakene dine synkroniseres så snart kapasiteten er tilbake';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used av $limit minner opprettet denne måneden';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi-synkroniseringsinnstillinger';
-
-  @override
-  String get enterHotspotCredentials => 'Skriv inn telefonens hotspot-påloggingsinformasjon';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi-synkronisering bruker telefonen som hotspot. Finn navnet og passordet i Innstillinger > Personlig hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspot-navn (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'f.eks. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Skriv inn hotspot-passord';
-
-  @override
-  String get pleaseEnterHotspotName => 'Vennligst skriv inn et hotspot-navn';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi-påloggingsinformasjon lagret';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi-påloggingsinformasjon fjernet';
-
-  @override
-  String get fastTransfer => 'Hurtig overføring';
-
-  @override
-  String get transferMethod => 'Overføringsmetode';
-
-  @override
-  String get fast => 'Rask';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Kunne ikke aktivere WiFi på enheten. Prøv igjen.';
-
-  @override
-  String get deviceNoFastTransfer => 'Enheten støtter ikke hurtigoverføring. Bruk Bluetooth i stedet.';
-
-  @override
-  String get enableHotspotMessage => 'Aktiver telefonens hotspot og prøv igjen.';
-
-  @override
-  String get transferStartFailed => 'Kunne ikke starte overføring. Prøv igjen.';
-
-  @override
-  String get invalidWifiCredentials => 'Ugyldige WiFi-legitimasjoner. Sjekk hotspot-innstillingene.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi-tilkobling mislyktes. Prøv igjen.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi-synkronisering mislyktes';
-
-  @override
-  String get wifiSync => 'WiFi-synkronisering';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Tilkobling mislyktes';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Aktiver ${deviceName}s WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Byttet til hurtigoverføring';
-
-  @override
-  String get fastTransferEnabled => 'Hurtig overføring aktivert';
-
-  @override
-  String get enableFastTransfer => 'Aktiver hurtig overføring';
-
-  @override
-  String get fastTransferDescription =>
-      'Hurtig overføring bruker WiFi for ~5x raskere hastigheter. Telefonen din kobler seg midlertidig til Omi-enhetens WiFi-nettverk under overføring.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Internettilgang er satt på pause under overføring';
-
-  @override
-  String get chooseTransferMethodDescription => 'Velg hvordan opptak overføres fra Omi-enheten til telefonen din.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X RASKERE';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Oppretter en direkte WiFi-tilkobling til Omi-enheten. Telefonen kobler seg midlertidig fra vanlig WiFi under overføring.';
-
-  @override
-  String get locationPermissionRequired => 'Plasseringstillatelse kreves';
-
-  @override
-  String get locationPermissionContent =>
-      'Hurtig overføring krever plasseringstillatelse for å verifisere WiFi-tilkobling. Gi plasseringstillatelse for å fortsette.';
-
-  @override
-  String get chooseTransferMethod => 'Velg overføringsmetode';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'Enheten støtter ikke WiFi-synkronisering, bytter til Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Legg automatisk til oppgaver i Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Når dette er slått på, legges oppgaver Omi oppretter automatisk til i Påminnelser. Du kan fortsatt legge til oppgaver manuelt når dette er av.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Legg valgte til i Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Noen valgte oppgaver kunne ikke legges til.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'De valgte oppgavene er allerede eksportert.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Kan ikke bestemme gjeldende fastvareversjon';
 
   @override
@@ -9436,86 +9292,6 @@ class AppLocalizationsNo extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ugyldig kampanjekode.';
-
-  @override
-  String get templateRouting => 'Ruting av maler';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Autokjør på åpen';
-
-  @override
-  String get templateRoutingWorkDays => 'Arbeidsdager';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'man-fre';
-
-  @override
-  String get templateRoutingWorkStart => 'Arbeidet starter';
-
-  @override
-  String get templateRoutingWorkEnd => 'Arbeid slutt';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Arbeidsmelding';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Personlig forespørsel';
-
-  @override
-  String get templateRoutingSaved => 'Malruting lagret';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Bruk 24-timers tider som 08:00 og 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Arbeidsstart må være før arbeidet avsluttes.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Legg til begge ledetekstene før du aktiverer ruting.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Bruker lokal mal ...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Malruting returnerte ingen oppsummering.';
-
-  @override
-  String get templateRoutingFailed => 'Malruting mislyktes.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Lokal malruting';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Rutede sammendrag';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Arbeidsrutet sammendrag';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Personlig rutet sammendrag';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Backend-mal (valgfritt)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Jobbmal';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Personlig mal';
-
-  @override
-  String get templateRoutingTemplateNone => 'Ingen — bruk prompt';
-
-  @override
-  String get templateRoutingManageApps => 'Aktiver oppsummeringsapper';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Velg en installert oppsummeringsapp for denne profilen, eller behold «Ingen» for å bruke prompten ovenfor.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Legg til en prompt eller mal for både Jobb- og Personlig-profil før du aktiverer.';
 
   @override
   String get backgroundModeTitle => 'Bakgrunnsmodus';

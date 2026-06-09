@@ -522,15 +522,6 @@ class AppLocalizationsCs extends AppLocalizations {
   String get micGain => 'Zesílení mikrofonu';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Odpojit';
 
   @override
@@ -4695,7 +4686,10 @@ class AppLocalizationsCs extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription a je $triggerDescription.';
   }
 
@@ -9291,145 +9285,6 @@ class AppLocalizationsCs extends AppLocalizations {
       'Servery Omi jsou vytížené — vaše nahrávky se synchronizují, jakmile bude k dispozici kapacita';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return 'Tento měsíc vytvořeno $used z $limit vzpomínek';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Nastavení WiFi synchronizace';
-
-  @override
-  String get enterHotspotCredentials => 'Zadejte přihlašovací údaje hotspotu telefonu';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi synchronizace používá váš telefon jako hotspot. Název a heslo najdete v Nastavení > Osobní hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Název hotspotu (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'např. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Zadejte heslo hotspotu';
-
-  @override
-  String get pleaseEnterHotspotName => 'Prosím zadejte název hotspotu';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi přihlašovací údaje uloženy';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi přihlašovací údaje vymazány';
-
-  @override
-  String get fastTransfer => 'Rychlý přenos';
-
-  @override
-  String get transferMethod => 'Metoda přenosu';
-
-  @override
-  String get fast => 'Rychle';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Nepodařilo se povolit WiFi na zařízení. Zkuste to prosím znovu.';
-
-  @override
-  String get deviceNoFastTransfer => 'Vaše zařízení nepodporuje rychlý přenos. Použijte místo toho Bluetooth.';
-
-  @override
-  String get enableHotspotMessage => 'Povolte prosím hotspot telefonu a zkuste to znovu.';
-
-  @override
-  String get transferStartFailed => 'Nepodařilo se spustit přenos. Zkuste to prosím znovu.';
-
-  @override
-  String get invalidWifiCredentials => 'Neplatné přihlašovací údaje WiFi. Zkontrolujte nastavení hotspotu.';
-
-  @override
-  String get wifiConnectionFailed => 'Připojení WiFi selhalo. Zkuste to prosím znovu.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi synchronizace selhala';
-
-  @override
-  String get wifiSync => 'Synchronizace WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Připojení selhalo';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Povolit WiFi na $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Přepnuto na rychlý přenos';
-
-  @override
-  String get fastTransferEnabled => 'Rychlý přenos povolen';
-
-  @override
-  String get enableFastTransfer => 'Povolit rychlý přenos';
-
-  @override
-  String get fastTransferDescription =>
-      'Rychlý přenos používá WiFi pro ~5x rychlejší přenosy. Váš telefon se dočasně připojí k WiFi síti zařízení Omi během přenosu.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Přístup k internetu je během přenosu pozastaven';
-
-  @override
-  String get chooseTransferMethodDescription => 'Zvolte, jak se nahrávky přenášejí ze zařízení Omi do telefonu.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s přes WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X RYCHLEJŠÍ';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Vytvoří přímé WiFi připojení k zařízení Omi. Telefon se dočasně odpojí od běžné WiFi během přenosu.';
-
-  @override
-  String get locationPermissionRequired => 'Vyžadováno oprávnění k poloze';
-
-  @override
-  String get locationPermissionContent =>
-      'Rychlý přenos vyžaduje oprávnění k poloze pro ověření WiFi připojení. Prosím, udělte oprávnění k poloze pro pokračování.';
-
-  @override
-  String get chooseTransferMethod => 'Vyberte metodu přenosu';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s přes WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Zařízení nepodporuje WiFi synchronizaci, přepínání na Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Automaticky přidávat úkoly do Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Když je zapnuto, úkoly vytvořené Omi se automaticky přidají do Připomínek. I když je tato volba vypnutá, můžete úkoly přidávat ručně.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Přidat vybrané do Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Některé vybrané úkoly se nepodařilo přidat.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Vybrané úkoly už byly exportovány.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Nelze určit aktuální verzi firmwaru';
 
   @override
@@ -9440,86 +9295,6 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Neplatný promo kód.';
-
-  @override
-  String get templateRouting => 'Směrování šablony';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Automatické spuštění při otevření';
-
-  @override
-  String get templateRoutingWorkDays => 'Pracovní dny';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Po-Pá';
-
-  @override
-  String get templateRoutingWorkStart => 'Začátek práce';
-
-  @override
-  String get templateRoutingWorkEnd => 'Konec práce';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Výzva k práci';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Osobní výzva';
-
-  @override
-  String get templateRoutingSaved => 'Směrování šablony bylo uloženo';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Použijte 24hodinové časy jako 08:00 a 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Začátek práce musí být před koncem práce.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Před povolením směrování přidejte obě výzvy.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Používá se místní šablona...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Směrování šablony nevrátilo žádné shrnutí.';
-
-  @override
-  String get templateRoutingFailed => 'Směrování šablony se nezdařilo.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Místní směrování šablony';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Směrovaný souhrn';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Shrnutí práce';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Osobní shrnutí cesty';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Šablona backendu (nepovinné)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Pracovní šablona';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Osobní šablona';
-
-  @override
-  String get templateRoutingTemplateNone => 'Žádná — použít výzvu';
-
-  @override
-  String get templateRoutingManageApps => 'Povolit aplikace pro shrnutí';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Vyberte nainstalovanou aplikaci pro shrnutí pro tento profil nebo ponechte „Žádná\" a použijte výzvu výše.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Před aktivací přidejte výzvu nebo šablonu pro profily Pracovní i Osobní.';
 
   @override
   String get backgroundModeTitle => 'Režim na pozadí';

@@ -433,8 +433,7 @@ class AppLocalizationsTl extends AppLocalizations {
   String get autoSync => 'Awtomatikong pag-sync';
 
   @override
-  String get autoSyncDescription =>
-      'Awtomatikong i-sync ang mga offline na recording kapag nakakonekta ang iyong device';
+  String get autoSyncDescription => 'Awtomatikong i-sync ang mga offline na recording kapag nakakonekta ang iyong device';
 
   @override
   String get deviceSettings => 'Mga Device Setting';
@@ -522,15 +521,6 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get micGain => 'Mic Gain';
-
-  @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
 
   @override
   String get disconnect => 'Putol ang Koneksyon';
@@ -4742,7 +4732,10 @@ class AppLocalizationsTl extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription at ay $triggerDescription.';
   }
 
@@ -9376,147 +9369,6 @@ class AppLocalizationsTl extends AppLocalizations {
       'Abala ang mga server ng Omi — masi-sync ang iyong mga recording kapag may bakanteng kapasidad na muli';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used ng $limit alaala na nabuo sa buwan na ito';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi Sync Settings';
-
-  @override
-  String get enterHotspotCredentials => 'Ipasok ang iyong phone hotspot credentials';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'Ang WiFi sync ay gumagamit ng iyong phone bilang hotspot. Hanapin ang iyong hotspot name at password sa Settings > Personal Hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspot Name (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'halimbawa iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Ipasok ang hotspot password';
-
-  @override
-  String get pleaseEnterHotspotName => 'Mangyaring ipasok ang isang hotspot name';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi credentials na na-save';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi credentials na na-clear';
-
-  @override
-  String get fastTransfer => 'Fast Transfer';
-
-  @override
-  String get transferMethod => 'Transfer Method';
-
-  @override
-  String get fast => 'Mabilis';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Nabigo ang pagpapagana ng WiFi sa device. Subukan ulit.';
-
-  @override
-  String get deviceNoFastTransfer =>
-      'Ang iyong device ay hindi sumusuporta sa Fast Transfer. Gumamit ng Bluetooth sa halip.';
-
-  @override
-  String get enableHotspotMessage => 'Pakipagana ang hotspot ng iyong telepono at subukan ulit.';
-
-  @override
-  String get transferStartFailed => 'Nabigo ang pagsisimula ng transfer. Subukan ulit.';
-
-  @override
-  String get invalidWifiCredentials => 'Invalid na WiFi credentials. Suriin ang iyong hotspot settings.';
-
-  @override
-  String get wifiConnectionFailed => 'Nabigo ang WiFi connection. Subukan ulit.';
-
-  @override
-  String get wifiSyncFailed => 'Nabigo ang WiFi Sync';
-
-  @override
-  String get wifiSync => 'WiFi Sync';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Connection Failed';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Paganahin ang $deviceName\'s WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Lumipat sa Fast Transfer';
-
-  @override
-  String get fastTransferEnabled => 'Fast Transfer ay naka-enable';
-
-  @override
-  String get enableFastTransfer => 'I-enable ang Fast Transfer';
-
-  @override
-  String get fastTransferDescription =>
-      'Gumagamit ang Fast Transfer ng WiFi para sa humigit-kumulang na 5x na mas mabilis na bilis. Ang iyong telepono ay pansamantalang magkonekta sa WiFi network ng iyong Omi device sa panahon ng paglipat.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Ang internet access ay napigil sa panahon ng paglipat';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Pumili kung paano ang mga recording ay ilipat mula sa iyong Omi device patungo sa iyong telepono.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s sa pamamagitan ng WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X MAS MABILIS';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Lumilikha ng direktang WiFi connection sa iyong Omi device. Ang iyong telepono ay pansamantalang nadadiskonekta mula sa iyong regular na WiFi sa panahon ng paglipat.';
-
-  @override
-  String get locationPermissionRequired => 'Ang Location Permission ay Kinakailangan';
-
-  @override
-  String get locationPermissionContent =>
-      'Ang Fast Transfer ay nangangailangan ng location permission upang ma-verify ang WiFi connection. Mangyaring bigyan ng location permission upang magpatuloy.';
-
-  @override
-  String get chooseTransferMethod => 'Pumili ng Transfer Method';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s sa pamamagitan ng WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Ang device ay hindi sumusuporta sa WiFi sync, lumipat sa Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Awtomatikong idagdag ang mga gawain sa Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Kapag naka-on, awtomatikong idaragdag sa Mga Paalala ang mga gawaing ginagawa ng Omi. Maaari ka pa ring magdagdag ng mga gawain nang manu-mano kapag naka-off ito.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Idagdag ang napili sa Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Hindi naidagdag ang ilang napiling gawain.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Na-export na ang mga napiling gawain.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Hindi matukoy ang kasalukuyang bersyon ng firmware';
 
   @override
@@ -9527,86 +9379,6 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Hindi valid na promo code.';
-
-  @override
-  String get templateRouting => 'Pagruruta ng Template';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Auto-run sa bukas';
-
-  @override
-  String get templateRoutingWorkDays => 'Mga araw ng trabaho';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Lun-Biy';
-
-  @override
-  String get templateRoutingWorkStart => 'Pagsisimula ng trabaho';
-
-  @override
-  String get templateRoutingWorkEnd => 'Pagtatapos ng trabaho';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Maagap sa trabaho';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Personal na prompt';
-
-  @override
-  String get templateRoutingSaved => 'Na-save ang pagruruta ng template';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Gumamit ng 24 na oras tulad ng 08:00 at 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Ang pagsisimula ng trabaho ay dapat bago matapos ang trabaho.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Idagdag ang parehong mga prompt bago i-enable ang pagruruta.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Inilalapat ang lokal na template...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Walang ibinalik na buod ang pagruruta ng template.';
-
-  @override
-  String get templateRoutingFailed => 'Nabigo ang pagruruta ng template.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Lokal na pagruruta ng template';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Ruta na Buod';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Buod ng Ruta ng Trabaho';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Personal na Ruta na Buod';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Template ng backend (opsyonal)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Template para sa trabaho';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Personal na template';
-
-  @override
-  String get templateRoutingTemplateNone => 'Wala — gamitin ang prompt';
-
-  @override
-  String get templateRoutingManageApps => 'I-enable ang mga summary app';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Pumili ng naka-install na summary app para sa profile na ito, o panatilihin ang «Wala» para gamitin ang prompt sa itaas.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Magdagdag ng prompt o template para sa Trabaho at Personal na profile bago i-enable.';
 
   @override
   String get backgroundModeTitle => 'Background Mode';

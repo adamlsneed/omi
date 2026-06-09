@@ -523,15 +523,6 @@ class AppLocalizationsTe extends AppLocalizations {
   String get micGain => 'మైక్రోఫోన్ లాభం';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'డిస్‌కనెక్ట్ చేయండి';
 
   @override
@@ -4728,7 +4719,10 @@ class AppLocalizationsTe extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription మరియు $triggerDescription.';
   }
 
@@ -9340,145 +9334,6 @@ class AppLocalizationsTe extends AppLocalizations {
       'Omi సర్వర్‌లు బిజీగా ఉన్నాయి — సామర్థ్యం అందుబాటులోకి వచ్చిన వెంటనే మీ రికార్డింగ్‌లు సింక్ అవుతాయి';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used యొక్క $limit జ్ఞాపకాలు ఈ నెలలో సృష్టించబడ్డాయి';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi సమకాలీకరణ సెట్టింగ్‌లు';
-
-  @override
-  String get enterHotspotCredentials => 'మీ ఫోన్ యొక్క హాట్‌స్పాట్ సంలग్నాలను నమోదు చేయండి';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi సమకాలీకరణ మీ ఫోన్‌ను హాట్‌స్పాట్‌గా ఉపయోగిస్తుంది. సెట్టింగ్‌లు > ఖ్యాతిమත్తర హాట్‌స్పాట్‌లో మీ హాట్‌స్పాట్ పేరు మరియు పాస్‌వర్డ్ కనుగొనండి.';
-
-  @override
-  String get hotspotNameSsid => 'హాట్‌స్పాట్ పేరు (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'ఉదా. iPhone హాట్‌స్పాట్';
-
-  @override
-  String get enterHotspotPassword => 'హాట్‌స్పాట్ పాస్‌వర్డ్ నమోదు చేయండి';
-
-  @override
-  String get pleaseEnterHotspotName => 'దయచేసి హాట్‌స్పాట్ పేరు నమోదు చేయండి';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi సంలग్నాలు సేవ చేయబడ్డాయి';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi సంలग్నాలు క్లియర్ చేయబడ్డాయి';
-
-  @override
-  String get fastTransfer => 'ఫాస్ట్ ట్రాన్స్ఫర్';
-
-  @override
-  String get transferMethod => 'ట్రాన్స్ఫర్ పద్ధతి';
-
-  @override
-  String get fast => 'ఫాస్ట్';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'పరికరంపై WiFi ప్రారంభించడంలో విఫలమైంది. దయచేసి మరలా ప్రయత్నించండి.';
-
-  @override
-  String get deviceNoFastTransfer => 'మీ పరికరం ఫాస్ట్ ట్రాన్స్ఫర్ సపోర్ట్ చేయదు. బదులుగా బ్లూటూత్ ఉపయోగించండి.';
-
-  @override
-  String get enableHotspotMessage => 'దయచేసి మీ ఫోన్ యొక్క హాట్‌స్పాట్ ప్రారంభించండి మరియు మరలా ప్రయత్నించండి.';
-
-  @override
-  String get transferStartFailed => 'ట్రాన్స్ఫర్ ప్రారంభించడంలో విఫలమైంది. దయచేసి మరలా ప్రయత్నించండి.';
-
-  @override
-  String get invalidWifiCredentials => 'చెల్లని WiFi నిఖర్చన. మీ హాట్‌స్పాట్ సెట్టింగ్‌లను తనిఖీ చేయండి.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi సంయోగం విఫలమైంది. దయచేసి మరలా ప్రయత్నించండి.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi సమన్వయం విఫలమైంది';
-
-  @override
-  String get wifiSync => 'WiFi సమన్వయం';
-
-  @override
-  String get wifiConnectionFailedTitle => 'సంయోగం విఫలమైంది';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return '$deviceName యొక్క WiFi ప్రారంభించండి';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'ఫాస్ట్ ట్రాన్‌సర్కు మారారు';
-
-  @override
-  String get fastTransferEnabled => 'ఫాస్ట్ ట్రాన్‌సర్ సక్రియం చేయబడింది';
-
-  @override
-  String get enableFastTransfer => 'ఫాస్ట్ ట్రాన్‌సర్‌ను సక్రియం చేయండి';
-
-  @override
-  String get fastTransferDescription =>
-      'ఫాస్ట్ ట్రాన్‌సర్ WiFi ను ఉపయోగించి ~5x వేగవంతమైన వేగం. బదిలీ సమయంలో మీ ఫోన్잠시Omi పరికరం యొక్క WiFi నెట్‌వర్క్‌కు అనుసంధానం అవుతుంది.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'బదిలీ సమయంలో ఇంటర్నెట్ యాక్సెస్ పాజ్ చేయబడింది';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'మీ Omi పరికరం నుండి మీ ఫోన్‌కు రికార్డింగ్‌లు ఎలా బదిలీ చేయాలో ఎంచుకోండి.';
-
-  @override
-  String get wifiSpeed => 'WiFi ద్వారా ~150 KB/s';
-
-  @override
-  String get fiveTimesFaster => '5X వేగవంతమైనది';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'మీ Omi పరికరానికి నేరుగా WiFi కనెక్షన్ సృష్టిస్తుంది. బదిలీ సమయంలో మీ ఫోన్잠ిக్కా మీ సాధారణ WiFi నుండి డిస్‌కనెక్ట్ చేయబడుతుంది.';
-
-  @override
-  String get locationPermissionRequired => 'స్థానం అనుమతి అవసరం';
-
-  @override
-  String get locationPermissionContent =>
-      'ఫాస్ట్ ట్రాన్‌సర్‌కు WiFi సంయోగం ధృవీకరించడానికి స్థానం అనుమతి అవసరం. దయచేసి కొనసాగించడానికి స్థానం అనుమతిని ఇవ్వండి.';
-
-  @override
-  String get chooseTransferMethod => 'బదిలీ పద్ధతిని ఎంచుకోండి';
-
-  @override
-  String get fastTransferSpeed => 'WiFi ద్వారా ~150 KB/s';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'పరికరం WiFi సింక్‌కు సమర్థనీయం కాదు, బ్లూటూత్‌కు మారుస్తోంది';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Apple Reminders కు పనులను స్వయంచాలకంగా జోడించండి';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'ఇది ఆన్‌లో ఉన్నప్పుడు, Omi సృష్టించే పనులు స్వయంచాలకంగా Reminders కు జోడించబడతాయి. ఇది ఆఫ్‌లో ఉన్నప్పుడు కూడా మీరు పనులను చేతితో జోడించవచ్చు.';
-
-  @override
-  String get addSelectedToAppleReminders => 'ఎంచుకున్నవాటిని Apple Reminders కు జోడించండి';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'ఎంచుకున్న కొన్ని పనులను జోడించలేకపోయాం.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'ఎంచుకున్న పనులు ఇప్పటికే ఎగుమతి చేయబడ్డాయి.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'ప్రస్తుత ఫర్మ్‌వేర్ సంస్కరణను నిర్ధారించలేకపోయాము';
 
   @override
@@ -9489,86 +9344,6 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'చెల్లని ప్రోమో కోడ్.';
-
-  @override
-  String get templateRouting => 'టెంప్లేట్ రూటింగ్';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'ఓపెన్ ఆన్‌లో ఆటో-రన్';
-
-  @override
-  String get templateRoutingWorkDays => 'పని రోజులు';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'సోమ-శుక్ర';
-
-  @override
-  String get templateRoutingWorkStart => 'పని ప్రారంభం';
-
-  @override
-  String get templateRoutingWorkEnd => 'పని ముగింపు';
-
-  @override
-  String get templateRoutingWorkPrompt => 'పని ప్రాంప్ట్';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'వ్యక్తిగత ప్రాంప్ట్';
-
-  @override
-  String get templateRoutingSaved => 'టెంప్లేట్ రూటింగ్ సేవ్ చేయబడింది';
-
-  @override
-  String get templateRoutingTimeFormatError => '08:00 మరియు 17:00 వంటి 24-గంటల సమయాలను ఉపయోగించండి.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'పని ప్రారంభం తప్పనిసరిగా పని ముగిసే ముందు ఉండాలి.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'రూటింగ్‌ని ప్రారంభించే ముందు రెండు ప్రాంప్ట్‌లను జోడించండి.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'స్థానిక టెంప్లేట్‌ని వర్తింపజేస్తోంది...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'టెంప్లేట్ రూటింగ్ సారాంశాన్ని అందించలేదు.';
-
-  @override
-  String get templateRoutingFailed => 'టెంప్లేట్ రూటింగ్ విఫలమైంది.';
-
-  @override
-  String get templateRoutingLocalDescription => 'స్థానిక టెంప్లేట్ రూటింగ్';
-
-  @override
-  String get templateRoutingRoutedSummary => 'రూట్ చేయబడిన సారాంశం';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'పని రూటెడ్ సారాంశం';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'వ్యక్తిగత రూటెడ్ సారాంశం';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'బ్యాకెండ్ టెంప్లేట్ (ఐచ్ఛికం)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'పని టెంప్లేట్';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'వ్యక్తిగత టెంప్లేట్';
-
-  @override
-  String get templateRoutingTemplateNone => 'ఏదీ లేదు — ప్రాంప్ట్ ఉపయోగించు';
-
-  @override
-  String get templateRoutingManageApps => 'సారాంశ యాప్‌లను ప్రారంభించు';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'ఈ ప్రొఫైల్ కోసం ఇన్‌స్టాల్ చేసిన సారాంశ యాప్‌ని ఎంచుకోండి, లేదా పై ప్రాంప్ట్‌ని ఉపయోగించడానికి «ఏదీ లేదు» ఉంచండి.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'ప్రారంభించే ముందు పని మరియు వ్యక్తిగత రెండు ప్రొఫైల్‌లకు ప్రాంప్ట్ లేదా టెంప్లేట్ జోడించండి.';
 
   @override
   String get backgroundModeTitle => 'నేపథ్య మోడ్';

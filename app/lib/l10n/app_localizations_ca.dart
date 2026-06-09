@@ -433,8 +433,7 @@ class AppLocalizationsCa extends AppLocalizations {
   String get autoSync => 'Sincronització automàtica';
 
   @override
-  String get autoSyncDescription =>
-      'Sincronitza automàticament els enregistraments fora de línia quan el dispositiu es connecti';
+  String get autoSyncDescription => 'Sincronitza automàticament els enregistraments fora de línia quan el dispositiu es connecti';
 
   @override
   String get deviceSettings => 'Configuració del dispositiu';
@@ -522,15 +521,6 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get micGain => 'Guany del micròfon';
-
-  @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
 
   @override
   String get disconnect => 'Desconnectar';
@@ -4730,7 +4720,10 @@ class AppLocalizationsCa extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription i és $triggerDescription.';
   }
 
@@ -9344,148 +9337,6 @@ class AppLocalizationsCa extends AppLocalizations {
       'Els servidors d\'Omi estan saturats — els enregistraments se sincronitzaran quan hi hagi capacitat disponible';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used de $limit records creats aquest mes';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Configuració de sincronització WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'Introdueix les credencials del punt d\'accés del telèfon';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'La sincronització WiFi utilitza el telèfon com a punt d\'accés. Troba el nom i la contrasenya a Configuració > Punt d\'accés personal.';
-
-  @override
-  String get hotspotNameSsid => 'Nom del punt d\'accés (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'p. ex. Punt d\'accés iPhone';
-
-  @override
-  String get enterHotspotPassword => 'Introdueix la contrasenya del punt d\'accés';
-
-  @override
-  String get pleaseEnterHotspotName => 'Si us plau, introdueix un nom de punt d\'accés';
-
-  @override
-  String get wifiCredentialsSaved => 'Credencials WiFi desades';
-
-  @override
-  String get wifiCredentialsCleared => 'Credencials WiFi esborrades';
-
-  @override
-  String get fastTransfer => 'Transferència ràpida';
-
-  @override
-  String get transferMethod => 'Mètode de transferència';
-
-  @override
-  String get fast => 'Ràpid';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'No s\'ha pogut activar el WiFi al dispositiu. Si us plau, torna-ho a provar.';
-
-  @override
-  String get deviceNoFastTransfer =>
-      'El teu dispositiu no suporta transferència ràpida. Utilitza Bluetooth en el seu lloc.';
-
-  @override
-  String get enableHotspotMessage => 'Si us plau, activa el punt d\'accés del teu telèfon i torna-ho a provar.';
-
-  @override
-  String get transferStartFailed => 'No s\'ha pogut iniciar la transferència. Si us plau, torna-ho a provar.';
-
-  @override
-  String get invalidWifiCredentials => 'Credencials WiFi no vàlides. Comprova la configuració del punt d\'accés.';
-
-  @override
-  String get wifiConnectionFailed => 'Connexió WiFi fallada. Si us plau, torna-ho a provar.';
-
-  @override
-  String get wifiSyncFailed => 'Sincronització WiFi fallada';
-
-  @override
-  String get wifiSync => 'Sincronització WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Connexió fallada';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Activar WiFi de $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Canviat a transferència ràpida';
-
-  @override
-  String get fastTransferEnabled => 'Transferència ràpida activada';
-
-  @override
-  String get enableFastTransfer => 'Activar transferència ràpida';
-
-  @override
-  String get fastTransferDescription =>
-      'La transferència ràpida utilitza WiFi per velocitats ~5x més ràpides. El teu telèfon es connectarà temporalment a la xarxa WiFi del dispositiu Omi durant la transferència.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'L\'accés a internet es pausa durant la transferència';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Tria com es transfereixen les gravacions del dispositiu Omi al telèfon.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X MÉS RÀPID';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Crea una connexió WiFi directa al dispositiu Omi. El telèfon es desconnecta temporalment del WiFi habitual durant la transferència.';
-
-  @override
-  String get locationPermissionRequired => 'Es requereix permís d\'ubicació';
-
-  @override
-  String get locationPermissionContent =>
-      'La transferència ràpida requereix permís d\'ubicació per verificar la connexió WiFi. Si us plau, concediu el permís d\'ubicació per continuar.';
-
-  @override
-  String get chooseTransferMethod => 'Tria el mètode de transferència';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'El dispositiu no admet sincronització WiFi, canviant a Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Afegeix automàticament tasques a Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Quan està activat, les tasques que crea Omi s\'afegeixen automàticament als Recordatoris. Encara pots afegir tasques manualment quan això està desactivat.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Afegeix la selecció a Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders =>
-      'No s’han pogut afegir algunes tasques seleccionades.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Les tasques seleccionades ja s’han exportat.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'No s\'ha pogut determinar la versió actual del firmware';
 
   @override
@@ -9496,86 +9347,6 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Codi promocional no vàlid.';
-
-  @override
-  String get templateRouting => 'Enrutament de plantilles';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Execució automàtica en obertura';
-
-  @override
-  String get templateRoutingWorkDays => 'Dies de treball';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'de dilluns a divendres';
-
-  @override
-  String get templateRoutingWorkStart => 'Inici de les obres';
-
-  @override
-  String get templateRoutingWorkEnd => 'Final de treball';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Instrucció de treball';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Indicació personal';
-
-  @override
-  String get templateRoutingSaved => 'S\'ha desat l\'encaminament de la plantilla';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Utilitzeu hores de 24 hores com les 08:00 i les 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'L\'inici de l\'obra ha de ser abans de la finalització de l\'obra.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Afegiu les dues indicacions abans d\'habilitar l\'encaminament.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'S\'està aplicant la plantilla local...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'L\'encaminament de la plantilla no ha retornat cap resum.';
-
-  @override
-  String get templateRoutingFailed => 'Ha fallat l\'encaminament de la plantilla.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Plantilla d\'encaminament local';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Resum de ruta';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Resum de la ruta del treball';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Resum de ruta personal';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Plantilla de backend (opcional)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Plantilla de treball';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Plantilla personal';
-
-  @override
-  String get templateRoutingTemplateNone => 'Cap — utilitza el missatge';
-
-  @override
-  String get templateRoutingManageApps => 'Activa les aplicacions de resum';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Tria una aplicació de resum instal·lada per a aquest perfil o deixa «Cap» per usar el missatge anterior.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Afegeix un missatge o una plantilla per al perfil de Treball i Personal abans d\'activar.';
 
   @override
   String get backgroundModeTitle => 'Mode en segon pla';

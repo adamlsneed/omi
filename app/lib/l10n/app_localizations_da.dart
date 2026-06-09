@@ -522,15 +522,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get micGain => 'Mikrofonforstærkning';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Afbryd';
 
   @override
@@ -4687,7 +4678,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription og er $triggerDescription.';
   }
 
@@ -9276,145 +9270,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get syncCardBackendBusy => 'Omis servere er travle — dine optagelser synkroniseres, når der igen er kapacitet';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used af $limit minder oprettet denne måned';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi-synkroniseringsindstillinger';
-
-  @override
-  String get enterHotspotCredentials => 'Indtast din telefons hotspot-legitimationsoplysninger';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi-synkronisering bruger din telefon som hotspot. Find dit hotspot-navn og adgangskode i Indstillinger > Personligt hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspot-navn (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'f.eks. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Indtast hotspot-adgangskode';
-
-  @override
-  String get pleaseEnterHotspotName => 'Indtast venligst et hotspot-navn';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi-legitimationsoplysninger gemt';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi-legitimationsoplysninger ryddet';
-
-  @override
-  String get fastTransfer => 'Hurtig overførsel';
-
-  @override
-  String get transferMethod => 'Overførselsmetode';
-
-  @override
-  String get fast => 'Hurtig';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Kunne ikke aktivere WiFi på enheden. Prøv venligst igen.';
-
-  @override
-  String get deviceNoFastTransfer => 'Enheden understøtter ikke hurtig overførsel';
-
-  @override
-  String get enableHotspotMessage => 'Aktivér venligst hotspot på din telefon for at fortsætte';
-
-  @override
-  String get transferStartFailed => 'Kunne ikke starte overførsel. Prøv venligst igen.';
-
-  @override
-  String get invalidWifiCredentials => 'Ugyldige WiFi-legitimationsoplysninger';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi-forbindelse mislykkedes';
-
-  @override
-  String get wifiSyncFailed => 'WiFi-synkronisering mislykkedes';
-
-  @override
-  String get wifiSync => 'WiFi-synkronisering';
-
-  @override
-  String get wifiConnectionFailedTitle => 'WiFi-forbindelse mislykkedes';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Aktivér WiFi på enheden';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Skiftet til hurtig overførsel';
-
-  @override
-  String get fastTransferEnabled => 'Hurtig overførsel aktiveret';
-
-  @override
-  String get enableFastTransfer => 'Aktiver hurtig overførsel';
-
-  @override
-  String get fastTransferDescription =>
-      'Hurtig overførsel bruger WiFi for ~5x hurtigere hastigheder. Din telefon vil midlertidigt forbinde til din Omi-enheds WiFi-netværk under overførsel.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Internetadgang er sat på pause under overførsel';
-
-  @override
-  String get chooseTransferMethodDescription => 'Vælg hvordan optagelser overføres fra din Omi-enhed til din telefon.';
-
-  @override
-  String get wifiSpeed => 'WiFi-hastighed';
-
-  @override
-  String get fiveTimesFaster => '5X HURTIGERE';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Opretter en direkte WiFi-forbindelse til din Omi-enhed. Din telefon afbrydes midlertidigt fra dit normale WiFi under overførsel.';
-
-  @override
-  String get locationPermissionRequired => 'Placeringstilladelse påkrævet';
-
-  @override
-  String get locationPermissionContent =>
-      'Hurtig overførsel kræver placeringstilladelse for at bekræfte WiFi-forbindelse. Giv venligst placeringstilladelse for at fortsætte.';
-
-  @override
-  String get chooseTransferMethod => 'Vælg overførselsmetode';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Enheden understøtter ikke WiFi-synkronisering, skifter til Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Føj automatisk opgaver til Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Når det er slået til, føjes opgaver, som Omi opretter, automatisk til Påmindelser. Du kan stadig tilføje opgaver manuelt, når dette er slået fra.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Føj valgte til Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Nogle valgte opgaver kunne ikke tilføjes.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'De valgte opgaver er allerede eksporteret.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Kan ikke fastslå den aktuelle firmware-version';
 
   @override
@@ -9425,86 +9280,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ugyldig kampagnekode.';
-
-  @override
-  String get templateRouting => 'Skabelon Routing';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Kør automatisk på åben';
-
-  @override
-  String get templateRoutingWorkDays => 'Arbejdsdage';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'man-fre';
-
-  @override
-  String get templateRoutingWorkStart => 'Arbejdet starter';
-
-  @override
-  String get templateRoutingWorkEnd => 'Arbejdet slutter';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Arbejdsprompt';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Personlig opfordring';
-
-  @override
-  String get templateRoutingSaved => 'Skabelon routing gemt';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Brug 24-timers tider som 08:00 og 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Arbejdsstart skal være før arbejdets afslutning.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Tilføj begge prompter, før du aktiverer routing.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Anvender lokal skabelon...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Skabelon routing returnerede ingen oversigt.';
-
-  @override
-  String get templateRoutingFailed => 'Skabelonrouting mislykkedes.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Lokal skabelon routing';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Rutede oversigt';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Oversigt over arbejdet';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Resumé af personlig rute';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Backend-skabelon (valgfrit)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Arbejdsskabelon';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Personlig skabelon';
-
-  @override
-  String get templateRoutingTemplateNone => 'Ingen — brug prompt';
-
-  @override
-  String get templateRoutingManageApps => 'Aktiver opsummeringsapps';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Vælg en installeret opsummeringsapp til denne profil, eller behold „Ingen\" for at bruge prompten ovenfor.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Tilføj en prompt eller skabelon til både Arbejde og Personlig, inden du aktiverer.';
 
   @override
   String get backgroundModeTitle => 'Baggrundstilstand';

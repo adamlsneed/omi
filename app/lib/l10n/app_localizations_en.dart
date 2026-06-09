@@ -520,15 +520,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get micGain => 'Mic Gain';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Disconnect';
 
   @override
@@ -4704,7 +4695,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription and is $triggerDescription.';
   }
 
@@ -9286,145 +9280,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncCardBackendBusy => 'Omi servers are busy — your recordings will sync once capacity returns';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used of $limit memories created this month';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi Sync Settings';
-
-  @override
-  String get enterHotspotCredentials => 'Enter your phone\'s hotspot credentials';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi sync uses your phone as a hotspot. Find your hotspot name and password in Settings > Personal Hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspot Name (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'e.g. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Enter hotspot password';
-
-  @override
-  String get pleaseEnterHotspotName => 'Please enter a hotspot name';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi credentials saved';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi credentials cleared';
-
-  @override
-  String get fastTransfer => 'Fast Transfer';
-
-  @override
-  String get transferMethod => 'Transfer Method';
-
-  @override
-  String get fast => 'Fast';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Failed to enable WiFi on device. Please try again.';
-
-  @override
-  String get deviceNoFastTransfer => 'Your device does not support Fast Transfer. Use Bluetooth instead.';
-
-  @override
-  String get enableHotspotMessage => 'Please enable your phone\'s hotspot and try again.';
-
-  @override
-  String get transferStartFailed => 'Failed to start transfer. Please try again.';
-
-  @override
-  String get invalidWifiCredentials => 'Invalid WiFi credentials. Check your hotspot settings.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi connection failed. Please try again.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi Sync Failed';
-
-  @override
-  String get wifiSync => 'WiFi Sync';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Connection Failed';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Enable $deviceName\'s WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Switched to Fast Transfer';
-
-  @override
-  String get fastTransferEnabled => 'Fast Transfer enabled';
-
-  @override
-  String get enableFastTransfer => 'Enable Fast Transfer';
-
-  @override
-  String get fastTransferDescription =>
-      'Fast Transfer uses WiFi for ~5x faster speeds. Your phone will temporarily connect to your Omi device\'s WiFi network during transfer.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Internet access is paused during transfer';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Choose how recordings are transferred from your Omi device to your phone.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X FASTER';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Creates a direct WiFi connection to your Omi device. Your phone temporarily disconnects from your regular WiFi during transfer.';
-
-  @override
-  String get locationPermissionRequired => 'Location Permission Required';
-
-  @override
-  String get locationPermissionContent =>
-      'Fast Transfer requires location permission to verify WiFi connection. Please grant location permission to continue.';
-
-  @override
-  String get chooseTransferMethod => 'Choose Transfer Method';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'Device does not support WiFi sync, switching to Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Auto-add tasks to Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'When enabled, tasks Omi creates are automatically added to Reminders. You can still add tasks manually when this is off.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Add selected to Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Some selected tasks could not be added.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Selected tasks are already exported.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Unable to determine current firmware version';
 
   @override
@@ -9435,86 +9290,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Invalid promotion code.';
-
-  @override
-  String get templateRouting => 'Template Routing';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Auto-run on open';
-
-  @override
-  String get templateRoutingWorkDays => 'Work days';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Mon-Fri';
-
-  @override
-  String get templateRoutingWorkStart => 'Work start';
-
-  @override
-  String get templateRoutingWorkEnd => 'Work end';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Work prompt';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Personal prompt';
-
-  @override
-  String get templateRoutingSaved => 'Template routing saved';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Use 24-hour times like 08:00 and 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Work start must be before work end.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Add both prompts before enabling routing.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Applying local template...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Template routing returned no summary.';
-
-  @override
-  String get templateRoutingFailed => 'Template routing failed.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Local template routing';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Routed Summary';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Work Routed Summary';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Personal Routed Summary';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Backend template (optional)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Work template';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Personal template';
-
-  @override
-  String get templateRoutingTemplateNone => 'None — use prompt';
-
-  @override
-  String get templateRoutingManageApps => 'Enable summary apps';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Pick an installed summary app for this profile, or keep None to use the prompt above.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Add a prompt or a template for both Work and Personal before enabling.';
 
   @override
   String get backgroundModeTitle => 'Background Mode';

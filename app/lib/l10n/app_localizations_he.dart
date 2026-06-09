@@ -518,15 +518,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get micGain => 'הגברת מיקרופון';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'התנתק';
 
   @override
@@ -4665,7 +4656,10 @@ class AppLocalizationsHe extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription ו-is $triggerDescription.';
   }
 
@@ -9221,144 +9215,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get syncCardBackendBusy => 'השרתים של Omi עמוסים — ההקלטות שלך יסונכרנו ברגע שתתפנה תפוסה';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used מתוך $limit זיכרונות שנוצרו החודש';
-  }
-
-  @override
-  String get wifiSyncSettings => 'הגדרות סנכרון WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'הזן את פרטי הנקודה הציבורית של הטלפון שלך';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'סנכרון WiFi משתמש בטלפון שלך כנקודה ציבורית. מצא את שם הנקודה הציבורית וסיסמה בהגדרות > Personal Hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'שם הנקודה הציבורית (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'למשל iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'הזן סיסמה לנקודה ציבורית';
-
-  @override
-  String get pleaseEnterHotspotName => 'אנא הזן שם נקודה ציבורית';
-
-  @override
-  String get wifiCredentialsSaved => 'פרטי WiFi נשמרו';
-
-  @override
-  String get wifiCredentialsCleared => 'פרטי WiFi נוקו';
-
-  @override
-  String get fastTransfer => 'העברה מהירה';
-
-  @override
-  String get transferMethod => 'שיטת העברה';
-
-  @override
-  String get fast => 'מהיר';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'איתור בהפעלת WiFi במכשיר. אנא נסה שוב.';
-
-  @override
-  String get deviceNoFastTransfer => 'המכשיר שלך אינו תומך בהעברה מהירה. השתמש ב-Bluetooth במקום זאת.';
-
-  @override
-  String get enableHotspotMessage => 'אנא הפעל את נקודת החום של הטלפון שלך ונסה שוב.';
-
-  @override
-  String get transferStartFailed => 'איתור בהתחלת ההעברה. אנא נסה שוב.';
-
-  @override
-  String get invalidWifiCredentials => 'אישורי WiFi לא תקפים. בדוק את הגדרות נקודת החום שלך.';
-
-  @override
-  String get wifiConnectionFailed => 'חיבור WiFi נכשל. אנא נסה שוב.';
-
-  @override
-  String get wifiSyncFailed => 'סנכרון WiFi נכשל';
-
-  @override
-  String get wifiSync => 'סנכרון WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'החיבור נכשל';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'הפעל WiFi של $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'עברת ל-Fast Transfer';
-
-  @override
-  String get fastTransferEnabled => 'Fast Transfer מופעל';
-
-  @override
-  String get enableFastTransfer => 'הפעל Fast Transfer';
-
-  @override
-  String get fastTransferDescription =>
-      'Fast Transfer משתמש ב-WiFi כדי להשיג מהירויות גבוהות פי 5. הטלפון שלך יתחבר זמנית לרשת ה-WiFi של התקן Omi שלך במהלך ההעברה.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'גישת האינטרנט מושהית במהלך ההעברה';
-
-  @override
-  String get chooseTransferMethodDescription => 'בחר כיצד יוסברו הקלטות מהתקן Omi שלך לטלפון שלך.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s דרך WiFi';
-
-  @override
-  String get fiveTimesFaster => 'פי 5 מהר יותר';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'יוצר חיבור WiFi ישיר להתקן Omi שלך. הטלפון שלך יתנתק זמנית מ-WiFi הרגיל שלך במהלך ההעברה.';
-
-  @override
-  String get locationPermissionRequired => 'הרשאת מיקום נדרשת';
-
-  @override
-  String get locationPermissionContent =>
-      'Fast Transfer דורש הרשאת מיקום כדי לאמת חיבור WiFi. אנא הגרם הרשאת מיקום כדי להמשיך.';
-
-  @override
-  String get chooseTransferMethod => 'בחר שיטת העברה';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s דרך WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'ההתקן אינו תומך בסנכרון WiFi, מעבר ל-Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'הוספה אוטומטית של משימות ל-Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'כאשר האפשרות מופעלת, משימות ש-Omi יוצר מתווספות אוטומטית לתזכורות. עדיין ניתן להוסיף משימות ידנית כשהאפשרות כבויה.';
-
-  @override
-  String get addSelectedToAppleReminders => 'הוסף את הנבחרים ל-Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'לא ניתן היה להוסיף חלק מהמשימות שנבחרו.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'המשימות שנבחרו כבר יוצאו.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'לא ניתן לקבוע את גרסת הקושחה הנוכחית';
 
   @override
@@ -9369,85 +9225,6 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'קוד קידום לא תקין.';
-
-  @override
-  String get templateRouting => 'ניתוב תבנית';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'הפעלה אוטומטית בפתיחה';
-
-  @override
-  String get templateRoutingWorkDays => 'ימי עבודה';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'שני-שי';
-
-  @override
-  String get templateRoutingWorkStart => 'תחילת העבודה';
-
-  @override
-  String get templateRoutingWorkEnd => 'סוף עבודה';
-
-  @override
-  String get templateRoutingWorkPrompt => 'הודעת עבודה';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'הנחיה אישית';
-
-  @override
-  String get templateRoutingSaved => 'ניתוב התבנית נשמר';
-
-  @override
-  String get templateRoutingTimeFormatError => 'השתמש בזמנים של 24 שעות כמו 08:00 ו-17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'תחילת העבודה חייבת להיות לפני סיום העבודה.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'הוסף את שתי ההנחיות לפני הפעלת הניתוב.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'מחיל תבנית מקומית...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'ניתוב התבנית לא החזיר סיכום.';
-
-  @override
-  String get templateRoutingFailed => 'ניתוב התבנית נכשל.';
-
-  @override
-  String get templateRoutingLocalDescription => 'ניתוב תבניות מקומי';
-
-  @override
-  String get templateRoutingRoutedSummary => 'סיכום מנותב';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'סיכום עבודה מנותב';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'סיכום מנותב אישי';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'תבנית Backend (אופציונלי)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'תבנית עבודה';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'תבנית אישית';
-
-  @override
-  String get templateRoutingTemplateNone => 'ללא — השתמש בהנחיה';
-
-  @override
-  String get templateRoutingManageApps => 'הפעל אפליקציות סיכום';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'בחר אפליקציית סיכום מותקנת לפרופיל זה, או השאר «ללא» כדי להשתמש בהנחיה למעלה.';
-
-  @override
-  String get templateRoutingProfileRequiredError => 'הוסף הנחיה או תבנית לפרופילי עבודה ואישי לפני הפעלה.';
 
   @override
   String get backgroundModeTitle => 'מצב רקע';

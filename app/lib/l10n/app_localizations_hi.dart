@@ -519,15 +519,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get micGain => 'माइक गेन';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'डिस्कनेक्ट करें';
 
   @override
@@ -4676,7 +4667,10 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription और $triggerDescription।';
   }
 
@@ -9268,146 +9262,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get syncCardBackendBusy => 'Omi के सर्वर व्यस्त हैं — क्षमता उपलब्ध होते ही आपकी रिकॉर्डिंग सिंक हो जाएंगी';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return 'इस महीने $used/$limit यादें बनाईं';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi सिंक सेटिंग्स';
-
-  @override
-  String get enterHotspotCredentials => 'अपने फोन के हॉटस्पॉट क्रेडेंशियल दर्ज करें';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi सिंक आपके फोन को हॉटस्पॉट के रूप में उपयोग करता है। सेटिंग्स > पर्सनल हॉटस्पॉट में नाम और पासवर्ड खोजें।';
-
-  @override
-  String get hotspotNameSsid => 'हॉटस्पॉट नाम (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'उदा. iPhone हॉटस्पॉट';
-
-  @override
-  String get enterHotspotPassword => 'हॉटस्पॉट पासवर्ड दर्ज करें';
-
-  @override
-  String get pleaseEnterHotspotName => 'कृपया हॉटस्पॉट नाम दर्ज करें';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi क्रेडेंशियल सहेजे गए';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi क्रेडेंशियल साफ़ किए गए';
-
-  @override
-  String get fastTransfer => 'फास्ट ट्रांसफर';
-
-  @override
-  String get transferMethod => 'ट्रांसफर विधि';
-
-  @override
-  String get fast => 'तेज़';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'डिवाइस पर WiFi सक्षम करने में विफल। कृपया पुनः प्रयास करें।';
-
-  @override
-  String get deviceNoFastTransfer => 'यह डिवाइस तेज़ ट्रांसफर का समर्थन नहीं करता।';
-
-  @override
-  String get enableHotspotMessage => 'कृपया अपने फोन पर हॉटस्पॉट सक्षम करें और डिवाइस को कनेक्ट करें।';
-
-  @override
-  String get transferStartFailed => 'ट्रांसफर शुरू करने में विफल। कृपया पुनः प्रयास करें।';
-
-  @override
-  String get invalidWifiCredentials => 'अमान्य WiFi क्रेडेंशियल्स। कृपया जांचें और पुनः प्रयास करें।';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi कनेक्शन विफल। कृपया पुनः प्रयास करें।';
-
-  @override
-  String get wifiSyncFailed => 'WiFi सिंक विफल';
-
-  @override
-  String get wifiSync => 'वाईफाई सिंक';
-
-  @override
-  String get wifiConnectionFailedTitle => 'WiFi कनेक्शन विफल';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'डिवाइस WiFi सक्षम करें';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'तेज़ ट्रांसफर पर स्विच किया गया';
-
-  @override
-  String get fastTransferEnabled => 'फास्ट ट्रांसफर सक्षम';
-
-  @override
-  String get enableFastTransfer => 'फास्ट ट्रांसफर सक्षम करें';
-
-  @override
-  String get fastTransferDescription =>
-      'फास्ट ट्रांसफर ~5x तेज गति के लिए WiFi का उपयोग करता है। ट्रांसफर के दौरान आपका फोन अस्थायी रूप से आपके Omi डिवाइस के WiFi नेटवर्क से कनेक्ट होगा।';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'ट्रांसफर के दौरान इंटरनेट एक्सेस रुका हुआ है';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'चुनें कि आपके Omi डिवाइस से आपके फोन में रिकॉर्डिंग कैसे ट्रांसफर की जाएं।';
-
-  @override
-  String get wifiSpeed => '~150 KB/s WiFi के माध्यम से';
-
-  @override
-  String get fiveTimesFaster => '5X तेज';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'आपके Omi डिवाइस से सीधा WiFi कनेक्शन बनाता है। ट्रांसफर के दौरान आपका फोन अस्थायी रूप से आपके सामान्य WiFi से डिस्कनेक्ट हो जाता है।';
-
-  @override
-  String get locationPermissionRequired => 'स्थान अनुमति आवश्यक';
-
-  @override
-  String get locationPermissionContent =>
-      'फास्ट ट्रांसफर को WiFi कनेक्शन सत्यापित करने के लिए स्थान अनुमति की आवश्यकता है। कृपया जारी रखने के लिए स्थान अनुमति दें।';
-
-  @override
-  String get chooseTransferMethod => 'स्थानांतरण विधि चुनें';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s WiFi के माध्यम से';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'डिवाइस WiFi सिंक का समर्थन नहीं करता, Bluetooth पर स्विच कर रहा है';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Apple Reminders में कार्य अपने-आप जोड़ें';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'चालू होने पर, Omi द्वारा बनाए गए कार्य अपने-आप Reminders में जुड़ जाते हैं। यह बंद होने पर भी आप कार्य मैन्युअल रूप से जोड़ सकते हैं।';
-
-  @override
-  String get addSelectedToAppleReminders => 'चयनित को Apple Reminders में जोड़ें';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'कुछ चयनित कार्य जोड़े नहीं जा सके।';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'चयनित कार्य पहले ही निर्यात किए जा चुके हैं।';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'वर्तमान फ़र्मवेयर संस्करण निर्धारित नहीं किया जा सका';
 
   @override
@@ -9418,86 +9272,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'अमान्य प्रोमो कोड।';
-
-  @override
-  String get templateRouting => 'टेम्पलेट रूटिंग';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'खुले में स्वतः चलायें';
-
-  @override
-  String get templateRoutingWorkDays => 'कार्य दिवस';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'सोम-शुक्र';
-
-  @override
-  String get templateRoutingWorkStart => 'काम शुरू';
-
-  @override
-  String get templateRoutingWorkEnd => 'काम ख़त्म';
-
-  @override
-  String get templateRoutingWorkPrompt => 'शीघ्र कार्य करें';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'व्यक्तिगत संकेत';
-
-  @override
-  String get templateRoutingSaved => 'टेम्प्लेट रूटिंग सहेजी गई';
-
-  @override
-  String get templateRoutingTimeFormatError => '24 घंटे के समय जैसे 08:00 और 17:00 का उपयोग करें���';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'कार्य प्रारंभ कार्य समाप्ति से पहले होना चाहिए.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'रूटिंग सक्षम करने से पहले दोनों संकेत जोड़ें.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'स्थानीय टेम्पलेट लागू किया जा रहा है...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'टेम्प्लेट रूटिंग से कोई सारांश नहीं लौटा।';
-
-  @override
-  String get templateRoutingFailed => 'टेम्प्लेट रूटिंग विफल.';
-
-  @override
-  String get templateRoutingLocalDescription => 'स्थानीय टेम्पलेट रूटिंग';
-
-  @override
-  String get templateRoutingRoutedSummary => 'रूट किया गया सारांश';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'कार्य रूटेड सारांश';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'व्यक्तिगत रूटेड सारांश';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'बैकएंड टेम्पलेट (वैकल्पिक)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'कार्य टेम्पलेट';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'व्यक्तिगत टेम्पलेट';
-
-  @override
-  String get templateRoutingTemplateNone => 'कोई नहीं — प्रॉम्प्ट उपयोग करें';
-
-  @override
-  String get templateRoutingManageApps => 'सारांश ऐप्स सक्षम करें';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'इस प्रोफ़ाइल के लिए एक इंस्टॉल किया हुआ सारांश ऐप चुनें, या ऊपर के प्रॉम्प्ट का उपयोग करने के लिए \'कोई नहीं\' रखें।';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'सक्षम करने से पहले कार्य और व्यक्तिगत दोनों प्रोफ़ाइल के लिए एक प्रॉम्प्ट या टेम्पलेट जोड़ें।';
 
   @override
   String get backgroundModeTitle => 'बैकग्राउंड मोड';

@@ -523,15 +523,6 @@ class AppLocalizationsUk extends AppLocalizations {
   String get micGain => 'Підсилення мікрофона';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Відключити';
 
   @override
@@ -4707,7 +4698,10 @@ class AppLocalizationsUk extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription і $triggerDescription.';
   }
 
@@ -9309,145 +9303,6 @@ class AppLocalizationsUk extends AppLocalizations {
       'Сервери Omi перевантажені — ваші записи синхронізуються, щойно з\'явиться доступна потужність';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used з $limit спогадів створено цього місяця';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Налаштування синхронізації WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'Введіть облікові дані точки доступу телефону';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi синхронізація використовує телефон як точку доступу. Знайдіть ім\'я та пароль у Налаштування > Режим модема.';
-
-  @override
-  String get hotspotNameSsid => 'Ім\'я точки доступу (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'напр. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Введіть пароль точки доступу';
-
-  @override
-  String get pleaseEnterHotspotName => 'Будь ласка, введіть ім\'я точки доступу';
-
-  @override
-  String get wifiCredentialsSaved => 'Облікові дані WiFi збережено';
-
-  @override
-  String get wifiCredentialsCleared => 'Облікові дані WiFi очищено';
-
-  @override
-  String get fastTransfer => 'Швидка передача';
-
-  @override
-  String get transferMethod => 'Метод передачі';
-
-  @override
-  String get fast => 'Швидко';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Не вдалося увімкнути WiFi на пристрої. Спробуйте ще раз.';
-
-  @override
-  String get deviceNoFastTransfer => 'Ваш пристрій не підтримує швидку передачу. Використовуйте Bluetooth.';
-
-  @override
-  String get enableHotspotMessage => 'Увімкніть точку доступу на телефоні та спробуйте ще раз.';
-
-  @override
-  String get transferStartFailed => 'Не вдалося розпочати передачу. Спробуйте ще раз.';
-
-  @override
-  String get invalidWifiCredentials => 'Недійсні облікові дані WiFi. Перевірте налаштування точки доступу.';
-
-  @override
-  String get wifiConnectionFailed => 'Помилка з\'єднання WiFi. Спробуйте ще раз.';
-
-  @override
-  String get wifiSyncFailed => 'Помилка синхронізації WiFi';
-
-  @override
-  String get wifiSync => 'Синхронізація WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Помилка з\'єднання';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Увімкнути WiFi на $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Переключено на швидку передачу';
-
-  @override
-  String get fastTransferEnabled => 'Швидку передачу увімкнено';
-
-  @override
-  String get enableFastTransfer => 'Увімкнути швидку передачу';
-
-  @override
-  String get fastTransferDescription =>
-      'Швидка передача використовує WiFi для ~5x швидших швидкостей. Ваш телефон тимчасово підключиться до WiFi-мережі пристрою Omi під час передачі.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Доступ до інтернету призупинено під час передачі';
-
-  @override
-  String get chooseTransferMethodDescription => 'Виберіть, як записи передаються з пристрою Omi на телефон.';
-
-  @override
-  String get wifiSpeed => '~150 КБ/с через WiFi';
-
-  @override
-  String get fiveTimesFaster => 'У 5 РАЗІВ ШВИДШЕ';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Створює пряме WiFi-підключення до пристрою Omi. Телефон тимчасово відключається від звичайного WiFi під час передачі.';
-
-  @override
-  String get locationPermissionRequired => 'Потрібен дозвіл на місцезнаходження';
-
-  @override
-  String get locationPermissionContent =>
-      'Для швидкої передачі потрібен дозвіл на місцезнаходження для перевірки з\'єднання WiFi. Будь ласка, надайте дозвіл на місцезнаходження, щоб продовжити.';
-
-  @override
-  String get chooseTransferMethod => 'Оберіть метод передачі';
-
-  @override
-  String get fastTransferSpeed => '~150 КБ/с через WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Пристрій не підтримує синхронізацію WiFi, перемикання на Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Автоматично додавати завдання в Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Коли ввімкнено, завдання, створені Omi, автоматично додаються до Нагадувань. Коли це вимкнено, ви все одно можете додавати завдання вручну.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Додати вибране до Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Деякі вибрані завдання не вдалося додати.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Вибрані завдання вже експортовані.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Не вдається визначити поточну версію мікропрограми';
 
   @override
@@ -9458,86 +9313,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Недійсний промокод.';
-
-  @override
-  String get templateRouting => 'Шаблон маршрутизації';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Автоматичний запуск при відкритті';
-
-  @override
-  String get templateRoutingWorkDays => 'робочі дні';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Пн-Пт';
-
-  @override
-  String get templateRoutingWorkStart => 'Початок роботи';
-
-  @override
-  String get templateRoutingWorkEnd => 'Кінець роботи';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Підказка до роботи';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Особиста підказка';
-
-  @override
-  String get templateRoutingSaved => 'Шаблон маршрутизації збережено';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Використовуйте 24-годинний час, наприклад 08:00 і 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Початок роботи повинен бути до закінчення роботи.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Додайте обидва підказки перед увімкненням маршрутизації.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Застосування локального шаблону...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Шаблон маршрутизації не повернув підсумок.';
-
-  @override
-  String get templateRoutingFailed => 'Помилка маршрутизації шаблону.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Локальна шаблонна маршрутизація';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Маршрутизоване резюме';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Підсумок маршруту роботи';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Особисте маршрутизоване резюме';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Шаблон бекенду (необов\'язково)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Робочий шаблон';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Особистий шаблон';
-
-  @override
-  String get templateRoutingTemplateNone => 'Без шаблону — використати підказку';
-
-  @override
-  String get templateRoutingManageApps => 'Увімкнути застосунки для резюме';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Виберіть встановлений застосунок для резюме для цього профілю або залиште «Без шаблону», щоб використовувати підказку вище.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Додайте підказку або шаблон для профілів Робочий і Особистий перед увімкненням.';
 
   @override
   String get backgroundModeTitle => 'Фоновий режим';

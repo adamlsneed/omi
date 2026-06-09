@@ -522,15 +522,6 @@ class AppLocalizationsBs extends AppLocalizations {
   String get micGain => 'Pojačanje mikrofona';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Iskopčaj';
 
   @override
@@ -4712,7 +4703,10 @@ class AppLocalizationsBs extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription i pokrenuto sa $triggerDescription.';
   }
 
@@ -9316,145 +9310,6 @@ class AppLocalizationsBs extends AppLocalizations {
       'Omi serveri su zauzeti — vaši snimci će se sinhronizovati kada se oslobodi kapacitet';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used od $limit uspomene kreirane ovaj mesec';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Postavke WiFi sinhronizacije';
-
-  @override
-  String get enterHotspotCredentials => 'Unesite vjerodajnice pristupne točke vašeg telefona';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi sinhronizacija koristi vaš telefon kao pristupnu točku. Pronađite naziv pristupne točke i lozinku u Postavkama > Osobna pristupna točka.';
-
-  @override
-  String get hotspotNameSsid => 'Naziv pristupne točke (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'npr. iPhone pristupna točka';
-
-  @override
-  String get enterHotspotPassword => 'Unesite lozinku pristupne točke';
-
-  @override
-  String get pleaseEnterHotspotName => 'Molimo unesite naziv pristupne točke';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi vjerodajnice su spremljene';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi vjerodajnice su obrisane';
-
-  @override
-  String get fastTransfer => 'Brzi prenos';
-
-  @override
-  String get transferMethod => 'Način prenosa';
-
-  @override
-  String get fast => 'Brzo';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Neuspješno omogućavanje WiFi-ja na uređaju. Molimo pokušajte ponovno.';
-
-  @override
-  String get deviceNoFastTransfer => 'Vaš uređaj ne podržava brzi prenos. Umjesto toga koristite Bluetooth.';
-
-  @override
-  String get enableHotspotMessage => 'Molimo omogućite hotspot vašeg telefona i pokušajte ponovno.';
-
-  @override
-  String get transferStartFailed => 'Neuspješan start prenosa. Molimo pokušajte ponovno.';
-
-  @override
-  String get invalidWifiCredentials => 'Neispravne WiFi kredencijale. Provjerite postavke hotspota.';
-
-  @override
-  String get wifiConnectionFailed => 'Konekcija sa WiFi-jem neuspješna. Molimo pokušajte ponovno.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi sinhronizacija nije uspjela';
-
-  @override
-  String get wifiSync => 'WiFi sinhronizacija';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Konekcija nije uspjela';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Omogući WiFi na $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Prebačeno na brzi prenos';
-
-  @override
-  String get fastTransferEnabled => 'Brzi prenos je omogućen';
-
-  @override
-  String get enableFastTransfer => 'Omogući brzi prenos';
-
-  @override
-  String get fastTransferDescription =>
-      'Brzi prenos koristi WiFi za ~5x brže brzine. Vaš telefon će se privremeno povezati na WiFi mrežu vašeg Omi uređaja tokom prenosa.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Pristup internetu je pauziran tokom prenosa';
-
-  @override
-  String get chooseTransferMethodDescription => 'Odaberite kako se snimci prenose sa vašeg Omi uređaja na vaš telefon.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s preko WiFi-ja';
-
-  @override
-  String get fiveTimesFaster => '5X BRŽE';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Kreira direktnu WiFi konekciju sa vašim Omi uređajem. Vaš telefon se privremeno odvaja od običnog WiFi-ja tokom prenosa.';
-
-  @override
-  String get locationPermissionRequired => 'Dozvola za lokaciju je potrebna';
-
-  @override
-  String get locationPermissionContent =>
-      'Brzi prenos zahtijeva dozvolu za lokaciju da provjeri WiFi konekciju. Molimo dozvoli dozvolu za lokaciju da nastavite.';
-
-  @override
-  String get chooseTransferMethod => 'Odaberite način prenosa';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s preko WiFi-ja';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Uređaj ne podržava WiFi sinhronizaciju, prebacujem na Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Automatski dodaj zadatke u Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Kada je uključeno, zadaci koje Omi napravi automatski se dodaju u Podsjetnike. I dalje možete ručno dodavati zadatke kada je ovo isključeno.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Dodaj odabrano u Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Neke odabrane zadatke nije bilo moguće dodati.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Odabrani zadaci su već izvezeni.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Nije moguće odrediti trenutnu verziju firmvera';
 
   @override
@@ -9465,86 +9320,6 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Nevažeći promo kod.';
-
-  @override
-  String get templateRouting => 'Template Routing';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Auto-run na otvorenom';
-
-  @override
-  String get templateRoutingWorkDays => 'Radni dani';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'pon-pet';
-
-  @override
-  String get templateRoutingWorkStart => 'Početak rada';
-
-  @override
-  String get templateRoutingWorkEnd => 'Kraj rada';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Radni red';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Personal prompt';
-
-  @override
-  String get templateRoutingSaved => 'Usmjeravanje šablona je sačuvano';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Koristite 24-satno vrijeme poput 08:00 i 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Početak rada mora biti prije završetka rada.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Dodajte oba upita prije omogućavanja usmjeravanja.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Primjena lokalnog predloška...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Usmjeravanje šablona nije vratilo sažetak.';
-
-  @override
-  String get templateRoutingFailed => 'Usmjeravanje šablona nije uspjelo.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Lokalno rutiranje šablona';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Routed Summary';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Work Routed Summary';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Personal Routed Summary';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Predložak pozadinskog dijela (opcionalno)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Radni predložak';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Lični predložak';
-
-  @override
-  String get templateRoutingTemplateNone => 'Ništa — koristi upit';
-
-  @override
-  String get templateRoutingManageApps => 'Omogući aplikacije za sažimanje';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Odaberite instaliranu aplikaciju za sažimanje za ovaj profil ili ostavite „Ništa\" da koristite gornji upit.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Dodajte upit ili predložak za Radni i Lični profil prije omogućavanja.';
 
   @override
   String get backgroundModeTitle => 'Pozadinski način rada';

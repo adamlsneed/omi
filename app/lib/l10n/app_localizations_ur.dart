@@ -521,15 +521,6 @@ class AppLocalizationsUr extends AppLocalizations {
   String get micGain => 'مائک کا حصول';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'منقطع کریں';
 
   @override
@@ -4709,7 +4700,10 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription اور $triggerDescription سے متحرک ہے۔';
   }
 
@@ -9305,147 +9299,6 @@ class AppLocalizationsUr extends AppLocalizations {
   String get syncCardBackendBusy => 'Omi کے سرورز مصروف ہیں — گنجائش بحال ہوتے ہی آپ کی ریکارڈنگز سنک ہو جائیں گی';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return 'اس ماہ $used کے $limit یادیں بنائی گئیں';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi سنک کی ترتیبات';
-
-  @override
-  String get enterHotspotCredentials => 'اپنے فون کے ہاٹ اسپاٹ کی شناخت درج کریں';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi سنک آپ کے فون کو ہاٹ اسپاٹ کے طور پر استعمال کرتا ہے۔ ترتیبات میں اپنے ہاٹ اسپاٹ کا نام اور پاس ورڈ تلاش کریں > ذاتی ہاٹ اسپاٹ۔';
-
-  @override
-  String get hotspotNameSsid => 'ہاٹ اسپاٹ کا نام (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'مثلاً iPhone کا ہاٹ اسپاٹ';
-
-  @override
-  String get enterHotspotPassword => 'ہاٹ اسپاٹ پاس ورڈ درج کریں';
-
-  @override
-  String get pleaseEnterHotspotName => 'براہ کرم ہاٹ اسپاٹ کا نام درج کریں';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi کی شناخت محفوظ کی گئی';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi کی شناخت صاف کی گئی';
-
-  @override
-  String get fastTransfer => 'تیز رفتار منتقلی';
-
-  @override
-  String get transferMethod => 'منتقلی کا طریقہ';
-
-  @override
-  String get fast => 'تیز';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'ڈیوائس پر WiFi فعال کرنے میں ناکام۔ براہ کرم دوبارہ کوشش کریں۔';
-
-  @override
-  String get deviceNoFastTransfer =>
-      'آپ کے ڈیوائس میں تیز رفتار منتقلی کی سہولت نہیں ہے۔ اس کی بجائے Bluetooth استعمال کریں۔';
-
-  @override
-  String get enableHotspotMessage => 'براہ کرم اپنے فون کا ہاٹ سپاٹ فعال کریں اور دوبارہ کوشش کریں۔';
-
-  @override
-  String get transferStartFailed => 'منتقلی شروع کرنے میں ناکام۔ براہ کرم دوبارہ کوشش کریں۔';
-
-  @override
-  String get invalidWifiCredentials => 'غلط WiFi بروز اہل۔ اپنی ہاٹ سپاٹ سیٹنگز کی جانچ کریں۔';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi کنکشن ناکام۔ براہ کرم دوبارہ کوشش کریں۔';
-
-  @override
-  String get wifiSyncFailed => 'WiFi ہم آہنگی ناکام';
-
-  @override
-  String get wifiSync => 'WiFi ہم آہنگی';
-
-  @override
-  String get wifiConnectionFailedTitle => 'کنکشن ناکام';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return '$deviceName کا WiFi فعال کریں';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Fast Transfer پر سوئچ کیا گیا';
-
-  @override
-  String get fastTransferEnabled => 'Fast Transfer فعال کیا گیا';
-
-  @override
-  String get enableFastTransfer => 'Fast Transfer فعال کریں';
-
-  @override
-  String get fastTransferDescription =>
-      'Fast Transfer WiFi استعمال کرتے ہوئے تقریباً 5 گنا تیز رفتار ہے۔ ٹرانسفر کے دوران آپ کا فون عارضی طور پر آپ کے Omi ڈیوائس کے WiFi نیٹ ورک سے منسلک ہوگا۔';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'ٹرانسفر کے دوران انٹرنیٹ رسائی موقوف ہے';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'آپ کے Omi ڈیوائس سے آپ کے فون تک ریکارڈنگز کو منتقل کرنے کا طریقہ منتخب کریں۔';
-
-  @override
-  String get wifiSpeed => 'WiFi کے ذریعے ~150 KB/s';
-
-  @override
-  String get fiveTimesFaster => '5 گنا تیز رفتار';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'آپ کے Omi ڈیوائس کے ساتھ براہ راست WiFi کنکشن بناتا ہے۔ ٹرانسفر کے دوران آپ کا فون عارضی طور پر آپ کے معمول کے WiFi سے منقطع ہوتا ہے۔';
-
-  @override
-  String get locationPermissionRequired => 'مقام کی اجازت ضروری ہے';
-
-  @override
-  String get locationPermissionContent =>
-      'Fast Transfer کو WiFi کنکشن کی تصدیق کے لیے مقام کی اجازت ضروری ہے۔ براہ کرم جاری رکھنے کے لیے مقام کی اجازت دیں۔';
-
-  @override
-  String get chooseTransferMethod => 'ٹرانسفر کا طریقہ منتخب کریں';
-
-  @override
-  String get fastTransferSpeed => 'WiFi کے ذریعے ~150 KB/s';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'ڈیوائس WiFi ہم آہنگی کو سپورٹ نہیں کرتا، Bluetooth پر سوئچ کیا جا رہا ہے';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'کام خودکار طور پر Apple Reminders میں شامل کریں';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'فعال ہونے پر، Omi کے بنائے ہوئے کام خودکار طور پر Reminders میں شامل ہو جاتے ہیں۔ یہ بند ہونے پر بھی آپ کام دستی طور پر شامل کر سکتے ہیں۔';
-
-  @override
-  String get addSelectedToAppleReminders => 'منتخب کردہ کو Apple Reminders میں شامل کریں';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'کچھ منتخب کام شامل نہیں کیے جا سکے۔';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'منتخب کام پہلے ہی برآمد ہو چکے ہیں۔';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'موجودہ فرم ویئر ورژن کا تعین نہیں کیا جا سکا';
 
   @override
@@ -9456,86 +9309,6 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'غلط پرومو کوڈ۔';
-
-  @override
-  String get templateRouting => 'ٹیمپلیٹ روٹنگ';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'کھلے پر خودکار چلائیں۔';
-
-  @override
-  String get templateRoutingWorkDays => 'کام کے دن';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'پیر تا جمعہ';
-
-  @override
-  String get templateRoutingWorkStart => 'کام شروع';
-
-  @override
-  String get templateRoutingWorkEnd => 'کام ختم';
-
-  @override
-  String get templateRoutingWorkPrompt => 'کام کا اشارہ';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'ذاتی اشارہ';
-
-  @override
-  String get templateRoutingSaved => 'ٹیمپلیٹ روٹنگ محفوظ ہو گئی۔';
-
-  @override
-  String get templateRoutingTimeFormatError => '24 گھنٹے کے اوقات جیسے 08:00 اور 17:00 استعمال کریں۔';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'کام کا آغاز کام ختم ہونے سے پہلے ہونا چاہیے۔';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'روٹنگ کو فعال کرنے سے پہلے دونوں پرامپٹس شامل کریں۔';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'مقامی ٹیمپلیٹ کا اطلاق ہو رہا ہے...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'ٹیمپلیٹ روٹنگ نے کوئی خلاصہ واپس نہیں کیا۔';
-
-  @override
-  String get templateRoutingFailed => 'ٹیمپلیٹ روٹنگ ناکام ہو گئی۔';
-
-  @override
-  String get templateRoutingLocalDescription => 'مقامی ٹیمپلیٹ روٹنگ';
-
-  @override
-  String get templateRoutingRoutedSummary => 'روٹ شدہ خلاصہ';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'ورک روٹڈ خلاصہ';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'ذاتی روٹڈ خلاصہ';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'بیک اینڈ ٹیمپلیٹ (اختیاری)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'کام کا ٹیمپلیٹ';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'ذاتی ٹیمپلیٹ';
-
-  @override
-  String get templateRoutingTemplateNone => 'کوئی نہیں — پرامپٹ استعمال کریں';
-
-  @override
-  String get templateRoutingManageApps => 'خلاصہ ایپس فعال کریں';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'اس پروفائل کے لیے کوئی نصب شدہ خلاصہ ایپ منتخب کریں، یا اوپر والا پرامپٹ استعمال کرنے کے لیے «کوئی نہیں» رکھیں۔';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'فعال کرنے سے پہلے کام اور ذاتی دونوں پروفائلز کے لیے پرامپٹ یا ٹیمپلیٹ شامل کریں۔';
 
   @override
   String get backgroundModeTitle => 'بیک گراؤنڈ موڈ';

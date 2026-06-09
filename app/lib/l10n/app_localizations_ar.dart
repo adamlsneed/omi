@@ -517,15 +517,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get micGain => 'تضخيم الميكروفون';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'قطع الاتصال';
 
   @override
@@ -4665,7 +4656,10 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription و$triggerDescription.';
   }
 
@@ -9236,144 +9230,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncCardBackendBusy => 'خوادم Omi مشغولة الآن — ستتم مزامنة تسجيلاتك عند توفر السعة';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used من $limit ذكرى تم إنشاؤها هذا الشهر';
-  }
-
-  @override
-  String get wifiSyncSettings => 'إعدادات مزامنة WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'أدخل بيانات اعتماد نقطة اتصال هاتفك';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'تستخدم مزامنة WiFi هاتفك كنقطة اتصال. ابحث عن اسم وكلمة مرور نقطة الاتصال في الإعدادات > نقطة اتصال شخصية.';
-
-  @override
-  String get hotspotNameSsid => 'اسم نقطة الاتصال (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'مثال: نقطة اتصال iPhone';
-
-  @override
-  String get enterHotspotPassword => 'أدخل كلمة مرور نقطة الاتصال';
-
-  @override
-  String get pleaseEnterHotspotName => 'يرجى إدخال اسم نقطة الاتصال';
-
-  @override
-  String get wifiCredentialsSaved => 'تم حفظ بيانات اعتماد WiFi';
-
-  @override
-  String get wifiCredentialsCleared => 'تم مسح بيانات اعتماد WiFi';
-
-  @override
-  String get fastTransfer => 'النقل السريع';
-
-  @override
-  String get transferMethod => 'طريقة النقل';
-
-  @override
-  String get fast => 'سريع';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'فشل تفعيل واي فاي على الجهاز. يرجى المحاولة مرة أخرى.';
-
-  @override
-  String get deviceNoFastTransfer => 'جهازك لا يدعم النقل السريع. استخدم البلوتوث في الوقت الحالي.';
-
-  @override
-  String get enableHotspotMessage => 'يرجى تفعيل نقطة اتصال هاتفك والمحاولة مرة أخرى.';
-
-  @override
-  String get transferStartFailed => 'فشل بدء النقل. يرجى المحاولة مرة أخرى.';
-
-  @override
-  String get invalidWifiCredentials => 'بيانات واي فاي غير صالحة. تحقق من إعدادات نقطة الاتصال.';
-
-  @override
-  String get wifiConnectionFailed => 'فشل اتصال واي فاي. يرجى المحاولة مرة أخرى.';
-
-  @override
-  String get wifiSyncFailed => 'فشلت مزامنة واي فاي';
-
-  @override
-  String get wifiSync => 'مزامنة الواي فاي';
-
-  @override
-  String get wifiConnectionFailedTitle => 'فشل الاتصال';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'تفعيل واي فاي $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'تم التبديل إلى النقل السريع';
-
-  @override
-  String get fastTransferEnabled => 'تم تفعيل النقل السريع';
-
-  @override
-  String get enableFastTransfer => 'تفعيل النقل السريع';
-
-  @override
-  String get fastTransferDescription =>
-      'يستخدم النقل السريع شبكة WiFi للحصول على سرعات أسرع بـ 5 مرات. سيتصل هاتفك مؤقتًا بشبكة WiFi الخاصة بجهاز Omi أثناء النقل.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'يتم إيقاف الوصول إلى الإنترنت أثناء النقل';
-
-  @override
-  String get chooseTransferMethodDescription => 'اختر كيفية نقل التسجيلات من جهاز Omi إلى هاتفك.';
-
-  @override
-  String get wifiSpeed => '~150 كيلوبايت/ثانية عبر WiFi';
-
-  @override
-  String get fiveTimesFaster => 'أسرع 5 مرات';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'ينشئ اتصال WiFi مباشر بجهاز Omi. يتم فصل هاتفك مؤقتًا عن شبكة WiFi العادية أثناء النقل.';
-
-  @override
-  String get locationPermissionRequired => 'إذن الموقع مطلوب';
-
-  @override
-  String get locationPermissionContent =>
-      'يتطلب النقل السريع إذن الموقع للتحقق من اتصال WiFi. يرجى منح إذن الموقع للمتابعة.';
-
-  @override
-  String get chooseTransferMethod => 'اختر طريقة النقل';
-
-  @override
-  String get fastTransferSpeed => '~150 كيلوبايت/ثانية عبر WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'الجهاز لا يدعم مزامنة WiFi، التبديل إلى البلوتوث';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'إضافة المهام تلقائيًا إلى تذكيرات Apple';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'عند التفعيل، تُضاف المهام التي ينشئها Omi تلقائيًا إلى التذكيرات. لا يزال بإمكانك إضافة المهام يدويًا عند إيقاف هذا الخيار.';
-
-  @override
-  String get addSelectedToAppleReminders => 'إضافة المحدد إلى Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'تعذرت إضافة بعض المهام المحددة.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'المهام المحددة مصدّرة بالفعل.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'تعذر تحديد إصدار البرنامج الثابت الحالي';
 
   @override
@@ -9384,85 +9240,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'رمز ترويجي غير صالح.';
-
-  @override
-  String get templateRouting => 'توجيه القالب';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'التشغيل التلقائي عند الفتح';
-
-  @override
-  String get templateRoutingWorkDays => 'أيام العمل';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'من الاثنين إلى الجمعة';
-
-  @override
-  String get templateRoutingWorkStart => 'بداية العمل';
-
-  @override
-  String get templateRoutingWorkEnd => 'نهاية العمل';
-
-  @override
-  String get templateRoutingWorkPrompt => 'موجه العمل';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'موجه شخصي';
-
-  @override
-  String get templateRoutingSaved => 'تم حفظ توجيه القالب';
-
-  @override
-  String get templateRoutingTimeFormatError => 'استخدم أوقات 24 ساعة مثل 08:00 و17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'يجب أن تكون بداية العمل قبل نهاية العمل.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'قم بإضافة كلا المطالبتين قبل تمكين التوجيه.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'جارٍ تطبيق القالب المحلي...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'لم يُرجع توجيه القالب أي ملخص.';
-
-  @override
-  String get templateRoutingFailed => 'فشل توجيه القالب.';
-
-  @override
-  String get templateRoutingLocalDescription => 'توجيه القالب المحلي';
-
-  @override
-  String get templateRoutingRoutedSummary => 'ملخص موجه';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'ملخص توجيه العمل';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'ملخص التوجيه الشخصي';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'قالب الخلفية (اختياري)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'قالب العمل';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'القالب الشخصي';
-
-  @override
-  String get templateRoutingTemplateNone => 'لا شيء — استخدم التعليمات';
-
-  @override
-  String get templateRoutingManageApps => 'تفعيل تطبيقات الملخص';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'اختر تطبيق ملخص مثبتاً لهذا الملف الشخصي، أو اترك الخيار «لا شيء» لاستخدام التعليمات أعلاه.';
-
-  @override
-  String get templateRoutingProfileRequiredError => 'أضف تعليمات أو قالباً لملفي العمل والشخصي قبل التفعيل.';
 
   @override
   String get backgroundModeTitle => 'الوضع في الخلفية';

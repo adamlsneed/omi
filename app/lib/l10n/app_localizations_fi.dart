@@ -520,15 +520,6 @@ class AppLocalizationsFi extends AppLocalizations {
   String get micGain => 'Mikrofonin vahvistus';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Katkaise yhteys';
 
   @override
@@ -4701,7 +4692,10 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription ja on $triggerDescription.';
   }
 
@@ -9291,144 +9285,6 @@ class AppLocalizationsFi extends AppLocalizations {
       'Omin palvelimet ovat ruuhkautuneet — tallenteesi synkronoidaan, kun kapasiteettia vapautuu';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used/$limit muistoa luotu tässä kuussa';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi-synkronointiasetukset';
-
-  @override
-  String get enterHotspotCredentials => 'Syötä puhelimesi hotspot-tunnukset';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi-synkronointi käyttää puhelintasi hotspotina. Löydä nimi ja salasana kohdasta Asetukset > Oma hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspotin nimi (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'esim. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Syötä hotspotin salasana';
-
-  @override
-  String get pleaseEnterHotspotName => 'Syötä hotspotin nimi';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi-tunnukset tallennettu';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi-tunnukset tyhjennetty';
-
-  @override
-  String get fastTransfer => 'Nopea siirto';
-
-  @override
-  String get transferMethod => 'Siirtotapa';
-
-  @override
-  String get fast => 'Nopea';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'WiFin käyttöönotto laitteessa epäonnistui. Yritä uudelleen.';
-
-  @override
-  String get deviceNoFastTransfer => 'Laitteesi ei tue nopeaa siirtoa. Käytä Bluetoothia sen sijaan.';
-
-  @override
-  String get enableHotspotMessage => 'Ota puhelimesi hotspot käyttöön ja yritä uudelleen.';
-
-  @override
-  String get transferStartFailed => 'Siirron aloitus epäonnistui. Yritä uudelleen.';
-
-  @override
-  String get invalidWifiCredentials => 'Virheelliset WiFi-tunnukset. Tarkista hotspot-asetuksesi.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi-yhteys epäonnistui. Yritä uudelleen.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi-synkronointi epäonnistui';
-
-  @override
-  String get wifiSync => 'WiFi-synkronointi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'WiFi-yhteys epäonnistui';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Ota käyttöön $deviceName-laitteen WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Vaihdettu nopeaan siirtoon';
-
-  @override
-  String get fastTransferEnabled => 'Nopea siirto käytössä';
-
-  @override
-  String get enableFastTransfer => 'Ota nopea siirto käyttöön';
-
-  @override
-  String get fastTransferDescription =>
-      'Nopea siirto käyttää WiFiä ~5x nopeampiin nopeuksiin. Puhelimesi yhdistää tilapäisesti Omi-laitteesi WiFi-verkkoon siirron aikana.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Internet-yhteys keskeytetään siirron ajaksi';
-
-  @override
-  String get chooseTransferMethodDescription => 'Valitse, miten tallenteet siirretään Omi-laitteesta puhelimeesi.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s WiFin kautta';
-
-  @override
-  String get fiveTimesFaster => '5X NOPEAMPI';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Luo suoran WiFi-yhteyden Omi-laitteeseesi. Puhelimesi katkeaa tilapäisesti tavallisesta WiFistä siirron aikana.';
-
-  @override
-  String get locationPermissionRequired => 'Sijaintilupa vaaditaan';
-
-  @override
-  String get locationPermissionContent =>
-      'Nopea siirto vaatii sijaintiluvan WiFi-yhteyden tarkistamiseksi. Myönnä sijaintilupa jatkaaksesi.';
-
-  @override
-  String get chooseTransferMethod => 'Valitse siirtotapa';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s WiFin kautta';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'Laite ei tue WiFi-synkronointia, vaihdetaan Bluetoothiin';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Lisää tehtävät automaattisesti Apple Remindersiin';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Kun tämä on käytössä, Omin luomat tehtävät lisätään automaattisesti Muistutuksiin. Voit silti lisätä tehtäviä manuaalisesti, kun tämä on pois päältä.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Lisää valitut Apple Remindersiin';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Joitakin valittuja tehtäviä ei voitu lisätä.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Valitut tehtävät on jo viety.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Nykyistä laiteohjelmistoversiota ei voida määrittää';
 
   @override
@@ -9439,86 +9295,6 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Virheellinen tarjouskoodi.';
-
-  @override
-  String get templateRouting => 'Mallin reititys';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Automaattinen käynnistys auki';
-
-  @override
-  String get templateRoutingWorkDays => 'Työpäivät';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'ma-pe';
-
-  @override
-  String get templateRoutingWorkStart => 'Työn aloitus';
-
-  @override
-  String get templateRoutingWorkEnd => 'Työn loppu';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Työn kehotus';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Henkilökohtainen kehotus';
-
-  @override
-  String get templateRoutingSaved => 'Mallin reititys tallennettu';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Käytä 24 tunnin kelloa, kuten 08:00 ja 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Työn alkamisen tulee olla ennen työn loppua.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Lisää molemmat kehotteet ennen kuin otat reitityksen käyttöön.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Otetaan paikallista mallia...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Mallin reititys ei palauttanut yhteenvetoa.';
-
-  @override
-  String get templateRoutingFailed => 'Mallin reititys epäonnistui.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Paikallinen mallin reititys';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Reititetty yhteenveto';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Work Routed Summary';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Henkilökohtainen reititetty yhteenveto';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Taustapalvelun malli (valinnainen)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Työmalli';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Henkilökohtainen malli';
-
-  @override
-  String get templateRoutingTemplateNone => 'Ei mitään — käytä kehotetta';
-
-  @override
-  String get templateRoutingManageApps => 'Ota tiivistelmäsovellukset käyttöön';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Valitse asennettu tiivistelmäsovellus tälle profiilille tai pidä „Ei mitään\" käyttääksesi yllä olevaa kehotetta.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Lisää kehote tai malli sekä Työ- että Henkilökohtaiselle profiilille ennen käyttöönottoa.';
 
   @override
   String get backgroundModeTitle => 'Taustatila';

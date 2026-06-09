@@ -523,15 +523,6 @@ class AppLocalizationsLv extends AppLocalizations {
   String get micGain => 'Mikrofona pastiprinājums';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Atvienot';
 
   @override
@@ -4709,7 +4700,10 @@ class AppLocalizationsLv extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription un ir $triggerDescription.';
   }
 
@@ -9313,144 +9307,6 @@ class AppLocalizationsLv extends AppLocalizations {
       'Omi serveri ir noslogoti — jūsu ieraksti tiks sinhronizēti, tiklīdz atbrīvosies jauda';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used no $limit atmiņām izveidots šomēnes';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi sinhronizācijas iestatījumi';
-
-  @override
-  String get enterHotspotCredentials => 'Ievadiet tālruņa tīklāja akreditācijas datus';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WiFi sinhronizācija izmanto jūsu tālruni kā tīklāju. Atrodiet nosaukumu un paroli sadaļā Iestatījumi > Personālais tīklājs.';
-
-  @override
-  String get hotspotNameSsid => 'Tīklāja nosaukums (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'piem. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Ievadiet tīklāja paroli';
-
-  @override
-  String get pleaseEnterHotspotName => 'Lūdzu, ievadiet tīklāja nosaukumu';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi akreditācijas dati saglabāti';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi akreditācijas dati notīrīti';
-
-  @override
-  String get fastTransfer => 'Ātrā pārsūtīšana';
-
-  @override
-  String get transferMethod => 'Pārsūtīšanas metode';
-
-  @override
-  String get fast => 'Ātrs';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Neizdevās iespējot WiFi ierīcē. Lūdzu, mēģiniet vēlreiz.';
-
-  @override
-  String get deviceNoFastTransfer => 'Jūsu ierīce neatbalsta ātro pārsūtīšanu. Tā vietā izmantojiet Bluetooth.';
-
-  @override
-  String get enableHotspotMessage => 'Lūdzu, iespējojiet tālruņa piekļuves punktu un mēģiniet vēlreiz.';
-
-  @override
-  String get transferStartFailed => 'Neizdevās sākt pārsūtīšanu. Lūdzu, mēģiniet vēlreiz.';
-
-  @override
-  String get invalidWifiCredentials => 'Nederīgi WiFi akreditācijas dati. Pārbaudiet piekļuves punkta iestatījumus.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi savienojums neizdevās. Lūdzu, mēģiniet vēlreiz.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi sinhronizācija neizdevās';
-
-  @override
-  String get wifiSync => 'WiFi sinhronizācija';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Savienojums neizdevās';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Iespējot $deviceName WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Pārslēgts uz ātro pārsūtīšanu';
-
-  @override
-  String get fastTransferEnabled => 'Ātrā pārsūtīšana iespējota';
-
-  @override
-  String get enableFastTransfer => 'Iespējot ātro pārsūtīšanu';
-
-  @override
-  String get fastTransferDescription =>
-      'Ātrā pārsūtīšana izmanto WiFi ~5x ātrākam ātrumam. Pārsūtīšanas laikā tālrunis īslaicīgi pieslēgsies Omi ierīces WiFi tīklam.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Interneta piekļuve ir apturēta pārsūtīšanas laikā';
-
-  @override
-  String get chooseTransferMethodDescription => 'Izvēlieties, kā ieraksti tiek pārsūtīti no Omi ierīces uz tālruni.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s caur WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X ĀTRĀK';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Izveido tiešu WiFi savienojumu ar Omi ierīci. Pārsūtīšanas laikā tālrunis īslaicīgi atvienojas no parastā WiFi.';
-
-  @override
-  String get locationPermissionRequired => 'Nepieciešama atrašanās vietas atļauja';
-
-  @override
-  String get locationPermissionContent =>
-      'Ātrai pārsūtīšanai nepieciešama atrašanās vietas atļauja, lai pārbaudītu WiFi savienojumu. Lūdzu, piešķiriet atrašanās vietas atļauju, lai turpinātu.';
-
-  @override
-  String get chooseTransferMethod => 'Izvēlieties pārsūtīšanas metodi';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s caur WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => 'Ierīce neatbalsta WiFi sinhronizāciju, pārslēdzas uz Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Automātiski pievienot uzdevumus Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Kad ieslēgts, Omi izveidotie uzdevumi automātiski tiek pievienoti atgādinājumiem. Kad tas ir izslēgts, uzdevumus joprojām var pievienot manuāli.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Pievienot atlasītos Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Dažus atlasītos uzdevumus neizdevās pievienot.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Atlasītie uzdevumi jau ir eksportēti.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Nevar noteikt pašreizējo programmaparatūras versiju';
 
   @override
@@ -9461,86 +9317,6 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Nederīgs reklāmas kods.';
-
-  @override
-  String get templateRouting => 'Veidņu maršrutēšana';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Automātiski palaist atvērtā stāvoklī';
-
-  @override
-  String get templateRoutingWorkDays => 'Darba dienas';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'P-Pk';
-
-  @override
-  String get templateRoutingWorkStart => 'Darba sākums';
-
-  @override
-  String get templateRoutingWorkEnd => 'Darba beigas';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Darba uzvedne';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Personīga uzvedne';
-
-  @override
-  String get templateRoutingSaved => 'Veidnes maršrutēšana saglabāta';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Izmantojiet 24 stundu laiku, piemēram, 08:00 un 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Darba sākumam jābūt pirms darba beigām.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Pirms maršrutēšanas iespējošanas pievienojiet abas uzvednes.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Notiek vietējās veidnes lietošana...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Veidnes maršrutēšana neatgrieza kopsavilkumu.';
-
-  @override
-  String get templateRoutingFailed => 'Veidnes maršrutēšana neizdevās.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Vietējās veidnes maršrutēšana';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Maršruta kopsavilkums';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Darba maršruta kopsavilkums';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Personiskais maršruta kopsavilkums';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Aizmugursistēmas veidne (neobligāti)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Darba veidne';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Personīgā veidne';
-
-  @override
-  String get templateRoutingTemplateNone => 'Nav — izmantot uzvedni';
-
-  @override
-  String get templateRoutingManageApps => 'Iespējot kopsavilkuma lietotnes';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Izvēlieties instalētu kopsavilkuma lietotni šim profilam vai atstājiet „Nav\", lai izmantotu augstāk esošo uzvedni.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Pirms iespējošanas pievienojiet uzvedni vai veidni gan Darba, gan Personīgajam profilam.';
 
   @override
   String get backgroundModeTitle => 'Fona režīms';

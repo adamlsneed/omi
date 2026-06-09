@@ -521,15 +521,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get micGain => 'Penguatan Mikrofon';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Putuskan';
 
   @override
@@ -4714,7 +4705,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription dan $triggerDescription.';
   }
 
@@ -9299,146 +9293,6 @@ class AppLocalizationsId extends AppLocalizations {
       'Server Omi sedang sibuk — rekamanmu akan disinkronkan setelah kapasitas tersedia kembali';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used dari $limit memori dibuat bulan ini';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Pengaturan Sinkronisasi WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'Masukkan kredensial hotspot ponsel Anda';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'Sinkronisasi WiFi menggunakan ponsel Anda sebagai hotspot. Temukan nama dan kata sandi di Pengaturan > Hotspot Pribadi.';
-
-  @override
-  String get hotspotNameSsid => 'Nama Hotspot (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'mis. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Masukkan kata sandi hotspot';
-
-  @override
-  String get pleaseEnterHotspotName => 'Silakan masukkan nama hotspot';
-
-  @override
-  String get wifiCredentialsSaved => 'Kredensial WiFi disimpan';
-
-  @override
-  String get wifiCredentialsCleared => 'Kredensial WiFi dihapus';
-
-  @override
-  String get fastTransfer => 'Transfer Cepat';
-
-  @override
-  String get transferMethod => 'Metode Transfer';
-
-  @override
-  String get fast => 'Cepat';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Gagal mengaktifkan WiFi pada perangkat. Silakan coba lagi.';
-
-  @override
-  String get deviceNoFastTransfer => 'Perangkat tidak mendukung Transfer Cepat';
-
-  @override
-  String get enableHotspotMessage => 'Silakan aktifkan hotspot ponsel Anda dan coba lagi.';
-
-  @override
-  String get transferStartFailed => 'Gagal memulai transfer. Silakan coba lagi.';
-
-  @override
-  String get invalidWifiCredentials => 'Kredensial WiFi tidak valid. Periksa pengaturan hotspot Anda.';
-
-  @override
-  String get wifiConnectionFailed => 'Koneksi WiFi gagal. Silakan coba lagi.';
-
-  @override
-  String get wifiSyncFailed => 'Sinkronisasi WiFi Gagal';
-
-  @override
-  String get wifiSync => 'Sinkronisasi WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Koneksi gagal';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Aktifkan WiFi $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Beralih ke Transfer Cepat';
-
-  @override
-  String get fastTransferEnabled => 'Transfer Cepat diaktifkan';
-
-  @override
-  String get enableFastTransfer => 'Aktifkan Transfer Cepat';
-
-  @override
-  String get fastTransferDescription =>
-      'Transfer Cepat menggunakan WiFi untuk kecepatan ~5x lebih cepat. Ponsel Anda akan terhubung sementara ke jaringan WiFi perangkat Omi selama transfer.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Akses internet dijeda selama transfer';
-
-  @override
-  String get chooseTransferMethodDescription => 'Pilih cara rekaman ditransfer dari perangkat Omi ke ponsel Anda.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X LEBIH CEPAT';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Membuat koneksi WiFi langsung ke perangkat Omi Anda. Ponsel Anda sementara terputus dari WiFi biasa selama transfer.';
-
-  @override
-  String get locationPermissionRequired => 'Izin Lokasi Diperlukan';
-
-  @override
-  String get locationPermissionContent =>
-      'Transfer Cepat memerlukan izin lokasi untuk memverifikasi koneksi WiFi. Harap berikan izin lokasi untuk melanjutkan.';
-
-  @override
-  String get chooseTransferMethod => 'Pilih metode transfer';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s melalui WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Perangkat tidak mendukung sinkronisasi WiFi, beralih ke Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Tambahkan tugas otomatis ke Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Saat aktif, tugas yang dibuat Omi otomatis ditambahkan ke Pengingat. Anda tetap dapat menambahkan tugas secara manual saat opsi ini nonaktif.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Tambahkan pilihan ke Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders =>
-      'Beberapa tugas yang dipilih tidak dapat ditambahkan.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Tugas yang dipilih sudah diekspor.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Tidak dapat menentukan versi firmware saat ini';
 
   @override
@@ -9449,86 +9303,6 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Kode promo tidak valid.';
-
-  @override
-  String get templateRouting => 'Perutean Templat';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Jalankan otomatis saat terbuka';
-
-  @override
-  String get templateRoutingWorkDays => 'hari kerja';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Senin-Jumat';
-
-  @override
-  String get templateRoutingWorkStart => 'Mulai bekerja';
-
-  @override
-  String get templateRoutingWorkEnd => 'Pekerjaan berakhir';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Perintah kerja';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Perintah pribadi';
-
-  @override
-  String get templateRoutingSaved => 'Perutean templat disimpan';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Gunakan waktu 24 jam seperti 08:00 dan 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Pekerjaan dimulai harus sebelum pekerjaan berakhir.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Tambahkan kedua perintah sebelum mengaktifkan perutean.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Menerapkan templat lokal...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Perutean templat tidak menghasilkan ringkasan.';
-
-  @override
-  String get templateRoutingFailed => 'Perutean template gagal.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Perutean templat lokal';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Ringkasan yang Dirutekan';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Ringkasan Pekerjaan yang Dirutekan';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Ringkasan Rute Pribadi';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Templat backend (opsional)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Templat kerja';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Templat pribadi';
-
-  @override
-  String get templateRoutingTemplateNone => 'Tidak ada — gunakan prompt';
-
-  @override
-  String get templateRoutingManageApps => 'Aktifkan aplikasi ringkasan';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Pilih aplikasi ringkasan yang terpasang untuk profil ini, atau biarkan «Tidak ada» untuk menggunakan prompt di atas.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Tambahkan prompt atau templat untuk profil Kerja dan Pribadi sebelum mengaktifkan.';
 
   @override
   String get backgroundModeTitle => 'Mode Latar Belakang';

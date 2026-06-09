@@ -526,15 +526,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get micGain => 'Mikrofonverstärkung';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Trennen';
 
   @override
@@ -4739,7 +4730,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription und wird $triggerDescription.';
   }
 
@@ -9366,148 +9360,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Omis Server sind ausgelastet — deine Aufnahmen werden synchronisiert, sobald wieder Kapazität verfügbar ist';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used von $limit Erinnerungen diesen Monat erstellt';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WLAN-Synchronisierungseinstellungen';
-
-  @override
-  String get enterHotspotCredentials => 'Geben Sie die Hotspot-Anmeldedaten Ihres Telefons ein';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'WLAN-Sync nutzt Ihr Telefon als Hotspot. Finden Sie Name und Passwort unter Einstellungen > Persönlicher Hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspot-Name (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'z.B. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Hotspot-Passwort eingeben';
-
-  @override
-  String get pleaseEnterHotspotName => 'Bitte geben Sie einen Hotspot-Namen ein';
-
-  @override
-  String get wifiCredentialsSaved => 'WLAN-Anmeldedaten gespeichert';
-
-  @override
-  String get wifiCredentialsCleared => 'WLAN-Anmeldedaten gelöscht';
-
-  @override
-  String get fastTransfer => 'Schnelle Übertragung';
-
-  @override
-  String get transferMethod => 'Übertragungsmethode';
-
-  @override
-  String get fast => 'Schnell';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'WLAN-Aktivierung fehlgeschlagen';
-
-  @override
-  String get deviceNoFastTransfer => 'Gerät unterstützt keine Schnellübertragung';
-
-  @override
-  String get enableHotspotMessage =>
-      'Bitte aktiviere den WLAN-Hotspot auf deinem Telefon, damit sich das Omi-Gerät verbinden kann.';
-
-  @override
-  String get transferStartFailed => 'Übertragungsstart fehlgeschlagen';
-
-  @override
-  String get invalidWifiCredentials => 'Ungültige WLAN-Anmeldedaten';
-
-  @override
-  String get wifiConnectionFailed => 'WLAN-Verbindung fehlgeschlagen';
-
-  @override
-  String get wifiSyncFailed => 'WLAN-Synchronisierung fehlgeschlagen';
-
-  @override
-  String get wifiSync => 'WLAN-Synchronisierung';
-
-  @override
-  String get wifiConnectionFailedTitle => 'WLAN-Verbindung fehlgeschlagen';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Geräte-WLAN aktivieren';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Auf Schnellübertragung umgeschaltet';
-
-  @override
-  String get fastTransferEnabled => 'Schnelle Übertragung aktiviert';
-
-  @override
-  String get enableFastTransfer => 'Schnelle Übertragung aktivieren';
-
-  @override
-  String get fastTransferDescription =>
-      'Die schnelle Übertragung nutzt WLAN für ~5x schnellere Geschwindigkeiten. Ihr Telefon verbindet sich während der Übertragung vorübergehend mit dem WLAN-Netzwerk Ihres Omi-Geräts.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Der Internetzugang wird während der Übertragung unterbrochen';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Wählen Sie, wie Aufnahmen von Ihrem Omi-Gerät auf Ihr Telefon übertragen werden.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s über WLAN';
-
-  @override
-  String get fiveTimesFaster => '5X SCHNELLER';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Erstellt eine direkte WLAN-Verbindung zu Ihrem Omi-Gerät. Ihr Telefon trennt sich während der Übertragung vorübergehend von Ihrem normalen WLAN.';
-
-  @override
-  String get locationPermissionRequired => 'Standortberechtigung erforderlich';
-
-  @override
-  String get locationPermissionContent =>
-      'Schnelltransfer benötigt die Standortberechtigung, um die WLAN-Verbindung zu überprüfen. Bitte erteilen Sie die Standortberechtigung, um fortzufahren.';
-
-  @override
-  String get chooseTransferMethod => 'Übertragungsmethode wählen';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s über WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Gerät unterstützt keine WiFi-Synchronisierung, Wechsel zu Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Aufgaben automatisch zu Apple Erinnerungen hinzufügen';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Wenn aktiviert, werden von Omi erstellte Aufgaben automatisch zu Erinnerungen hinzugefügt. Du kannst Aufgaben weiterhin manuell hinzufügen, wenn dies deaktiviert ist.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Ausgewählte zu Apple Reminders hinzufügen';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders =>
-      'Einige ausgewählte Aufgaben konnten nicht hinzugefügt werden.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Die ausgewählten Aufgaben wurden bereits exportiert.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Aktuelle Firmware-Version konnte nicht ermittelt werden';
 
   @override
@@ -9518,87 +9370,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Ungültiger Aktionscode.';
-
-  @override
-  String get templateRouting => 'Vorlagenrouting';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Automatischer Start beim Öffnen';
-
-  @override
-  String get templateRoutingWorkDays => 'Arbeitstage';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Mo-Fr';
-
-  @override
-  String get templateRoutingWorkStart => 'Arbeitsbeginn';
-
-  @override
-  String get templateRoutingWorkEnd => 'Arbeitsende';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Arbeitsaufforderung';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Persönliche Aufforderung';
-
-  @override
-  String get templateRoutingSaved => 'Vorlagenrouting gespeichert';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Verwenden Sie 24-Stunden-Zeiten wie 08:00 und 17:00 Uhr.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'Arbeitsbeginn muss vor Arbeitsende liegen.';
-
-  @override
-  String get templateRoutingPromptsRequiredError =>
-      'Fügen Sie beide Eingabeaufforderungen hinzu, bevor Sie das Routing aktivieren.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Lokale Vorlage anwenden...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Das Vorlagenrouting hat keine Zusammenfassung zurückgegeben.';
-
-  @override
-  String get templateRoutingFailed => 'Das Weiterleiten der Vorlage ist fehlgeschlagen.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Lokales Template-Routing';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Zusammenfassung der Route';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Zusammenfassung der weitergeleiteten Arbeit';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Persönliche Route-Zusammenfassung';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Backend-Vorlage (optional)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Arbeitsvorlage';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Persönliche Vorlage';
-
-  @override
-  String get templateRoutingTemplateNone => 'Keine — Eingabeaufforderung verwenden';
-
-  @override
-  String get templateRoutingManageApps => 'Zusammenfassungs-Apps aktivieren';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Wähle eine installierte Zusammenfassungs-App für dieses Profil oder behalte „Keine\", um die obige Eingabeaufforderung zu verwenden.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Füge für Arbeit und Persönlich je eine Eingabeaufforderung oder Vorlage hinzu, bevor du aktivierst.';
 
   @override
   String get backgroundModeTitle => 'Hintergrundmodus';

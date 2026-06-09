@@ -433,8 +433,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get autoSync => 'Sincronizzazione automatica';
 
   @override
-  String get autoSyncDescription =>
-      'Sincronizza automaticamente le registrazioni offline quando il dispositivo si connette';
+  String get autoSyncDescription => 'Sincronizza automaticamente le registrazioni offline quando il dispositivo si connette';
 
   @override
   String get deviceSettings => 'Impostazioni Dispositivo';
@@ -522,15 +521,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get micGain => 'Guadagno Microfono';
-
-  @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
 
   @override
   String get disconnect => 'Disconnetti';
@@ -4731,7 +4721,10 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription ed è $triggerDescription.';
   }
 
@@ -9345,148 +9338,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'I server di Omi sono sovraccarichi — le tue registrazioni verranno sincronizzate appena tornerà disponibile capacità';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used di $limit ricordi creati questo mese';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Impostazioni sincronizzazione WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'Inserisci le credenziali hotspot del tuo telefono';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'La sincronizzazione WiFi usa il telefono come hotspot. Trova nome e password in Impostazioni > Hotspot personale.';
-
-  @override
-  String get hotspotNameSsid => 'Nome hotspot (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'es. Hotspot iPhone';
-
-  @override
-  String get enterHotspotPassword => 'Inserisci la password dell\'hotspot';
-
-  @override
-  String get pleaseEnterHotspotName => 'Inserisci un nome hotspot';
-
-  @override
-  String get wifiCredentialsSaved => 'Credenziali WiFi salvate';
-
-  @override
-  String get wifiCredentialsCleared => 'Credenziali WiFi cancellate';
-
-  @override
-  String get fastTransfer => 'Trasferimento rapido';
-
-  @override
-  String get transferMethod => 'Metodo di trasferimento';
-
-  @override
-  String get fast => 'Veloce';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Impossibile abilitare il WiFi sul dispositivo. Riprova.';
-
-  @override
-  String get deviceNoFastTransfer =>
-      'Il tuo dispositivo non supporta il Trasferimento Rapido. Usa il Bluetooth invece.';
-
-  @override
-  String get enableHotspotMessage => 'Abilita l\'hotspot del telefono e riprova.';
-
-  @override
-  String get transferStartFailed => 'Impossibile avviare il trasferimento. Riprova.';
-
-  @override
-  String get invalidWifiCredentials => 'Credenziali WiFi non valide. Controlla le impostazioni dell\'hotspot.';
-
-  @override
-  String get wifiConnectionFailed => 'Connessione WiFi fallita. Riprova.';
-
-  @override
-  String get wifiSyncFailed => 'Sincronizzazione WiFi Fallita';
-
-  @override
-  String get wifiSync => 'Sincronizzazione WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Connessione fallita';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Abilita il WiFi di $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Passato al Trasferimento Rapido';
-
-  @override
-  String get fastTransferEnabled => 'Trasferimento rapido abilitato';
-
-  @override
-  String get enableFastTransfer => 'Abilita trasferimento rapido';
-
-  @override
-  String get fastTransferDescription =>
-      'Il trasferimento rapido utilizza il WiFi per velocità ~5x più veloci. Il tuo telefono si connetterà temporaneamente alla rete WiFi del dispositivo Omi durante il trasferimento.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'L\'accesso a Internet è sospeso durante il trasferimento';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Scegli come le registrazioni vengono trasferite dal dispositivo Omi al telefono.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s via WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X PIÙ VELOCE';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Crea una connessione WiFi diretta al dispositivo Omi. Il telefono si disconnette temporaneamente dal WiFi normale durante il trasferimento.';
-
-  @override
-  String get locationPermissionRequired => 'Autorizzazione posizione richiesta';
-
-  @override
-  String get locationPermissionContent =>
-      'Il trasferimento rapido richiede l\'autorizzazione alla posizione per verificare la connessione WiFi. Concedi l\'autorizzazione alla posizione per continuare.';
-
-  @override
-  String get chooseTransferMethod => 'Scegli metodo di trasferimento';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s tramite WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Il dispositivo non supporta la sincronizzazione WiFi, passaggio al Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Aggiungi automaticamente attività a Apple Reminders';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Quando è attivo, le attività create da Omi vengono aggiunte automaticamente ai Promemoria. Puoi comunque aggiungere attività manualmente quando questa opzione è disattivata.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Aggiungi selezionati ad Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders =>
-      'Alcune attività selezionate non sono state aggiunte.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Le attività selezionate sono già state esportate.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Impossibile determinare la versione attuale del firmware';
 
   @override
@@ -9497,86 +9348,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Codice promozionale non valido.';
-
-  @override
-  String get templateRouting => 'Instradamento del modello';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Esecuzione automatica all\'apertura';
-
-  @override
-  String get templateRoutingWorkDays => 'Giorni di lavoro';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Lun-Ven';
-
-  @override
-  String get templateRoutingWorkStart => 'Inizio dei lavori';
-
-  @override
-  String get templateRoutingWorkEnd => 'Fine del lavoro';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Richiesta di lavoro';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Suggerimento personale';
-
-  @override
-  String get templateRoutingSaved => 'Routing del modello salvato';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Utilizza orari di 24 ore come 08:00 e 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'L\'inizio del lavoro deve avvenire prima della fine del lavoro.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Aggiungi entrambi i prompt prima di abilitare il routing.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Applicazione del modello locale...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Il routing del modello non ha restituito alcun riepilogo.';
-
-  @override
-  String get templateRoutingFailed => 'L\'instradamento del modello non è riuscito.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Routing del modello locale';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Riepilogo indirizzato';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Riepilogo del lavoro instradato';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Riepilogo instradato personale';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Modello backend (facoltativo)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Modello di lavoro';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Modello personale';
-
-  @override
-  String get templateRoutingTemplateNone => 'Nessuno — usa il prompt';
-
-  @override
-  String get templateRoutingManageApps => 'Abilita le app di riepilogo';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Scegli un\'app di riepilogo installata per questo profilo, o lascia «Nessuno» per usare il prompt sopra.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Aggiungi un prompt o un modello per i profili Lavoro e Personale prima di abilitare.';
 
   @override
   String get backgroundModeTitle => 'Modalità in background';

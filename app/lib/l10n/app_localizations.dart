@@ -186,7 +186,7 @@ abstract class AppLocalizations {
     Locale('uk'),
     Locale('ur'),
     Locale('vi'),
-    Locale('zh')
+    Locale('zh'),
   ];
 
   /// The app title displayed in various places
@@ -1178,24 +1178,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mic Gain'**
   String get micGain;
-
-  /// Label for the press & hold (~1s) pendant gesture row in device settings
-  ///
-  /// In en, this message translates to:
-  /// **'Press & hold'**
-  String get pressAndHold;
-
-  /// Idea-capture gesture/action label; also the lightbulb toggle tooltip when not capturing
-  ///
-  /// In en, this message translates to:
-  /// **'Capture idea'**
-  String get captureIdea;
-
-  /// Idea-capture lightbulb toggle tooltip while a capture is in progress
-  ///
-  /// In en, this message translates to:
-  /// **'Saving idea'**
-  String get savingIdea;
 
   /// Disconnect device button
   ///
@@ -8947,7 +8929,10 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{accessDescription} and is {triggerDescription}.'**
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription);
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  );
 
   /// Sentence starting with 'Is' for trigger description
   ///
@@ -17313,264 +17298,6 @@ abstract class AppLocalizations {
   /// **'Omi servers are busy — your recordings will sync once capacity returns'**
   String get syncCardBackendBusy;
 
-  /// No description provided for @memoriesUsedThisMonth.
-  ///
-  /// In en, this message translates to:
-  /// **'{used} of {limit} memories created this month'**
-  String memoriesUsedThisMonth(String used, String limit);
-
-  /// WiFi sync settings - wifiSyncSettings
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi Sync Settings'**
-  String get wifiSyncSettings;
-
-  /// WiFi sync settings - enterHotspotCredentials
-  ///
-  /// In en, this message translates to:
-  /// **'Enter your phone\'s hotspot credentials'**
-  String get enterHotspotCredentials;
-
-  /// WiFi sync settings - wifiSyncUsesHotspot
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi sync uses your phone as a hotspot. Find your hotspot name and password in Settings > Personal Hotspot.'**
-  String get wifiSyncUsesHotspot;
-
-  /// WiFi sync settings - hotspotNameSsid
-  ///
-  /// In en, this message translates to:
-  /// **'Hotspot Name (SSID)'**
-  String get hotspotNameSsid;
-
-  /// WiFi sync settings - exampleIphoneHotspot
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. iPhone Hotspot'**
-  String get exampleIphoneHotspot;
-
-  /// WiFi sync settings - enterHotspotPassword
-  ///
-  /// In en, this message translates to:
-  /// **'Enter hotspot password'**
-  String get enterHotspotPassword;
-
-  /// WiFi sync settings - pleaseEnterHotspotName
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter a hotspot name'**
-  String get pleaseEnterHotspotName;
-
-  /// WiFi sync settings - wifiCredentialsSaved
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi credentials saved'**
-  String get wifiCredentialsSaved;
-
-  /// WiFi sync settings - wifiCredentialsCleared
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi credentials cleared'**
-  String get wifiCredentialsCleared;
-
-  /// Name of the fast transfer method
-  ///
-  /// In en, this message translates to:
-  /// **'Fast Transfer'**
-  String get fastTransfer;
-
-  /// Page title for transfer method settings
-  ///
-  /// In en, this message translates to:
-  /// **'Transfer Method'**
-  String get transferMethod;
-
-  /// Label for fast WiFi transfer method
-  ///
-  /// In en, this message translates to:
-  /// **'Fast'**
-  String get fast;
-
-  /// Label for Bluetooth Low Energy transfer method
-  ///
-  /// In en, this message translates to:
-  /// **'BLE'**
-  String get ble;
-
-  /// Error message when WiFi fails to enable on device
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to enable WiFi on device. Please try again.'**
-  String get wifiEnableFailed;
-
-  /// Error message when device does not support fast transfer
-  ///
-  /// In en, this message translates to:
-  /// **'Your device does not support Fast Transfer. Use Bluetooth instead.'**
-  String get deviceNoFastTransfer;
-
-  /// Error message asking user to enable hotspot
-  ///
-  /// In en, this message translates to:
-  /// **'Please enable your phone\'s hotspot and try again.'**
-  String get enableHotspotMessage;
-
-  /// Error message when transfer fails to start
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to start transfer. Please try again.'**
-  String get transferStartFailed;
-
-  /// Error message for invalid WiFi credentials
-  ///
-  /// In en, this message translates to:
-  /// **'Invalid WiFi credentials. Check your hotspot settings.'**
-  String get invalidWifiCredentials;
-
-  /// Error message when WiFi connection fails
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi connection failed. Please try again.'**
-  String get wifiConnectionFailed;
-
-  /// Error title when WiFi sync fails
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi Sync Failed'**
-  String get wifiSyncFailed;
-
-  /// WiFi sync feature label
-  ///
-  /// In en, this message translates to:
-  /// **'WiFi Sync'**
-  String get wifiSync;
-
-  /// Title shown when WiFi connection to device fails
-  ///
-  /// In en, this message translates to:
-  /// **'Connection Failed'**
-  String get wifiConnectionFailedTitle;
-
-  /// Step text for enabling device WiFi
-  ///
-  /// In en, this message translates to:
-  /// **'Enable {deviceName}\'s WiFi'**
-  String enableDeviceWifi(String deviceName);
-
-  /// Snackbar message when switching to fast transfer mode
-  ///
-  /// In en, this message translates to:
-  /// **'Switched to Fast Transfer'**
-  String get switchedToFastTransfer;
-
-  /// Snackbar message when fast transfer is enabled
-  ///
-  /// In en, this message translates to:
-  /// **'Fast Transfer enabled'**
-  String get fastTransferEnabled;
-
-  /// Dialog title for enabling fast transfer
-  ///
-  /// In en, this message translates to:
-  /// **'Enable Fast Transfer'**
-  String get enableFastTransfer;
-
-  /// Description of fast transfer feature in dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Fast Transfer uses WiFi for ~5x faster speeds. Your phone will temporarily connect to your Omi device\'s WiFi network during transfer.'**
-  String get fastTransferDescription;
-
-  /// Warning that internet is paused during transfer
-  ///
-  /// In en, this message translates to:
-  /// **'Internet access is paused during transfer'**
-  String get internetAccessPausedDuringTransfer;
-
-  /// Description text on transfer method page
-  ///
-  /// In en, this message translates to:
-  /// **'Choose how recordings are transferred from your Omi device to your phone.'**
-  String get chooseTransferMethodDescription;
-
-  /// Speed description for WiFi transfer
-  ///
-  /// In en, this message translates to:
-  /// **'~150 KB/s via WiFi'**
-  String get wifiSpeed;
-
-  /// Badge label for faster transfer method
-  ///
-  /// In en, this message translates to:
-  /// **'5X FASTER'**
-  String get fiveTimesFaster;
-
-  /// Description of fast transfer method card
-  ///
-  /// In en, this message translates to:
-  /// **'Creates a direct WiFi connection to your Omi device. Your phone temporarily disconnects from your regular WiFi during transfer.'**
-  String get fastTransferMethodDescription;
-
-  /// Title for dialog requesting location permission
-  ///
-  /// In en, this message translates to:
-  /// **'Location Permission Required'**
-  String get locationPermissionRequired;
-
-  /// Explanation text for location permission dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Fast Transfer requires location permission to verify WiFi connection. Please grant location permission to continue.'**
-  String get locationPermissionContent;
-
-  /// Title for transfer method selection dialog
-  ///
-  /// In en, this message translates to:
-  /// **'Choose Transfer Method'**
-  String get chooseTransferMethod;
-
-  /// Speed description for fast transfer via WiFi
-  ///
-  /// In en, this message translates to:
-  /// **'~150 KB/s via WiFi'**
-  String get fastTransferSpeed;
-
-  /// Message shown when WiFi sync fails because device hardware does not support WiFi, automatically falling back to Bluetooth transfer
-  ///
-  /// In en, this message translates to:
-  /// **'Device does not support WiFi sync, switching to Bluetooth'**
-  String get deviceDoesNotSupportWifiSwitchingToBle;
-
-  /// Setting title for Apple Reminders automatic task export
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-add tasks to Apple Reminders'**
-  String get autoAddTasksToAppleReminders;
-
-  /// Setting description for Apple Reminders automatic task export
-  ///
-  /// In en, this message translates to:
-  /// **'When enabled, tasks Omi creates are automatically added to Reminders. You can still add tasks manually when this is off.'**
-  String get autoAddTasksToAppleRemindersDescription;
-
-  /// Tooltip for adding selected tasks to Apple Reminders
-  ///
-  /// In en, this message translates to:
-  /// **'Add selected to Apple Reminders'**
-  String get addSelectedToAppleReminders;
-
-  /// Message shown when only some selected tasks were added to Apple Reminders
-  ///
-  /// In en, this message translates to:
-  /// **'Some selected tasks could not be added.'**
-  String get selectedActionItemsPartiallyAddedToAppleReminders;
-
-  /// Message shown when selected tasks have already been exported
-  ///
-  /// In en, this message translates to:
-  /// **'Selected tasks are already exported.'**
-  String get selectedActionItemsAlreadyExported;
-
   /// Shown when the device firmware revision cannot be read over BLE, so an OTA update offer would be unreliable.
   ///
   /// In en, this message translates to:
@@ -17594,162 +17321,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid promotion code.'**
   String get invalidPromotionCode;
-
-  /// Settings page title for local work/personal conversation template routing.
-  ///
-  /// In en, this message translates to:
-  /// **'Template Routing'**
-  String get templateRouting;
-
-  /// Toggle label for automatically generating a routed summary when a conversation opens.
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-run on open'**
-  String get templateRoutingAutoRunOnOpen;
-
-  /// Label for the weekdays used by work template routing.
-  ///
-  /// In en, this message translates to:
-  /// **'Work days'**
-  String get templateRoutingWorkDays;
-
-  /// Short label meaning Monday through Friday.
-  ///
-  /// In en, this message translates to:
-  /// **'Mon-Fri'**
-  String get templateRoutingWorkDaysMonFri;
-
-  /// Label for the start of work hours.
-  ///
-  /// In en, this message translates to:
-  /// **'Work start'**
-  String get templateRoutingWorkStart;
-
-  /// Label for the end of work hours.
-  ///
-  /// In en, this message translates to:
-  /// **'Work end'**
-  String get templateRoutingWorkEnd;
-
-  /// Label for the prompt used for work-hours conversations.
-  ///
-  /// In en, this message translates to:
-  /// **'Work prompt'**
-  String get templateRoutingWorkPrompt;
-
-  /// Label for the prompt used for non-work conversations.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal prompt'**
-  String get templateRoutingPersonalPrompt;
-
-  /// Snackbar shown after template routing settings are saved.
-  ///
-  /// In en, this message translates to:
-  /// **'Template routing saved'**
-  String get templateRoutingSaved;
-
-  /// Validation error for work-hour time fields.
-  ///
-  /// In en, this message translates to:
-  /// **'Use 24-hour times like 08:00 and 17:00.'**
-  String get templateRoutingTimeFormatError;
-
-  /// Validation error when the start time is not before the end time.
-  ///
-  /// In en, this message translates to:
-  /// **'Work start must be before work end.'**
-  String get templateRoutingStartBeforeEndError;
-
-  /// Validation error when routing is enabled without both prompts.
-  ///
-  /// In en, this message translates to:
-  /// **'Add both prompts before enabling routing.'**
-  String get templateRoutingPromptsRequiredError;
-
-  /// Status text shown while a local routed summary is being generated.
-  ///
-  /// In en, this message translates to:
-  /// **'Applying local template...'**
-  String get templateRoutingApplyingLocalTemplate;
-
-  /// Error text when the routed prompt returns an empty summary.
-  ///
-  /// In en, this message translates to:
-  /// **'Template routing returned no summary.'**
-  String get templateRoutingReturnedNoSummary;
-
-  /// Error text when routed summary generation fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Template routing failed.'**
-  String get templateRoutingFailed;
-
-  /// Subtitle for locally generated routed summaries.
-  ///
-  /// In en, this message translates to:
-  /// **'Local template routing'**
-  String get templateRoutingLocalDescription;
-
-  /// Generic label for a local routed conversation summary.
-  ///
-  /// In en, this message translates to:
-  /// **'Routed Summary'**
-  String get templateRoutingRoutedSummary;
-
-  /// Label for a local routed summary generated with the work profile.
-  ///
-  /// In en, this message translates to:
-  /// **'Work Routed Summary'**
-  String get templateRoutingWorkRoutedSummary;
-
-  /// Label for a local routed summary generated with the personal profile.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal Routed Summary'**
-  String get templateRoutingPersonalRoutedSummary;
-
-  /// Header for the section to pick a backend app/template per routing profile
-  ///
-  /// In en, this message translates to:
-  /// **'Backend template (optional)'**
-  String get templateRoutingBackendTemplateSection;
-
-  /// Label for the backend template used during work hours
-  ///
-  /// In en, this message translates to:
-  /// **'Work template'**
-  String get templateRoutingWorkTemplate;
-
-  /// Label for the backend template used outside work hours
-  ///
-  /// In en, this message translates to:
-  /// **'Personal template'**
-  String get templateRoutingPersonalTemplate;
-
-  /// Dropdown option meaning no backend template; the free-text prompt is used instead
-  ///
-  /// In en, this message translates to:
-  /// **'None — use prompt'**
-  String get templateRoutingTemplateNone;
-
-  /// Link to the page where the user can enable summary-capable apps
-  ///
-  /// In en, this message translates to:
-  /// **'Enable summary apps'**
-  String get templateRoutingManageApps;
-
-  /// Helper text under the backend template pickers
-  ///
-  /// In en, this message translates to:
-  /// **'Pick an installed summary app for this profile, or keep None to use the prompt above.'**
-  String get templateRoutingTemplateHint;
-
-  /// Validation error when enabling routing without a prompt or template for each profile
-  ///
-  /// In en, this message translates to:
-  /// **'Add a prompt or a template for both Work and Personal before enabling.'**
-  String get templateRoutingProfileRequiredError;
 
   /// Title for the background connection mode toggle in device settings (Android only)
   ///
@@ -17870,7 +17441,7 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
         'uk',
         'ur',
         'vi',
-        'zh'
+        'zh',
       ].contains(locale.languageCode);
 
   @override
@@ -17980,8 +17551,10 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsZh();
   }
 
-  throw FlutterError('AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+  throw FlutterError(
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

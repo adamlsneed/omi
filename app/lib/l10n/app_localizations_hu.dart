@@ -524,15 +524,6 @@ class AppLocalizationsHu extends AppLocalizations {
   String get micGain => 'Mikrofon erősítés';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Leválasztás';
 
   @override
@@ -4724,7 +4715,10 @@ class AppLocalizationsHu extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription és $triggerDescription.';
   }
 
@@ -9330,146 +9324,6 @@ class AppLocalizationsHu extends AppLocalizations {
       'Az Omi szerverei leterheltek — a felvételeid szinkronizálódnak, amint felszabadul a kapacitás';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used / $limit emlék létrehozva ebben a hónapban';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi szinkronizálás beállításai';
-
-  @override
-  String get enterHotspotCredentials => 'Adja meg telefonja hotspot hitelesítő adatait';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'A WiFi szinkronizálás a telefont hotspotként használja. A nevet és jelszót a Beállítások > Személyes hotspot menüben találja.';
-
-  @override
-  String get hotspotNameSsid => 'Hotspot neve (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'pl. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Adja meg a hotspot jelszavát';
-
-  @override
-  String get pleaseEnterHotspotName => 'Kérjük, adjon meg egy hotspot nevet';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi hitelesítő adatok mentve';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi hitelesítő adatok törölve';
-
-  @override
-  String get fastTransfer => 'Gyors átvitel';
-
-  @override
-  String get transferMethod => 'Átviteli módszer';
-
-  @override
-  String get fast => 'Gyors';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'A WiFi engedélyezése sikertelen az eszközön. Kérlek, próbáld újra.';
-
-  @override
-  String get deviceNoFastTransfer => 'Az eszközöd nem támogatja a gyors átvitelt. Használd inkább a Bluetooth-t.';
-
-  @override
-  String get enableHotspotMessage => 'Kérlek, engedélyezd a telefonod hotspotját, és próbáld újra.';
-
-  @override
-  String get transferStartFailed => 'Az átvitel indítása sikertelen. Kérlek, próbáld újra.';
-
-  @override
-  String get invalidWifiCredentials => 'Érvénytelen WiFi hitelesítő adatok. Ellenőrizd a hotspot beállításokat.';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi kapcsolódás sikertelen. Kérlek, próbáld újra.';
-
-  @override
-  String get wifiSyncFailed => 'WiFi szinkronizálás sikertelen';
-
-  @override
-  String get wifiSync => 'WiFi szinkronizálás';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Kapcsolódás sikertelen';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return '$deviceName WiFi engedélyezése';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Átváltás gyors átvitelre';
-
-  @override
-  String get fastTransferEnabled => 'Gyors átvitel engedélyezve';
-
-  @override
-  String get enableFastTransfer => 'Gyors átvitel engedélyezése';
-
-  @override
-  String get fastTransferDescription =>
-      'A gyors átvitel WiFi-t használ ~5x gyorsabb sebességekhez. A telefonja ideiglenesen csatlakozik az Omi eszköz WiFi hálózatához az átvitel során.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Az internetelérés szünetel az átvitel alatt';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Válassza ki, hogyan kerüljenek át a felvételek az Omi eszközről a telefonjára.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s WiFi-n keresztül';
-
-  @override
-  String get fiveTimesFaster => '5X GYORSABB';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Közvetlen WiFi kapcsolatot hoz létre az Omi eszközével. A telefonja ideiglenesen lecsatlakozik a szokásos WiFi-ről az átvitel alatt.';
-
-  @override
-  String get locationPermissionRequired => 'Helymeghatározási engedély szükséges';
-
-  @override
-  String get locationPermissionContent =>
-      'A gyors átvitelhez helymeghatározási engedély szükséges a WiFi-kapcsolat ellenőrzéséhez. Kérjük, adja meg a helymeghatározási engedélyt a folytatáshoz.';
-
-  @override
-  String get chooseTransferMethod => 'Válasszon átviteli módot';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s WiFi-n keresztül';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Az eszköz nem támogatja a WiFi szinkronizálást, váltás Bluetooth-ra';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Feladatok automatikus hozzáadása az Apple Remindershez';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Ha be van kapcsolva, az Omi által létrehozott feladatok automatikusan bekerülnek az Emlékeztetőkbe. Kikapcsolt állapotban továbbra is hozzáadhat feladatokat kézzel.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Kijelöltek hozzáadása az Apple Remindershez';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => 'Néhány kijelölt feladatot nem sikerült hozzáadni.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'A kijelölt feladatok már exportálva vannak.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'A jelenlegi firmware verziója nem határozható meg';
 
   @override
@@ -9480,86 +9334,6 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Érvénytelen promóciós kód.';
-
-  @override
-  String get templateRouting => 'Sablon Routing';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Automatikus futás nyitott állapotban';
-
-  @override
-  String get templateRoutingWorkDays => 'Munkanapok';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'H-P';
-
-  @override
-  String get templateRoutingWorkStart => 'Munkakezdés';
-
-  @override
-  String get templateRoutingWorkEnd => 'Munka vége';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Munkafelhívás';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Személyes felszólítás';
-
-  @override
-  String get templateRoutingSaved => 'Sablonútválasztás mentve';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Használja a 24 órás időpontokat, például 08:00 és 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError => 'A munka megkezdésének a munka befejezése előtt kell lennie.';
-
-  @override
-  String get templateRoutingPromptsRequiredError => 'Adja hozzá mindkét promptot az útválasztás engedélyezése előtt.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Helyi sablon alkalmazása...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'A sablon útválasztása nem adott vissza összegzést.';
-
-  @override
-  String get templateRoutingFailed => 'A sablon átirányítása nem sikerült.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Helyi sablon útválasztás';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Routed Summary';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Munkairányított összefoglaló';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Személyes útvonal-összefoglaló';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Backend sablon (opcionális)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Munka sablon';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Személyes sablon';
-
-  @override
-  String get templateRoutingTemplateNone => 'Nincs — prompt használata';
-
-  @override
-  String get templateRoutingManageApps => 'Összefoglaló alkalmazások engedélyezése';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Válasszon telepített összefoglaló alkalmazást ehhez a profilhoz, vagy hagyja „Nincs\" értéken a fenti prompt használatához.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Az aktiválás előtt adjon meg promptot vagy sablont a Munka és Személyes profilhoz is.';
 
   @override
   String get backgroundModeTitle => 'Háttérmód';

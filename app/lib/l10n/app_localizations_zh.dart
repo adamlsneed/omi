@@ -512,15 +512,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get micGain => '麦克风增益';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => '断开连接';
 
   @override
@@ -4609,7 +4600,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription，$triggerDescription。';
   }
 
@@ -9126,139 +9120,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get syncCardBackendBusy => 'Omi 服务器繁忙 — 容量恢复后将自动同步你的录音';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '本月创建 $used/$limit 条记忆';
-  }
-
-  @override
-  String get wifiSyncSettings => 'WiFi同步设置';
-
-  @override
-  String get enterHotspotCredentials => '输入您手机的热点凭据';
-
-  @override
-  String get wifiSyncUsesHotspot => 'WiFi同步使用您的手机作为热点。在设置 > 个人热点中找到热点名称和密码。';
-
-  @override
-  String get hotspotNameSsid => '热点名称 (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => '例如 iPhone热点';
-
-  @override
-  String get enterHotspotPassword => '输入热点密码';
-
-  @override
-  String get pleaseEnterHotspotName => '请输入热点名称';
-
-  @override
-  String get wifiCredentialsSaved => 'WiFi凭据已保存';
-
-  @override
-  String get wifiCredentialsCleared => 'WiFi凭据已清除';
-
-  @override
-  String get fastTransfer => '快速传输';
-
-  @override
-  String get transferMethod => '传输方式';
-
-  @override
-  String get fast => '快速';
-
-  @override
-  String get ble => '蓝牙低功耗';
-
-  @override
-  String get wifiEnableFailed => '无法在设备上启用 WiFi。请重试。';
-
-  @override
-  String get deviceNoFastTransfer => '您的设备不支持快速传输。请改用蓝牙。';
-
-  @override
-  String get enableHotspotMessage => '请启用您手机的热点并重试。';
-
-  @override
-  String get transferStartFailed => '无法开始传输。请重试。';
-
-  @override
-  String get invalidWifiCredentials => 'WiFi 凭据无效。请检查您的热点设置。';
-
-  @override
-  String get wifiConnectionFailed => 'WiFi 连接失败。请重试。';
-
-  @override
-  String get wifiSyncFailed => 'WiFi 同步失败';
-
-  @override
-  String get wifiSync => 'WiFi 同步';
-
-  @override
-  String get wifiConnectionFailedTitle => '连接失败';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return '启用 $deviceName 的 WiFi';
-  }
-
-  @override
-  String get switchedToFastTransfer => '已切换到快速传输';
-
-  @override
-  String get fastTransferEnabled => '快速传输已启用';
-
-  @override
-  String get enableFastTransfer => '启用快速传输';
-
-  @override
-  String get fastTransferDescription => '快速传输使用WiFi实现约5倍的传输速度。传输期间，您的手机将临时连接到Omi设备的WiFi网络。';
-
-  @override
-  String get internetAccessPausedDuringTransfer => '传输期间互联网访问暂停';
-
-  @override
-  String get chooseTransferMethodDescription => '选择如何将录音从Omi设备传输到您的手机。';
-
-  @override
-  String get wifiSpeed => '通过WiFi约150 KB/s';
-
-  @override
-  String get fiveTimesFaster => '快5倍';
-
-  @override
-  String get fastTransferMethodDescription => '创建与Omi设备的直接WiFi连接。传输期间，您的手机将暂时断开常规WiFi连接。';
-
-  @override
-  String get locationPermissionRequired => '位置权限请求';
-
-  @override
-  String get locationPermissionContent => '快速传输需要位置权限来验证WiFi连接。请授予位置权限以继续。';
-
-  @override
-  String get chooseTransferMethod => '选择传输方式';
-
-  @override
-  String get fastTransferSpeed => '通过WiFi ~150 KB/s';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle => '设备不支持WiFi同步,正在切换到蓝牙';
-
-  @override
-  String get autoAddTasksToAppleReminders => '自动将任务添加到 Apple 提醒事项';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription => '启用后，Omi 创建的任务会自动添加到提醒事项。关闭此选项后，你仍然可以手动添加任务。';
-
-  @override
-  String get addSelectedToAppleReminders => '将所选项添加到 Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders => '部分所选任务无法添加。';
-
-  @override
-  String get selectedActionItemsAlreadyExported => '所选任务已导出。';
-
-  @override
   String get unableToDetermineFirmwareVersion => '无法确定当前固件版本';
 
   @override
@@ -9269,84 +9130,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => '促销代码无效。';
-
-  @override
-  String get templateRouting => '模板路由';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => '打开时自动运行';
-
-  @override
-  String get templateRoutingWorkDays => '工作日';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => '周一至周五';
-
-  @override
-  String get templateRoutingWorkStart => '工作开始';
-
-  @override
-  String get templateRoutingWorkEnd => '工作结束';
-
-  @override
-  String get templateRoutingWorkPrompt => '工作提示';
-
-  @override
-  String get templateRoutingPersonalPrompt => '个人提示';
-
-  @override
-  String get templateRoutingSaved => '模板路由已保存';
-
-  @override
-  String get templateRoutingTimeFormatError => '使用 24 小时制时间，例如 08:00 和 17:00。';
-
-  @override
-  String get templateRoutingStartBeforeEndError => '工作开始必须在工作结束之前。';
-
-  @override
-  String get templateRoutingPromptsRequiredError => '在启用路由之前添加两个提示。';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => '正在应用本地模板...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => '模板路由未返回摘要。';
-
-  @override
-  String get templateRoutingFailed => '模板路由失败。';
-
-  @override
-  String get templateRoutingLocalDescription => '本地模板路由';
-
-  @override
-  String get templateRoutingRoutedSummary => '路由摘要';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => '工作路线总结';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => '个人路由摘要';
-
-  @override
-  String get templateRoutingBackendTemplateSection => '后端模板（可选）';
-
-  @override
-  String get templateRoutingWorkTemplate => '工作模板';
-
-  @override
-  String get templateRoutingPersonalTemplate => '个人模板';
-
-  @override
-  String get templateRoutingTemplateNone => '无 — 使用提示词';
-
-  @override
-  String get templateRoutingManageApps => '启用摘要应用';
-
-  @override
-  String get templateRoutingTemplateHint => '为此配置文件选择一个已安装的摘要应用，或保留「无」以使用上方的提示词。';
-
-  @override
-  String get templateRoutingProfileRequiredError => '启用前，请为工作和个人配置文件各添加一个提示词或模板。';
 
   @override
   String get backgroundModeTitle => '后台模式';

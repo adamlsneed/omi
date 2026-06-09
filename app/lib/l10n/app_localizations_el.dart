@@ -525,15 +525,6 @@ class AppLocalizationsEl extends AppLocalizations {
   String get micGain => 'Ενίσχυση Μικροφώνου';
 
   @override
-  String get pressAndHold => 'Press & hold';
-
-  @override
-  String get captureIdea => 'Capture idea';
-
-  @override
-  String get savingIdea => 'Saving idea';
-
-  @override
   String get disconnect => 'Αποσύνδεση';
 
   @override
@@ -4739,7 +4730,10 @@ class AppLocalizationsEl extends AppLocalizations {
   }
 
   @override
-  String accessesAndTriggeredBy(String accessDescription, String triggerDescription) {
+  String accessesAndTriggeredBy(
+    String accessDescription,
+    String triggerDescription,
+  ) {
     return '$accessDescription και είναι $triggerDescription.';
   }
 
@@ -9356,147 +9350,6 @@ class AppLocalizationsEl extends AppLocalizations {
       'Οι διακομιστές της Omi είναι φορτωμένοι — οι ηχογραφήσεις σας θα συγχρονιστούν μόλις απελευθερωθεί χωρητικότητα';
 
   @override
-  String memoriesUsedThisMonth(String used, String limit) {
-    return '$used από $limit αναμνήσεις δημιουργήθηκαν αυτόν τον μήνα';
-  }
-
-  @override
-  String get wifiSyncSettings => 'Ρυθμίσεις συγχρονισμού WiFi';
-
-  @override
-  String get enterHotspotCredentials => 'Εισάγετε τα διαπιστευτήρια hotspot του τηλεφώνου σας';
-
-  @override
-  String get wifiSyncUsesHotspot =>
-      'Ο συγχρονισμός WiFi χρησιμοποιεί το τηλέφωνό σας ως hotspot. Βρείτε το όνομα και τον κωδικό στις Ρυθμίσεις > Προσωπικό Hotspot.';
-
-  @override
-  String get hotspotNameSsid => 'Όνομα Hotspot (SSID)';
-
-  @override
-  String get exampleIphoneHotspot => 'π.χ. iPhone Hotspot';
-
-  @override
-  String get enterHotspotPassword => 'Εισάγετε κωδικό hotspot';
-
-  @override
-  String get pleaseEnterHotspotName => 'Παρακαλώ εισάγετε ένα όνομα hotspot';
-
-  @override
-  String get wifiCredentialsSaved => 'Τα διαπιστευτήρια WiFi αποθηκεύτηκαν';
-
-  @override
-  String get wifiCredentialsCleared => 'Τα διαπιστευτήρια WiFi διαγράφηκαν';
-
-  @override
-  String get fastTransfer => 'Γρήγορη μεταφορά';
-
-  @override
-  String get transferMethod => 'Μέθοδος μεταφοράς';
-
-  @override
-  String get fast => 'Γρήγορο';
-
-  @override
-  String get ble => 'BLE';
-
-  @override
-  String get wifiEnableFailed => 'Η ενεργοποίηση WiFi στη συσκευή απέτυχε. Παρακαλώ δοκιμάστε ξανά.';
-
-  @override
-  String get deviceNoFastTransfer => 'Η συσκευή σας δεν υποστηρίζει γρήγορη μεταφορά. Χρησιμοποιήστε Bluetooth.';
-
-  @override
-  String get enableHotspotMessage => 'Παρακαλώ ενεργοποιήστε το hotspot του τηλεφώνου σας και δοκιμάστε ξανά.';
-
-  @override
-  String get transferStartFailed => 'Η εκκίνηση της μεταφοράς απέτυχε. Παρακαλώ δοκιμάστε ξανά.';
-
-  @override
-  String get invalidWifiCredentials => 'Μη έγκυρα διαπιστευτήρια WiFi. Ελέγξτε τις ρυθμίσεις του hotspot.';
-
-  @override
-  String get wifiConnectionFailed => 'Η σύνδεση WiFi απέτυχε. Παρακαλώ δοκιμάστε ξανά.';
-
-  @override
-  String get wifiSyncFailed => 'Ο συγχρονισμός WiFi απέτυχε';
-
-  @override
-  String get wifiSync => 'Συγχρονισμός WiFi';
-
-  @override
-  String get wifiConnectionFailedTitle => 'Η σύνδεση απέτυχε';
-
-  @override
-  String enableDeviceWifi(String deviceName) {
-    return 'Ενεργοποίηση WiFi της $deviceName';
-  }
-
-  @override
-  String get switchedToFastTransfer => 'Μεταβάσατε σε γρήγορη μεταφορά';
-
-  @override
-  String get fastTransferEnabled => 'Η γρήγορη μεταφορά ενεργοποιήθηκε';
-
-  @override
-  String get enableFastTransfer => 'Ενεργοποίηση γρήγορης μεταφοράς';
-
-  @override
-  String get fastTransferDescription =>
-      'Η γρήγορη μεταφορά χρησιμοποιεί WiFi για ~5x ταχύτερες ταχύτητες. Το τηλέφωνό σας θα συνδεθεί προσωρινά στο δίκτυο WiFi της συσκευής Omi κατά τη μεταφορά.';
-
-  @override
-  String get internetAccessPausedDuringTransfer => 'Η πρόσβαση στο διαδίκτυο διακόπτεται κατά τη μεταφορά';
-
-  @override
-  String get chooseTransferMethodDescription =>
-      'Επιλέξτε πώς μεταφέρονται οι εγγραφές από τη συσκευή Omi στο τηλέφωνό σας.';
-
-  @override
-  String get wifiSpeed => '~150 KB/s μέσω WiFi';
-
-  @override
-  String get fiveTimesFaster => '5X ΓΡΗΓΟΡΟΤΕΡΟ';
-
-  @override
-  String get fastTransferMethodDescription =>
-      'Δημιουργεί απευθείας σύνδεση WiFi με τη συσκευή Omi. Το τηλέφωνό σας αποσυνδέεται προσωρινά από το κανονικό WiFi κατά τη μεταφορά.';
-
-  @override
-  String get locationPermissionRequired => 'Απαιτείται άδεια τοποθεσίας';
-
-  @override
-  String get locationPermissionContent =>
-      'Η γρήγορη μεταφορά απαιτεί άδεια τοποθεσίας για να επαληθεύσει τη σύνδεση WiFi. Παρακαλώ δώστε άδεια τοποθεσίας για να συνεχίσετε.';
-
-  @override
-  String get chooseTransferMethod => 'Επιλέξτε μέθοδο μεταφοράς';
-
-  @override
-  String get fastTransferSpeed => '~150 KB/s μέσω WiFi';
-
-  @override
-  String get deviceDoesNotSupportWifiSwitchingToBle =>
-      'Η συσκευή δεν υποστηρίζει συγχρονισμό WiFi, μετάβαση σε Bluetooth';
-
-  @override
-  String get autoAddTasksToAppleReminders => 'Αυτόματη προσθήκη εργασιών στις Υπενθυμίσεις Apple';
-
-  @override
-  String get autoAddTasksToAppleRemindersDescription =>
-      'Όταν είναι ενεργό, οι εργασίες που δημιουργεί το Omi προστίθενται αυτόματα στις Υπενθυμίσεις. Μπορείτε ακόμη να προσθέτετε εργασίες χειροκίνητα όταν αυτό είναι απενεργοποιημένο.';
-
-  @override
-  String get addSelectedToAppleReminders => 'Προσθήκη επιλεγμένων στο Apple Reminders';
-
-  @override
-  String get selectedActionItemsPartiallyAddedToAppleReminders =>
-      'Δεν ήταν δυνατή η προσθήκη ορισμένων επιλεγμένων εργασιών.';
-
-  @override
-  String get selectedActionItemsAlreadyExported => 'Οι επιλεγμένες εργασίες έχουν ήδη εξαχθεί.';
-
-  @override
   String get unableToDetermineFirmwareVersion => 'Δεν είναι δυνατός ο προσδιορισμός της τρέχουσας έκδοσης firmware';
 
   @override
@@ -9507,88 +9360,6 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => 'Μη έγκυρος κωδικός προσφοράς.';
-
-  @override
-  String get templateRouting => 'Δρομολόγηση προτύπων';
-
-  @override
-  String get templateRoutingAutoRunOnOpen => 'Αυτόματη λειτουργία σε ανοιχτό';
-
-  @override
-  String get templateRoutingWorkDays => 'Ημέρες εργασίας';
-
-  @override
-  String get templateRoutingWorkDaysMonFri => 'Δευτ.-Παρ';
-
-  @override
-  String get templateRoutingWorkStart => 'Έναρξη εργασιών';
-
-  @override
-  String get templateRoutingWorkEnd => 'Τέλος εργασίας';
-
-  @override
-  String get templateRoutingWorkPrompt => 'Προτροπή εργασίας';
-
-  @override
-  String get templateRoutingPersonalPrompt => 'Προσωπική προτροπή';
-
-  @override
-  String get templateRoutingSaved => 'Η δρομολόγηση προτύπου αποθη��εύτηκε';
-
-  @override
-  String get templateRoutingTimeFormatError => 'Χρησιμοποιήστε 24ωρες ώρες όπως 08:00 και 17:00.';
-
-  @override
-  String get templateRoutingStartBeforeEndError =>
-      'Η έναρξη της εργασίας πρέπει να είναι πριν από το τέλος της εργασίας.';
-
-  @override
-  String get templateRoutingPromptsRequiredError =>
-      'Προσθέστε και τα δύο μηνύματα προτροπής πριν ενεργοποιήσετε τη δρομολόγηση.';
-
-  @override
-  String get templateRoutingApplyingLocalTemplate => 'Εφαρμογή τοπικού προτύπου...';
-
-  @override
-  String get templateRoutingReturnedNoSummary => 'Η δρομολόγηση προτύπου δεν επέστρεψε σύνοψη.';
-
-  @override
-  String get templateRoutingFailed => 'Η ��ρομολόγηση προτύπου απέτυχε.';
-
-  @override
-  String get templateRoutingLocalDescription => 'Τοπική δρομολόγηση προτύπων';
-
-  @override
-  String get templateRoutingRoutedSummary => 'Περίληψη δρομολόγησης';
-
-  @override
-  String get templateRoutingWorkRoutedSummary => 'Περίληψη δρομολογημένης εργασίας';
-
-  @override
-  String get templateRoutingPersonalRoutedSummary => 'Περίληψη Προσωπικής δρομολόγησης';
-
-  @override
-  String get templateRoutingBackendTemplateSection => 'Πρότυπο backend (προαιρετικό)';
-
-  @override
-  String get templateRoutingWorkTemplate => 'Πρότυπο εργασίας';
-
-  @override
-  String get templateRoutingPersonalTemplate => 'Προσωπικό πρότυπο';
-
-  @override
-  String get templateRoutingTemplateNone => 'Κανένα — χρήση προτροπής';
-
-  @override
-  String get templateRoutingManageApps => 'Ενεργοποίηση εφαρμογών σύνοψης';
-
-  @override
-  String get templateRoutingTemplateHint =>
-      'Επιλέξτε μια εγκατεστημένη εφαρμογή σύνοψης για αυτό το προφίλ ή αφήστε «Κανένα» για να χρησιμοποιήσετε την παραπάνω προτροπή.';
-
-  @override
-  String get templateRoutingProfileRequiredError =>
-      'Προσθέστε μια προτροπή ή πρότυπο και για τα δύο προφίλ Εργασίας και Προσωπικού πριν ενεργοποιήσετε.';
 
   @override
   String get backgroundModeTitle => 'Λειτουργία παρασκηνίου';
