@@ -106,7 +106,7 @@ static ssize_t haptic_write_handler(struct bt_conn *conn,
         LOG_INF("Double tap pause feedback disabled");
         break;
     case HAPTIC_MODE_IDEA_CAPTURE_ON:
-        // idea-capture: enter idea capture mode -> solid green LED + double buzz
+        // idea-capture: enter idea capture mode -> solid green LED + single buzz
         app_settings_set_idea_capture_active(true);
         play_haptic_milli(200);
         set_led_state();
