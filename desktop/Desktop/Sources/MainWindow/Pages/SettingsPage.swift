@@ -845,10 +845,12 @@ struct SettingsContentView: View {
 
           Toggle(
             "",
+            // ON = Dock icon visible. Stored as `hideDockIcon` (inverted) so the
+            // underlying preference and its default (visible) stay unchanged.
             isOn: Binding(
-              get: { hidesDockIcon },
+              get: { !hidesDockIcon },
               set: { newValue in
-                hidesDockIcon = newValue
+                hidesDockIcon = !newValue
                 NotificationCenter.default.post(
                   name: .dockIconVisibilityPreferenceDidChange, object: nil)
               }
