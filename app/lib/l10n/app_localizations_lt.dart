@@ -429,6 +429,13 @@ class AppLocalizationsLt extends AppLocalizations {
   String get offlineSync => 'Sinchronizavimas neprisijungus';
 
   @override
+  String get autoSync => 'Automatinis sinchronizavimas';
+
+  @override
+  String get autoSyncDescription =>
+      'Automatiškai sinchronizuoti neprisijungus įrašytus įrašus, kai prijungiamas įrenginys';
+
+  @override
   String get deviceSettings => 'Įrenginio nustatymai';
 
   @override
@@ -9551,4 +9558,11 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get recapRegenerateNoConversations => 'Šiai dienai nėra pokalbių, kuriuos būtų galima apibendrinti.';
+
+  @override
+  String get syncCustomSttWarningTitle => 'Sinchronizavimas naudoja Omi transkripciją';
+
+  @override
+  String get syncCustomSttWarningMessage =>
+      'Naudojate savo transkripcijos paslaugą. Sinchronizuojant šiuos įrašus jie transkribuojami Omi serveriuose ir įskaičiuojami į jūsų plano transkripcijos limitą.';
 }

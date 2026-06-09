@@ -135,6 +135,8 @@
     "systemDefault": "Výchozí systém",
     "planAndUsage": "Plán a využití",
     "offlineSync": "Offline synchronizace",
+    "autoSync": "Automatická synchronizace",
+    "autoSyncDescription": "Automaticky synchronizovat offline nahrávky při připojení zařízení",
     "deviceSettings": "Nastavení zařízení",
     "integrations": "Integrace",
     "feedbackBug": "Zpětná vazba / Chyba",
@@ -3105,5 +3107,7 @@
     "templateRoutingTemplateNone": "Žádná — použít výzvu",
     "templateRoutingManageApps": "Povolit aplikace pro shrnutí",
     "templateRoutingTemplateHint": "Vyberte nainstalovanou aplikaci pro shrnutí pro tento profil nebo ponechte „Žádná\" a použijte výzvu výše.",
-    "templateRoutingProfileRequiredError": "Před aktivací přidejte výzvu nebo šablonu pro profily Pracovní i Osobní."
+    "templateRoutingProfileRequiredError": "Před aktivací přidejte výzvu nebo šablonu pro profily Pracovní i Osobní.",
+    "syncCustomSttWarningTitle": "Synchronizace používá přepis Omi",
+    "syncCustomSttWarningMessage": "Používáte vlastního poskytovatele přepisu. Synchronizace těchto nahrávek je přepíše na serverech Omi a započítají se do limitu přepisu vašeho tarifu."
 }

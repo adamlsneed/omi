@@ -135,6 +135,8 @@
     "systemDefault": "Systemstandard",
     "planAndUsage": "Abonnement & Nutzung",
     "offlineSync": "Offline-Synchronisierung",
+    "autoSync": "Automatische Synchronisierung",
+    "autoSyncDescription": "Offline-Aufnahmen automatisch synchronisieren, wenn dein Gerät verbunden wird",
     "deviceSettings": "Geräteeinstellungen",
     "integrations": "Integrationen",
     "feedbackBug": "Feedback / Fehler",
@@ -3104,5 +3106,7 @@
     "templateRoutingTemplateNone": "Keine — Eingabeaufforderung verwenden",
     "templateRoutingManageApps": "Zusammenfassungs-Apps aktivieren",
     "templateRoutingTemplateHint": "Wähle eine installierte Zusammenfassungs-App für dieses Profil oder behalte „Keine\", um die obige Eingabeaufforderung zu verwenden.",
-    "templateRoutingProfileRequiredError": "Füge für Arbeit und Persönlich je eine Eingabeaufforderung oder Vorlage hinzu, bevor du aktivierst."
+    "templateRoutingProfileRequiredError": "Füge für Arbeit und Persönlich je eine Eingabeaufforderung oder Vorlage hinzu, bevor du aktivierst.",
+    "syncCustomSttWarningTitle": "Synchronisierung nutzt Omi-Transkription",
+    "syncCustomSttWarningMessage": "Du verwendest einen eigenen Transkriptionsanbieter. Beim Synchronisieren werden diese Aufnahmen stattdessen auf den Servern von Omi transkribiert und auf das Transkriptionslimit deines Tarifs angerechnet."
 }

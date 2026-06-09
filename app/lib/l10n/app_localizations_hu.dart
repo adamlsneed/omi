@@ -431,6 +431,12 @@ class AppLocalizationsHu extends AppLocalizations {
   String get offlineSync => 'Offline szinkronizálás';
 
   @override
+  String get autoSync => 'Automatikus szinkronizálás';
+
+  @override
+  String get autoSyncDescription => 'Offline felvételek automatikus szinkronizálása az eszköz csatlakozásakor';
+
+  @override
   String get deviceSettings => 'Eszköz beállításai';
 
   @override
@@ -9579,4 +9585,11 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get recapRegenerateNoConversations => 'Erre a napra nincsenek összegezhető beszélgetések.';
+
+  @override
+  String get syncCustomSttWarningTitle => 'A szinkronizálás az Omi átiratát használja';
+
+  @override
+  String get syncCustomSttWarningMessage =>
+      'Saját átírási szolgáltatót használsz. Ezek a felvételek szinkronizáláskor az Omi szerverein kerülnek átírásra, és beleszámítanak a csomagod átírási keretébe.';
 }

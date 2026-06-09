@@ -135,6 +135,8 @@
     "systemDefault": "Sistēmas noklusējuma",
     "planAndUsage": "Plāns un lietojums",
     "offlineSync": "Bezsaistes sinhronizācija",
+    "autoSync": "Automātiska sinhronizācija",
+    "autoSyncDescription": "Automātiski sinhronizēt bezsaistes ierakstus, kad ierīce tiek savienota",
     "deviceSettings": "Ierīces iestatījumi",
     "integrations": "Integrācijas",
     "feedbackBug": "Atsauksmes / Kļūda",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Nav — izmantot uzvedni",
     "templateRoutingManageApps": "Iespējot kopsavilkuma lietotnes",
     "templateRoutingTemplateHint": "Izvēlieties instalētu kopsavilkuma lietotni šim profilam vai atstājiet „Nav\", lai izmantotu augstāk esošo uzvedni.",
-    "templateRoutingProfileRequiredError": "Pirms iespējošanas pievienojiet uzvedni vai veidni gan Darba, gan Personīgajam profilam."
+    "templateRoutingProfileRequiredError": "Pirms iespējošanas pievienojiet uzvedni vai veidni gan Darba, gan Personīgajam profilam.",
+    "syncCustomSttWarningTitle": "Sinhronizācija izmanto Omi transkripciju",
+    "syncCustomSttWarningMessage": "Jūs izmantojat savu transkripcijas pakalpojumu. Šo ierakstu sinhronizēšana tos transkribē Omi serveros, un tie tiek ieskaitīti jūsu plāna transkripcijas limitā."
 }

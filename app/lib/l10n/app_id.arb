@@ -135,6 +135,8 @@
     "systemDefault": "Bawaan Sistem",
     "planAndUsage": "Paket & Penggunaan",
     "offlineSync": "Sinkronisasi luring",
+    "autoSync": "Sinkronisasi otomatis",
+    "autoSyncDescription": "Sinkronkan rekaman offline secara otomatis saat perangkat Anda terhubung",
     "deviceSettings": "Pengaturan Perangkat",
     "integrations": "Integrasi",
     "feedbackBug": "Masukan / Bug",
@@ -3178,5 +3180,7 @@
     "templateRoutingTemplateNone": "Tidak ada — gunakan prompt",
     "templateRoutingManageApps": "Aktifkan aplikasi ringkasan",
     "templateRoutingTemplateHint": "Pilih aplikasi ringkasan yang terpasang untuk profil ini, atau biarkan «Tidak ada» untuk menggunakan prompt di atas.",
-    "templateRoutingProfileRequiredError": "Tambahkan prompt atau templat untuk profil Kerja dan Pribadi sebelum mengaktifkan."
+    "templateRoutingProfileRequiredError": "Tambahkan prompt atau templat untuk profil Kerja dan Pribadi sebelum mengaktifkan.",
+    "syncCustomSttWarningTitle": "Sinkronisasi memakai transkripsi Omi",
+    "syncCustomSttWarningMessage": "Anda memakai penyedia transkripsi sendiri. Menyinkronkan rekaman ini akan mentranskripsikannya di server Omi dan dihitung dalam batas transkripsi paket Anda."
 }

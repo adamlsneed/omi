@@ -135,6 +135,8 @@
     "systemDefault": "Par défaut du système",
     "planAndUsage": "Forfait et utilisation",
     "offlineSync": "Synchronisation hors ligne",
+    "autoSync": "Synchronisation automatique",
+    "autoSyncDescription": "Synchroniser automatiquement les enregistrements hors ligne lorsque votre appareil se connecte",
     "deviceSettings": "Paramètres de l'appareil",
     "integrations": "Intégrations",
     "feedbackBug": "Retour / Bug",
@@ -3171,5 +3173,7 @@
     "templateRoutingTemplateNone": "Aucun — utiliser la invite",
     "templateRoutingManageApps": "Activer les applications de résumé",
     "templateRoutingTemplateHint": "Choisissez une application de résumé installée pour ce profil ou gardez « Aucun » pour utiliser l'invite ci-dessus.",
-    "templateRoutingProfileRequiredError": "Ajoutez une invite ou un modèle pour les profils Professionnel et Personnel avant d'activer."
+    "templateRoutingProfileRequiredError": "Ajoutez une invite ou un modèle pour les profils Professionnel et Personnel avant d'activer.",
+    "syncCustomSttWarningTitle": "La synchronisation utilise la transcription d'Omi",
+    "syncCustomSttWarningMessage": "Vous utilisez votre propre fournisseur de transcription. Synchroniser ces enregistrements les transcrit sur les serveurs d'Omi et ils comptent dans la limite de transcription de votre forfait."
 }

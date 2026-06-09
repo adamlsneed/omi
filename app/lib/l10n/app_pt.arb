@@ -135,6 +135,8 @@
     "systemDefault": "Padrão do sistema",
     "planAndUsage": "Plano e Uso",
     "offlineSync": "Sincronização Offline",
+    "autoSync": "Sincronização automática",
+    "autoSyncDescription": "Sincronizar automaticamente as gravações offline quando o seu dispositivo se conectar",
     "deviceSettings": "Configurações do dispositivo",
     "integrations": "Integrações",
     "feedbackBug": "Feedback / Bug",
@@ -3172,5 +3174,7 @@
     "templateRoutingTemplateNone": "Nenhum — usar prompt",
     "templateRoutingManageApps": "Ativar aplicativos de resumo",
     "templateRoutingTemplateHint": "Escolha um aplicativo de resumo instalado para este perfil ou mantenha «Nenhum» para usar o prompt acima.",
-    "templateRoutingProfileRequiredError": "Adicione um prompt ou modelo para os perfis Trabalho e Pessoal antes de ativar."
+    "templateRoutingProfileRequiredError": "Adicione um prompt ou modelo para os perfis Trabalho e Pessoal antes de ativar.",
+    "syncCustomSttWarningTitle": "A sincronização usa a transcrição da Omi",
+    "syncCustomSttWarningMessage": "Você usa seu próprio provedor de transcrição. Sincronizar estas gravações as transcreve nos servidores da Omi e elas contam para o limite de transcrição do seu plano."
 }

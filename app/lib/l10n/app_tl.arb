@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "Offline Sync",
+    "autoSync": "Awtomatikong pag-sync",
+    "autoSyncDescription": "Awtomatikong i-sync ang mga offline na recording kapag nakakonekta ang iyong device",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "Wala — gamitin ang prompt",
     "templateRoutingManageApps": "I-enable ang mga summary app",
     "templateRoutingTemplateHint": "Pumili ng naka-install na summary app para sa profile na ito, o panatilihin ang «Wala» para gamitin ang prompt sa itaas.",
-    "templateRoutingProfileRequiredError": "Magdagdag ng prompt o template para sa Trabaho at Personal na profile bago i-enable."
+    "templateRoutingProfileRequiredError": "Magdagdag ng prompt o template para sa Trabaho at Personal na profile bago i-enable.",
+    "syncCustomSttWarningTitle": "Gumagamit ang pag-sync ng transcription ng Omi",
+    "syncCustomSttWarningMessage": "Gumagamit ka ng sarili mong transcription provider. Kapag in-sync ang mga recording na ito, ita-transcribe ang mga ito sa mga server ng Omi at mabibilang sa limitasyon ng transcription ng iyong plan."
 }

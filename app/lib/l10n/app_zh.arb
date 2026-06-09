@@ -135,6 +135,8 @@
     "systemDefault": "系统默认",
     "planAndUsage": "套餐与用量",
     "offlineSync": "离线同步",
+    "autoSync": "自动同步",
+    "autoSyncDescription": "设备连接时自动同步离线录音",
     "deviceSettings": "设备设置",
     "integrations": "集成",
     "feedbackBug": "反馈 / Bug",
@@ -3158,5 +3160,7 @@
     "templateRoutingTemplateNone": "无 — 使用提示词",
     "templateRoutingManageApps": "启用摘要应用",
     "templateRoutingTemplateHint": "为此配置文件选择一个已安装的摘要应用，或保留「无」以使用上方的提示词。",
-    "templateRoutingProfileRequiredError": "启用前，请为工作和个人配置文件各添加一个提示词或模板。"
+    "templateRoutingProfileRequiredError": "启用前，请为工作和个人配置文件各添加一个提示词或模板。",
+    "syncCustomSttWarningTitle": "同步会使用 Omi 转录",
+    "syncCustomSttWarningMessage": "您使用的是自己的转录服务。同步这些录音会改为在 Omi 的服务器上转录，并计入您套餐的转录额度。"
 }

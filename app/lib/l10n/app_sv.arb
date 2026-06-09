@@ -135,6 +135,8 @@
     "systemDefault": "Systemstandard",
     "planAndUsage": "Plan och användning",
     "offlineSync": "Offlinesynkronisering",
+    "autoSync": "Automatisk synkronisering",
+    "autoSyncDescription": "Synkronisera offlineinspelningar automatiskt när din enhet ansluter",
     "deviceSettings": "Enhetsinställningar",
     "integrations": "Integrationer",
     "feedbackBug": "Återkoppling / Bugg",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Ingen — använd prompt",
     "templateRoutingManageApps": "Aktivera sammanfattningsappar",
     "templateRoutingTemplateHint": "Välj en installerad sammanfattningsapp för den här profilen eller behåll «Ingen» för att använda prompten ovan.",
-    "templateRoutingProfileRequiredError": "Lägg till en prompt eller mall för både Arbete och Personlig profil innan du aktiverar."
+    "templateRoutingProfileRequiredError": "Lägg till en prompt eller mall för både Arbete och Personlig profil innan du aktiverar.",
+    "syncCustomSttWarningTitle": "Synkronisering använder Omi-transkription",
+    "syncCustomSttWarningMessage": "Du använder din egen transkriberingsleverantör. Att synkronisera dessa inspelningar transkriberar dem på Omis servrar i stället, och de räknas mot din plans transkriberingsgräns."
 }

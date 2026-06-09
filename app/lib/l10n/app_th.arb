@@ -135,6 +135,8 @@
     "systemDefault": "ค่าเริ่มต้นของระบบ",
     "planAndUsage": "แผนและการใช้งาน",
     "offlineSync": "ซิงค์ออฟไลน์",
+    "autoSync": "ซิงค์อัตโนมัติ",
+    "autoSyncDescription": "ซิงค์การบันทึกแบบออฟไลน์โดยอัตโนมัติเมื่ออุปกรณ์ของคุณเชื่อมต่อ",
     "deviceSettings": "การตั้งค่าอุปกรณ์",
     "integrations": "การเชื่อมต่อ",
     "feedbackBug": "คำติชม / รายงานข้อผิดพลาด",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "ไม่มี — ใช้คำสั่ง",
     "templateRoutingManageApps": "เปิดใช้งานแอปสรุป",
     "templateRoutingTemplateHint": "เลือกแอปสรุปที่ติดตั้งสำหรับโปรไฟล์นี้ หรือเลือก «ไม่มี» เพื่อใช้คำสั่งด้านบน",
-    "templateRoutingProfileRequiredError": "เพิ่มคำสั่งหรือเทมเพลตสำหรับทั้งโปรไฟล์งานและส่วนตัวก่อนเปิดใช้งาน"
+    "templateRoutingProfileRequiredError": "เพิ่มคำสั่งหรือเทมเพลตสำหรับทั้งโปรไฟล์งานและส่วนตัวก่อนเปิดใช้งาน",
+    "syncCustomSttWarningTitle": "การซิงค์ใช้การถอดเสียงของ Omi",
+    "syncCustomSttWarningMessage": "คุณใช้ผู้ให้บริการถอดเสียงของคุณเอง การซิงค์การบันทึกเหล่านี้จะถอดเสียงบนเซิร์ฟเวอร์ของ Omi และจะนับรวมในขีดจำกัดการถอดเสียงของแพ็กเกจของคุณ"
 }

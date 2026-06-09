@@ -134,6 +134,8 @@
     "systemDefault": "システムの既定",
     "planAndUsage": "プランと使用状況",
     "offlineSync": "オフライン同期",
+    "autoSync": "自動同期",
+    "autoSyncDescription": "デバイスの接続時にオフライン録音を自動的に同期します",
     "deviceSettings": "デバイス設定",
     "integrations": "連携",
     "feedbackBug": "フィードバック / バグ報告",
@@ -3137,5 +3139,7 @@
     "templateRoutingTemplateNone": "なし — プロンプトを使用",
     "templateRoutingManageApps": "要約アプリを有効化",
     "templateRoutingTemplateHint": "このプロフィール用にインストール済みの要約アプリを選択するか、「なし」のままにして上記のプロンプトを使用してください。",
-    "templateRoutingProfileRequiredError": "有効化する前に、仕事と個人の両方のプロフィールにプロンプトまたはテンプレートを追加してください。"
+    "templateRoutingProfileRequiredError": "有効化する前に、仕事と個人の両方のプロフィールにプロンプトまたはテンプレートを追加してください。",
+    "syncCustomSttWarningTitle": "同期では Omi の文字起こしを使用します",
+    "syncCustomSttWarningMessage": "ご自身の文字起こしプロバイダーを使用しています。これらの録音を同期すると Omi のサーバーで文字起こしされ、プランの文字起こし上限にカウントされます。"
 }

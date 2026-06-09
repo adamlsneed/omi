@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "Аўтаномная сінхранізацыя",
+    "autoSync": "Аўтасінхранізацыя",
+    "autoSyncDescription": "Аўтаматычна сінхранізаваць офлайн-запісы пры падключэнні прылады",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "Без шаблону — выкарыстоўваць запыт",
     "templateRoutingManageApps": "Уключыць праграмы для рэзюмэ",
     "templateRoutingTemplateHint": "Выберыце ўсталяваную праграму для рэзюмэ для гэтага профілю або пакіньце «Без шаблону», каб выкарыстоўваць запыт вышэй.",
-    "templateRoutingProfileRequiredError": "Дадайце запыт або шаблон для прафілю Праца і Асабісты, перш чым уключыць."
+    "templateRoutingProfileRequiredError": "Дадайце запыт або шаблон для прафілю Праца і Асабісты, перш чым уключыць.",
+    "syncCustomSttWarningTitle": "Сінхранізацыя выкарыстоўвае транскрыпцыю Omi",
+    "syncCustomSttWarningMessage": "Вы карыстаецеся ўласным сэрвісам транскрыпцыі. Сінхранізацыя гэтых запісаў транскрыбуе іх на серверах Omi, і яны залічацца ў ліміт транскрыпцыі вашага тарыфу."
 }

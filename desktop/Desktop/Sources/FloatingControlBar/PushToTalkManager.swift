@@ -228,6 +228,9 @@ class PushToTalkManager: ObservableObject {
 
   private func startListening() {
     FloatingBarVoicePlaybackService.shared.interruptCurrentResponse()
+    if ShortcutSettings.shared.pttMuteSystemAudio {
+      SystemAudioMuteController.shared.muteForListening()
+    }
     state = .listening
     isCurrentSessionFollowUp = barState?.showingAIResponse == true
     transcriptSegments = []
@@ -254,6 +257,9 @@ class PushToTalkManager: ObservableObject {
 
   private func enterLockedListening() {
     FloatingBarVoicePlaybackService.shared.interruptCurrentResponse()
+    if ShortcutSettings.shared.pttMuteSystemAudio {
+      SystemAudioMuteController.shared.muteForListening()
+    }
     finalizeWorkItem?.cancel()
     finalizeWorkItem = nil
     state = .lockedListening
@@ -301,6 +307,8 @@ class PushToTalkManager: ObservableObject {
   }
 
   private func stopListening() {
+    // Always restore audio on teardown (cancel, error, cleanup) so we never leave it muted.
+    SystemAudioMuteController.shared.restore()
     finalizeWorkItem?.cancel()
     finalizeWorkItem = nil
     liveFinalizationTimeout?.cancel()
@@ -332,6 +340,8 @@ class PushToTalkManager: ObservableObject {
     guard state == .listening || state == .lockedListening || state == .pendingLockDecision else { return }
 
     lastOptionUpTime = 0
+    // Dictation is over — restore any audio we muted so the track resumes immediately.
+    SystemAudioMuteController.shared.restore()
     finalizedMode = state == .lockedListening ? "locked" : "hold"
     state = .finalizing
     finalizeWorkItem?.cancel()

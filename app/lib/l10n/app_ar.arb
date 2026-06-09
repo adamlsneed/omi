@@ -135,6 +135,8 @@
     "systemDefault": "افتراضي النظام",
     "planAndUsage": "الخطة والاستخدام",
     "offlineSync": "المزامنة دون اتصال",
+    "autoSync": "المزامنة التلقائية",
+    "autoSyncDescription": "مزامنة التسجيلات دون اتصال تلقائيًا عند توصيل جهازك",
     "deviceSettings": "إعدادات الجهاز",
     "integrations": "التكاملات",
     "feedbackBug": "ملاحظات / خطأ",
@@ -3103,5 +3105,7 @@
     "templateRoutingTemplateNone": "لا شيء — استخدم التعليمات",
     "templateRoutingManageApps": "تفعيل تطبيقات الملخص",
     "templateRoutingTemplateHint": "اختر تطبيق ملخص مثبتاً لهذا الملف الشخصي، أو اترك الخيار «لا شيء» لاستخدام التعليمات أعلاه.",
-    "templateRoutingProfileRequiredError": "أضف تعليمات أو قالباً لملفي العمل والشخصي قبل التفعيل."
+    "templateRoutingProfileRequiredError": "أضف تعليمات أو قالباً لملفي العمل والشخصي قبل التفعيل.",
+    "syncCustomSttWarningTitle": "المزامنة تستخدم خدمة النسخ في Omi",
+    "syncCustomSttWarningMessage": "أنت تستخدم مزوّد النسخ الخاص بك. مزامنة هذه التسجيلات تنسخها على خوادم Omi بدلاً من ذلك، وتُحتسب ضمن حد النسخ في باقتك."
 }

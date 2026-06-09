@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "অফলাইন সিঙ্ক",
+    "autoSync": "স্বয়ংক্রিয় সিঙ্ক",
+    "autoSyncDescription": "আপনার ডিভাইস সংযুক্ত হলে অফলাইন রেকর্ডিংগুলি স্বয়ংক্রিয়ভাবে সিঙ্ক করুন",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "কিছু না — প্রম্পট ব্যবহার করুন",
     "templateRoutingManageApps": "সারসংক্ষেপ অ্যাপ চালু করুন",
     "templateRoutingTemplateHint": "এই প্রোফাইলের জন্য একটি ইনস্টল করা সারসংক্ষেপ অ্যাপ বেছে নিন, অথবা উপরের প্রম্পট ব্যবহার করতে 'কিছু না' রাখুন।",
-    "templateRoutingProfileRequiredError": "চালু করার আগে কাজ এবং ব্যক্তিগত উভয় প্রোফাইলের জন্য একটি প্রম্পট বা টেমপ্লেট যোগ করুন।"
+    "templateRoutingProfileRequiredError": "চালু করার আগে কাজ এবং ব্যক্তিগত উভয় প্রোফাইলের জন্য একটি প্রম্পট বা টেমপ্লেট যোগ করুন।",
+    "syncCustomSttWarningTitle": "সিঙ্ক Omi-এর ট্রান্সক্রিপশন ব্যবহার করে",
+    "syncCustomSttWarningMessage": "আপনি নিজের ট্রান্সক্রিপশন প্রদানকারী ব্যবহার করেন। এই রেকর্ডিংগুলি সিঙ্ক করলে সেগুলি Omi-এর সার্ভারে ট্রান্সক্রাইব হবে এবং আপনার প্ল্যানের ট্রান্সক্রিপশন সীমার মধ্যে গণনা হবে।"
 }

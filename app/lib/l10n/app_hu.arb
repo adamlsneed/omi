@@ -135,6 +135,8 @@
     "systemDefault": "Rendszer alapértelmezett",
     "planAndUsage": "Előfizetés és használat",
     "offlineSync": "Offline szinkronizálás",
+    "autoSync": "Automatikus szinkronizálás",
+    "autoSyncDescription": "Offline felvételek automatikus szinkronizálása az eszköz csatlakozásakor",
     "deviceSettings": "Eszköz beállításai",
     "integrations": "Integrációk",
     "feedbackBug": "Visszajelzés / hiba",
@@ -3232,5 +3234,7 @@
     "templateRoutingTemplateNone": "Nincs — prompt használata",
     "templateRoutingManageApps": "Összefoglaló alkalmazások engedélyezése",
     "templateRoutingTemplateHint": "Válasszon telepített összefoglaló alkalmazást ehhez a profilhoz, vagy hagyja „Nincs\" értéken a fenti prompt használatához.",
-    "templateRoutingProfileRequiredError": "Az aktiválás előtt adjon meg promptot vagy sablont a Munka és Személyes profilhoz is."
+    "templateRoutingProfileRequiredError": "Az aktiválás előtt adjon meg promptot vagy sablont a Munka és Személyes profilhoz is.",
+    "syncCustomSttWarningTitle": "A szinkronizálás az Omi átiratát használja",
+    "syncCustomSttWarningMessage": "Saját átírási szolgáltatót használsz. Ezek a felvételek szinkronizáláskor az Omi szerverein kerülnek átírásra, és beleszámítanak a csomagod átírási keretébe."
 }

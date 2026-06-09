@@ -1,12 +1,12 @@
 # App (Flutter) — Operational Playbook
 
-Inherits all rules from the root `../AGENTS.md`. This file adds app-specific operational guidance.
+Inherits all rules from the root [`../AGENTS.md`](../AGENTS.md). This file adds app-specific operational guidance.
 
 ## Build Bootstrap
 
 ### Flavors
 - **dev**: `com.friend.ios.dev` — uses `.dev.env`, Firebase project `based-hardware-dev`
-- **prod**: `com.friend.ios` — uses `.prod.env`, Firebase project `based-hardware-prod`
+- **prod**: `com.friend.ios` — uses `.prod.env`, Firebase project **`based-hardware`** (bare name — there is no `based-hardware-prod` project; `api.omi.me` hosted auth mints custom tokens for `based-hardware`)
 
 ### Generated Files (never edit manually)
 | Generator | Source | Output | Command |
@@ -23,23 +23,23 @@ bash setup.sh ios    # or: bash setup.sh android
 ```
 This handles: pub get, build_runner, gen-l10n, and flavor configuration.
 
-### Firebase Config
-Never run `flutterfire configure` — it overwrites prod credentials. Config files:
-- Dev: `ios/Config/Dev/`, `android/app/src/dev/`, `lib/firebase_options_dev.dart`
-- Prod: `ios/Config/Prod/`, `android/app/src/prod/`, `lib/firebase_options_prod.dart`
-
 ### Adam Local iPhone Signing
 - The local Apple Development cert is displayed as `Apple Development: coralcaves@gmail.com (M6V8W4X24Z)`, but the usable Xcode team identifier is `66K48S8RD4`.
 - For physical-device installs on Adam's iPhone, copy `ios/Flutter/LocalSigning.example.xcconfig` to ignored `ios/Flutter/LocalSigning.xcconfig` and build with `-xcconfig ios/Flutter/LocalSigning.xcconfig -allowProvisioningUpdates -allowProvisioningDeviceRegistration`.
 - Keep hosted backend auth in `.env` and `.dev.env`: `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`.
-- Adam's active hosted-backend phone build uses local bundle `com.adam.omi.dev` but prod Firebase flavor/config (`based-hardware`). Do not deploy the dev Firebase flavor against hosted `api.omi.me` auth unless intentionally testing dev accounts.
-- In fresh worktrees, restore ignored local inputs before building: `.dev.env`, `.env`, `lib/firebase_options_dev.dart`, `lib/firebase_options_prod.dart`, `ios/Config/{Dev,Prod}/GoogleService-Info.plist`, and `ios/Runner/GoogleService-Info.plist` copied from the prod plist for Adam's hosted-backend phone build.
-- Always refresh generated files and paths in the active checkout before local device builds: `flutter pub get`, `flutter pub run build_runner build --delete-conflicting-outputs`, then `flutter build ios --profile --flavor prod --config-only --no-codesign`.
-- For standalone iPhone installs, build `Profile-prod` or `Release-prod` for Adam's active hosted-backend app; never install a `Debug-dev` build for normal home-screen use because Flutter debug iOS apps require Flutter tooling or Xcode to be attached and will terminate on launch.
+- **Hosted-backend phone build = dev flavor + `based-hardware` Firebase (NOT the prod flavor).** Build the **dev** flavor (`com.adam.omi.dev` via LocalSigning) because its `.dev.env` has the working hosted config (`API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`), but **repoint the dev flavor's Firebase config at the prod `based-hardware` project** (NOT `based-hardware-dev`). Do NOT build the **prod flavor** locally: `.prod.env` is missing (→ `apiBaseUrl=null`, and `useWebAuth=false` so it takes the native Google Sign-In path that crashes on the re-bundled id), and the prod widget App Group won't sign. If sign-in fails right after the browser redirect with `[firebase_auth/custom-token-mismatch] The custom token corresponds to a different audience.`, the app's Firebase project does not match `based-hardware`. The `based-hardware` client config is in `desktop/Desktop/Sources/GoogleService-Info.plist`. Full writeup + the on-device log-capture recipe: `docs/local-ios-standalone-install.md`.
+- In fresh worktrees, restore ignored local inputs before building: `.dev.env`, `.env`, `lib/firebase_options_dev.dart`, `lib/firebase_options_prod.dart`, `ios/Config/{Dev,Prod}/GoogleService-Info.plist`. For Adam's hosted build, the dev-flavor Firebase inputs (`lib/firebase_options_dev.dart` ios block, `ios/Config/Dev/GoogleService-Info.plist`, `ios/Runner/GoogleService-Info.plist`) must be the **`based-hardware`** project config (source: `desktop/Desktop/Sources/GoogleService-Info.plist`, `BUNDLE_ID=com.adam.omi.dev`) — not `based-hardware-dev`.
+- Always refresh paths in the active checkout before local device builds: `flutter pub get`, then `flutter build ios --profile --flavor dev --config-only --no-codesign`. Do NOT run `build_runner build --delete-conflicting-outputs` unless both `.dev.env` and `.prod.env` are present — regenerating env codegen without them silently defaults secrets (`apiBaseUrl=null`, `useWebAuth=false`), which is exactly what leaves the prod flavor broken. The committed `*_env.g.dart` already hold valid dev values; leave them.
+- For standalone iPhone installs, build `Profile-dev` or `Release-dev` (dev flavor with Firebase repointed at `based-hardware`) for Adam's active hosted-backend app; never install a `Debug-dev` build for normal home-screen use because Flutter debug iOS apps require Flutter tooling or Xcode to be attached and will terminate on launch.
 - Adam's known device IDs: Xcode destination `00008150-001004D93E40401C`; `devicectl` device `0AE733D7-AC04-58AB-B95A-B3D0486506F2`.
 - Local signing installs bundle `com.adam.omi.dev`. Replacing the official Omi bundle requires valid BasedHardware signing assets.
 - Do not commit generated `LocalSigning.xcconfig` files or provisioning profiles. The committed example intentionally documents Adam's default local bundle/app group; override only in the ignored local xcconfig if a future install needs different IDs.
 - Before replacing Adam's installed iPhone app, review `docs/local-ios-standalone-install.md`. It records the `Debug-dev` standalone crash, stale `Runner` process cleanup, entitlement checks, and hosted-backend/local-signing requirements from the May 2026 install issue.
+
+### Firebase Config
+Never run `flutterfire configure` — it overwrites prod credentials. Config files:
+- Dev: `ios/Config/Dev/`, `android/app/src/dev/`, `lib/firebase_options_dev.dart`
+- Prod: `ios/Config/Prod/`, `android/app/src/prod/`, `lib/firebase_options_prod.dart`
 
 ## Native Bridge
 
@@ -94,11 +94,11 @@ flutter test test/unit/  # specific directory
 ## Localization (l10n)
 
 - All user-facing strings must use `context.l10n.keyName`
-- 34 locales: English (template) + 33 translations in `lib/l10n/`
+- 49 locales: English (template) + 48 translations in `lib/l10n/`. Don't trust this count from memory — enumerate with `ls lib/l10n/app_*.arb`.
 - Template: `lib/l10n/app_en.arb`
 - Add keys via `jq` (never read full ARB — they're large). Use skill `add-a-new-localization-key-l10n-arb`
 - Translate all locales — use skill `omi-add-missing-language-keys-l10n` for real translations
-- Regenerate after changes: `flutter gen-l10n`
+- Regenerate after changes: `flutter gen-l10n`. Task is only complete when this command emits zero "untranslated message(s)" warnings. To get the exact missing-key list, temporarily add `untranslated-messages-file: /tmp/untranslated.json` to `l10n.yaml` and re-run.
 
 ## Auth & Security
 
@@ -132,4 +132,5 @@ All API requests include: X-Request-Start-Time, X-App-Platform, X-Device-Id-Hash
 
 - See `e2e/SKILL.md` for navigation architecture, screen map, widget patterns, and 34 reference flows
 - See `e2e/flows/*.yaml` for individual flow definitions
-- agent-flutter (Marionette) for programmatic UI interaction — see root CLAUDE.md for setup
+- agent-flutter (Marionette) for programmatic UI interaction — see root AGENTS.md for setup
+

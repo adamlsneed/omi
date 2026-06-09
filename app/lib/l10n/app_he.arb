@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "סינכרון במצב לא מחובר",
+    "autoSync": "סנכרון אוטומטי",
+    "autoSyncDescription": "סנכרן אוטומטית הקלטות לא מקוונות כשהמכשיר שלך מתחבר",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "ללא — השתמש בהנחיה",
     "templateRoutingManageApps": "הפעל אפליקציות סיכום",
     "templateRoutingTemplateHint": "בחר אפליקציית סיכום מותקנת לפרופיל זה, או השאר «ללא» כדי להשתמש בהנחיה למעלה.",
-    "templateRoutingProfileRequiredError": "הוסף הנחיה או תבנית לפרופילי עבודה ואישי לפני הפעלה."
+    "templateRoutingProfileRequiredError": "הוסף הנחיה או תבנית לפרופילי עבודה ואישי לפני הפעלה.",
+    "syncCustomSttWarningTitle": "הסנכרון משתמש בתמלול של Omi",
+    "syncCustomSttWarningMessage": "אתה משתמש בספק תמלול משלך. סנכרון ההקלטות האלה יתמלל אותן בשרתי Omi והן ייכללו במגבלת התמלול של התוכנית שלך."
 }

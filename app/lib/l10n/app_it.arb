@@ -135,6 +135,8 @@
     "systemDefault": "Predefinito del Sistema",
     "planAndUsage": "Piano e Utilizzo",
     "offlineSync": "Sincronizzazione offline",
+    "autoSync": "Sincronizzazione automatica",
+    "autoSyncDescription": "Sincronizza automaticamente le registrazioni offline quando il dispositivo si connette",
     "deviceSettings": "Impostazioni Dispositivo",
     "integrations": "Integrazioni",
     "feedbackBug": "Feedback / Bug",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Nessuno — usa il prompt",
     "templateRoutingManageApps": "Abilita le app di riepilogo",
     "templateRoutingTemplateHint": "Scegli un'app di riepilogo installata per questo profilo, o lascia «Nessuno» per usare il prompt sopra.",
-    "templateRoutingProfileRequiredError": "Aggiungi un prompt o un modello per i profili Lavoro e Personale prima di abilitare."
+    "templateRoutingProfileRequiredError": "Aggiungi un prompt o un modello per i profili Lavoro e Personale prima di abilitare.",
+    "syncCustomSttWarningTitle": "La sincronizzazione usa la trascrizione di Omi",
+    "syncCustomSttWarningMessage": "Usi un tuo fornitore di trascrizione. Sincronizzare queste registrazioni le trascrive sui server di Omi e contano per il limite di trascrizione del tuo piano."
 }

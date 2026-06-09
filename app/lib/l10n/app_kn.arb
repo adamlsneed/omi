@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "ಆಫ್‌ಲೈನ್ ಸಿಂಕ್",
+    "autoSync": "ಸ್ವಯಂಚಾಲಿತ ಸಿಂಕ್",
+    "autoSyncDescription": "ನಿಮ್ಮ ಸಾಧನ ಸಂಪರ್ಕಗೊಂಡಾಗ ಆಫ್‌ಲೈನ್ ರೆಕಾರ್ಡಿಂಗ್‌ಗಳನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಿಂಕ್ ಮಾಡಿ",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "ಯಾವುದೂ ಇಲ್ಲ — ಪ್ರಾಂಪ್ಟ್ ಬಳಸಿ",
     "templateRoutingManageApps": "ಸಾರಾಂಶ ಅಪ್ಲಿಕೇಶನ್‌ಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ",
     "templateRoutingTemplateHint": "ಈ ಪ್ರೊಫೈಲ್‌ಗೆ ಸ್ಥಾಪಿಸಲಾದ ಸಾರಾಂಶ ಅಪ್ಲಿಕೇಶನ್ ಆಯ್ಕೆ ಮಾಡಿ, ಅಥವಾ ಮೇಲಿನ ಪ್ರಾಂಪ್ಟ್ ಬಳಸಲು «ಯಾವುದೂ ಇಲ್ಲ» ಇರಿಸಿ.",
-    "templateRoutingProfileRequiredError": "ಸಕ್ರಿಯಗೊಳಿಸುವ ಮೊದಲು ಕೆಲಸ ಮತ್ತು ವೈಯಕ್ತಿಕ ಎರಡೂ ಪ್ರೊಫೈಲ್‌ಗಳಿಗೆ ಪ್ರಾಂಪ್ಟ್ ಅಥವಾ ಟೆಂಪ್ಲೆಟ್ ಸೇರಿಸಿ."
+    "templateRoutingProfileRequiredError": "ಸಕ್ರಿಯಗೊಳಿಸುವ ಮೊದಲು ಕೆಲಸ ಮತ್ತು ವೈಯಕ್ತಿಕ ಎರಡೂ ಪ್ರೊಫೈಲ್‌ಗಳಿಗೆ ಪ್ರಾಂಪ್ಟ್ ಅಥವಾ ಟೆಂಪ್ಲೆಟ್ ಸೇರಿಸಿ.",
+    "syncCustomSttWarningTitle": "ಸಿಂಕ್ Omi ಪ್ರತಿಲೇಖನವನ್ನು ಬಳಸುತ್ತದೆ",
+    "syncCustomSttWarningMessage": "ನೀವು ನಿಮ್ಮ ಸ್ವಂತ ಪ್ರತಿಲೇಖನ ಪೂರೈಕೆದಾರರನ್ನು ಬಳಸುತ್ತೀರಿ. ಈ ಧ್ವನಿಮುದ್ರಣಗಳನ್ನು ಸಿಂಕ್ ಮಾಡಿದರೆ ಅವು Omi ಸರ್ವರ್‌ಗಳಲ್ಲಿ ಪ್ರತಿಲೇಖನಗೊಳ್ಳುತ್ತವೆ ಮತ್ತು ನಿಮ್ಮ ಯೋಜನೆಯ ಪ್ರತಿಲೇಖನ ಮಿತಿಗೆ ಎಣಿಸಲಾಗುತ್ತದೆ."
 }

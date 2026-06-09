@@ -135,6 +135,8 @@
     "systemDefault": "Lalai Sistem",
     "planAndUsage": "Pelan & Penggunaan",
     "offlineSync": "Segerak Luar Talian",
+    "autoSync": "Penyegerakan automatik",
+    "autoSyncDescription": "Segerakkan rakaman luar talian secara automatik apabila peranti anda disambungkan",
     "deviceSettings": "Tetapan Peranti",
     "integrations": "Integrasi",
     "feedbackBug": "Maklum Balas / Pepijat",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Tiada — guna gesaan",
     "templateRoutingManageApps": "Aktifkan aplikasi ringkasan",
     "templateRoutingTemplateHint": "Pilih aplikasi ringkasan yang dipasang untuk profil ini, atau biarkan «Tiada» untuk menggunakan gesaan di atas.",
-    "templateRoutingProfileRequiredError": "Tambah gesaan atau templat untuk profil Kerja dan Peribadi sebelum mengaktifkan."
+    "templateRoutingProfileRequiredError": "Tambah gesaan atau templat untuk profil Kerja dan Peribadi sebelum mengaktifkan.",
+    "syncCustomSttWarningTitle": "Penyegerakan menggunakan transkripsi Omi",
+    "syncCustomSttWarningMessage": "Anda menggunakan penyedia transkripsi sendiri. Menyegerakkan rakaman ini akan mentranskripsikannya di pelayan Omi dan dikira dalam had transkripsi pelan anda."
 }

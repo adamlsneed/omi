@@ -135,6 +135,8 @@
     "systemDefault": "Por defecto del sistema",
     "planAndUsage": "Plan y Uso",
     "offlineSync": "Sincronización sin conexión",
+    "autoSync": "Sincronización automática",
+    "autoSyncDescription": "Sincroniza automáticamente las grabaciones sin conexión cuando se conecta tu dispositivo",
     "deviceSettings": "Ajustes del dispositivo",
     "integrations": "Integraciones",
     "feedbackBug": "Feedback / Error",
@@ -3137,5 +3139,7 @@
     "templateRoutingTemplateNone": "Ninguna — usar indicación",
     "templateRoutingManageApps": "Activar aplicaciones de resumen",
     "templateRoutingTemplateHint": "Elige una aplicación de resumen instalada para este perfil o mantén «Ninguna» para usar la indicación anterior.",
-    "templateRoutingProfileRequiredError": "Añade una indicación o plantilla para los perfiles de Trabajo y Personal antes de activar."
+    "templateRoutingProfileRequiredError": "Añade una indicación o plantilla para los perfiles de Trabajo y Personal antes de activar.",
+    "syncCustomSttWarningTitle": "La sincronización usa la transcripción de Omi",
+    "syncCustomSttWarningMessage": "Usas tu propio proveedor de transcripción. Sincronizar estas grabaciones las transcribe en los servidores de Omi y cuentan para el límite de transcripción de tu plan."
 }

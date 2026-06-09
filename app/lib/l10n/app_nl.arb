@@ -135,6 +135,8 @@
     "systemDefault": "Systeemstandaard",
     "planAndUsage": "Abonnement en gebruik",
     "offlineSync": "Offline synchronisatie",
+    "autoSync": "Automatisch synchroniseren",
+    "autoSyncDescription": "Synchroniseer offline-opnamen automatisch wanneer je apparaat verbinding maakt",
     "deviceSettings": "Apparaatinstellingen",
     "integrations": "Integraties",
     "feedbackBug": "Feedback / Fout",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Geen — gebruik prompt",
     "templateRoutingManageApps": "Samenvattingsapps inschakelen",
     "templateRoutingTemplateHint": "Kies een geïnstalleerde samenvattingsapp voor dit profiel of laat «Geen» staan om de bovenstaande prompt te gebruiken.",
-    "templateRoutingProfileRequiredError": "Voeg een prompt of sjabloon toe voor zowel het Werk- als het Persoonlijke profiel voordat je inschakelt."
+    "templateRoutingProfileRequiredError": "Voeg een prompt of sjabloon toe voor zowel het Werk- als het Persoonlijke profiel voordat je inschakelt.",
+    "syncCustomSttWarningTitle": "Synchroniseren gebruikt Omi-transcriptie",
+    "syncCustomSttWarningMessage": "Je gebruikt je eigen transcriptieprovider. Door deze opnames te synchroniseren worden ze op de servers van Omi getranscribeerd en tellen ze mee voor de transcriptielimiet van je abonnement."
 }

@@ -135,6 +135,8 @@
     "systemDefault": "Implicit sistem",
     "planAndUsage": "Plan și utilizare",
     "offlineSync": "Sincronizare offline",
+    "autoSync": "Sincronizare automată",
+    "autoSyncDescription": "Sincronizează automat înregistrările offline când dispozitivul tău se conectează",
     "deviceSettings": "Setări dispozitiv",
     "integrations": "Integrări",
     "feedbackBug": "Feedback / Eroare",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Niciunul — folosiți promptul",
     "templateRoutingManageApps": "Activați aplicațiile de rezumat",
     "templateRoutingTemplateHint": "Alegeți o aplicație de rezumat instalată pentru acest profil sau păstrați «Niciunul» pentru a folosi promptul de mai sus.",
-    "templateRoutingProfileRequiredError": "Adăugați un prompt sau un șablon pentru profilurile Serviciu și Personal înainte de activare."
+    "templateRoutingProfileRequiredError": "Adăugați un prompt sau un șablon pentru profilurile Serviciu și Personal înainte de activare.",
+    "syncCustomSttWarningTitle": "Sincronizarea folosește transcrierea Omi",
+    "syncCustomSttWarningMessage": "Folosești propriul furnizor de transcriere. Sincronizarea acestor înregistrări le transcrie pe serverele Omi și se iau în calcul pentru limita de transcriere a planului tău."
 }

@@ -1402,6 +1402,8 @@
     "off": "Išj.",
     "offline": "Neprisijungęs",
     "offlineSync": "Sinchronizavimas neprisijungus",
+    "autoSync": "Automatinis sinchronizavimas",
+    "autoSyncDescription": "Automatiškai sinchronizuoti neprisijungus įrašytus įrašus, kai prijungiamas įrenginys",
     "ok": "Gerai",
     "olderDeviceDetected": "Aptiktas senesnis įrenginys",
     "omiApiKeys": "Omi API raktai",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Nėra — naudoti raginimą",
     "templateRoutingManageApps": "Įjungti santraukų programas",
     "templateRoutingTemplateHint": "Pasirinkite įdiegtą santraukų programą šiam profiliui arba palikite „Nėra\", kad naudotumėte viršuje esantį raginimą.",
-    "templateRoutingProfileRequiredError": "Prieš įjungiant pridėkite raginimą arba šabloną tiek Darbo, tiek Asmeniniam profiliui."
+    "templateRoutingProfileRequiredError": "Prieš įjungiant pridėkite raginimą arba šabloną tiek Darbo, tiek Asmeniniam profiliui.",
+    "syncCustomSttWarningTitle": "Sinchronizavimas naudoja Omi transkripciją",
+    "syncCustomSttWarningMessage": "Naudojate savo transkripcijos paslaugą. Sinchronizuojant šiuos įrašus jie transkribuojami Omi serveriuose ir įskaičiuojami į jūsų plano transkripcijos limitą."
 }

@@ -135,6 +135,8 @@
     "systemDefault": "Süsteemi vaikimisi",
     "planAndUsage": "Plaan ja kasutus",
     "offlineSync": "Võrguühenduseta sünkroonimine",
+    "autoSync": "Automaatne sünkroonimine",
+    "autoSyncDescription": "Sünkrooni võrguühenduseta salvestised automaatselt, kui seade ühendatakse",
     "deviceSettings": "Seadme seaded",
     "integrations": "Integratsioonid",
     "feedbackBug": "Tagasiside / viga",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Puudub — kasuta vihjet",
     "templateRoutingManageApps": "Luba kokkuvõtterakendused",
     "templateRoutingTemplateHint": "Vali selle profiili jaoks installitud kokkuvõtterakendus või jäta „Puudub\", et kasutada ülaltoodud vihjet.",
-    "templateRoutingProfileRequiredError": "Lisa nii Töö kui ka Isikliku profiili jaoks vihjed või mallid enne aktiveerimist."
+    "templateRoutingProfileRequiredError": "Lisa nii Töö kui ka Isikliku profiili jaoks vihjed või mallid enne aktiveerimist.",
+    "syncCustomSttWarningTitle": "Sünkroonimine kasutab Omi transkriptsiooni",
+    "syncCustomSttWarningMessage": "Kasutate oma transkriptsiooniteenust. Nende salvestiste sünkroonimine transkribeerib need Omi serverites ja need arvestatakse teie paketi transkriptsioonilimiidi sisse."
 }

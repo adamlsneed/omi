@@ -135,6 +135,8 @@
     "systemDefault": "Per defecte del sistema",
     "planAndUsage": "Pla i ús",
     "offlineSync": "Sincronització fora de línia",
+    "autoSync": "Sincronització automàtica",
+    "autoSyncDescription": "Sincronitza automàticament els enregistraments fora de línia quan el dispositiu es connecti",
     "deviceSettings": "Configuració del dispositiu",
     "integrations": "Integracions",
     "feedbackBug": "Comentaris / Error",
@@ -3105,5 +3107,7 @@
     "templateRoutingTemplateNone": "Cap — utilitza el missatge",
     "templateRoutingManageApps": "Activa les aplicacions de resum",
     "templateRoutingTemplateHint": "Tria una aplicació de resum instal·lada per a aquest perfil o deixa «Cap» per usar el missatge anterior.",
-    "templateRoutingProfileRequiredError": "Afegeix un missatge o una plantilla per al perfil de Treball i Personal abans d'activar."
+    "templateRoutingProfileRequiredError": "Afegeix un missatge o una plantilla per al perfil de Treball i Personal abans d'activar.",
+    "syncCustomSttWarningTitle": "La sincronització utilitza la transcripció d'Omi",
+    "syncCustomSttWarningMessage": "Utilitzes el teu propi proveïdor de transcripció. Sincronitzar aquests enregistraments els transcriu als servidors d'Omi i compten per al límit de transcripció del teu pla."
 }

@@ -135,6 +135,8 @@
     "systemDefault": "Sistem Varsayılanı",
     "planAndUsage": "Plan ve Kullanım",
     "offlineSync": "Çevrimdışı Senkronizasyon",
+    "autoSync": "Otomatik eşitleme",
+    "autoSyncDescription": "Cihazınız bağlandığında çevrimdışı kayıtları otomatik olarak eşitleyin",
     "deviceSettings": "Cihaz Ayarları",
     "integrations": "Entegrasyonlar",
     "feedbackBug": "Geri Bildirim / Hata",
@@ -3171,5 +3173,7 @@
     "templateRoutingTemplateNone": "Yok — komut istemini kullan",
     "templateRoutingManageApps": "Özet uygulamalarını etkinleştir",
     "templateRoutingTemplateHint": "Bu profil için kurulu bir özet uygulaması seçin veya yukarıdaki komut istemini kullanmak için «Yok» bırakın.",
-    "templateRoutingProfileRequiredError": "Etkinleştirmeden önce hem İş hem de Kişisel profil için komut istemi veya şablon ekleyin."
+    "templateRoutingProfileRequiredError": "Etkinleştirmeden önce hem İş hem de Kişisel profil için komut istemi veya şablon ekleyin.",
+    "syncCustomSttWarningTitle": "Eşitleme, Omi transkripsiyonunu kullanır",
+    "syncCustomSttWarningMessage": "Kendi transkripsiyon sağlayıcınızı kullanıyorsunuz. Bu kayıtları eşitlemek onları Omi sunucularında yazıya döker ve planınızın transkripsiyon sınırına sayılır."
 }

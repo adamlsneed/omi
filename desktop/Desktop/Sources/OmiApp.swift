@@ -388,6 +388,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     signal(SIGPIPE, SIG_IGN)
 
     DesktopAutomationBridge.shared.startIfNeeded()
+    LocalAgentAPIServer.shared.startIfNeeded()
 
     // Strip com.apple.provenance xattrs that macOS adds when Sparkle extracts updates.
     // These break the code signature seal, causing the NEXT update to fail with
@@ -424,6 +425,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // Refresh the "Auto" realtime-voice model pick from Artificial Analysis (daily, cached).
     AutoModelSelector.shared.refreshIfStale()
+
+    // Proactive notifications are now OFF by default for everyone. Run the one-time
+    // migration before any assistant can fire, so existing users are flipped to Off
+    // once (they can re-enable in Settings).
+    NotificationService.migrateToOffByDefaultIfNeeded()
 
     // Force macOS to use the correct app icon (bypasses icon cache).
     // Apply squircle mask with proper margins because NSApp.applicationIconImage

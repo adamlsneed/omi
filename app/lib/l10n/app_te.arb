@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "ఆఫ్‌లైన్ సమకాలీకరణ",
+    "autoSync": "ఆటో సింక్",
+    "autoSyncDescription": "మీ పరికరం కనెక్ట్ అయినప్పుడు ఆఫ్‌లైన్ రికార్డింగ్‌లను స్వయంచాలకంగా సింక్ చేయండి",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "ఏదీ లేదు — ప్రాంప్ట్ ఉపయోగించు",
     "templateRoutingManageApps": "సారాంశ యాప్‌లను ప్రారంభించు",
     "templateRoutingTemplateHint": "ఈ ప్రొఫైల్ కోసం ఇన్‌స్టాల్ చేసిన సారాంశ యాప్‌ని ఎంచుకోండి, లేదా పై ప్రాంప్ట్‌ని ఉపయోగించడానికి «ఏదీ లేదు» ఉంచండి.",
-    "templateRoutingProfileRequiredError": "ప్రారంభించే ముందు పని మరియు వ్యక్తిగత రెండు ప్రొఫైల్‌లకు ప్రాంప్ట్ లేదా టెంప్లేట్ జోడించండి."
+    "templateRoutingProfileRequiredError": "ప్రారంభించే ముందు పని మరియు వ్యక్తిగత రెండు ప్రొఫైల్‌లకు ప్రాంప్ట్ లేదా టెంప్లేట్ జోడించండి.",
+    "syncCustomSttWarningTitle": "సింక్ Omi ట్రాన్స్‌క్రిప్షన్‌ను ఉపయోగిస్తుంది",
+    "syncCustomSttWarningMessage": "మీరు మీ సొంత ట్రాన్స్‌క్రిప్షన్ ప్రొవైడర్‌ను ఉపయోగిస్తున్నారు. ఈ రికార్డింగ్‌లను సింక్ చేస్తే అవి Omi సర్వర్‌లలో ట్రాన్స్‌క్రైబ్ చేయబడతాయి మరియు మీ ప్లాన్ ట్రాన్స్‌క్రిప్షన్ పరిమితిలో లెక్కించబడతాయి."
 }

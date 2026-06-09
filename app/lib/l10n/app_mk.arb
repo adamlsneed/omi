@@ -554,6 +554,8 @@
         "description": "Plan and usage menu item"
     },
     "offlineSync": "Синхронизирање без интернет",
+    "autoSync": "Автоматска синхронизација",
+    "autoSyncDescription": "Автоматски синхронизирај офлајн снимки кога ќе се поврзе уредот",
     "@offlineSync": {
         "description": "Page title for offline sync"
     },
@@ -10841,5 +10843,7 @@
     "templateRoutingTemplateNone": "Ниедна — користи покана",
     "templateRoutingManageApps": "Овозможи апликации за резиме",
     "templateRoutingTemplateHint": "Изберете инсталирана апликација за резиме за овој профил или оставете „Ниедна\" за да ја користите поканата погоре.",
-    "templateRoutingProfileRequiredError": "Додајте покана или шаблон за профилите Работен и Личен пред да овозможите."
+    "templateRoutingProfileRequiredError": "Додајте покана или шаблон за профилите Работен и Личен пред да овозможите.",
+    "syncCustomSttWarningTitle": "Синхронизацијата користи транскрипција од Omi",
+    "syncCustomSttWarningMessage": "Користите сопствен провајдер за транскрипција. Синхронизирањето на овие снимки ги транскрибира на серверите на Omi и се сметаат во лимитот за транскрипција на вашиот план."
 }

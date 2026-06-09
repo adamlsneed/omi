@@ -430,6 +430,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get offlineSync => 'Offline synchronisatie';
 
   @override
+  String get autoSync => 'Automatisch synchroniseren';
+
+  @override
+  String get autoSyncDescription => 'Synchroniseer offline-opnamen automatisch wanneer je apparaat verbinding maakt';
+
+  @override
   String get deviceSettings => 'Apparaatinstellingen';
 
   @override
@@ -9568,4 +9574,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get recapRegenerateNoConversations => 'Geen gesprekken om voor deze dag samen te vatten.';
+
+  @override
+  String get syncCustomSttWarningTitle => 'Synchroniseren gebruikt Omi-transcriptie';
+
+  @override
+  String get syncCustomSttWarningMessage =>
+      'Je gebruikt je eigen transcriptieprovider. Door deze opnames te synchroniseren worden ze op de servers van Omi getranscribeerd en tellen ze mee voor de transcriptielimiet van je abonnement.';
 }

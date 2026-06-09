@@ -135,6 +135,8 @@
     "systemDefault": "Systemstandard",
     "planAndUsage": "Plan og forbrug",
     "offlineSync": "Offline-synkronisering",
+    "autoSync": "Automatisk synkronisering",
+    "autoSyncDescription": "Synkroniser offline-optagelser automatisk, når din enhed opretter forbindelse",
     "deviceSettings": "Enhedsindstillinger",
     "integrations": "Integrationer",
     "feedbackBug": "Feedback / Fejl",
@@ -3145,5 +3147,7 @@
     "templateRoutingTemplateNone": "Ingen — brug prompt",
     "templateRoutingManageApps": "Aktiver opsummeringsapps",
     "templateRoutingTemplateHint": "Vælg en installeret opsummeringsapp til denne profil, eller behold „Ingen\" for at bruge prompten ovenfor.",
-    "templateRoutingProfileRequiredError": "Tilføj en prompt eller skabelon til både Arbejde og Personlig, inden du aktiverer."
+    "templateRoutingProfileRequiredError": "Tilføj en prompt eller skabelon til både Arbejde og Personlig, inden du aktiverer.",
+    "syncCustomSttWarningTitle": "Synkronisering bruger Omi-transskription",
+    "syncCustomSttWarningMessage": "Du bruger din egen transskriptionsudbyder. Synkronisering af disse optagelser transskriberer dem på Omis servere i stedet, og de tæller med i din plans transskriptionsgrænse."
 }

@@ -135,6 +135,8 @@
     "systemDefault": "Systemstandard",
     "planAndUsage": "Abonnement og forbruk",
     "offlineSync": "Offline-synkronisering",
+    "autoSync": "Automatisk synkronisering",
+    "autoSyncDescription": "Synkroniser frakoblede opptak automatisk når enheten din kobles til",
     "deviceSettings": "Enhetsinnstillinger",
     "integrations": "Integrasjoner",
     "feedbackBug": "Tilbakemelding / Feil",
@@ -3136,5 +3138,7 @@
     "templateRoutingTemplateNone": "Ingen — bruk prompt",
     "templateRoutingManageApps": "Aktiver oppsummeringsapper",
     "templateRoutingTemplateHint": "Velg en installert oppsummeringsapp for denne profilen, eller behold «Ingen» for å bruke prompten ovenfor.",
-    "templateRoutingProfileRequiredError": "Legg til en prompt eller mal for både Jobb- og Personlig-profil før du aktiverer."
+    "templateRoutingProfileRequiredError": "Legg til en prompt eller mal for både Jobb- og Personlig-profil før du aktiverer.",
+    "syncCustomSttWarningTitle": "Synkronisering bruker Omi-transkripsjon",
+    "syncCustomSttWarningMessage": "Du bruker din egen transkripsjonsleverandør. Synkronisering av disse opptakene transkriberer dem på Omis servere, og de teller mot transkripsjonsgrensen i abonnementet ditt."
 }
