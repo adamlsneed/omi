@@ -1099,7 +1099,6 @@ class GetAppsWidgets extends StatelessWidget {
     return switch (errorCode) {
       ConversationDetailProvider.routedSummaryMissingPromptsError => context.l10n.templateRoutingPromptsRequiredError,
       ConversationDetailProvider.routedSummaryEmptyResponseError => context.l10n.templateRoutingReturnedNoSummary,
-      ConversationDetailProvider.routedSummaryFailedError => context.l10n.templateRoutingFailed,
       _ => context.l10n.templateRoutingFailed,
     };
   }

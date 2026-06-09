@@ -49,7 +49,6 @@ class OmiFeatures {
   static const int offlineStorage = 1 << 6;
   static const int ledDimming = 1 << 7;
   static const int micGain = 1 << 8;
-  static const int recordingPause = 1 << 10;
 }
 
 abstract class IDeviceServiceSubsciption {
@@ -62,7 +61,10 @@ class DeviceService implements IDeviceService {
   DeviceServiceStatus _status = DeviceServiceStatus.init;
   List<BtDevice> _devices = [];
 
-  final List<DeviceDiscoverer> _discoverers = [NativeBluetoothDiscoverer(), AppleWatchDiscoverer()];
+  final List<DeviceDiscoverer> _discoverers = [
+    NativeBluetoothDiscoverer(),
+    AppleWatchDiscoverer(),
+  ];
 
   final Map<Object, IDeviceServiceSubsciption> _subscriptions = {};
 

@@ -1036,15 +1036,8 @@ class CaptureProvider extends ChangeNotifier
       return;
     }
 
-    final features = await connection.getFeatures(refresh: true);
-    if ((features & OmiFeatures.recordingPause) == 0) {
-      Logger.debug('Device firmware does not advertise runtime recording pause; attempting compatibility write');
-    }
-
     await connection.setRecordingPaused(paused);
-    final readback = await connection.getRecordingPaused();
-    Logger.debug(
-        'Recording pause requested: paused=$paused features=0x${features.toRadixString(16)} readback=$readback');
+    Logger.debug('Recording pause requested: paused=$paused');
   }
 
   Future<StreamSubscription?> _getBleAudioBytesListener(

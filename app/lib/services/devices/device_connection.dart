@@ -658,12 +658,4 @@ abstract class DeviceConnection {
 
   Future<void> performSetRecordingPaused(bool paused) async {}
 
-  Future<bool?> getRecordingPaused() async {
-    if (await isConnected()) {
-      return await performGetRecordingPaused();
-    }
-    return null;
-  }
-
-  Future<bool?> performGetRecordingPaused() async => null;
 }

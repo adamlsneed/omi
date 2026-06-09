@@ -18,11 +18,5 @@ void main() {
 
       expect(SharedPreferencesUtil().appleRemindersAutoExportEnabled, isTrue);
     });
-
-    test('persists when disabled', () {
-      SharedPreferencesUtil().appleRemindersAutoExportEnabled = false;
-
-      expect(SharedPreferencesUtil().appleRemindersAutoExportEnabled, isFalse);
-    });
   });
 }

@@ -45,7 +45,6 @@ class _PhoneSetupVerifyPageState extends State<PhoneSetupVerifyPage> with Single
   void dispose() {
     _pollingRunId++;
     _pollingTimer?.cancel();
-    _pollingTimer = null;
     _pulseController.dispose();
     super.dispose();
   }
@@ -100,9 +99,7 @@ class _PhoneSetupVerifyPageState extends State<PhoneSetupVerifyPage> with Single
 
       if (verified) {
         timer.cancel();
-        if (identical(_pollingTimer, timer)) {
-          _pollingTimer = null;
-        }
+        _pollingTimer = null;
         setState(() => _status = _VerifyStatus.verified);
         HapticFeedback.mediumImpact();
         await Future.delayed(const Duration(milliseconds: 800));

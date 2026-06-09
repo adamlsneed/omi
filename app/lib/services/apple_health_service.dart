@@ -4,39 +4,22 @@ import 'package:omi/backend/http/api/integrations.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 
-typedef AppleHealthMethodInvoker = Future<T?> Function<T>(String method, [dynamic arguments]);
-
 class AppleHealthService {
   static const _channel = MethodChannel('com.omi.apple_health');
 
-  static Future<T?> _defaultInvokeMethod<T>(String method, [dynamic arguments]) {
-    return _channel.invokeMethod<T>(method, arguments);
-  }
-
   static final AppleHealthService _instance = AppleHealthService._internal();
   factory AppleHealthService() => _instance;
-  AppleHealthService._internal()
-      : _isAvailableOverride = null,
-        _invokeMethod = _defaultInvokeMethod;
-
-  AppleHealthService.test({
-    required bool isAvailable,
-    required AppleHealthMethodInvoker invokeMethod,
-  })  : _isAvailableOverride = isAvailable,
-        _invokeMethod = invokeMethod;
-
-  final bool? _isAvailableOverride;
-  final AppleHealthMethodInvoker _invokeMethod;
+  AppleHealthService._internal();
 
   /// Check if Apple Health is available on this platform
-  bool get isAvailable => _isAvailableOverride ?? PlatformService.isApple;
+  bool get isAvailable => PlatformService.isApple;
 
   /// Check if the app has permission to access health data
   Future<bool> hasPermission() async {
     if (!isAvailable) return false;
 
     try {
-      final result = await _invokeMethod('hasPermission');
+      final result = await _channel.invokeMethod('hasPermission');
       return result == true;
     } catch (e) {
       Logger.debug('Error checking health permission: $e');
@@ -49,7 +32,7 @@ class AppleHealthService {
     if (!isAvailable) return false;
 
     try {
-      final result = await _invokeMethod('requestPermission');
+      final result = await _channel.invokeMethod('requestPermission');
       return result == true;
     } catch (e) {
       Logger.debug('Error requesting health permission: $e');
@@ -57,17 +40,16 @@ class AppleHealthService {
     }
   }
 
-  /// Best-effort probe for readable HealthKit samples.
-  ///
-  /// HealthKit does not expose read-authorization status. An empty probe can
-  /// mean the user denied access, but it can also mean there is no recent data
-  /// for the requested categories, so callers must not treat `false` as a
-  /// definitive permission denial.
+  /// Probe for actual read access. HealthKit's `requestAuthorization` succeeds
+  /// even when the user denies read permission (Apple hides read-auth status
+  /// for privacy), so this queries several data types over the last 90 days and
+  /// returns true only if at least one sample is readable — the only reliable
+  /// way to distinguish allow from deny.
   Future<bool> probeAccess() async {
     if (!isAvailable) return false;
 
     try {
-      final result = await _invokeMethod('probeAccess');
+      final result = await _channel.invokeMethod('probeAccess');
       return result == true;
     } catch (e) {
       Logger.debug('Error probing health access: $e');
@@ -81,7 +63,7 @@ class AppleHealthService {
     if (!isAvailable) return null;
 
     try {
-      final result = await _invokeMethod('getHealthSummary', {'days': days});
+      final result = await _channel.invokeMethod('getHealthSummary', {'days': days});
 
       if (result is Map) {
         return Map<String, dynamic>.from(result);
@@ -98,7 +80,7 @@ class AppleHealthService {
     if (!isAvailable) return null;
 
     try {
-      final result = await _invokeMethod('getStepCount', {
+      final result = await _channel.invokeMethod('getStepCount', {
         'startDate': startDate?.millisecondsSinceEpoch,
         'endDate': endDate?.millisecondsSinceEpoch,
       });
@@ -115,7 +97,7 @@ class AppleHealthService {
     if (!isAvailable) return null;
 
     try {
-      final result = await _invokeMethod('getSleepData', {
+      final result = await _channel.invokeMethod('getSleepData', {
         'startDate': startDate?.millisecondsSinceEpoch,
         'endDate': endDate?.millisecondsSinceEpoch,
       });
@@ -135,7 +117,7 @@ class AppleHealthService {
     if (!isAvailable) return null;
 
     try {
-      final result = await _invokeMethod('getHeartRateData', {
+      final result = await _channel.invokeMethod('getHeartRateData', {
         'startDate': startDate?.millisecondsSinceEpoch,
         'endDate': endDate?.millisecondsSinceEpoch,
       });
@@ -155,7 +137,7 @@ class AppleHealthService {
     if (!isAvailable) return null;
 
     try {
-      final result = await _invokeMethod('getActiveEnergy', {
+      final result = await _channel.invokeMethod('getActiveEnergy', {
         'startDate': startDate?.millisecondsSinceEpoch,
         'endDate': endDate?.millisecondsSinceEpoch,
       });
@@ -172,7 +154,7 @@ class AppleHealthService {
     if (!isAvailable) return null;
 
     try {
-      final result = await _invokeMethod('getWorkouts', {
+      final result = await _channel.invokeMethod('getWorkouts', {
         'startDate': startDate?.millisecondsSinceEpoch,
         'endDate': endDate?.millisecondsSinceEpoch,
       });
@@ -198,17 +180,10 @@ class AppleHealthService {
       return AppleHealthResult.permissionDenied;
     }
 
-    // HealthKit's request callback returns true when the authorization request
-    // completed, but iOS does not reveal read-authorization status. Keep this
-    // probe as diagnostic signal only; an empty result is not proof of denial.
-    final canRead = await probeAccess();
-    if (!canRead) {
-      Logger.debug(
-        'Apple Health authorization completed, but no recent readable samples were returned. '
-        'Keeping the connection active because HealthKit cannot distinguish denied read access from no data.',
-      );
-    }
-
+    // HealthKit's request callback returns true whether the user allowed or
+    // denied read access, and iOS hides read-authorization status, so an empty
+    // data probe cannot distinguish denial from "no recent samples". Treat a
+    // completed prompt as connected instead of probing.
     return AppleHealthResult.success;
   }
 

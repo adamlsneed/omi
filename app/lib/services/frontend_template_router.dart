@@ -365,9 +365,4 @@ class FrontendTemplateRoutingStore {
     return preferences.saveString(SharedPreferencesUtil.frontendTemplateRoutingResultsKey, jsonEncode(encoded));
   }
 
-  Future<bool> removeResult(String conversationId) {
-    final results = loadResults()..remove(conversationId);
-    final encoded = results.map((conversationId, result) => MapEntry(conversationId, result.toJson()));
-    return preferences.saveString(SharedPreferencesUtil.frontendTemplateRoutingResultsKey, jsonEncode(encoded));
-  }
 }

@@ -58,7 +58,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
     });
   }
 
-  PhotoViewGalleryPageOptions _buildPageOptions(ConversationPhoto photo, int index) {
+  PhotoViewGalleryPageOptions _buildPageOptions(ConversationPhoto photo) {
     try {
       final imageBytes = base64Decode(photo.base64);
       return PhotoViewGalleryPageOptions(
@@ -119,7 +119,7 @@ class _PhotoViewerPageState extends State<PhotoViewerPage> {
                 onPageChanged: onPageChanged,
                 builder: (context, index) {
                   final photo = widget.photos[index];
-                  return _buildPageOptions(photo, index);
+                  return _buildPageOptions(photo);
                 },
                 scrollPhysics: const BouncingScrollPhysics(),
                 backgroundDecoration: const BoxDecoration(color: Colors.black),

@@ -19,7 +19,6 @@ class OmiDeviceConnection extends DeviceConnection {
   static const String settingsDimRatioCharacteristicUuid = '19b10011-e8f2-537e-4f6c-d104768a1214';
   static const String settingsMicGainCharacteristicUuid = '19b10012-e8f2-537e-4f6c-d104768a1214';
   static const String settingsChargingStatusCharacteristicUuid = '19b10013-e8f2-537e-4f6c-d104768a1214';
-  static const String settingsRecordingPauseCharacteristicUuid = '19b10014-e8f2-537e-4f6c-d104768a1214';
   static const String featuresServiceUuid = '19b10020-e8f2-537e-4f6c-d104768a1214';
   static const String featuresCharacteristicUuid = '19b10021-e8f2-537e-4f6c-d104768a1214';
   static const int _hapticModeRecordingPause = 4;
@@ -233,7 +232,12 @@ class OmiDeviceConnection extends DeviceConnection {
         return null;
       }
 
-      final status = StorageStatus(totalUsedBytes: totalBytes, fileCount: fileCount, freeBytes: 0, statusFlags: 0);
+      final status = StorageStatus(
+        totalUsedBytes: totalBytes,
+        fileCount: fileCount,
+        freeBytes: 0,
+        statusFlags: 0,
+      );
       Logger.debug('OmiDeviceConnection: $status');
       return status;
     } catch (e) {
@@ -887,9 +891,6 @@ class OmiDeviceConnection extends DeviceConnection {
       await transport.writeCharacteristic(speakerDataStreamServiceUuid, speakerDataStreamCharacteristicUuid, [
         paused ? _hapticModeRecordingPause : _hapticModeRecordingResume,
       ]);
-      await transport.writeCharacteristic(settingsServiceUuid, settingsRecordingPauseCharacteristicUuid, [
-        paused ? 1 : 0,
-      ]);
       Logger.debug('OmiDeviceConnection: Requested recording pause state: $paused');
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error setting recording pause state: $e');
@@ -923,23 +924,12 @@ class OmiDeviceConnection extends DeviceConnection {
     }
   }
 
-  @override
-  Future<bool?> performGetRecordingPaused() async {
-    try {
-      final value = await transport.readCharacteristic(settingsServiceUuid, settingsRecordingPauseCharacteristicUuid);
-      if (value.isNotEmpty) {
-        return value[0] != 0;
-      }
-      return null;
-    } catch (e) {
-      Logger.debug('OmiDeviceConnection: Error getting recording pause state: $e');
-      return null;
-    }
-  }
-
   Future<bool> readChargingStatus() async {
     try {
-      final value = await transport.readCharacteristic(settingsServiceUuid, settingsChargingStatusCharacteristicUuid);
+      final value = await transport.readCharacteristic(
+        settingsServiceUuid,
+        settingsChargingStatusCharacteristicUuid,
+      );
       return value.isNotEmpty && value[0] == 1;
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error reading charging status: $e');
@@ -951,7 +941,10 @@ class OmiDeviceConnection extends DeviceConnection {
     required void Function(bool isCharging) onChargingStatusChange,
   }) async {
     try {
-      final stream = transport.getCharacteristicStream(settingsServiceUuid, settingsChargingStatusCharacteristicUuid);
+      final stream = transport.getCharacteristicStream(
+        settingsServiceUuid,
+        settingsChargingStatusCharacteristicUuid,
+      );
       return stream.listen((value) {
         if (value.isNotEmpty) {
           onChargingStatusChange(value[0] == 1);

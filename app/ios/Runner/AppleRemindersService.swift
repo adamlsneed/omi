@@ -16,9 +16,6 @@ class AppleRemindersService {
     }
 
     private func isAutoExportEnabled() -> Bool {
-        if UserDefaults.standard.object(forKey: autoExportEnabledKey) == nil {
-            return false
-        }
         return UserDefaults.standard.bool(forKey: autoExportEnabledKey)
     }
 
