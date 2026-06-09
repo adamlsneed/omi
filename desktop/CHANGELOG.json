@@ -1,7 +1,8 @@
 {
   "unreleased": [
     "Reworked menu-bar Capture Idea into a start/stop toggle that records an idea (turning the mic on automatically), then saves it to your Ideas folder with an on-screen confirmation",
-    "Capture Idea in the menu-bar dropdown is now a real button that flips to a recording state in place and confirms instantly when you click it"
+    "Capture Idea in the menu-bar dropdown is now a real button that flips to a recording state in place and confirms instantly when you click it",
+    "Fixed the idea-capture confirmation toast so tapping it opens your Ideas folder"
   ],
   "releases": [
     {
