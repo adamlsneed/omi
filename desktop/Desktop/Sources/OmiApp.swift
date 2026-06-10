@@ -405,7 +405,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
       MainActor.assumeIsolated { self?.updateCaptureIdeaMenuItem() }
     }
 
-    // Keep the menu's Audio Recording switch live while the menu stays open: idea
+    // Keep the menu's Microphone switch live while the menu stays open: idea
     // capture turns the mic on at start and can turn it back off at stop, both via
     // .toggleTranscriptionRequested. Without this the switch only refreshes on the
     // next menuWillOpen, so it looks stale mid-session.
@@ -1059,13 +1059,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Create menu
     let menu = NSMenu()
 
-    // Quick toggles for screen capture and audio recording.
+    // Quick toggles for screen recording and microphone transcription.
     // When paywalled (trial expired / usage limit hit) both render OFF — the
     // features can't run, and tapping a toggle surfaces the upgrade popup.
     let paywalled = AppState.isPaywalledEffective
     let screenCaptureItem = NSMenuItem()
     let screenCaptureView = makeToggleItemView(
-      title: "Screen Capture",
+      title: DesktopRecordingControlCopy.screenRecordingTitle,
       iconName: "rectangle.dashed.badge.record",
       isOn: !paywalled && AssistantSettings.shared.screenAnalysisEnabled
         && ProactiveAssistantsPlugin.shared.isMonitoring,
@@ -1076,7 +1076,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     let audioRecordingItem = NSMenuItem()
     let audioRecordingView = makeToggleItemView(
-      title: "Audio Recording",
+      title: DesktopRecordingControlCopy.microphoneTitle,
       iconName: "mic.fill",
       isOn: !paywalled && AssistantSettings.shared.transcriptionEnabled,
       action: #selector(audioRecordingToggled(_:))
