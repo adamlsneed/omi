@@ -44,7 +44,7 @@ export interface SubmitAppResponse {
 export default async function submitApp(
   formData: FormData,
 ): Promise<SubmitAppResponse | null> {
-  const apiUrl = envConfig.API_URL || 'http://localhost:8000';
+  const apiUrl = envConfig.API_URL;
 
   try {
     // Get token from formData

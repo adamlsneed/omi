@@ -14,7 +14,7 @@ export default async function generateDescription(
   data: GenerateDescriptionRequest,
   token: string,
 ): Promise<GenerateDescriptionResponse | null> {
-  const apiUrl = envConfig.API_URL || 'http://localhost:8000';
+  const apiUrl = envConfig.API_URL;
 
   try {
     const response = await fetch(`${apiUrl}/v1/app/generate-description`, {

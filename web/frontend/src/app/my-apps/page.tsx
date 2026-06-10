@@ -40,10 +40,9 @@ export default function MyAppsPage() {
       if (!token) {
         throw new Error('Authentication token not available.');
       }
-      const response = await fetch(
-        `${envConfig.API_URL || 'http://localhost:8000'}/v1/apps`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const response = await fetch(`${envConfig.API_URL}/v1/apps`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       console.log('📡 [fetchUserApps] Backend response status:', response.status);
       if (!response.ok) {
