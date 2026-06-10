@@ -7,7 +7,8 @@
     "Fixed the Dock Icon setting: re-enabling now reliably brings the icon back and keeps the window in front instead of dropping it behind other apps",
     "Made the General > Dock Icon switch read intuitively (on = icon visible)",
     "Fixed idea-capture clicks being ignored for a few seconds after starting or stopping a capture (no more closing and reopening the menu to stop)",
-    "Fixed captured ideas not appearing in the Ideas folder: the app now files the conversation it actually recorded instead of whatever the server thought was in progress, and short ideas are no longer lost to the transcription window"
+    "Fixed captured ideas not appearing in the Ideas folder: the app now files the conversation it actually recorded instead of whatever the server thought was in progress, and short ideas are no longer lost to the transcription window",
+    "Launch at Login can now be enabled from the dev build as well"
   ],
   "releases": [
     {
