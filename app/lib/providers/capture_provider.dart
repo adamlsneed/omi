@@ -381,8 +381,6 @@ class CaptureProvider extends ChangeNotifier
   StreamSubscription? _bleBytesStream;
   StreamSubscription? _blePhotoStream;
 
-  get bleBytesStream => _bleBytesStream;
-
   StreamSubscription? _bleButtonStream;
   DateTime? _voiceCommandSession;
   List<List<int>> _commandBytes = [];
@@ -390,10 +388,6 @@ class CaptureProvider extends ChangeNotifier
   Timer? _voiceCommandTimeoutTimer; // 30s auto-end timer for voice questions
   bool _voiceSessionStartedByLegacyLongPress =
       false; // Track if session was started by legacy long press (3) vs new toggle (1), TODO: remove this flag later
-
-  StreamSubscription? _storageStream;
-
-  get storageStream => _storageStream;
 
   RecordingState recordingState = RecordingState.stop;
 
@@ -443,12 +437,6 @@ class CaptureProvider extends ChangeNotifier
 
   void setHasTranscripts(bool value) {
     hasTranscripts = value;
-    notifyListeners();
-  }
-
-  void setConversationCreating(bool value) {
-    Logger.debug('set Conversation creating $value');
-    // ConversationCreating = value;
     notifyListeners();
   }
 

@@ -82,6 +82,7 @@ class _TestPromptsPageState extends State<TestPromptsPage> {
     var response = await testConversationPrompt(controller.text, widget.conversation.id);
     print('response: $response');
     result = response.toString();
+    if (!mounted) return;
     setState(() {
       loading = false;
     });

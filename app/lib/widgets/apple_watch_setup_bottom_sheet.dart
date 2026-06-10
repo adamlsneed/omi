@@ -198,9 +198,11 @@ class _AppleWatchSetupBottomSheetState extends State<AppleWatchSetupBottomSheet>
       if (await canLaunchUrl(url)) {
         await launchUrl(url);
 
+        if (!mounted) return;
         Navigator.of(context).pop();
       }
     } catch (e) {
+      if (!mounted) return;
       AppSnackbar.showSnackbar(context.l10n.unableToOpenWatchApp, duration: const Duration(seconds: 6));
 
       Navigator.of(context).pop();
@@ -215,6 +217,7 @@ class _AppleWatchSetupBottomSheetState extends State<AppleWatchSetupBottomSheet>
     try {
       final hostAPI = WatchRecorderHostAPI();
       final bool isReachable = await hostAPI.isWatchReachable();
+      if (!mounted) return;
 
       if (isReachable) {
         AppSnackbar.showSnackbar(context.l10n.appleWatchConnectedSuccessfully, duration: const Duration(seconds: 2));
@@ -226,14 +229,17 @@ class _AppleWatchSetupBottomSheetState extends State<AppleWatchSetupBottomSheet>
         AppSnackbar.showSnackbar(context.l10n.appleWatchNotReachable, duration: const Duration(seconds: 4));
       }
     } catch (e) {
+      if (!mounted) return;
       AppSnackbar.showSnackbar(
         context.l10n.errorCheckingConnection(e.toString()),
         duration: const Duration(seconds: 3),
       );
     } finally {
-      setState(() {
-        _isChecking = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isChecking = false;
+        });
+      }
     }
   }
 }

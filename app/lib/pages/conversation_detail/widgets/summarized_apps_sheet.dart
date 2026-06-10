@@ -19,8 +19,24 @@ import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/other/temp.dart';
 import 'package:omi/widgets/extensions/string.dart';
 
-class SummarizedAppsBottomSheet extends StatelessWidget {
+class SummarizedAppsBottomSheet extends StatefulWidget {
   const SummarizedAppsBottomSheet({super.key});
+
+  @override
+  State<SummarizedAppsBottomSheet> createState() => _SummarizedAppsBottomSheetState();
+}
+
+class _SummarizedAppsBottomSheetState extends State<SummarizedAppsBottomSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // Fire once per sheet presentation, not on every provider notification.
+    final provider = context.read<ConversationDetailProvider>();
+    PlatformManager.instance.analytics.summarizedAppSheetViewed(
+      conversationId: provider.conversation.id,
+      currentSummarizedAppId: provider.getSummarizedApp()?.appId,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,14 +48,7 @@ class SummarizedAppsBottomSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return Consumer<ConversationDetailProvider>(
           builder: (context, provider, _) {
-            final summarizedApp = provider.getSummarizedApp();
-            final currentAppId = summarizedApp?.appId;
-            final conversationId = provider.conversation.id;
-
-            PlatformManager.instance.analytics.summarizedAppSheetViewed(
-              conversationId: conversationId,
-              currentSummarizedAppId: currentAppId,
-            );
+            final currentAppId = provider.getSummarizedApp()?.appId;
 
             return _SheetContainer(
               scrollController: scrollController,
