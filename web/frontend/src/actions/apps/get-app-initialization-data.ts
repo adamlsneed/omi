@@ -38,7 +38,7 @@ export interface AppInitializationData {
 export default async function getAppInitializationData(
   token?: string,
 ): Promise<AppInitializationData> {
-  const apiUrl = envConfig.API_URL || 'http://localhost:8000';
+  const apiUrl = envConfig.API_URL;
 
   try {
     // Fetch categories and capabilities in parallel (no auth required)

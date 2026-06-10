@@ -83,7 +83,7 @@ OMI_SKIP_BACKEND=1 OMI_DESKTOP_API_URL=https://desktop-backend.example.com ./run
 ./run.sh --yolo
 ```
 
-Local deploys always target "Omi Dev" (`/Applications/Omi Dev.app`, bundle id `com.omi.desktop-dev`), replacing the existing install. Do not use `OMI_APP_NAME` to deploy under another name.
+Local deploys always target "Omi Dev" (`/Applications/Omi Dev.app`, bundle id `com.omi.desktop-dev`), replacing the existing install. Do not use `OMI_APP_NAME` to deploy under another name. When the user asks to install the macOS app locally, interpret that as installing over the existing Omi Dev app unless they explicitly request a separate named build.
 
 ## Build Notes
 

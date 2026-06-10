@@ -9,7 +9,7 @@ export default async function uploadThumbnail(
   formData: FormData,
   token: string,
 ): Promise<UploadThumbnailResponse | null> {
-  const apiUrl = envConfig.API_URL || 'http://localhost:8000';
+  const apiUrl = envConfig.API_URL;
 
   try {
     const response = await fetch(`${apiUrl}/v1/app/thumbnails`, {

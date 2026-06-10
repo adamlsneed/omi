@@ -20,7 +20,6 @@ abstract class Env {
 
   static String? get posthogApiKey => _instance.posthogApiKey;
 
-  // static String? get apiBaseUrl => 'https://omi-backend.ngrok.app/';
   static String? get apiBaseUrl => _apiBaseUrlOverride ?? _instance.apiBaseUrl;
 
   /// Staging API URL from STAGING_API_URL env var. Null when not configured.
@@ -49,7 +48,7 @@ abstract class Env {
   }
 
   /// WebSocket URL for the agent proxy service.
-  /// Derives from apiBaseUrl: api.omi.me → agent.omi.me, api.omiapi.com → agent.omiapi.com.
+  /// Derives from apiBaseUrl: api.omi.me → agent.omi.me.
   /// Can be overridden via Env.overrideAgentProxyWsUrl() for local testing.
   static String get agentProxyWsUrl {
     if (_agentProxyWsUrlOverride != null) return _agentProxyWsUrlOverride!;
