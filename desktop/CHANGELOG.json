@@ -5,7 +5,8 @@
     "Fixed the idea-capture confirmation toast so tapping it opens your Ideas folder",
     "The menu-bar Audio Recording switch now updates live when Capture Idea turns the mic on or off",
     "Fixed the Dock Icon setting: re-enabling now reliably brings the icon back and keeps the window in front instead of dropping it behind other apps",
-    "Made the General > Dock Icon switch read intuitively (on = icon visible)"
+    "Made the General > Dock Icon switch read intuitively (on = icon visible)",
+    "Fixed idea-capture clicks being ignored for a few seconds after starting or stopping a capture (no more closing and reopening the menu to stop)"
   ],
   "releases": [
     {

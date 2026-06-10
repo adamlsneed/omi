@@ -1986,6 +1986,16 @@ class AppState: ObservableObject {
   /// idea-capture: guards start/stop transitions (network calls) against double-clicks.
   private var ideaCaptureBusy = false
 
+  /// idea-capture: the state the user last asked for via a toggle click. Set on every
+  /// click, consumed by the runner loop in `toggleIdeaCapture`. Clicks that land while
+  /// a transition's network tail is still running are recorded here and applied when
+  /// the transition finishes, instead of being silently dropped by the busy guard.
+  private var ideaCaptureDesiredActive: Bool?
+
+  /// idea-capture: true while `toggleIdeaCapture`'s runner loop is draining
+  /// `ideaCaptureDesiredActive`, so concurrent toggle calls just record intent.
+  private var ideaCaptureTransitionRunning = false
+
   /// idea-capture: the mic (transcription) setting before a session began, so we can
   /// restore it on stop when the session turned the mic on itself.
   private var micEnabledBeforeIdeaCapture = false
@@ -2056,11 +2066,27 @@ class AppState: ObservableObject {
   }
 
   /// idea-capture: toggle entry point — start a session, or stop & file one.
+  ///
+  /// Start/stop transitions hold multi-second network calls, during which the old code
+  /// dropped further clicks on the floor (the busy guard returned silently). A user who
+  /// clicked "Stop Idea Capture" right after starting saw nothing happen until they
+  /// waited and clicked again. Instead, every click records the state the user wants
+  /// (the opposite of what the UI showed when they clicked), and a single runner loop
+  /// converges to the latest desired state once the in-flight transition finishes.
+  /// Rapid repeat clicks on the same row coalesce into one transition.
   func toggleIdeaCapture() async {
-    if isIdeaCaptureActive {
-      await stopIdeaCaptureAndFile()
-    } else {
-      await startIdeaCapture()
+    ideaCaptureDesiredActive = !isIdeaCaptureActive
+    guard !ideaCaptureTransitionRunning else { return }
+    ideaCaptureTransitionRunning = true
+    defer { ideaCaptureTransitionRunning = false }
+    while let desired = ideaCaptureDesiredActive {
+      ideaCaptureDesiredActive = nil
+      guard desired != isIdeaCaptureActive else { continue }
+      if desired {
+        await startIdeaCapture()
+      } else {
+        await stopIdeaCaptureAndFile()
+      }
     }
   }
 
