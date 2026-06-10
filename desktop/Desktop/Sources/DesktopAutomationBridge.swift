@@ -236,12 +236,12 @@ final class DesktopAutomationActionRegistry {
       return await harness.run(timeoutSeconds: timeout)
     }
 
-    // idea-capture: mirror the menu-bar "Capture Idea" command (force-process the
-    // in-progress conversation and file it under the "Ideas" folder). Returns the
-    // resulting Ideas folder so a caller can verify the conversation was filed.
+    // idea-capture: mirror the menu-bar "Capture Idea" command (finish this device's
+    // recording and file it under the "Ideas" folder). Returns the resulting Ideas
+    // folder so a caller can verify the conversation was filed.
     register(
       name: "capture_idea",
-      summary: "Force-process the in-progress conversation and file it under the \"Ideas\" folder"
+      summary: "Finish the current recording and file it under the \"Ideas\" folder"
     ) { _ in
       guard let state = AppState.current else { return ["error": "no AppState"] }
       await state.captureCurrentConversationAsIdea(notify: false)
@@ -254,6 +254,34 @@ final class DesktopAutomationActionRegistry {
         result["ideaFolderConversationCount"] = String(ideas.conversationCount)
       }
       return result
+    }
+
+    // Diagnostics: authenticated GET against the configured backend, returning the
+    // raw response body. GET-only by construction, so it cannot mutate server state.
+    register(
+      name: "api_get",
+      summary: "Authenticated GET against the backend API; returns status and raw body",
+      params: ["path"]
+    ) { params in
+      guard let path = params["path"], !path.isEmpty else {
+        return ["error": "missing 'path' param (e.g. v1/folders)"]
+      }
+      let base = await APIClient.shared.baseURL
+      guard let url = URL(string: base + path) else {
+        return ["error": "could not build URL from path"]
+      }
+      let authHeader: String
+      do {
+        authHeader = try await AuthService.shared.getAuthHeader()
+      } catch {
+        return ["error": "auth failed: \(error.localizedDescription)"]
+      }
+      var request = URLRequest(url: url)
+      request.httpMethod = "GET"
+      request.setValue(authHeader, forHTTPHeaderField: "Authorization")
+      let (data, response) = try await URLSession.shared.data(for: request)
+      let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+      return ["status": String(status), "body": String(data: data, encoding: .utf8) ?? ""]
     }
   }
 }
