@@ -54,7 +54,7 @@ export class Agent {
             let combined = '';
             let i = 0;
             for (let p of this.#photos) {
-                combined + '\n\nImage #' + i + '\n\n';
+                combined += '\n\nImage #' + i + '\n\n';
                 combined += p.description;
                 i++;
             }

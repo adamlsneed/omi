@@ -36,7 +36,7 @@ export default async function GetTrendsMainPage() {
       {Object.keys(groupedTrends).map((category) => (
         <div key={category} className="">
           <h2 className="rounded-t-lg bg-[#04e1cb] px-3 py-3 text-start text-2xl font-semibold text-[#03234d] md:text-3xl">
-            {categories['category'] ?? capitalizeFirstLetter(category)}
+            {categories[category] ?? capitalizeFirstLetter(category)}
           </h2>
           <div className="grid grid-cols-1 divide-x rounded-b-lg border border-solid border-gray-100 bg-white pb-6 pt-3 md:grid-cols-2">
             {groupedTrends[category].best.length > 0 && (
@@ -53,8 +53,8 @@ export default async function GetTrendsMainPage() {
                         index === 0
                           ? 'border-amber-300 bg-gradient-to-r from-white to-yellow-100/80'
                           : index === 1
-                          ? 'border-gray-500 '
-                          : 'border-gray-300'
+                            ? 'border-gray-500 '
+                            : 'border-gray-300'
                       }`}
                     >
                       {index < 3 && (
@@ -63,8 +63,8 @@ export default async function GetTrendsMainPage() {
                             index === 0
                               ? 'bg-yellow-400'
                               : index === 1
-                              ? 'bg-gray-500 text-white'
-                              : 'bg-gray-300'
+                                ? 'bg-gray-500 text-white'
+                                : 'bg-gray-300'
                           }`}
                         >
                           {index + 1}
@@ -99,8 +99,8 @@ export default async function GetTrendsMainPage() {
                         index === 0
                           ? 'border-gray-300'
                           : index === 1
-                          ? 'border-gray-300 '
-                          : 'border-gray-300'
+                            ? 'border-gray-300 '
+                            : 'border-gray-300'
                       }`}
                     >
                       {/* {index < 3 && (
