@@ -2026,24 +2026,103 @@ class AppState: ObservableObject {
     }
   }
 
-  /// idea-capture: outcome of force-processing + filing the in-progress conversation.
+  /// idea-capture: outcome of finishing + filing the desktop's own recording.
   private enum IdeaCaptureOutcome { case nothing, savedToIdeas, savedLoose }
 
-  /// idea-capture: force-process the current in-progress conversation and file it under
-  /// "Ideas". Shared by the menu toggle's stop step and the one-shot automation path.
+  /// idea-capture: finish the desktop's own recording and file the resulting
+  /// conversation under "Ideas". Shared by the menu toggle's stop step and the
+  /// one-shot automation path.
+  ///
+  /// POST /v1/conversations (force-process) is the wrong tool here: it processes
+  /// whichever in-progress conversation the backend's Redis pointer names, which can
+  /// be another device's empty stub while this device's segments are still in flight.
+  /// The stub then gets filed and discarded (invisible in the folder), and the real
+  /// idea lands in a later conversation that was never moved. finishConversation()
+  /// closes this app's own stream, so the backend processes exactly the conversation
+  /// we recorded; its server id reaches the local session row via the memory_created
+  /// binding (or API reconciliation), and that id is what gets filed.
   private func fileInProgressConversationAsIdea() async throws -> IdeaCaptureOutcome {
-    guard let conversation = try await APIClient.shared.forceProcessConversation() else {
-      log("idea-capture: no in-progress conversation to capture")
+    guard isTranscribing, let sessionId = currentSessionId else {
+      log("idea-capture: not recording on this device; not filing")
       return .nothing
     }
-    if let folderId = await ensureIdeaFolder() {
-      try await APIClient.shared.moveConversationToFolder(
-        conversationId: conversation.id, folderId: folderId)
-      log("idea-capture: filed conversation \(conversation.id) under Ideas")
+    // On-device Parakeet emits segments in ~10s windows (and cloud STT has a couple
+    // seconds of latency), so a short idea can have zero in-memory segments at the
+    // moment the user stops. Give the in-flight window a chance to land before
+    // concluding nothing was said.
+    var waitedNanoseconds: UInt64 = 0
+    while totalSegmentCount == 0, speakerSegments.isEmpty, waitedNanoseconds < 12_000_000_000 {
+      try? await Task.sleep(nanoseconds: 500_000_000)
+      waitedNanoseconds += 500_000_000
+    }
+    guard totalSegmentCount > 0 || !speakerSegments.isEmpty else {
+      log("idea-capture: nothing recorded on this device; not filing")
+      return .nothing
+    }
+    if case .error(let message) = await finishConversation() {
+      // The recording was still closed and queued; only the restart failed.
+      log("idea-capture: finishConversation reported: \(message)")
+    }
+    guard let folderId = await ensureIdeaFolder() else {
+      log("idea-capture: no Ideas folder, leaving conversation in place")
+      return .savedLoose
+    }
+    if let conversationId = await ideaConversationId(
+      sessionId: sessionId, attempts: 30, delayNanoseconds: 1_000_000_000)
+    {
+      try await fileIdeaConversation(conversationId, folderId: folderId)
       return .savedToIdeas
     }
-    log("idea-capture: no Ideas folder, leaving conversation \(conversation.id) in place")
-    return .savedLoose
+    // Backend is still processing; finish the filing once the conversation id binds.
+    log("idea-capture: conversation id for session \(sessionId) not bound yet, filing in background")
+    Task { [weak self] in
+      guard let self = self else { return }
+      guard
+        let conversationId = await self.ideaConversationId(
+          sessionId: sessionId, attempts: 36, delayNanoseconds: 5_000_000_000)
+      else {
+        log("idea-capture: gave up waiting for the conversation id of session \(sessionId)")
+        return
+      }
+      do {
+        try await self.fileIdeaConversation(conversationId, folderId: folderId)
+        await self.loadConversations()
+      } catch {
+        logError("idea-capture: background filing failed", error: error)
+      }
+    }
+    return .savedToIdeas
+  }
+
+  /// idea-capture: move the conversation into the Ideas folder, force-structuring it
+  /// first if the backend's discard heuristic dropped a short capture (discarded
+  /// conversations are hidden from folder listings).
+  private func fileIdeaConversation(_ conversationId: String, folderId: String) async throws {
+    if let conversation = try? await APIClient.shared.getConversation(id: conversationId),
+      conversation.discarded
+    {
+      log("idea-capture: conversation \(conversationId) was discarded, reprocessing")
+      try? await APIClient.shared.reprocessConversation(conversationId: conversationId)
+    }
+    try await APIClient.shared.moveConversationToFolder(
+      conversationId: conversationId, folderId: folderId)
+    log("idea-capture: filed conversation \(conversationId) under Ideas")
+  }
+
+  /// idea-capture: poll the local session row until its backend conversation id binds
+  /// (memory_created event or API reconciliation, whichever lands first).
+  private func ideaConversationId(
+    sessionId: Int64, attempts: Int, delayNanoseconds: UInt64
+  ) async -> String? {
+    for attempt in 0..<attempts {
+      if attempt > 0 { try? await Task.sleep(nanoseconds: delayNanoseconds) }
+      if let record = try? await TranscriptionStorage.shared.getSession(id: sessionId),
+        let backendId = record.backendId
+      {
+        return backendId
+      }
+    }
+    return nil
   }
 
   /// idea-capture: confirmation toast for a finished capture.
@@ -2118,8 +2197,12 @@ class AppState: ObservableObject {
       NotificationCenter.default.post(
         name: .toggleTranscriptionRequested, object: nil, userInfo: ["enabled": true])
     }
-    // Close any prior in-progress conversation so the idea starts fresh.
-    _ = try? await APIClient.shared.forceProcessConversation()
+    // Close this device's in-progress conversation so the idea starts fresh.
+    // (Server-side force-process could cut another device's conversation instead.)
+    // finishConversation() skips the rotation itself when nothing has been recorded.
+    if isTranscribing {
+      _ = await finishConversation()
+    }
   }
 
   /// idea-capture: stop the session, file what was recorded under "Ideas", and restore
