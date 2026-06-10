@@ -23,9 +23,8 @@ These rules apply to every AI agent working in this repository. This file is the
 - Development scripts/commands must target only dev or named test app processes (e.g. `Omi Dev.app` / `com.omi.desktop-dev`, or `omi-*` named bundles), never production.
 - Never deploy fork-owned Python, Rust, pusher, agent-proxy, or GKE backends. This fork must use BasedHardware's hosted backend services.
 - Never push directly to `main`. Land changes through a PR only. Never squash-merge — use a regular merge.
-- Never push or create PRs unless explicitly asked — commit locally by default.
-- **Nothing lands on `main` until the user explicitly says so.** Do not commit, merge, push, or open a PR against `main` until the user gives an explicit go-ahead in that turn. Keep all work on feature branches; a prior approval never carries over to later changes.
-- **Exception — reverts merge right away.** When the user asks to revert a previously merged PR/commit, open the revert PR and merge it immediately without waiting for a separate merge go-ahead; the revert request itself is the approval.
+- **Merging to `main` of the `adamlsneed` fork needs no per-change approval.** When work is finished and verified, push the feature branch, open a PR, and merge it (regular merge).
+- **Never push, merge, or open PRs against BasedHardware repos.** Every push, PR, and merge targets `adamlsneed` remotes only.
 - **Prefer testing locally first.** The user prefers to build and run the app locally to verify a change works before it goes to a PR or merge. Default to a local named-bundle build + run for desktop changes (and the equivalent local run for other components) before proposing to land anything.
 
 ## Coding Guidelines
@@ -220,7 +219,7 @@ Files ending in `.gen.dart` or `.g.dart` are auto-generated — don't format man
 - Never push directly to `main`. Land changes through PRs only. Never squash-merge — use a regular merge.
 - Make individual commits per file, not bulk commits.
 - If push fails (remote ahead): `git pull --rebase && git push`.
-- Never push or create PRs unless explicitly asked — commit locally by default.
+- Pushes, PRs, and merges go to `adamlsneed` remotes only, never BasedHardware (see Safety Rules).
 
 ### RELEASE Command
 Create a branch from `main`, individual commits per file, push and open a PR, merge without squash, then switch back to `main` and pull.
