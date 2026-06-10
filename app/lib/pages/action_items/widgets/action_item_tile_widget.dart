@@ -78,8 +78,10 @@ class _ActionItemTileWidgetState extends State<ActionItemTileWidget> {
       });
 
       await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
 
       widget.onToggle(newState);
+      if (!mounted) return;
 
       setState(() {
         _isAnimating = false;

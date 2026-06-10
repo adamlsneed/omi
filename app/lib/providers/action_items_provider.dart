@@ -753,15 +753,24 @@ class ActionItemsProvider extends ChangeNotifier {
     final deleted = await api.bulkDeleteActionItems(ids);
     if (deleted == null || deleted.length != ids.length) {
       Logger.debug('bulkDeleteActionItems failed — rolling back local list');
-      // Re-insert rows at their original positions, oldest index first.
-      final entries = snapshot.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+      final deletedIds = deleted?.toSet() ?? const <String>{};
+      // Re-insert only rows the server did not confirm deleted, at their
+      // original positions, oldest index first.
+      final entries = snapshot.entries.where((entry) => !deletedIds.contains(entry.value.id)).toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
       for (final entry in entries) {
         final idx = entry.key.clamp(0, _actionItems.length);
         _actionItems.insert(idx, entry.value);
       }
       _isSelectionMode = wasInSelection;
-      _selectedItems = ids.toSet();
+      _selectedItems = entries.map((entry) => entry.value.id).toSet();
       notifyListeners();
+
+      for (final item in itemsToDelete) {
+        if (deletedIds.contains(item.id)) {
+          _deleteAppleReminderIfLinked(item);
+        }
+      }
 
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context)

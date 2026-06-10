@@ -172,15 +172,23 @@ class TaskIntegrationProvider extends ChangeNotifier {
   }
 
   Future<bool> setAppleRemindersAutoExportEnabled(bool enabled) async {
+    final previous = _appleRemindersAutoExportEnabled;
     _appleRemindersAutoExportEnabled = enabled;
     SharedPreferencesUtil().appleRemindersAutoExportEnabled = enabled;
     await AppleRemindersService().setAutoExportEnabled(enabled);
     notifyListeners();
 
-    return saveConnectionDetails('apple_reminders', {
+    final saved = await saveConnectionDetails('apple_reminders', {
       'connected': _appleRemindersPermission,
       'auto_export_enabled': enabled,
     });
+    if (!saved) {
+      _appleRemindersAutoExportEnabled = previous;
+      SharedPreferencesUtil().appleRemindersAutoExportEnabled = previous;
+      await AppleRemindersService().setAutoExportEnabled(previous);
+      notifyListeners();
+    }
+    return saved;
   }
 
   /// Get connection details for a specific app

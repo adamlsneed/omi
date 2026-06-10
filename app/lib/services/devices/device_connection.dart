@@ -604,13 +604,12 @@ abstract class DeviceConnection {
 
   Future<StreamSubscription<List<int>>?> performGetAccelListener({void Function(int)? onAccelChange});
 
-  Future<int> getFeatures({bool refresh = false}) async {
-    if (!refresh && _features != null) return _features!;
+  Future<int> getFeatures() async {
+    if (_features != null) return _features!;
     if (await isConnected()) {
       _features = await performGetFeatures();
       return _features!;
     }
-    _features = null;
     return 0;
   }
 
@@ -657,5 +656,4 @@ abstract class DeviceConnection {
   }
 
   Future<void> performSetRecordingPaused(bool paused) async {}
-
 }

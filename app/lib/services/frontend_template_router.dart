@@ -328,7 +328,18 @@ class FrontendTemplateRoutingStore {
     return preferences.saveString(SharedPreferencesUtil.frontendTemplateRoutingConfigKey, jsonEncode(config.toJson()));
   }
 
+  // Callers construct a store per screen, so the decoded map is shared across
+  // instances to avoid re-decoding up to [maxCachedResults] entries per read.
+  // All writes go through [saveResult], which mutates this map before persisting.
+  static Map<String, FrontendTemplateRoutingResult>? _resultsCache;
+
   Map<String, FrontendTemplateRoutingResult> loadResults() {
+    final cached = _resultsCache;
+    if (cached != null) return cached;
+    return _resultsCache = _decodeResults();
+  }
+
+  Map<String, FrontendTemplateRoutingResult> _decodeResults() {
     final raw = preferences.frontendTemplateRoutingResultsJson;
     if (raw.isEmpty) return {};
 
@@ -375,5 +386,4 @@ class FrontendTemplateRoutingStore {
     final encoded = results.map((conversationId, result) => MapEntry(conversationId, result.toJson()));
     return preferences.saveString(SharedPreferencesUtil.frontendTemplateRoutingResultsKey, jsonEncode(encoded));
   }
-
 }

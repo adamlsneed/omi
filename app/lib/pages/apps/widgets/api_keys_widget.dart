@@ -55,20 +55,23 @@ class _ApiKeysWidgetState extends State<ApiKeysWidget> {
 
     try {
       final result = await Provider.of<AddAppProvider>(context, listen: false).createApiKey(widget.appId);
+      if (!mounted) return;
       setState(() {
         _newKey = result;
       });
 
       // Show the dialog with the new key
-      if (mounted) {
-        _showNewKeyDialog();
-      }
+      _showNewKeyDialog();
     } catch (e) {
-      AppSnackbar.showSnackbarError(context.l10n.failedToCreateApiKey(e.toString()));
+      if (mounted) {
+        AppSnackbar.showSnackbarError(context.l10n.failedToCreateApiKey(e.toString()));
+      }
     } finally {
-      setState(() {
-        _isCreatingKey = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isCreatingKey = false;
+        });
+      }
     }
   }
 
@@ -110,13 +113,18 @@ class _ApiKeysWidgetState extends State<ApiKeysWidget> {
 
     try {
       await Provider.of<AddAppProvider>(context, listen: false).deleteApiKey(widget.appId, keyId);
+      if (!mounted) return;
       AppSnackbar.showSnackbarSuccess(context.l10n.apiKeyRevokedSuccessfully);
     } catch (e) {
-      AppSnackbar.showSnackbarError(context.l10n.failedToRevokeApiKey(e.toString()));
+      if (mounted) {
+        AppSnackbar.showSnackbarError(context.l10n.failedToRevokeApiKey(e.toString()));
+      }
     } finally {
-      setState(() {
-        _deletingKeyId = null;
-      });
+      if (mounted) {
+        setState(() {
+          _deletingKeyId = null;
+        });
+      }
     }
   }
 
