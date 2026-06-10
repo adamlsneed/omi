@@ -229,8 +229,8 @@ int initialize_audio_file(uint8_t num)
     if (header == NULL) {
         return -1;
     }
-    k_free(header);
     create_file(header);
+    k_free(header);
     return 0;
 }
 
@@ -270,7 +270,7 @@ int get_file_contents(struct fs_dir_t *zdp, struct fs_dirent *entry)
     LOG_INF("file numarray %d %d ", count, file_num_array[count]);
     LOG_INF("file name is %s ", entry->name);
     count++;
-    while (zdp->mp->fs->readdir(zdp, entry) == 0) {
+    while (count < ARRAY_SIZE(file_num_array) && zdp->mp->fs->readdir(zdp, entry) == 0) {
         if (entry->name[0] == 0) {
             break;
         }
