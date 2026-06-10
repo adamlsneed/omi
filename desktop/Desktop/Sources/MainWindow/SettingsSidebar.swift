@@ -24,7 +24,7 @@ struct SettingsSearchItem: Identifiable {
 
     // General
     SettingsSearchItem(
-      name: "Rewind", subtitle: "Screen capture and audio recording",
+      name: "Rewind", subtitle: "Screen recording and microphone",
       keywords: ["monitor", "screenshot", "capture", "audio", "recording", "microphone", "speech"],
       section: .general, icon: "gearshape", settingId: "general.rewind"),
     SettingsSearchItem(
@@ -54,11 +54,13 @@ struct SettingsSearchItem: Identifiable {
       keywords: ["screen history", "screenshots", "recording"], section: .rewind,
       icon: "clock.arrow.circlepath", settingId: "rewind.rewind"),
     SettingsSearchItem(
-      name: "Screen Capture", subtitle: "Toggle screen capture on or off",
-      keywords: ["screen capture", "screenshot", "monitor", "recording", "rewind"],
+      name: DesktopRecordingControlCopy.screenRecordingTitle,
+      subtitle: "Toggle screen recording on or off",
+      keywords: ["screen recording", "screen capture", "screenshot", "monitor", "recording", "rewind"],
       section: .rewind, icon: "rectangle.dashed.badge.record", settingId: "rewind.screencapture"),
     SettingsSearchItem(
-      name: "Audio Recording", subtitle: "Toggle audio recording and transcription",
+      name: DesktopRecordingControlCopy.microphoneTitle,
+      subtitle: "Toggle microphone transcription",
       keywords: ["audio", "microphone", "recording", "transcription", "mic"], section: .rewind,
       icon: "mic.fill", settingId: "rewind.audiorecording"),
     SettingsSearchItem(
