@@ -855,14 +855,16 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 self.groupedSessions = self.computeGroupedSessions()
             }
 
-        // Kill agent bridge subprocess on app quit to prevent orphaned Node.js processes
+        // Kill agent bridge subprocess on app quit to prevent orphaned Node.js
+        // processes. Must run synchronously: AppKit exits before an enqueued
+        // Task would ever execute.
         terminationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            Task { @MainActor in
-                await self.agentBridge.stop()
+            MainActor.assumeIsolated {
+                self.agentBridge.terminateProcessNow()
             }
         }
     }
@@ -2351,15 +2353,46 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             // After a short grace, force-release so the user's next query isn't
             // silently swallowed by the guard at sendMessage:start.
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            await MainActor.run {
+            let fired = await MainActor.run { () -> Bool in
                 if self.isSending && self.sendGeneration == myGen {
                     log("ChatProvider: interrupt didn't close stream in 3s — force-resetting isSending")
                     self.isSending = false
                     self.isStopping = false
+                    return true
                 }
+                return false
+            }
+            // Same rationale as the send watchdog: terminate the stale query loop
+            // so it can't interleave with the next query on the same bridge.
+            if fired {
+                await self.restartBridgeAfterForcedRelease(reason: "stop fallback")
             }
         }
         // Result flows back normally through the bridge with partial text
+    }
+
+    /// After the send watchdog or stop fallback force-releases `isSending`, the
+    /// stuck query loop is usually still suspended in the bridge's waitForMessage.
+    /// Restarting the bridge makes that loop throw BridgeError.stopped instead of
+    /// consuming messages meant for the next query (mirrors the wake handler).
+    private func restartBridgeAfterForcedRelease(reason: String) async {
+        guard agentBridgeStarted else { return }
+        guard !isSending else {
+            log("ChatProvider: \(reason): new query already in progress, skipping bridge restart")
+            return
+        }
+        guard !modeSwitchInProgress else {
+            log("ChatProvider: \(reason): mode switch in progress, skipping bridge restart")
+            return
+        }
+        log("ChatProvider: \(reason): restarting agent bridge to terminate the stale query loop")
+        agentBridgeStarted = false
+        do {
+            try await agentBridge.restart()
+            agentBridgeStarted = true
+        } catch {
+            logError("ChatProvider: bridge restart after \(reason) failed", error: error)
+        }
     }
 
     /// Send a follow-up message while the agent is still running.
@@ -2602,7 +2635,6 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 )
                 return
             }
-            usageLimiter.recordQuery()
         }
 
         // Ensure bridge is running
@@ -2648,12 +2680,20 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         // watchdog only fires if no later send has replaced this one.
         Task { [weak self] in
             try? await Task.sleep(nanoseconds: 180_000_000_000)
-            await MainActor.run {
-                guard let self = self, self.isSending, self.sendGeneration == sendGen else { return }
+            guard let self else { return }
+            let fired = await MainActor.run { () -> Bool in
+                guard self.isSending, self.sendGeneration == sendGen else { return false }
                 log("ChatProvider: send watchdog fired at 180s — bridge is stuck; force-resetting")
                 self.isSending = false
                 self.isStopping = false
                 self.errorMessage = "Response took too long. Try again."
+                return true
+            }
+            // The stuck query loop is still parked in the bridge's waitForMessage.
+            // Restart the bridge so that loop throws and exits instead of stealing
+            // messages from the next query on the same continuation.
+            if fired {
+                await self.restartBridgeAfterForcedRelease(reason: "send watchdog")
             }
         }
 
@@ -2875,6 +2915,12 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 Task { @MainActor [weak self] in
                     self?.addToolResult(messageId: aiMessageId, toolUseId: toolUseId, name: name, output: output)
                 }
+            }
+
+            // Count the query against the free-tier limit only now, after every
+            // early-return guard has passed, so failed sends don't burn quota.
+            if isUsingOmiAccountProvider {
+                usageLimiter.recordQuery()
             }
 
             let queryResult = try await agentBridge.query(

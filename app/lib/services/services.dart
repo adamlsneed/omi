@@ -135,10 +135,14 @@ Future onStart(ServiceInstance service) async {
 class BackgroundService {
   late FlutterBackgroundService _service;
   BackgroundServiceStatus? _status;
+  bool _configured = false;
+  bool _heartbeatRegistered = false;
 
   BackgroundServiceStatus? get status => _status;
 
   Future<void> init() async {
+    if (_configured) return;
+    _configured = true;
     _service = FlutterBackgroundService();
     _status = BackgroundServiceStatus.initiated;
 
@@ -170,9 +174,12 @@ class BackgroundService {
     }
 
     // heartbeat
-    _service.on('ui.ping').listen((event) {
-      _service.invoke("pong");
-    });
+    if (!_heartbeatRegistered) {
+      _heartbeatRegistered = true;
+      _service.on('ui.ping').listen((event) {
+        _service.invoke("pong");
+      });
+    }
   }
 
   void stop() {

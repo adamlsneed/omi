@@ -161,6 +161,9 @@ class TranscriptionService {
     // Audio buffering
     private var audioBuffer = Data()
     private let audioBufferSize = 3200  // ~100ms of 16kHz 16-bit audio (16000 * 2 * 0.1)
+    // Cap on audio retained while disconnected: ~10s at 32KB/s. Enough to keep a
+    // PTT lead-in, while bounding growth across long reconnect backoffs.
+    private let audioBufferMaxSize = 320_000
     private let audioBufferLock = NSLock()
 
     // MARK: - Initialization
@@ -269,6 +272,11 @@ class TranscriptionService {
         audioBuffer.append(data)
 
         guard isConnected else {
+            // Keep only the newest audio while disconnected so the buffer
+            // can't grow unbounded during long reconnect backoffs.
+            if audioBuffer.count > audioBufferMaxSize {
+                audioBuffer = Data(audioBuffer.suffix(audioBufferMaxSize))
+            }
             audioBufferLock.unlock()
             return
         }
@@ -304,12 +312,19 @@ class TranscriptionService {
     /// Flush any remaining audio in the buffer
     private func flushAudioBuffer() {
         audioBufferLock.lock()
-        let chunk = audioBuffer
+        let buffered = audioBuffer
         audioBuffer = Data()
         audioBufferLock.unlock()
 
-        if !chunk.isEmpty {
-            sendAudioChunk(chunk)
+        guard !buffered.isEmpty else { return }
+        // A reconnect flush can hold several seconds of audio; send it in
+        // normal-sized chunks rather than one oversized WebSocket message.
+        var offset = buffered.startIndex
+        while offset < buffered.endIndex {
+            let end = buffered.index(offset, offsetBy: audioBufferSize, limitedBy: buffered.endIndex)
+                ?? buffered.endIndex
+            sendAudioChunk(Data(buffered[offset..<end]))
+            offset = end
         }
     }
 

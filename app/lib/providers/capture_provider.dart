@@ -381,8 +381,6 @@ class CaptureProvider extends ChangeNotifier
   StreamSubscription? _bleBytesStream;
   StreamSubscription? _blePhotoStream;
 
-  get bleBytesStream => _bleBytesStream;
-
   StreamSubscription? _bleButtonStream;
   DateTime? _voiceCommandSession;
   List<List<int>> _commandBytes = [];
@@ -390,10 +388,6 @@ class CaptureProvider extends ChangeNotifier
   Timer? _voiceCommandTimeoutTimer; // 30s auto-end timer for voice questions
   bool _voiceSessionStartedByLegacyLongPress =
       false; // Track if session was started by legacy long press (3) vs new toggle (1), TODO: remove this flag later
-
-  StreamSubscription? _storageStream;
-
-  get storageStream => _storageStream;
 
   RecordingState recordingState = RecordingState.stop;
 
@@ -419,6 +413,10 @@ class CaptureProvider extends ChangeNotifier
   bool _ideaCaptureActive = false;
   bool get isIdeaCaptureActive => _ideaCaptureActive;
 
+  // idea-capture: latest firmware signal deferred while the button-event guard is held.
+  bool? _pendingIdeaCaptureSignal;
+  String? _pendingIdeaCaptureDeviceId;
+
   bool _transcriptServiceReady = false;
 
   bool get transcriptServiceReady => _transcriptServiceReady && _isConnected;
@@ -439,12 +437,6 @@ class CaptureProvider extends ChangeNotifier
 
   void setHasTranscripts(bool value) {
     hasTranscripts = value;
-    notifyListeners();
-  }
-
-  void setConversationCreating(bool value) {
-    Logger.debug('set Conversation creating $value');
-    // ConversationCreating = value;
     notifyListeners();
   }
 
@@ -656,17 +648,21 @@ class CaptureProvider extends ChangeNotifier
               PlatformManager.instance.analytics.omiDoubleTap(feature: 'unmute');
               resumeDeviceRecording().then((_) {
                 _isProcessingButtonEvent = false;
+                _replayPendingIdeaCaptureSignal();
               }).catchError((e) {
                 Logger.debug("Error resuming device recording: $e");
                 _isProcessingButtonEvent = false;
+                _replayPendingIdeaCaptureSignal();
               });
             } else {
               PlatformManager.instance.analytics.omiDoubleTap(feature: 'mute');
               pauseDeviceRecording().then((_) {
                 _isProcessingButtonEvent = false;
+                _replayPendingIdeaCaptureSignal();
               }).catchError((e) {
                 Logger.debug("Error pausing device recording: $e");
                 _isProcessingButtonEvent = false;
+                _replayPendingIdeaCaptureSignal();
               });
             }
           } else if (doubleTapAction == 2) {
@@ -872,7 +868,9 @@ class CaptureProvider extends ChangeNotifier
   /// can't invert it. The firmware already drove the LED, so driveLed: false.
   Future<void> _onIdeaCaptureSignal(String deviceId, {required bool active}) async {
     if (_isProcessingButtonEvent) {
-      Logger.debug('idea-capture: already processing, ignoring signal active=$active');
+      Logger.debug('idea-capture: already processing, deferring signal active=$active');
+      _pendingIdeaCaptureSignal = active;
+      _pendingIdeaCaptureDeviceId = deviceId;
       return;
     }
     if (active == _ideaCaptureActive) {
@@ -890,7 +888,19 @@ class CaptureProvider extends ChangeNotifier
       Logger.debug('idea-capture: signal handling failed: $e');
     } finally {
       _isProcessingButtonEvent = false;
+      _replayPendingIdeaCaptureSignal();
     }
+  }
+
+  // idea-capture: replay the signal deferred while the guard was held. Pending state
+  // is cleared before re-dispatch so a replay can never loop.
+  void _replayPendingIdeaCaptureSignal() {
+    final active = _pendingIdeaCaptureSignal;
+    final deviceId = _pendingIdeaCaptureDeviceId;
+    if (active == null || deviceId == null) return;
+    _pendingIdeaCaptureSignal = null;
+    _pendingIdeaCaptureDeviceId = null;
+    _onIdeaCaptureSignal(deviceId, active: active);
   }
 
   /// idea-capture: toggle idea-capture from the app UI (works regardless of the
@@ -919,6 +929,7 @@ class CaptureProvider extends ChangeNotifier
       Logger.debug('idea-capture: toggle failed: $e');
     } finally {
       _isProcessingButtonEvent = false;
+      _replayPendingIdeaCaptureSignal();
     }
   }
 
@@ -1305,8 +1316,10 @@ class CaptureProvider extends ChangeNotifier
   void dispose() {
     _bleBytesStream?.cancel();
     _blePhotoStream?.cancel();
+    _bleButtonStream?.cancel();
     _socket?.unsubscribe(this);
     _keepAliveTimer?.cancel();
+    _voiceCommandTimeoutTimer?.cancel();
     _inProgressConversationRefreshTimer?.cancel();
     _connectionStateListener?.cancel();
     _audioInterruptionSubscription?.cancel();
@@ -1804,6 +1817,9 @@ class CaptureProvider extends ChangeNotifier
         await phoneSync.stampConversationId(sessionStart, result.conversation!.id);
         _autoSyncSessionWals(sessionStart, result.conversation!.id);
       }
+    }).catchError((e) {
+      Logger.debug('forceProcessingCurrentConversation error: $e');
+      conversationProvider!.removeProcessingConversation('0');
     });
 
     return;
@@ -2247,8 +2263,7 @@ class CaptureProvider extends ChangeNotifier
     HapticFeedback.lightImpact();
     // Update widget immediately — don't wait for streaming setup
     BatteryWidgetService().updateMuteState(false);
-    await _setDeviceRecordingPaused(false);
-    // Resume streaming from the device
+    // Resume streaming from the device (also sends the unpause write)
     await _initiateDeviceAudioStreaming();
 
     updateRecordingState(RecordingState.deviceRecord);

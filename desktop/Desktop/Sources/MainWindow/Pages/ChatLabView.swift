@@ -1,5 +1,23 @@
 import SwiftUI
 
+/// Thread-safe accumulator for subprocess stdout read via readabilityHandler.
+private final class GitOutputBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var data = Data()
+
+    func append(_ chunk: Data) {
+        lock.lock()
+        defer { lock.unlock() }
+        data.append(chunk)
+    }
+
+    func snapshot() -> Data {
+        lock.lock()
+        defer { lock.unlock() }
+        return data
+    }
+}
+
 // MARK: - Data Models
 
 struct LabQuestion: Identifiable {
@@ -227,14 +245,31 @@ class ChatLabViewModel: ObservableObject {
         process.standardOutput = pipe
         process.standardError = Pipe()  // suppress errors
 
+        // Read pipe data asynchronously to avoid deadlock
+        // (waitUntilExit blocks if the pipe buffer is full)
+        let output = GitOutputBuffer()
+        let outputSem = DispatchSemaphore(value: 0)
+        pipe.fileHandleForReading.readabilityHandler = { handle in
+            let d = handle.availableData
+            if d.isEmpty {
+                pipe.fileHandleForReading.readabilityHandler = nil
+                outputSem.signal()
+            } else {
+                output.append(d)
+            }
+        }
+
         do {
             try process.run()
             process.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return String(data: data, encoding: .utf8) ?? ""
         } catch {
+            pipe.fileHandleForReading.readabilityHandler = nil
             return ""
         }
+
+        // Wait for the pipe read to finish (max 5s after process exit)
+        _ = outputSem.wait(timeout: .now() + .seconds(5))
+        return String(data: output.snapshot(), encoding: .utf8) ?? ""
     }
 
     /// Fetch rated messages from the Omi backend, return (date, ups, downs) tuples

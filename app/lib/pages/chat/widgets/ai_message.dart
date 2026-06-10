@@ -810,7 +810,11 @@ class _MemoriesMessageWidgetState extends State<MemoriesMessageWidget> {
                     if (conversationDetailLoading[data.$1]) return;
                     setState(() => conversationDetailLoading[data.$1] = true);
                     ServerConversation? m = await getConversationById(data.$2.id);
-                    if (m == null) return;
+                    if (!context.mounted) return;
+                    if (m == null) {
+                      setState(() => conversationDetailLoading[data.$1] = false);
+                      return;
+                    }
                     (idx, date) = memProvider.addConversationWithDateGrouped(m);
                     PlatformManager.instance.analytics.chatMessageConversationClicked(m);
                     setState(() => conversationDetailLoading[data.$1] = false);

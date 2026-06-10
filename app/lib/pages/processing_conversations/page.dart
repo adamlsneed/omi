@@ -28,6 +28,12 @@ class _ProcessingConversationPageState extends State<ProcessingConversationPage>
     super.initState();
   }
 
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
   void _pushNewConversation(BuildContext context, conversation) async {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Navigator.of(
@@ -91,8 +97,8 @@ class _ProcessingConversationPageState extends State<ProcessingConversationPage>
                       text: convoSource == ConversationSource.openglass
                           ? context.l10n.photos
                           : convoSource == ConversationSource.screenpipe
-                          ? context.l10n.rawData
-                          : context.l10n.content,
+                              ? context.l10n.rawData
+                              : context.l10n.content,
                     ),
                     Tab(text: context.l10n.summary),
                   ],

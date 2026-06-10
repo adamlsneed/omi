@@ -1,5 +1,22 @@
 import Foundation
 
+private final class LockedDataBuffer: @unchecked Sendable {
+  private let lock = NSLock()
+  private var data = Data()
+
+  func append(_ chunk: Data) {
+    lock.lock()
+    defer { lock.unlock() }
+    data.append(chunk)
+  }
+
+  func snapshot() -> Data {
+    lock.lock()
+    defer { lock.unlock() }
+    return data
+  }
+}
+
 // MARK: - Models
 
 struct GmailEmail: Identifiable {
@@ -170,6 +187,41 @@ final class BrowserKeychainCache: @unchecked Sendable {
     let toSave = cache.filter { !$0.value.isEmpty }
     UserDefaults.standard.set(toSave, forKey: persistKey)
     lock.unlock()
+  }
+
+  /// Look up a browser keychain password via `security find-generic-password`, using the cache.
+  func keychainPassword(service: String) -> String? {
+    password(for: service) {
+      let process = Process()
+      process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+      process.arguments = ["find-generic-password", "-s", service, "-w"]
+      let pipe = Pipe()
+      let errPipe = Pipe()
+      process.standardOutput = pipe
+      process.standardError = errPipe
+      do {
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+        return output?.isEmpty == false ? output : nil
+      } catch {
+        return nil
+      }
+    }
+  }
+}
+
+/// Locates a system Python 3 for the browser cookie reader scripts.
+/// Used by both GmailReaderService and CalendarReaderService.
+enum BrowserScriptPython {
+  private static let candidates = [
+    "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3",
+  ]
+
+  static func find() -> String? {
+    candidates.first(where: { FileManager.default.fileExists(atPath: $0) })
   }
 }
 
@@ -417,7 +469,8 @@ actor GmailReaderService {
     var browserConfigs: [[String: String]] = []
     for browser in BrowserConfig.allBrowsers() {
       guard FileManager.default.fileExists(atPath: browser.cookiePath) else { continue }
-      guard let password = getKeychainPassword(service: browser.keychainService) else { continue }
+      guard let password = BrowserKeychainCache.shared.keychainPassword(service: browser.keychainService)
+      else { continue }
 
       browserConfigs.append([
         "name": browser.name,
@@ -757,9 +810,7 @@ actor GmailReaderService {
       """
 
     // Find Python
-    let pythonPaths = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
-    guard let pythonPath = pythonPaths.first(where: { FileManager.default.fileExists(atPath: $0) })
-    else {
+    guard let pythonPath = BrowserScriptPython.find() else {
       throw GmailReaderError.pythonNotFound
     }
 
@@ -775,16 +826,50 @@ actor GmailReaderService {
     process.standardOutput = pipe
     process.standardError = errPipe
 
+    // Read pipe data asynchronously to avoid deadlock
+    // (waitUntilExit blocks if pipe buffers are full)
+    let outputData = LockedDataBuffer()
+    let errData = LockedDataBuffer()
+    let outputSem = DispatchSemaphore(value: 0)
+    let errSem = DispatchSemaphore(value: 0)
+    pipe.fileHandleForReading.readabilityHandler = { handle in
+      let d = handle.availableData
+      if d.isEmpty {
+        pipe.fileHandleForReading.readabilityHandler = nil
+        outputSem.signal()
+      } else {
+        outputData.append(d)
+      }
+    }
+    errPipe.fileHandleForReading.readabilityHandler = { handle in
+      let d = handle.availableData
+      if d.isEmpty {
+        errPipe.fileHandleForReading.readabilityHandler = nil
+        errSem.signal()
+      } else {
+        errData.append(d)
+      }
+    }
+
     do {
       try process.run()
+      // Timeout after 60 seconds
+      DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(60)) {
+        if process.isRunning { process.terminate() }
+      }
       process.waitUntilExit()
     } catch {
+      pipe.fileHandleForReading.readabilityHandler = nil
+      errPipe.fileHandleForReading.readabilityHandler = nil
       throw GmailReaderError.networkError("Failed to run Python: \(error.localizedDescription)")
     }
 
-    let output = pipe.fileHandleForReading.readDataToEndOfFile()
-    let errOutput =
-      String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    // Wait for pipe reads to finish (max 5s after process exit)
+    _ = outputSem.wait(timeout: .now() + .seconds(5))
+    _ = errSem.wait(timeout: .now() + .seconds(5))
+
+    let output = outputData.snapshot()
+    let errOutput = String(data: errData.snapshot(), encoding: .utf8) ?? ""
     if !errOutput.isEmpty {
       log("GmailReaderService: Python stderr: \(errOutput.prefix(500))")
     }
@@ -916,30 +1001,6 @@ actor GmailReaderService {
       .sorted { $0.date > $1.date }
       .prefix(maxResults)
       .map(\.self)
-  }
-
-  // MARK: - Keychain
-
-  private func getKeychainPassword(service: String) -> String? {
-    BrowserKeychainCache.shared.password(for: service) {
-      let process = Process()
-      process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-      process.arguments = ["find-generic-password", "-s", service, "-w"]
-      let pipe = Pipe()
-      let errPipe = Pipe()
-      process.standardOutput = pipe
-      process.standardError = errPipe
-      do {
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-          .trimmingCharacters(in: .whitespacesAndNewlines)
-        return output?.isEmpty == false ? output : nil
-      } catch {
-        return nil
-      }
-    }
   }
 
   // MARK: - Date Parsing

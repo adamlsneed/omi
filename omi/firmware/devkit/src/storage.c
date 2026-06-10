@@ -275,12 +275,13 @@ static void write_to_gatt(struct bt_conn *conn)
     uint32_t packet_size = MIN(remaining_length, SD_BLE_SIZE);
 
     int r = read_audio_data(storage_write_buffer, packet_size, offset);
-    offset = offset + packet_size;
     int err = bt_gatt_notify(conn, &storage_service.attrs[1], &storage_write_buffer, packet_size);
     if (err) {
         LOG_PRINTK("error writing to gatt: %d\n", err);
     } else {
-        remaining_length = remaining_length - SD_BLE_SIZE;
+        // advance only on success so a failed notify retries the same chunk
+        offset = offset + packet_size;
+        remaining_length = remaining_length - packet_size;
     }
     // LOG_PRINTK("wrote to gatt %d\n",err);
 }

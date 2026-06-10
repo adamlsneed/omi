@@ -21,6 +21,15 @@ if [ -f "$TOKEN_FILE" ]; then
   fi
 fi
 
+# Escape a value for use inside a JSON string literal.
+json_escape() {
+  local s=$1
+  s=${s//\\/\\\\}
+  s=${s//\"/\\\"}
+  s=${s//$'\n'/\\n}
+  printf '%s' "$s"
+}
+
 cmd="${1:-help}"; shift || true
 case "$cmd" in
   state|health)
@@ -48,9 +57,9 @@ case "$cmd" in
     for kv in "$@"; do
       key="${kv%%=*}"; val="${kv#*=}"
       [ -n "$params" ] && params="$params,"
-      params="$params\"$key\":\"$val\""
+      params="$params\"$(json_escape "$key")\":\"$(json_escape "$val")\""
     done
-    body="{\"name\":\"$name\""
+    body="{\"name\":\"$(json_escape "$name")\""
     [ -n "$params" ] && body="$body,\"params\":{$params}"
     body="$body}"
     curl -fsS "${curl_auth_args[@]}" -X POST "$BASE/action" -d "$body"; echo ;;

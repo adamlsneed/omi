@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-import 'package:omi/backend/schema/app.dart';
 import 'package:omi/pages/apps/explore_install_page.dart';
 import 'package:omi/pages/apps/providers/add_app_provider.dart';
-import 'package:omi/providers/app_provider.dart';
-import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
 class AppsPage extends StatefulWidget {
@@ -90,33 +87,4 @@ class AppsPageState extends State<AppsPage> with AutomaticKeepAliveClientMixin {
 
   @override
   bool get wantKeepAlive => true;
-}
-
-class EmptyAppsWidget extends StatelessWidget {
-  const EmptyAppsWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Use Selector to only rebuild when apps list changes, not the entire provider
-    return Selector<AppProvider, ({List<App> apps, bool isConnected})>(
-      selector: (context, provider) =>
-          (apps: provider.apps, isConnected: context.read<ConnectivityProvider>().isConnected),
-      builder: (context, state, child) {
-        return state.apps.isEmpty
-            ? SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 64, left: 14, right: 14),
-                  child: Center(
-                    child: Text(
-                      state.isConnected ? context.l10n.noAppsFound : context.l10n.unableToFetchApps,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              )
-            : const SliverToBoxAdapter(child: SizedBox.shrink());
-      },
-    );
-  }
 }

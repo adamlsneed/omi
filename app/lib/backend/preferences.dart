@@ -31,6 +31,7 @@ class SharedPreferencesUtil {
 
   static Future<void> init() async {
     _preferences = await SharedPreferences.getInstance();
+    _instance._cachedPeopleList = null;
   }
 
   set uid(String value) => saveString('uid', value);
@@ -527,18 +528,22 @@ class SharedPreferencesUtil {
     saveStringList('pendingMemories', []);
   }
 
-  List<Person> get cachedPeople {
-    final people = getStringList('cachedPeople');
-    return people.map((e) => Person.fromJson(jsonDecode(e))).toList();
-  }
+  // Memoized decode of 'cachedPeople'; getPersonById runs per transcript event during live recording.
+  List<Person>? _cachedPeopleList;
+
+  List<Person> get _decodedCachedPeople =>
+      _cachedPeopleList ??= getStringList('cachedPeople').map((e) => Person.fromJson(jsonDecode(e))).toList();
+
+  List<Person> get cachedPeople => List<Person>.of(_decodedCachedPeople);
 
   Person? getPersonById(String id) {
-    return cachedPeople.firstWhereOrNull((element) => element.id == id);
+    return _decodedCachedPeople.firstWhereOrNull((element) => element.id == id);
   }
 
   set cachedPeople(List<Person> value) {
     final List<String> people = value.map((e) => jsonEncode(e.toJson())).toList();
     saveStringList('cachedPeople', people);
+    _cachedPeopleList = List<Person>.of(value);
   }
 
   addCachedPerson(Person person) {
@@ -682,7 +687,13 @@ class SharedPreferencesUtil {
   Future<bool> saveStringList(String key, List<String> value) async =>
       await _preferences?.setStringList(key, value) ?? false;
 
-  Future<bool> remove(String key) async => await _preferences?.remove(key) ?? false;
+  Future<bool> remove(String key) async {
+    if (key == 'cachedPeople') _cachedPeopleList = null;
+    return await _preferences?.remove(key) ?? false;
+  }
 
-  Future<bool> clear() async => await _preferences?.clear() ?? false;
+  Future<bool> clear() async {
+    _cachedPeopleList = null;
+    return await _preferences?.clear() ?? false;
+  }
 }

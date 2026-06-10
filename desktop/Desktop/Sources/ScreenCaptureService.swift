@@ -125,19 +125,6 @@ final class ScreenCaptureService: Sendable {
     return true
   }
 
-  /// Legacy synchronous permission probe. Keep this as a TCC preflight wrapper
-  /// so callers cannot accidentally make the UI depend on a child CLI process.
-  static func testCapturePermission() -> Bool {
-    checkPermission()
-  }
-
-  /// Test whether ScreenCaptureKit can enumerate shareable content.
-  /// Use this only for capture-engine diagnostics, not for the permission badge.
-  @available(macOS 14.0, *)
-  static func testCaptureCapability() async -> Bool {
-    await testScreenCaptureKitPermission()
-  }
-
   /// Open System Preferences to Screen Recording settings
   static func openScreenRecordingPreferences() {
     if let url = URL(
@@ -421,12 +408,6 @@ final class ScreenCaptureService: Sendable {
     }
   }
 
-  /// Get the window ID of the frontmost application's main window
-  private static func getActiveWindowID() -> CGWindowID? {
-    let (_, _, windowID) = getActiveWindowInfo()
-    return windowID
-  }
-
   /// Resolve active window info asynchronously with timeout and cache fallback.
   /// This prevents rare SkyLight/CGWindowList stalls from blocking capture.
   static func getActiveWindowInfoAsync() async -> (
@@ -448,12 +429,10 @@ final class ScreenCaptureService: Sendable {
       return (nil, nil, nil)
     }
 
-    defer {
-      axStateLock.withLock {
-        isActiveWindowResolutionInFlight = false
-      }
-    }
-
+    // isActiveWindowResolutionInFlight is cleared by the lookup task inside
+    // resolveActiveWindowInfoWithTimeout once getActiveWindowInfo actually
+    // returns. Clearing it here would let timed-out (still running) lookups
+    // stack new ones on top.
     let resolved = await resolveActiveWindowInfoWithTimeout()
     if let resolved {
       let snapshot = ActiveWindowSnapshot(
@@ -477,26 +456,69 @@ final class ScreenCaptureService: Sendable {
     return (nil, nil, nil)
   }
 
+  /// Hands the caller's continuation to whichever racing task finishes first.
+  private final class ActiveWindowResolveRace: @unchecked Sendable {
+    typealias Continuation = CheckedContinuation<
+      (appName: String?, windowTitle: String?, windowID: CGWindowID?)?, Never
+    >
+    private let lock = NSLock()
+    private var continuation: Continuation?
+
+    func store(_ continuation: Continuation) {
+      lock.withLock { self.continuation = continuation }
+    }
+
+    func take() -> Continuation? {
+      lock.withLock {
+        let taken = continuation
+        continuation = nil
+        return taken
+      }
+    }
+  }
+
   private static func resolveActiveWindowInfoWithTimeout() async -> (
     appName: String?, windowTitle: String?, windowID: CGWindowID?
   )? {
-    await withTaskGroup(of: (appName: String?, windowTitle: String?, windowID: CGWindowID?)?.self) { group in
-      group.addTask(priority: .userInitiated) {
+    // First-wins race between the blocking lookup and the timeout. A task group
+    // is unsuitable here: it awaits all children before returning, and
+    // cancellation cannot interrupt the synchronous getActiveWindowInfo call,
+    // so a stalled SkyLight/AX lookup would still block the caller for its
+    // full duration.
+    let race = ActiveWindowResolveRace()
+    return await withCheckedContinuation { continuation in
+      race.store(continuation)
+
+      Task.detached(priority: .userInitiated) {
         let info = getActiveWindowInfo()
-        if info.appName == nil && info.windowTitle == nil && info.windowID == nil {
-          return nil
+        let result: (appName: String?, windowTitle: String?, windowID: CGWindowID?)? =
+          (info.appName == nil && info.windowTitle == nil && info.windowID == nil) ? nil : info
+        // The blocking call has returned, so new resolutions may start even
+        // if the timeout already resumed the caller.
+        axStateLock.withLock {
+          isActiveWindowResolutionInFlight = false
         }
-        return info
+        if let continuation = race.take() {
+          continuation.resume(returning: result)
+        } else if let result {
+          // Lost the race: still refresh the cache so later callers get
+          // this window info instead of an older snapshot.
+          let snapshot = ActiveWindowSnapshot(
+            appName: result.appName,
+            windowTitle: result.windowTitle,
+            windowID: result.windowID,
+            resolvedAt: Date()
+          )
+          axStateLock.withLock {
+            lastActiveWindowSnapshot = snapshot
+          }
+        }
       }
 
-      group.addTask {
+      Task {
         try? await Task.sleep(nanoseconds: activeWindowResolveTimeoutNs)
-        return nil
+        race.take()?.resume(returning: nil)
       }
-
-      let firstCompleted = await group.next() ?? nil
-      group.cancelAll()
-      return firstCompleted
     }
   }
 
@@ -918,18 +940,6 @@ final class ScreenCaptureService: Sendable {
   }
 
   // MARK: - Synchronous Capture (Legacy)
-
-  /// Capture the active window and return as JPEG data (synchronous - legacy)
-  func captureActiveWindow() -> Data? {
-    guard let windowID = Self.getActiveWindowID() else {
-      log("No active window ID found")
-      return nil
-    }
-
-    log("Capturing window ID: \(windowID)")
-    // Use screencapture CLI (works on all macOS versions)
-    return captureWithScreencapture(windowID: windowID)
-  }
 
   /// Capture window using screencapture CLI
   private func captureWithScreencapture(windowID: CGWindowID) -> Data? {

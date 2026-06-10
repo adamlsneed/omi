@@ -108,6 +108,7 @@ class _Wrapped2025PageState extends State<Wrapped2025Page> {
     setState(() => _isLoading = true);
 
     final response = await getWrapped2025();
+    if (!mounted) return;
 
     if (response != null) {
       setState(() {
@@ -133,6 +134,10 @@ class _Wrapped2025PageState extends State<Wrapped2025Page> {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       final response = await getWrapped2025();
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       if (response != null) {
         setState(() {
           _status = response.status;
@@ -170,6 +175,7 @@ class _Wrapped2025PageState extends State<Wrapped2025Page> {
     });
 
     final response = await generateWrapped2025();
+    if (!mounted) return;
 
     if (response != null) {
       setState(() {

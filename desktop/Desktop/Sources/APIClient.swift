@@ -46,6 +46,18 @@ actor APIClient {
     self.decoder = Self.makeDecoder()
   }
 
+  // Cached formatters: the custom date strategy runs per decoded date field,
+  // and allocating ISO8601DateFormatter each time is expensive. The class is
+  // thread-safe, so sharing instances is fine.
+  private enum DateParsers {
+    static let isoWithFractional: ISO8601DateFormatter = {
+      let formatter = ISO8601DateFormatter()
+      formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+      return formatter
+    }()
+    static let iso = ISO8601DateFormatter()
+  }
+
   private static func makeDecoder() -> JSONDecoder {
     let decoder = JSONDecoder()
     // Note: Don't use .convertFromSnakeCase - it conflicts with explicit CodingKeys
@@ -55,15 +67,12 @@ actor APIClient {
       let dateString = try container.decode(String.self)
 
       // Try with fractional seconds first (API returns dates like "2026-01-25T22:51:07.159249Z")
-      let isoWithFractional = ISO8601DateFormatter()
-      isoWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-      if let date = isoWithFractional.date(from: dateString) {
+      if let date = DateParsers.isoWithFractional.date(from: dateString) {
         return date
       }
 
       // Fallback to standard ISO8601 without fractional seconds
-      let iso = ISO8601DateFormatter()
-      if let date = iso.date(from: dateString) {
+      if let date = DateParsers.iso.date(from: dateString) {
         return date
       }
 

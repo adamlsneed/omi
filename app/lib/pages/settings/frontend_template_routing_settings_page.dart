@@ -100,7 +100,7 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
         );
       },
     );
-    if (selected != null) onPicked(selected);
+    if (mounted && selected != null) onPicked(selected);
   }
 
   void _openSummaryApps() {

@@ -535,9 +535,10 @@ Future<(List<ServerConversation>, int, int)> searchConversationsServer(
   );
   if (response == null) return (<ServerConversation>[], 0, 0);
   if (response.statusCode == 200) {
-    List<dynamic> items = (jsonDecode(response.body))['items'];
-    int currentPage = (jsonDecode(response.body))['current_page'];
-    int totalPages = (jsonDecode(response.body))['total_pages'];
+    var body = jsonDecode(response.body);
+    List<dynamic> items = body['items'];
+    int currentPage = body['current_page'];
+    int totalPages = body['total_pages'];
     var convos = items.map<ServerConversation>((item) => ServerConversation.fromJson(item)).toList();
     return (convos, currentPage, totalPages);
   }
@@ -556,39 +557,6 @@ Future<String> testConversationPrompt(String prompt, String conversationId) asyn
     return jsonDecode(response.body)['summary'];
   } else {
     return '';
-  }
-}
-
-// *********************************
-// ******** ACTION ITEMS ***********
-// *********************************
-
-Future<ActionItemsResponse> getActionItems({
-  int limit = 50,
-  int offset = 0,
-  bool includeCompleted = true,
-  DateTime? startDate,
-  DateTime? endDate,
-}) async {
-  String url = '${Env.apiBaseUrl}v1/action-items?limit=$limit&offset=$offset&include_completed=$includeCompleted';
-
-  if (startDate != null) {
-    url += '&start_date=${startDate.toIso8601String()}';
-  }
-  if (endDate != null) {
-    url += '&end_date=${endDate.toIso8601String()}';
-  }
-
-  var response = await makeApiCall(url: url, headers: {}, method: 'GET', body: '');
-
-  if (response == null) return ActionItemsResponse(actionItems: [], hasMore: false);
-
-  if (response.statusCode == 200) {
-    var body = utf8.decode(response.bodyBytes);
-    return ActionItemsResponse.fromJson(jsonDecode(body));
-  } else {
-    Logger.debug('getActionItems error ${response.statusCode}');
-    return ActionItemsResponse(actionItems: [], hasMore: false);
   }
 }
 

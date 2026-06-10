@@ -161,6 +161,9 @@ class _ConversationDetailPageState extends State<ConversationDetailPage> with Ti
 
     _controller = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
     _controller!.addListener(() {
+      // Taps notify twice (at tap start with indexIsChanging true, again when the
+      // animation settles); swipes notify once with indexIsChanging false.
+      if (_controller!.indexIsChanging) return;
       setState(() {
         String? tabName;
         switch (_controller!.index) {
