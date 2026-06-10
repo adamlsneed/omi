@@ -3335,6 +3335,11 @@ extension APIClient {
       "v1/conversations/\(conversationId)/reprocess?app_id=\(encodedAppId)"
     )
   }
+
+  /// Reprocess a conversation without an app — force-structures a discarded one.
+  func reprocessConversation(conversationId: String) async throws {
+    let _: ServerConversation = try await post("v1/conversations/\(conversationId)/reprocess")
+  }
 }
 
 // MARK: - Persona API
