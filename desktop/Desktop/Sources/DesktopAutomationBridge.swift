@@ -256,6 +256,24 @@ final class DesktopAutomationActionRegistry {
       return result
     }
 
+    // Test cleanup: delete a single conversation by id through the app's real API
+    // client (same call the conversation list's delete button makes).
+    register(
+      name: "delete_conversation",
+      summary: "Delete one conversation by id (test-data cleanup)",
+      params: ["id"]
+    ) { params in
+      guard let id = params["id"], !id.isEmpty else {
+        return ["error": "missing 'id' param"]
+      }
+      do {
+        try await APIClient.shared.deleteConversation(id: id)
+        return ["deleted": id]
+      } catch {
+        return ["error": error.localizedDescription]
+      }
+    }
+
     // Diagnostics: authenticated GET against the configured backend, returning the
     // raw response body. GET-only by construction, so it cannot mutate server state.
     register(
