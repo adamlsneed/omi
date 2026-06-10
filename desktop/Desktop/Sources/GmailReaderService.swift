@@ -188,6 +188,41 @@ final class BrowserKeychainCache: @unchecked Sendable {
     UserDefaults.standard.set(toSave, forKey: persistKey)
     lock.unlock()
   }
+
+  /// Look up a browser keychain password via `security find-generic-password`, using the cache.
+  func keychainPassword(service: String) -> String? {
+    password(for: service) {
+      let process = Process()
+      process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+      process.arguments = ["find-generic-password", "-s", service, "-w"]
+      let pipe = Pipe()
+      let errPipe = Pipe()
+      process.standardOutput = pipe
+      process.standardError = errPipe
+      do {
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+        return output?.isEmpty == false ? output : nil
+      } catch {
+        return nil
+      }
+    }
+  }
+}
+
+/// Locates a system Python 3 for the browser cookie reader scripts.
+/// Used by both GmailReaderService and CalendarReaderService.
+enum BrowserScriptPython {
+  private static let candidates = [
+    "/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3",
+  ]
+
+  static func find() -> String? {
+    candidates.first(where: { FileManager.default.fileExists(atPath: $0) })
+  }
 }
 
 // MARK: - GmailReaderService
@@ -434,7 +469,8 @@ actor GmailReaderService {
     var browserConfigs: [[String: String]] = []
     for browser in BrowserConfig.allBrowsers() {
       guard FileManager.default.fileExists(atPath: browser.cookiePath) else { continue }
-      guard let password = getKeychainPassword(service: browser.keychainService) else { continue }
+      guard let password = BrowserKeychainCache.shared.keychainPassword(service: browser.keychainService)
+      else { continue }
 
       browserConfigs.append([
         "name": browser.name,
@@ -774,9 +810,7 @@ actor GmailReaderService {
       """
 
     // Find Python
-    let pythonPaths = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
-    guard let pythonPath = pythonPaths.first(where: { FileManager.default.fileExists(atPath: $0) })
-    else {
+    guard let pythonPath = BrowserScriptPython.find() else {
       throw GmailReaderError.pythonNotFound
     }
 
@@ -967,30 +1001,6 @@ actor GmailReaderService {
       .sorted { $0.date > $1.date }
       .prefix(maxResults)
       .map(\.self)
-  }
-
-  // MARK: - Keychain
-
-  private func getKeychainPassword(service: String) -> String? {
-    BrowserKeychainCache.shared.password(for: service) {
-      let process = Process()
-      process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-      process.arguments = ["find-generic-password", "-s", service, "-w"]
-      let pipe = Pipe()
-      let errPipe = Pipe()
-      process.standardOutput = pipe
-      process.standardError = errPipe
-      do {
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-          .trimmingCharacters(in: .whitespacesAndNewlines)
-        return output?.isEmpty == false ? output : nil
-      } catch {
-        return nil
-      }
-    }
   }
 
   // MARK: - Date Parsing

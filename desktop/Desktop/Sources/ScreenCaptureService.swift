@@ -125,19 +125,6 @@ final class ScreenCaptureService: Sendable {
     return true
   }
 
-  /// Legacy synchronous permission probe. Keep this as a TCC preflight wrapper
-  /// so callers cannot accidentally make the UI depend on a child CLI process.
-  static func testCapturePermission() -> Bool {
-    checkPermission()
-  }
-
-  /// Test whether ScreenCaptureKit can enumerate shareable content.
-  /// Use this only for capture-engine diagnostics, not for the permission badge.
-  @available(macOS 14.0, *)
-  static func testCaptureCapability() async -> Bool {
-    await testScreenCaptureKitPermission()
-  }
-
   /// Open System Preferences to Screen Recording settings
   static func openScreenRecordingPreferences() {
     if let url = URL(
@@ -419,12 +406,6 @@ final class ScreenCaptureService: Sendable {
         }
       }
     }
-  }
-
-  /// Get the window ID of the frontmost application's main window
-  private static func getActiveWindowID() -> CGWindowID? {
-    let (_, _, windowID) = getActiveWindowInfo()
-    return windowID
   }
 
   /// Resolve active window info asynchronously with timeout and cache fallback.
@@ -959,18 +940,6 @@ final class ScreenCaptureService: Sendable {
   }
 
   // MARK: - Synchronous Capture (Legacy)
-
-  /// Capture the active window and return as JPEG data (synchronous - legacy)
-  func captureActiveWindow() -> Data? {
-    guard let windowID = Self.getActiveWindowID() else {
-      log("No active window ID found")
-      return nil
-    }
-
-    log("Capturing window ID: \(windowID)")
-    // Use screencapture CLI (works on all macOS versions)
-    return captureWithScreencapture(windowID: windowID)
-  }
 
   /// Capture window using screencapture CLI
   private func captureWithScreencapture(windowID: CGWindowID) -> Data? {

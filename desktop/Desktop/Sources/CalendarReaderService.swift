@@ -360,7 +360,8 @@ actor CalendarReaderService {
     var browserConfigs: [[String: String]] = []
     for browser in CalBrowserConfig.allBrowsers() {
       guard FileManager.default.fileExists(atPath: browser.cookiePath) else { continue }
-      guard let password = getKeychainPassword(service: browser.keychainService) else { continue }
+      guard let password = BrowserKeychainCache.shared.keychainPassword(service: browser.keychainService)
+      else { continue }
 
       browserConfigs.append([
         "name": browser.name,
@@ -610,9 +611,7 @@ actor CalendarReaderService {
       """
 
     // Find Python
-    let pythonPaths = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
-    guard let pythonPath = pythonPaths.first(where: { FileManager.default.fileExists(atPath: $0) })
-    else {
+    guard let pythonPath = BrowserScriptPython.find() else {
       throw CalendarReaderError.pythonNotFound
     }
 
@@ -715,30 +714,6 @@ actor CalendarReaderService {
         description: dict["description"] as? String ?? "",
         isAllDay: dict["is_all_day"] as? Bool ?? false
       )
-    }
-  }
-
-  // MARK: - Keychain
-
-  private func getKeychainPassword(service: String) -> String? {
-    BrowserKeychainCache.shared.password(for: service) {
-      let process = Process()
-      process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-      process.arguments = ["find-generic-password", "-s", service, "-w"]
-      let pipe = Pipe()
-      let errPipe = Pipe()
-      process.standardOutput = pipe
-      process.standardError = errPipe
-      do {
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-          .trimmingCharacters(in: .whitespacesAndNewlines)
-        return output?.isEmpty == false ? output : nil
-      } catch {
-        return nil
-      }
     }
   }
 
