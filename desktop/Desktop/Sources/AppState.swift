@@ -587,7 +587,9 @@ class AppState: ObservableObject {
       queue: .main
     ) { [weak self] _ in
       guard let self = self else { return }
-      Task { @MainActor in
+      // Must run synchronously: AppKit exits before an enqueued Task would
+      // ever execute. The observer is on the main queue, so this is safe.
+      MainActor.assumeIsolated {
         if self.isTranscribing {
           log("App terminating - stopping transcription (backend handles conversation)")
           self.stopAudioCapture()

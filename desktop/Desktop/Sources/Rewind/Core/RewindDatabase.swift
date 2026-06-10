@@ -657,50 +657,60 @@ actor RewindDatabase {
         }
 
         // Run sqlite3 recovery in a detached task to avoid blocking the actor
-        // Process.waitUntilExit() is synchronous and would deadlock the actor
-        let (success, recoveredSQL) = await withCheckedContinuation { (continuation: CheckedContinuation<(Bool, Data), Never>) in
+        // Process.waitUntilExit() is synchronous and would deadlock the actor.
+        // The .recover output streams to a temp file: piping it into memory
+        // deadlocks once the dump exceeds the ~64KB pipe buffer (waitUntilExit
+        // runs before any read), and the SQL dump of a real database is far
+        // too large to hold in a Data anyway.
+        let dumpPath = recoveredPath + ".sql"
+        defer { try? fileManager.removeItem(atPath: dumpPath) }
+
+        let dumpSuccess = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             Task.detached {
+                guard FileManager.default.createFile(atPath: dumpPath, contents: nil),
+                      let dumpHandle = FileHandle(forWritingAtPath: dumpPath) else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                defer { try? dumpHandle.close() }
+
                 let process = Process()
                 process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
                 process.arguments = [corruptedPath, ".recover"]
-
-                let outputPipe = Pipe()
-                process.standardOutput = outputPipe
+                process.standardOutput = dumpHandle
                 process.standardError = FileHandle.nullDevice
 
                 do {
                     try process.run()
                     process.waitUntilExit()
-
-                    if process.terminationStatus == 0 {
-                        let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                        continuation.resume(returning: (true, data))
-                    } else {
-                        continuation.resume(returning: (false, Data()))
-                    }
+                    continuation.resume(returning: process.terminationStatus == 0)
                 } catch {
-                    continuation.resume(returning: (false, Data()))
+                    continuation.resume(returning: false)
                 }
             }
         }
 
-        if success && !recoveredSQL.isEmpty {
-            // Import recovered SQL into new database (also in detached task)
+        let dumpSize = ((try? fileManager.attributesOfItem(atPath: dumpPath))?[.size] as? Int64) ?? 0
+        if dumpSuccess && dumpSize > 0 {
+            // Import recovered SQL into new database (also in detached task),
+            // feeding the dump file directly as the import process's stdin.
             let importSuccess = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
                 Task.detached {
+                    guard let dumpHandle = FileHandle(forReadingAtPath: dumpPath) else {
+                        continuation.resume(returning: false)
+                        return
+                    }
+                    defer { try? dumpHandle.close() }
+
                     let importProcess = Process()
                     importProcess.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
                     importProcess.arguments = [recoveredPath]
-
-                    let inputPipe = Pipe()
-                    importProcess.standardInput = inputPipe
+                    importProcess.standardInput = dumpHandle
                     importProcess.standardOutput = FileHandle.nullDevice
                     importProcess.standardError = FileHandle.nullDevice
 
                     do {
                         try importProcess.run()
-                        inputPipe.fileHandleForWriting.write(recoveredSQL)
-                        inputPipe.fileHandleForWriting.closeFile()
                         importProcess.waitUntilExit()
                         continuation.resume(returning: importProcess.terminationStatus == 0)
                     } catch {

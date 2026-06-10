@@ -1,5 +1,22 @@
 import Foundation
 
+private final class LockedDataBuffer: @unchecked Sendable {
+  private let lock = NSLock()
+  private var data = Data()
+
+  func append(_ chunk: Data) {
+    lock.lock()
+    defer { lock.unlock() }
+    data.append(chunk)
+  }
+
+  func snapshot() -> Data {
+    lock.lock()
+    defer { lock.unlock() }
+    return data
+  }
+}
+
 // MARK: - Models
 
 struct GmailEmail: Identifiable {
@@ -775,16 +792,50 @@ actor GmailReaderService {
     process.standardOutput = pipe
     process.standardError = errPipe
 
+    // Read pipe data asynchronously to avoid deadlock
+    // (waitUntilExit blocks if pipe buffers are full)
+    let outputData = LockedDataBuffer()
+    let errData = LockedDataBuffer()
+    let outputSem = DispatchSemaphore(value: 0)
+    let errSem = DispatchSemaphore(value: 0)
+    pipe.fileHandleForReading.readabilityHandler = { handle in
+      let d = handle.availableData
+      if d.isEmpty {
+        pipe.fileHandleForReading.readabilityHandler = nil
+        outputSem.signal()
+      } else {
+        outputData.append(d)
+      }
+    }
+    errPipe.fileHandleForReading.readabilityHandler = { handle in
+      let d = handle.availableData
+      if d.isEmpty {
+        errPipe.fileHandleForReading.readabilityHandler = nil
+        errSem.signal()
+      } else {
+        errData.append(d)
+      }
+    }
+
     do {
       try process.run()
+      // Timeout after 60 seconds
+      DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(60)) {
+        if process.isRunning { process.terminate() }
+      }
       process.waitUntilExit()
     } catch {
+      pipe.fileHandleForReading.readabilityHandler = nil
+      errPipe.fileHandleForReading.readabilityHandler = nil
       throw GmailReaderError.networkError("Failed to run Python: \(error.localizedDescription)")
     }
 
-    let output = pipe.fileHandleForReading.readDataToEndOfFile()
-    let errOutput =
-      String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    // Wait for pipe reads to finish (max 5s after process exit)
+    _ = outputSem.wait(timeout: .now() + .seconds(5))
+    _ = errSem.wait(timeout: .now() + .seconds(5))
+
+    let output = outputData.snapshot()
+    let errOutput = String(data: errData.snapshot(), encoding: .utf8) ?? ""
     if !errOutput.isEmpty {
       log("GmailReaderService: Python stderr: \(errOutput.prefix(500))")
     }

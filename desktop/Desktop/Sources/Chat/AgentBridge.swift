@@ -106,6 +106,38 @@ actor AgentBridge {
   /// Whether the bridge subprocess is alive and ready
   var isAlive: Bool { isRunning }
 
+  /// Mirrors the running subprocess outside actor isolation so the app
+  /// termination handler can kill it without suspending (tasks enqueued
+  /// during willTerminate never run before AppKit exits the process).
+  private final class TerminationProcessBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var process: Process?
+
+    func set(_ process: Process?) {
+      lock.lock()
+      self.process = process
+      lock.unlock()
+    }
+
+    func terminate() {
+      lock.lock()
+      let process = self.process
+      self.process = nil
+      lock.unlock()
+      if let process, process.isRunning {
+        process.terminate()
+      }
+    }
+  }
+
+  private let terminationProcessBox = TerminationProcessBox()
+
+  /// Synchronously kill the bridge subprocess. For willTerminate handlers only;
+  /// does not touch actor state, so normal teardown still goes through stop().
+  nonisolated func terminateProcessNow() {
+    terminationProcessBox.terminate()
+  }
+
   private nonisolated static func currentEnvironmentValue(_ key: String) -> String? {
     guard let rawValue = getenv(key), rawValue[0] != 0 else { return nil }
     return String(cString: rawValue)
@@ -301,6 +333,7 @@ actor AgentBridge {
       throw error
     }
     isRunning = true
+    terminationProcessBox.set(proc)
 
     // Start reading stdout
     startReadingStdout()
@@ -369,6 +402,7 @@ actor AgentBridge {
 
     process?.terminate()
     process = nil
+    terminationProcessBox.set(nil)
     cleanupAuthTokenFile()
     closePipes()
     isRunning = false
@@ -891,6 +925,7 @@ actor AgentBridge {
 
     log("AgentBridge: process terminated (code=\(exitCode), reason=\(reasonStr), error=\(error))")
     isRunning = false
+    terminationProcessBox.set(nil)
     cleanupAuthTokenFile()
     closePipes()
     messageContinuation?.resume(throwing: error)
