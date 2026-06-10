@@ -13,6 +13,8 @@ use axum::{
     routing::post,
     Router,
 };
+use std::sync::OnceLock;
+use std::time::Duration;
 
 use crate::auth::{AuthUser, PaywalledAuthUser};
 use crate::byok;
@@ -46,6 +48,24 @@ const MAX_OUTPUT_TOKENS_CAP: u64 = 8192;
 /// 1024 tokens caps reasoning for old clients; current Swift client sends budget=0
 /// explicitly on all production paths.
 const DEFAULT_THINKING_BUDGET: u64 = 1024;
+
+/// Total-response timeout for non-streaming upstream calls (mirrors chat_completions.rs).
+/// Streaming responses must not get a total timeout (it would abort long replies);
+/// they are bounded by the shared client's connect timeout only.
+const GEMINI_TOTAL_TIMEOUT: Duration = Duration::from_secs(120);
+
+/// Shared upstream HTTP client. A per-request `Client::new()` builds a fresh
+/// connection pool on every call and has no timeouts; one shared client reuses
+/// connections and bounds connection establishment.
+fn http_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .build()
+            .unwrap_or_default()
+    })
+}
 
 /// Proxy-specific error type — allows JSON 429 responses alongside bare status codes.
 enum ProxyError {
@@ -160,8 +180,9 @@ async fn gemini_proxy(
     tracing::info!("gemini_proxy: using BYOK Gemini key for uid={}", user.uid);
 
     let url = build_gemini_url(&path, byok_key);
-    let upstream = reqwest::Client::new()
+    let upstream = http_client()
         .post(&url)
+        .timeout(GEMINI_TOTAL_TIMEOUT)
         .header("content-type", "application/json")
         .body(sanitized_body)
         .send()
@@ -226,8 +247,9 @@ async fn gemini_proxy_server_key(
             match vertex.token().await {
                 Ok(token) => {
                     used_vertex = true;
-                    reqwest::Client::new()
+                    http_client()
                         .post(&url)
+                        .timeout(GEMINI_TOTAL_TIMEOUT)
                         .header("content-type", "application/json")
                         .header("authorization", format!("Bearer {}", token))
                         .body(request_body)
@@ -238,8 +260,9 @@ async fn gemini_proxy_server_key(
                     if let Some(gemini_key) = state.config.gemini_api_key.as_ref() {
                         tracing::warn!("gemini_proxy: Vertex AI token failed, falling back to API key: {}", e);
                         let url = build_gemini_url(effective_path, gemini_key);
-                        reqwest::Client::new()
+                        http_client()
                             .post(&url)
+                            .timeout(GEMINI_TOTAL_TIMEOUT)
                             .header("content-type", "application/json")
                             .body(sanitized_body.to_vec())
                             .send()
@@ -255,8 +278,9 @@ async fn gemini_proxy_server_key(
             let gemini_key = state.config.gemini_api_key.as_ref()
                 .ok_or(ProxyError::Status(StatusCode::SERVICE_UNAVAILABLE))?;
             let url = build_gemini_url(effective_path, gemini_key);
-            reqwest::Client::new()
+            http_client()
                 .post(&url)
+                .timeout(GEMINI_TOTAL_TIMEOUT)
                 .header("content-type", "application/json")
                 .body(sanitized_body.to_vec())
                 .send()
@@ -267,8 +291,9 @@ async fn gemini_proxy_server_key(
         let gemini_key = state.config.gemini_api_key.as_ref()
             .ok_or(ProxyError::Status(StatusCode::SERVICE_UNAVAILABLE))?;
         let url = build_gemini_url(effective_path, gemini_key);
-        reqwest::Client::new()
+        http_client()
             .post(&url)
+            .timeout(GEMINI_TOTAL_TIMEOUT)
             .header("content-type", "application/json")
             .body(sanitized_body.to_vec())
             .send()
@@ -389,7 +414,8 @@ async fn gemini_stream_proxy(
     tracing::info!("gemini_stream_proxy: using BYOK Gemini key for uid={}", user.uid);
 
     let upstream_url = build_gemini_stream_url(&path, byok_key, &query);
-    let upstream = reqwest::Client::new()
+    // Streaming passthrough: shared client's connect timeout only, no total timeout.
+    let upstream = http_client()
         .post(&upstream_url)
         .header("content-type", "application/json")
         .body(sanitized_body)
@@ -443,7 +469,7 @@ async fn gemini_stream_server_key(
             }
             match vertex.token().await {
                 Ok(token) => {
-                    reqwest::Client::new()
+                    http_client()
                         .post(&url)
                         .header("content-type", "application/json")
                         .header("authorization", format!("Bearer {}", token))
@@ -455,7 +481,7 @@ async fn gemini_stream_server_key(
                     if let Some(gemini_key) = state.config.gemini_api_key.as_ref() {
                         tracing::warn!("gemini_stream_proxy: Vertex AI token failed, falling back to API key: {}", e);
                         let upstream_url = build_gemini_stream_url(effective_path, gemini_key, query);
-                        reqwest::Client::new()
+                        http_client()
                             .post(&upstream_url)
                             .header("content-type", "application/json")
                             .body(sanitized_body)
@@ -472,7 +498,7 @@ async fn gemini_stream_server_key(
             let gemini_key = state.config.gemini_api_key.as_ref()
                 .ok_or(ProxyError::Status(StatusCode::SERVICE_UNAVAILABLE))?;
             let upstream_url = build_gemini_stream_url(effective_path, gemini_key, query);
-            reqwest::Client::new()
+            http_client()
                 .post(&upstream_url)
                 .header("content-type", "application/json")
                 .body(sanitized_body)
@@ -484,7 +510,7 @@ async fn gemini_stream_server_key(
         let gemini_key = state.config.gemini_api_key.as_ref()
             .ok_or(ProxyError::Status(StatusCode::SERVICE_UNAVAILABLE))?;
         let upstream_url = build_gemini_stream_url(effective_path, gemini_key, query);
-        reqwest::Client::new()
+        http_client()
             .post(&upstream_url)
             .header("content-type", "application/json")
             .body(sanitized_body)
