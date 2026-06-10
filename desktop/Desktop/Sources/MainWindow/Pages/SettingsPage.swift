@@ -622,7 +622,7 @@ struct SettingsContentView: View {
 
   private var generalSection: some View {
     VStack(spacing: 20) {
-      // Screen Capture toggle
+      // Screen Recording toggle
       settingsCard(settingId: "general.screencapture") {
         HStack(spacing: 16) {
           Circle()
@@ -635,13 +635,13 @@ struct SettingsContentView: View {
             .foregroundColor(OmiColors.purplePrimary)
 
           VStack(alignment: .leading, spacing: 4) {
-            Text("Screen Capture")
+            Text(DesktopRecordingControlCopy.screenRecordingTitle)
               .scaledFont(size: 16, weight: .semibold)
               .foregroundColor(OmiColors.textPrimary)
 
             Text(
               permissionError
-                ?? (isMonitoring ? "Capturing screen content" : "Screen capture is paused")
+                ?? (isMonitoring ? "Recording screen content" : "Screen recording is paused")
             )
             .scaledFont(size: 13)
             .foregroundColor(permissionError != nil ? OmiColors.warning : OmiColors.textTertiary)
@@ -654,7 +654,7 @@ struct SettingsContentView: View {
               .scaleEffect(0.8)
           } else {
             Toggle(
-              "",
+              DesktopRecordingControlCopy.screenRecordingTitle,
               isOn: Binding(
                 get: { isMonitoring },
                 set: { newValue in
@@ -665,11 +665,12 @@ struct SettingsContentView: View {
             )
             .toggleStyle(.switch)
             .labelsHidden()
+            .accessibilityLabel(DesktopRecordingControlCopy.screenRecordingTitle)
           }
         }
       }
 
-      // Audio Recording toggle
+      // Microphone toggle
       settingsCard(settingId: "general.audiorecording") {
         HStack(spacing: 16) {
           Circle()
@@ -682,14 +683,14 @@ struct SettingsContentView: View {
             .foregroundColor(OmiColors.purplePrimary)
 
           VStack(alignment: .leading, spacing: 4) {
-            Text("Audio Recording")
+            Text(DesktopRecordingControlCopy.microphoneTitle)
               .scaledFont(size: 16, weight: .semibold)
               .foregroundColor(OmiColors.textPrimary)
 
             Text(
               transcriptionError
                 ?? (isTranscribing
-                  ? "Recording and transcribing audio" : "Audio recording is paused")
+                  ? "Recording and transcribing microphone audio" : "Microphone is paused")
             )
             .scaledFont(size: 13)
             .foregroundColor(transcriptionError != nil ? OmiColors.warning : OmiColors.textTertiary)
@@ -702,7 +703,7 @@ struct SettingsContentView: View {
               .scaleEffect(0.8)
           } else {
             Toggle(
-              "",
+              DesktopRecordingControlCopy.microphoneTitle,
               isOn: Binding(
                 get: { isTranscribing },
                 set: { newValue in
@@ -713,6 +714,7 @@ struct SettingsContentView: View {
             )
             .toggleStyle(.switch)
             .labelsHidden()
+            .accessibilityLabel(DesktopRecordingControlCopy.microphoneTitle)
           }
         }
       }
@@ -839,7 +841,7 @@ struct SettingsContentView: View {
           Spacer()
 
           Toggle(
-            "",
+            "Dock Icon",
             // ON = Dock icon visible. Stored as `hideDockIcon` (inverted) so the
             // underlying preference and its default (visible) stay unchanged.
             isOn: Binding(
@@ -853,6 +855,7 @@ struct SettingsContentView: View {
           )
           .toggleStyle(.switch)
           .labelsHidden()
+          .accessibilityLabel("Dock Icon")
         }
       }
 

@@ -2053,7 +2053,7 @@ class AppState: ObservableObject {
     }
   }
 
-  /// idea-capture: menu-bar toggle entry point — start a session, or stop & file one.
+  /// idea-capture: toggle entry point — start a session, or stop & file one.
   func toggleIdeaCapture() async {
     if isIdeaCaptureActive {
       await stopIdeaCaptureAndFile()
@@ -2082,7 +2082,7 @@ class AppState: ObservableObject {
     NotificationCenter.default.post(name: .ideaCaptureStateChanged, object: nil)
     IdeaCaptureToast.shared.show(
       symbol: "record.circle.fill", title: "Recording idea…",
-      message: "Click \u{201C}Stop Idea Capture\u{201D} in the menu when you\u{2019}re done.")
+      message: "Click the Stop Idea control in the sidebar or menu when you're done.")
 
     micEnabledBeforeIdeaCapture = AssistantSettings.shared.transcriptionEnabled
     if !AssistantSettings.shared.transcriptionEnabled {
@@ -2145,7 +2145,9 @@ class AppState: ObservableObject {
         if case .nothing = outcome {
           IdeaCaptureToast.shared.show(
             symbol: "mic.slash", title: "Nothing to capture yet",
-            message: "Turn on Audio Recording first — there's no active conversation.")
+            message:
+              "Turn on \(DesktopRecordingControlCopy.microphoneTitle) first - there's no active conversation."
+          )
         } else {
           showIdeaCaptureResultToast(outcome)
         }
