@@ -803,12 +803,17 @@ struct SidebarView: View {
     appState.hasMicrophonePermission || !appState.hasMicrophonePermission
   }
 
+  private var shouldShowIdeaCaptureStatus: Bool {
+    authState.isSignedIn
+  }
+
   private var shouldShowAccessibilityStatus: Bool {
     !appState.hasAccessibilityPermission || appState.isAccessibilityBroken
   }
 
   private var hasVisibleSidebarStatuses: Bool {
-    shouldShowScreenRecordingStatus || shouldShowMicrophoneStatus || shouldShowAccessibilityStatus
+    shouldShowScreenRecordingStatus || shouldShowMicrophoneStatus || shouldShowIdeaCaptureStatus
+      || shouldShowAccessibilityStatus
   }
 
   private var profileDisplayName: String {
@@ -962,6 +967,10 @@ struct SidebarView: View {
         microphonePermissionRow(isExpanded: !isCollapsed)
       }
 
+      if shouldShowIdeaCaptureStatus {
+        ideaCaptureRow(isExpanded: !isCollapsed)
+      }
+
       if shouldShowAccessibilityStatus {
         accessibilityPermissionRow(isExpanded: !isCollapsed)
       }
@@ -994,7 +1003,7 @@ struct SidebarView: View {
       .scaleEffect(permissionPulse && (isDenied || isBroken || isStale) ? 1.1 : 1.0)
 
       if isExpanded {
-        Text("Screen Recording")
+        Text(DesktopRecordingControlCopy.screenRecordingTitle)
           .scaledFont(size: 13, weight: .medium)
           .foregroundColor(titleColor)
           .lineLimit(1)
@@ -1052,13 +1061,15 @@ struct SidebarView: View {
     .help(
       isToggleable
         ? (isActive
-          ? "Click to turn off Screen Recording monitoring"
-          : "Click to turn on Screen Recording monitoring")
+          ? "Click to turn off \(DesktopRecordingControlCopy.screenRecordingTitle) monitoring"
+          : "Click to turn on \(DesktopRecordingControlCopy.screenRecordingTitle) monitoring")
         : (isExpanded
           ? ""
           : (isStale
-            ? "Screen Recording needs re-enabling"
-            : (isBroken ? "Screen Recording needs reset" : "Screen Recording permission required")))
+            ? "\(DesktopRecordingControlCopy.screenRecordingTitle) needs re-enabling"
+            : (isBroken
+              ? "\(DesktopRecordingControlCopy.screenRecordingTitle) needs reset"
+              : "\(DesktopRecordingControlCopy.screenRecordingTitle) permission required")))
     )
 
     if isToggleable {
@@ -1093,7 +1104,7 @@ struct SidebarView: View {
         .scaleEffect(permissionPulse && isDenied ? 1.1 : 1.0)
 
       if isExpanded {
-        Text("Microphone")
+        Text(DesktopRecordingControlCopy.microphoneTitle)
           .scaledFont(size: 13, weight: .medium)
           .foregroundColor(titleColor)
           .lineLimit(1)
@@ -1140,9 +1151,9 @@ struct SidebarView: View {
     .help(
       isToggleable
         ? (isActive
-          ? "Click to turn off Microphone transcription"
-          : "Click to turn on Microphone transcription")
-        : (isExpanded ? "" : "Microphone permission required")
+          ? "Click to turn off \(DesktopRecordingControlCopy.microphoneTitle) transcription"
+          : "Click to turn on \(DesktopRecordingControlCopy.microphoneTitle) transcription")
+        : (isExpanded ? "" : "\(DesktopRecordingControlCopy.microphoneTitle) permission required")
     )
 
     if isToggleable {
@@ -1155,6 +1166,54 @@ struct SidebarView: View {
     } else {
       row
     }
+  }
+
+  private func ideaCaptureRow(isExpanded: Bool) -> some View {
+    let action = IdeaCaptureSidebarAction.current(isActive: appState.isIdeaCaptureActive)
+    let isActive = appState.isIdeaCaptureActive
+    let color: Color = isActive ? OmiColors.success : OmiColors.textSecondary
+
+    return Button(action: {
+      toggleIdeaCaptureFromSidebar()
+    }) {
+      HStack(spacing: 8) {
+        Image(systemName: action.systemImage)
+          .scaledFont(size: 15)
+          .foregroundColor(color)
+          .frame(width: iconWidth)
+
+        if isExpanded {
+          Text(action.title)
+            .scaledFont(size: 13, weight: .medium)
+            .foregroundColor(color)
+            .lineLimit(1)
+
+          Spacer()
+
+          if isActive {
+            Text("Recording")
+              .scaledFont(size: 10, weight: .semibold)
+              .foregroundColor(OmiColors.success)
+              .padding(.horizontal, 7)
+              .padding(.vertical, 3)
+              .background(Capsule().fill(OmiColors.success.opacity(0.16)))
+          }
+        }
+      }
+      .padding(.horizontal, 10)
+      .padding(.vertical, 7)
+      .frame(minHeight: 40)
+      .background(
+        RoundedRectangle(cornerRadius: 10)
+          .fill(isActive ? OmiColors.success.opacity(0.10) : Color.clear)
+      )
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .help(action.helpText)
+    .accessibilityLabel(action.accessibilityLabel)
+    .accessibilityValue(isActive ? "Recording" : "Idle")
+    .accessibilityIdentifier("sidebar_capture_idea")
   }
 
   private func accessibilityPermissionRow(isExpanded: Bool) -> some View {
@@ -1309,6 +1368,15 @@ struct SidebarView: View {
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
         isTogglingMonitoring = false
       }
+    }
+  }
+
+  private func toggleIdeaCaptureFromSidebar() {
+    let starting = !appState.isIdeaCaptureActive
+    AnalyticsManager.shared.menuBarActionClicked(
+      action: starting ? "idea_capture_start_sidebar" : "idea_capture_stop_sidebar")
+    Task { @MainActor in
+      await appState.toggleIdeaCapture()
     }
   }
 
