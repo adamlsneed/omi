@@ -73,6 +73,7 @@ pytest tests/unit/test_action_item_date_validation.py -v
 pytest tests/unit/test_conversation_structure_timezone.py -v
 pytest tests/unit/test_action_item_dedup.py -v
 pytest tests/unit/test_action_item_reminder_cancel_on_complete.py -v
+pytest tests/unit/test_action_item_idempotency.py -v
 pytest tests/unit/test_tools_router.py -v
 pytest tests/unit/test_kg_user_type_mismatch.py -v
 pytest tests/unit/test_kg_edge_id_sanitization.py -v
@@ -108,6 +109,7 @@ pytest tests/unit/test_vision_stream_async.py -v
 pytest tests/unit/test_desktop_transcribe.py -v
 pytest tests/unit/test_desktop_migration.py -v
 pytest tests/unit/test_staged_tasks_batch_scores.py -v
+pytest tests/unit/test_staged_tasks_dedup.py -v
 pytest tests/unit/test_dg_start_guard.py -v
 pytest tests/unit/test_available_plans_resilience.py -v
 pytest tests/unit/test_subscription_restructure.py -v
@@ -140,6 +142,7 @@ pytest tests/unit/test_merge_validation.py -v
 pytest tests/unit/test_twilio_account_deletion.py -v
 pytest tests/unit/test_conversation_search_date_validation.py -v
 pytest tests/unit/test_delete_account_stripe_cancel.py -v
+pytest tests/unit/test_delete_account_purge_storage.py -v
 pytest tests/unit/test_apps_review_reply_validation.py -v
 
 # Fair-use integration tests (require Redis; skip gracefully if unavailable)
