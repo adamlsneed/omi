@@ -5803,12 +5803,7 @@ struct SettingsContentView: View {
     Binding(
       get: { shortcutSettings.floatingBarVoiceAnswersEnabled },
       set: { newValue in
-        shortcutSettings.floatingBarVoiceAnswersEnabled = newValue
-        SettingsSyncManager.shared.pushPartialUpdate(
-          AssistantSettingsResponse(
-            floatingBar: FloatingBarSettingsResponse(voiceAnswersEnabled: newValue)
-          )
-        )
+        SettingsSyncManager.shared.setFloatingBarVoiceAnswers(newValue)
       }
     )
   }
