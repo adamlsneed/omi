@@ -151,9 +151,11 @@ class PushToTalkManager: ObservableObject {
 
     // Let the first shortcut press reveal the compact bar instead of requiring it
     // to already be visible. This keeps onboarding step 3 quiet on entry while
-    // still allowing the user to trigger the bar by pressing the key.
+    // still allowing the user to trigger the bar by pressing the key. The reveal
+    // must not persist the enable preference: an accidental chord press would
+    // otherwise permanently undo the user's "Show floating bar" off setting.
     if pttActive, !FloatingControlBarManager.shared.isVisible {
-      FloatingControlBarManager.shared.show()
+      FloatingControlBarManager.shared.showForVoiceSession()
     }
 
     guard FloatingControlBarManager.shared.isVisible else { return }
@@ -334,6 +336,16 @@ class PushToTalkManager: ObservableObject {
     stopListening()
   }
 
+  /// The PTT chord reveals the bar without persisting the enable preference, so a
+  /// session that ends without opening a conversation must put the bar away again
+  /// for users who keep it hidden. Mirrors the re-hide in closeAIConversation's
+  /// collapse path, which covers sessions that did open a conversation.
+  private func hideBarIfDisabledAfterSession() {
+    guard state == .idle, !FloatingControlBarManager.shared.isEnabled else { return }
+    guard let barState, !barState.showingAIConversation, barState.currentNotification == nil else { return }
+    FloatingControlBarManager.shared.hideTemporarily()
+  }
+
   private var finalizedMode: String = "hold"
 
   /// Minimum total / voiced audio a PTT turn needs before we trust STT with it.
@@ -405,6 +417,7 @@ class PushToTalkManager: ObservableObject {
         AnalyticsManager.shared.floatingBarPTTEnded(
           mode: finalizedMode, hadTranscript: false, transcriptLength: 0)
         stopListening()
+        hideBarIfDisabledAfterSession()
         return
       }
     }
@@ -545,6 +558,7 @@ class PushToTalkManager: ObservableObject {
 
     guard hasQuery else {
       log("PushToTalkManager: no transcript to send")
+      hideBarIfDisabledAfterSession()
       return
     }
 
