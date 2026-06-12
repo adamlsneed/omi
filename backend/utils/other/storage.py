@@ -91,24 +91,15 @@ def upload_profile_audio(file_path: str, uid: str):
     return f'https://storage.googleapis.com/{speech_profiles_bucket}/{path}'
 
 
-def get_user_has_speech_profile(uid: str, max_age_days: int = None) -> bool:
+def get_user_has_speech_profile(uid: str) -> bool:
+    # No age cutoff: the listen pipeline (routers/transcribe.py) uses the profile
+    # regardless of age, so reporting an old profile as absent only causes the app
+    # to re-prompt users whose profile is still in active use (#5128).
     bucket = _get_speech_profiles_bucket()
     if bucket is None:
         return False
 
-    blob = bucket.blob(f'{uid}/speech_profile.wav')
-    if not blob.exists():
-        return False
-
-    # Check age if max_age_days is specified
-    if max_age_days is not None:
-        blob.reload()
-        if blob.time_created:
-            age = datetime.datetime.now(datetime.timezone.utc) - blob.time_created
-            if age.days > max_age_days:
-                return False
-
-    return True
+    return bucket.blob(f'{uid}/speech_profile.wav').exists()
 
 
 def get_profile_audio_if_exists(uid: str, download: bool = True) -> str:
@@ -349,6 +340,30 @@ def delete_syncing_temporal_file(file_path: str):
         blob.delete()
     except BlobNotFound:
         pass
+
+
+def upload_syncing_temporal_file(file_path: str):
+    """Stage a local file in the syncing bucket (blob name = local relative path)."""
+    bucket = storage_client.bucket(syncing_local_bucket)
+    bucket.blob(file_path).upload_from_filename(file_path)
+
+
+def download_syncing_temporal_file(file_path: str) -> bool:
+    """Download a staged blob back to its local relative path.
+
+    Returns False when the blob no longer exists (e.g. deleted by the
+    bucket's 1-day lifecycle rule before a deeply delayed task ran).
+    """
+    bucket = storage_client.bucket(syncing_local_bucket)
+    blob = bucket.blob(file_path)
+    directory = os.path.dirname(file_path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    try:
+        blob.download_to_filename(file_path)
+        return True
+    except BlobNotFound:
+        return False
 
 
 # ************************************************
