@@ -58,12 +58,7 @@ struct OnboardingVoiceDemoView: View {
                     Toggle("", isOn: $voiceResponsesEnabled)
                         .toggleStyle(.checkbox)
                         .onChange(of: voiceResponsesEnabled) { _, newValue in
-                            ShortcutSettings.shared.floatingBarVoiceAnswersEnabled = newValue
-                            SettingsSyncManager.shared.pushPartialUpdate(
-                                AssistantSettingsResponse(
-                                    floatingBar: FloatingBarSettingsResponse(voiceAnswersEnabled: newValue)
-                                )
-                            )
+                            SettingsSyncManager.shared.setFloatingBarVoiceAnswers(newValue)
                         }
                     Text("Speak answers aloud for voice questions")
                         .font(.system(size: 14))
