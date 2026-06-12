@@ -80,7 +80,7 @@ Fix: build the **dev flavor** (its `.dev.env` carries the working hosted config 
 `USE_AUTH_CUSTOM_TOKEN=true`) but point its Firebase config at the **prod
 `based-hardware`** project. Build commands are in the next section. The
 `based-hardware` client config (API key, app id, sender id, storage bucket) is
-available locally in `desktop/Desktop/Sources/GoogleService-Info.plist`
+available locally in `desktop/macos/Desktop/Sources/GoogleService-Info.plist`
 (PROJECT_ID `based-hardware`, sender `208440318997`) — copy those values into:
 
 - `app/lib/firebase_options_dev.dart` — the `ios` `FirebaseOptions` (apiKey,
@@ -268,7 +268,7 @@ Required local inputs:
 - `ios/Config/Dev/GoogleService-Info.plist` and `ios/Runner/GoogleService-Info.plist`
   must hold the **`based-hardware`** project config (PROJECT_ID `based-hardware`),
   not `based-hardware-dev` — source the values from
-  `desktop/Desktop/Sources/GoogleService-Info.plist` and set `BUNDLE_ID` to
+  `desktop/macos/Desktop/Sources/GoogleService-Info.plist` and set `BUNDLE_ID` to
   `com.adam.omi.dev`. Likewise `lib/firebase_options_dev.dart` (ios block).
 - `ios/Flutter/LocalSigning.xcconfig` copied from
   `ios/Flutter/LocalSigning.example.xcconfig`

@@ -23,7 +23,7 @@ Do not route Adam's normal local build to a personal backend, tunnel, or fork ba
 
 ## Local Install Shape
 
-`desktop/run.sh --yolo` builds and installs:
+`desktop/macos/run.sh --yolo` builds and installs:
 
 ```text
 /Applications/Omi Dev.app
@@ -42,7 +42,7 @@ Do not route Adam's normal local build to a personal backend, tunnel, or fork ba
     package.json
 ```
 
-The app is signed with Adam's local Developer ID identity when available. `node` is signed separately with `desktop/Desktop/Node.entitlements` because V8 needs the hardened-runtime JIT entitlement.
+The app is signed with Adam's local Developer ID identity when available. `node` is signed separately with `desktop/macos/Desktop/Node.entitlements` because V8 needs the hardened-runtime JIT entitlement.
 
 ## Node Runtime Packaging
 
@@ -51,7 +51,7 @@ The desktop AI bridge is a Swift process that spawns Node.js. A shell-launched a
 The local runner now does this before the Swift build:
 
 ```bash
-cd desktop
+cd desktop/macos
 bash scripts/prepare-node-resource.sh
 xcrun swift build -c debug --package-path Desktop
 ```
@@ -59,7 +59,7 @@ xcrun swift build -c debug --package-path Desktop
 `scripts/prepare-node-resource.sh` writes an ignored local artifact:
 
 ```text
-desktop/Desktop/Sources/Resources/node
+desktop/macos/Desktop/Sources/Resources/node
 ```
 
 The script discovers Node in this order:
@@ -110,11 +110,11 @@ Important source files:
 
 | Area | File |
 | --- | --- |
-| Chat state and bridge lifecycle | `desktop/Desktop/Sources/Providers/ChatProvider.swift` |
-| Node subprocess, auth env, Playwright env | `desktop/Desktop/Sources/Chat/AgentBridge.swift` |
-| Omi AI provider and browser tools | `desktop/pi-mono-extension/index.ts` |
-| Packaged agent entrypoint | `desktop/agent/src/index.ts` |
-| Backend URL resolution | `desktop/Desktop/Sources/DesktopBackendEnvironment.swift` |
+| Chat state and bridge lifecycle | `desktop/macos/Desktop/Sources/Providers/ChatProvider.swift` |
+| Node subprocess, auth env, Playwright env | `desktop/macos/Desktop/Sources/Chat/AgentBridge.swift` |
+| Omi AI provider and browser tools | `desktop/macos/pi-mono-extension/index.ts` |
+| Packaged agent entrypoint | `desktop/macos/agent/src/index.ts` |
+| Backend URL resolution | `desktop/macos/Desktop/Sources/DesktopBackendEnvironment.swift` |
 
 `AgentBridge` refuses to start in Omi AI mode if it cannot obtain a Firebase ID token. It writes the token into a private temporary file and gives Node only the token-file path through `OMI_AUTH_TOKEN_FILE`.
 
@@ -130,7 +130,7 @@ Extension ID: mmlmfjhmonkocbjadbfplnigmagldckm
 Setup UI lives in:
 
 ```text
-desktop/Desktop/Sources/BrowserExtensionSetup.swift
+desktop/macos/Desktop/Sources/BrowserExtensionSetup.swift
 ```
 
 The setup stores these UserDefaults keys under the app bundle ID:
@@ -175,12 +175,12 @@ Node.js not found. Run ./run.sh to set up AI components.
 
 Because the same Node bridge also owns the Playwright MCP client, this single packaging gap broke both AI chat and the browser extension verification.
 
-`BrowserExtensionSetup.connectionFailureGuidance(...)` now checks the local AI runtime separately from Chrome and extension state. If Node or `agent/dist/index.js` is missing, the setup flow tells the user to rerun `desktop/run.sh` before it asks them to recopy extension tokens.
+`BrowserExtensionSetup.connectionFailureGuidance(...)` now checks the local AI runtime separately from Chrome and extension state. If Node or `agent/dist/index.js` is missing, the setup flow tells the user to rerun `desktop/macos/run.sh` before it asks them to recopy extension tokens.
 
 The installed-app smoke check is:
 
 ```bash
-cd desktop
+cd desktop/macos
 bash scripts/omi-dev-smoke.sh
 ```
 
@@ -230,12 +230,12 @@ Important source files:
 
 | Area | File |
 | --- | --- |
-| Assistant startup/stop | `desktop/Desktop/Sources/ProactiveAssistants/ProactiveAssistantsPlugin.swift` |
-| Task extraction prompt, filters, staged save/sync | `desktop/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskAssistant.swift` |
-| Task settings/defaults | `desktop/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskAssistantSettings.swift` |
-| Staged-to-active promotion | `desktop/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskPromotionService.swift` |
-| Local active tasks | `desktop/Desktop/Sources/Rewind/Core/ActionItemStorage.swift` |
-| Local staged tasks | `desktop/Desktop/Sources/Rewind/Core/StagedTaskStorage.swift` |
+| Assistant startup/stop | `desktop/macos/Desktop/Sources/ProactiveAssistants/ProactiveAssistantsPlugin.swift` |
+| Task extraction prompt, filters, staged save/sync | `desktop/macos/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskAssistant.swift` |
+| Task settings/defaults | `desktop/macos/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskAssistantSettings.swift` |
+| Staged-to-active promotion | `desktop/macos/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskPromotionService.swift` |
+| Local active tasks | `desktop/macos/Desktop/Sources/Rewind/Core/ActionItemStorage.swift` |
+| Local staged tasks | `desktop/macos/Desktop/Sources/Rewind/Core/StagedTaskStorage.swift` |
 
 Relevant desktop settings:
 
@@ -258,7 +258,7 @@ Apple Reminders and iCloud Reminders are handled by the iOS app, not the macOS d
 Focused packaging test:
 
 ```bash
-cd desktop
+cd desktop/macos
 bash scripts/test-prepare-node-resource.sh
 bash scripts/test-omi-dev-smoke.sh
 ```
@@ -266,7 +266,7 @@ bash scripts/test-omi-dev-smoke.sh
 Agent and browser-provider tests:
 
 ```bash
-cd desktop/agent
+cd desktop/macos/agent
 npm test
 
 cd ../pi-mono-extension
@@ -277,7 +277,7 @@ npm test
 Swift desktop tests that cover the affected wiring:
 
 ```bash
-cd desktop
+cd desktop/macos
 xcrun swift test --package-path Desktop --filter BrowserExtensionSetupTests
 xcrun swift test --package-path Desktop --filter PiMonoWiringTests
 xcrun swift test --package-path Desktop --filter CapturedFrameMetadataTests
@@ -288,7 +288,7 @@ xcrun swift test --package-path Desktop --filter RewindCaptureProvenanceTests
 Local hosted-backend install:
 
 ```bash
-cd desktop
+cd desktop/macos
 env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer ./run.sh --yolo
 ```
 

@@ -20,7 +20,7 @@ Most day-to-day desktop development should use the local app with Omi's hosted b
 Use this mode for normal local testing with an Omi subscription:
 
 ```bash
-cd desktop
+cd desktop/macos
 ./run.sh --yolo
 ```
 
@@ -38,7 +38,7 @@ No local `.env`, Rust backend, Cloudflare tunnel, or Auth-Python service is requ
 Use this only when changing or debugging `Backend-Rust/`. Create the backend env first:
 
 ```bash
-cd desktop/Backend-Rust
+cd desktop/macos/Backend-Rust
 cp .env.example .env
 ```
 
@@ -49,7 +49,7 @@ Fill in the required values:
 - `ENCRYPTION_SECRET` for encrypted user data.
 - `OMI_PYTHON_API_URL=https://api.omi.me` unless you are also running the Python backend locally.
 
-For Swift app-only overrides, use `desktop/.env.app` or `~/.omi.env`. `Auth-Python/` is deprecated; use it only for legacy auth investigation.
+For Swift app-only overrides, use `desktop/macos/.env.app` or `~/.omi.env`. `Auth-Python/` is deprecated; use it only for legacy auth investigation.
 
 ## Run In Development
 
@@ -93,7 +93,7 @@ Use the desktop runner for normal development. If you only need a Swift compile,
 xcrun swift build -c debug --package-path Desktop
 ```
 
-Do not use bare `swift build` from `desktop/`; it can pick the wrong SDK/toolchain.
+Do not use bare `swift build` from `desktop/macos/`; it can pick the wrong SDK/toolchain.
 
 ## Signed Release (fork)
 
@@ -140,7 +140,7 @@ For named builds, replace `BUNDLE_ID` with `com.omi.<name-slug>`. After resettin
 
 ## Troubleshooting
 
-- Missing backend credentials: use `./run.sh --yolo` for hosted mode, or copy a service account JSON to `desktop/Backend-Rust/google-credentials.json` when running the local Rust backend.
+- Missing backend credentials: use `./run.sh --yolo` for hosted mode, or copy a service account JSON to `desktop/macos/Backend-Rust/google-credentials.json` when running the local Rust backend.
 - OAuth callback opens the wrong app: remove stale copies from Downloads/Desktop, run `./run.sh`, and verify the bundle id and URL scheme match.
 - Screen Recording says granted but capture fails: reset ScreenCapture for the active bundle id, reinstall through `run.sh`, then grant again in System Settings.
 - Menu bar icon is missing or generic: remove stale DMG/app copies and relaunch from `/Applications/`.

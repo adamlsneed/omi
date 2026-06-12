@@ -107,7 +107,7 @@ OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app
 
 Practical rules:
 
-- Prefer `desktop/run.sh --yolo` for desktop app testing.
+- Prefer `desktop/macos/run.sh --yolo` for desktop app testing.
 - Local desktop deploys always target "Omi Dev" (`/Applications/Omi Dev.app`, bundle id `com.omi.desktop-dev`), installing on top of the existing app. Never set `OMI_APP_NAME` to deploy under another name.
 - Keep mobile `.env` and `.dev.env` pointed at `https://api.omi.me/` for subscription-backed testing.
 - Do not replace hosted endpoints with personal tunnels, local URLs, or private service deployments in committed files.
@@ -154,8 +154,8 @@ Run the checks that match the touched areas:
 
 | Touched area | Minimum verification |
 | --- | --- |
-| Desktop Swift | `cd desktop && xcrun swift build -c debug --package-path Desktop` |
-| Desktop Rust backend | `cd desktop/Backend-Rust && cargo check` |
+| Desktop Swift | `cd desktop/macos && xcrun swift build -c debug --package-path Desktop` |
+| Desktop Rust backend | `cd desktop/macos/Backend-Rust && cargo check` |
 | Mobile Dart/Flutter | `cd app && flutter test` |
 | Mobile l10n | `cd app && flutter gen-l10n` |
 | Backend Python | `cd backend && ./test-preflight.sh && ./test.sh` |
