@@ -1165,6 +1165,27 @@ class FloatingControlBarManager {
         window?.orderOut(nil)
     }
 
+    /// Hide the bar window without touching the persisted preference. Counterpart to
+    /// the transient reveals (PTT, notifications, openAIInput); `hide()` is reserved
+    /// for the user's explicit "turn the bar off" actions.
+    func hideTemporarily() {
+        window?.orderOut(nil)
+    }
+
+    /// Reveal the bar for a push-to-talk session without persisting the enable
+    /// preference. PTT must work while the bar is hidden, but pressing the chord is
+    /// not a request to turn "Show floating bar" back on: if the user keeps the bar
+    /// disabled, it goes away again when the voice session ends.
+    func showForVoiceSession() {
+        guard let window else { return }
+        if isSnoozed {
+            log("FloatingControlBarManager: showForVoiceSession() suppressed because bar is snoozed")
+            return
+        }
+        window.normalizeForTemporaryShow()
+        window.makeKeyAndOrderFront(nil)
+    }
+
     /// Show the floating bar temporarily without changing the user's persisted preference.
     /// Used when browser tools activate so the bar stays visible above Chrome.
     func showTemporarily() {
