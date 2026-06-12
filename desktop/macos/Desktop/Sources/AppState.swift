@@ -1666,12 +1666,7 @@ class AppState: ObservableObject {
         withTimeInterval: maxRecordingDuration, repeats: false
       ) { [weak self] _ in
         Task { @MainActor in
-          guard let self = self, self.isTranscribing else { return }
-          log("Transcription: 4-hour limit reached - restarting session")
-          // Stop and restart (WebSocket close triggers backend conversation processing)
-          self.stopAudioCapture()
-          self.clearTranscriptionState()
-          self.startTranscription()
+          await self?.rotateSessionAfterMaxRecordingDuration()
         }
       }
 
@@ -2366,56 +2361,9 @@ class AppState: ObservableObject {
     // so the upload includes the final tail segments.
     try? await Task.sleep(nanoseconds: 1_000_000_000)
     do {
-      guard let bundle = try await TranscriptionStorage.shared.getSessionWithSegments(id: sessionId)
-      else { return }
-      let session = bundle.session
-      guard !bundle.segments.isEmpty else {
+      if try await LocalSessionUploader.uploadSession(sessionId) == nil {
         log("Transcription: Local session \(sessionId) has no segments — nothing to upload")
-        return
       }
-
-      let raw: [APIClient.UploadSegment] = bundle.segments.map { seg in
-        APIClient.UploadSegment(
-          text: seg.text,
-          speaker: seg.speakerLabel ?? String(format: "SPEAKER_%02d", seg.speaker),
-          speaker_id: seg.speaker,
-          is_user: seg.isUser,
-          person_id: seg.personId,
-          start: seg.startTime,
-          end: seg.endTime
-        )
-      }
-      // Merge consecutive same-speaker segments to stay under the backend's 500-segment cap
-      // (Parakeet emits ~1 segment per 10s window).
-      var merged: [APIClient.UploadSegment] = []
-      for seg in raw {
-        if let last = merged.last, last.speaker_id == seg.speaker_id {
-          merged[merged.count - 1] = APIClient.UploadSegment(
-            text: last.text + " " + seg.text, speaker: last.speaker, speaker_id: last.speaker_id,
-            is_user: last.is_user, person_id: last.person_id, start: last.start, end: seg.end)
-        } else {
-          merged.append(seg)
-        }
-      }
-      if merged.count > 500 {
-        log("Transcription: Local session \(sessionId) has \(merged.count) segments (>500), truncating")
-        merged = Array(merged.prefix(500))
-      }
-
-      let iso = ISO8601DateFormatter()
-      let request = APIClient.CreateConversationFromSegmentsRequest(
-        transcript_segments: merged,
-        source: "desktop",
-        started_at: iso.string(from: session.startedAt),
-        finished_at: session.finishedAt.map { iso.string(from: $0) },
-        language: session.language
-      )
-      let response = try await APIClient.shared.createConversationFromSegments(request)
-      try? await TranscriptionStorage.shared.markSessionCompleted(
-        id: sessionId, backendId: response.id)
-      log(
-        "Transcription: Uploaded on-device session \(sessionId) → backend conversation \(response.id) (\(merged.count) segments)"
-      )
     } catch {
       logError("Transcription: Failed to upload on-device session \(sessionId)", error: error)
     }
@@ -2489,11 +2437,7 @@ class AppState: ObservableObject {
     maxRecordingTimer = Timer.scheduledTimer(withTimeInterval: maxRecordingDuration, repeats: false)
     { [weak self] _ in
       Task { @MainActor in
-        guard let self = self, self.isTranscribing else { return }
-        log("Transcription: 4-hour limit reached — stopping and restarting")
-        self.stopAudioCapture()
-        self.clearTranscriptionState()
-        self.startTranscription()
+        await self?.rotateSessionAfterMaxRecordingDuration()
       }
     }
 
@@ -2571,6 +2515,38 @@ class AppState: ObservableObject {
 
     log("Transcription: Ready for next conversation")
     return .saved
+  }
+
+  /// Restart the recording session after the 4-hour max recording duration.
+  /// In on-device (Parakeet) mode the rotation must flush the final transcript tails and
+  /// upload the finished session itself: there is no cloud WebSocket whose close would make
+  /// the backend process the conversation, so without this upload the session could never
+  /// bind a backend id and the recording would stay invisible.
+  private func rotateSessionAfterMaxRecordingDuration() async {
+    guard isTranscribing else { return }
+    log("Transcription: 4-hour limit reached - restarting session")
+    if useLocalSTT {
+      // Mirror stopTranscription's local-mode teardown: nil the services so stopAudioCapture
+      // doesn't double-stop them, flush their final tails into the current session, then
+      // upload it (async) while the next session starts.
+      let mic = localMicService
+      let sys = localSystemService
+      localMicService = nil
+      localSystemService = nil
+      let uploadSessionId = currentSessionId
+      stopAudioCapture()
+      await mic?.finish()
+      await sys?.finish()
+      clearTranscriptionState()
+      if let uploadSessionId {
+        Task { await self.uploadLocalSession(uploadSessionId) }
+      }
+    } else {
+      // Cloud mode: WebSocket close triggers backend conversation processing.
+      stopAudioCapture()
+      clearTranscriptionState()
+    }
+    startTranscription()
   }
 
   /// Stop audio capture services (but keep transcript data for saving)
