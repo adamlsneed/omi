@@ -22,7 +22,7 @@ is signed/notarized/distributed differently.
 
 ## Cut a release
 ```
-cd desktop
+cd desktop/macos
 ./release.sh --bump          # auto-increment patch from the latest release (0.1.0 -> 0.1.1)
 ./release.sh --bump minor    # 0.1.0 -> 0.2.0   (also: --bump major)
 ./release.sh 0.3.0           # or pin an explicit version
