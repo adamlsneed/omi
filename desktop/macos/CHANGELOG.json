@@ -9,7 +9,10 @@
     "Fixed idea-capture clicks being ignored for a few seconds after starting or stopping a capture (no more closing and reopening the menu to stop)",
     "Fixed captured ideas not appearing in the Ideas folder: the app now files the conversation it actually recorded instead of whatever the server thought was in progress, and short ideas are no longer lost to the transcription window",
     "Launch at Login can now be enabled from the dev build as well",
-    "Fixed on-device transcriptions being permanently lost when a recording hit the 4-hour limit, the app quit before syncing, or the first upload failed: stranded recordings now upload automatically, including ones that failed in the past"
+    "Fixed on-device transcriptions being permanently lost when a recording hit the 4-hour limit, the app quit before syncing, or the first upload failed: stranded recordings now upload automatically, including ones that failed in the past",
+    "Fixed the floating bar reappearing and re-enabling itself after a push-to-talk press when you had turned it off",
+    "Fixed onboarding silently turning off the floating bar for users who skipped the voice steps",
+    "Fixed the floating bar voice answers toggle reverting when a settings sync raced or failed to reach the server"
   ],
   "releases": [
     {
