@@ -609,7 +609,7 @@ struct BrowserExtensionSetup: View {
         let candidates = [
             (resourcePath as NSString).appendingPathComponent("Omi Computer_Omi Computer.bundle/node"),
             (cwd as NSString).appendingPathComponent("Desktop/Sources/Resources/node"),
-            (cwd as NSString).appendingPathComponent("desktop/Desktop/Sources/Resources/node"),
+            (cwd as NSString).appendingPathComponent("desktop/macos/Desktop/Sources/Resources/node"),
             "\(home)/.hermes/node/bin/node",
             "/opt/homebrew/bin/node",
             "/usr/local/bin/node",
@@ -625,8 +625,8 @@ struct BrowserExtensionSetup: View {
         let candidates = [
             (resourcePath as NSString).appendingPathComponent("agent/dist/index.js"),
             (cwd as NSString).appendingPathComponent("agent/dist/index.js"),
-            (cwd as NSString).appendingPathComponent("desktop/agent/dist/index.js"),
-            (cwd as NSString).appendingPathComponent("../desktop/agent/dist/index.js"),
+            (cwd as NSString).appendingPathComponent("desktop/macos/agent/dist/index.js"),
+            (cwd as NSString).appendingPathComponent("../desktop/macos/agent/dist/index.js"),
         ].map { ($0 as NSString).standardizingPath }
 
         return candidates.first { fileManager.fileExists(atPath: $0) }
