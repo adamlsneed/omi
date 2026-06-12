@@ -96,7 +96,10 @@ struct OnboardingVoiceShortcutStepView: View {
         .onAppear {
             FloatingControlBarManager.shared.setup(appState: appState, chatProvider: chatProvider)
             resetFloatingBarConversation()
-            FloatingControlBarManager.shared.hide()
+            // Move the bar out of the way for the shortcut test without persisting
+            // the enable preference: writing it here leaves "Show floating bar"
+            // permanently off for anyone who skips the remaining voice steps.
+            FloatingControlBarManager.shared.hideTemporarily()
             PushToTalkManager.shared.cleanup()
             installKeyMonitor()
         }
