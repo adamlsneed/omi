@@ -33,7 +33,7 @@ When debugging issues for a specific user, check Sentry dashboard for crashes an
 
 Releases are cut manually and distributed via Homebrew. **Full guide: [`RELEASE.md`](RELEASE.md).**
 
-- Cut a release: `cd desktop && ./release.sh --bump` (builds `-c release`, signs with
+- Cut a release: `cd desktop/macos && ./release.sh --bump` (builds `-c release`, signs with
   Developer ID + `Omi-Release.entitlements`, notarizes, publishes a GitHub Release on
   `adamlsneed/omi`, and bumps the Homebrew cask in `adamlsneed/homebrew-omi`).
 - Install/update on a Mac: `brew install --cask adamlsneed/omi/omi` then `brew upgrade`.
@@ -100,7 +100,7 @@ See `.claude/settings.json` for connection details.
 - **No Xcode project** — this is a Swift Package Manager project
 - **Build command**: `xcrun swift build -c debug --package-path Desktop` (the `xcrun` prefix is required to match the SDK version)
 - **Full dev run**: `./run.sh` — builds Swift app, starts Rust backend, starts Cloudflare tunnel, launches app
-- **Release builds**: `cd desktop && ./release.sh --bump` (notarized + Homebrew; see `RELEASE.md`). Not Codemagic.
+- **Release builds**: `cd desktop/macos && ./release.sh --bump` (notarized + Homebrew; see `RELEASE.md`). Not Codemagic.
 - **DO NOT** use bare `swift build` — it will fail with SDK version mismatch
 - **DO NOT** use `xcodebuild` — there is no `.xcodeproj`
 - **DO NOT** launch the app directly from `build/` — always use `./run.sh` or `./reset-and-run.sh`. These scripts install to `/Applications/Omi Dev.app` and launch from there, which is required for macOS "Quit & Reopen" (after granting permissions) to find the correct binary. Launching from `build/` causes stale binaries to run after permission restarts.
