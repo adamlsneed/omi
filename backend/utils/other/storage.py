@@ -19,6 +19,8 @@ from google.cloud.exceptions import NotFound
 
 from database.redis_db import cache_signed_url, get_cached_signed_url
 from utils import encryption
+from utils.cloud_tasks import enqueue_audio_merge_job, is_audio_merge_dispatch_enabled
+from utils.other.deferred_delete import DeferredDeleter
 from database import users as users_db
 import logging
 
@@ -26,7 +28,10 @@ logger = logging.getLogger(__name__)
 
 # Per-request fan-out limits for storage_executor (#7387)
 _STORAGE_CHUNK_SEM = threading.BoundedSemaphore(32)
-_PRECACHE_FILE_SEM = threading.BoundedSemaphore(2)
+# 4 → 2 in #7526 was load-shedding while the pool was full of sleeping
+# per-file deletion timers; restored to 4 now that the janitor thread
+# (deferred_delete.py) holds those instead of pool threads.
+_PRECACHE_FILE_SEM = threading.BoundedSemaphore(4)
 _CHUNK_WINDOW_SIZE = 8
 
 _merge_tracker_lock = threading.Lock()
@@ -340,6 +345,24 @@ def delete_syncing_temporal_file(file_path: str):
         blob.delete()
     except BlobNotFound:
         pass
+
+
+# Long enough for every signed-URL consumer (Deepgram fetch, speaker-ID
+# download) to finish; the URLs themselves expire at 15 minutes.
+SYNCING_TEMPORAL_DELETE_DELAY_SECONDS = 480
+
+_syncing_temporal_deleter = DeferredDeleter(delete_syncing_temporal_file, name='syncing-blob-janitor')
+
+
+def schedule_syncing_temporal_file_deletion(
+    file_path: str, delay_seconds: float = SYNCING_TEMPORAL_DELETE_DELAY_SECONDS
+):
+    """Delete a temporal syncing blob once its signed-URL consumers are done.
+
+    One janitor thread + a due-time heap, instead of the previous per-file
+    time.sleep(480) that parked a storage_executor thread per blob (#7531).
+    """
+    _syncing_temporal_deleter.schedule(file_path, delay_seconds)
 
 
 def upload_syncing_temporal_file(file_path: str):
@@ -1077,6 +1100,101 @@ def _pcm_to_wav(pcm_data: bytes, sample_rate: int = 16000, channels: int = 1) ->
     return wav_buffer.getvalue()
 
 
+# ----------------------------------------------------------------------------
+# Playback artifacts: merged MP3 under playback/, expiry via the bucket's
+# 30-day lifecycle rule on the prefix (existence == validity, no metadata).
+# Built off-request by the audio-merge Cloud Tasks handler (routers/sync.py).
+# ----------------------------------------------------------------------------
+
+PLAYBACK_ARTIFACT_PREFIX = 'playback'
+
+
+def _playback_artifact_blob(uid: str, conversation_id: str, audio_file_id: str):
+    bucket = storage_client.bucket(private_cloud_sync_bucket)
+    return bucket.blob(f'{PLAYBACK_ARTIFACT_PREFIX}/{uid}/{conversation_id}/{audio_file_id}.mp3')
+
+
+def get_playback_artifact_signed_url(uid: str, conversation_id: str, audio_file_id: str):
+    blob = _playback_artifact_blob(uid, conversation_id, audio_file_id)
+    if not blob.exists():
+        return None
+    return _get_signed_url(blob, 60)
+
+
+def download_playback_artifact(uid: str, conversation_id: str, audio_file_id: str):
+    blob = _playback_artifact_blob(uid, conversation_id, audio_file_id)
+    try:
+        return blob.download_as_bytes()
+    except BlobNotFound:
+        return None
+
+
+def upload_playback_artifact(uid: str, conversation_id: str, audio_file_id: str, mp3_data: bytes) -> None:
+    blob = _playback_artifact_blob(uid, conversation_id, audio_file_id)
+    blob.upload_from_string(mp3_data, content_type='audio/mpeg')
+
+
+def _playback_unavailable_blob(uid: str, conversation_id: str, audio_file_id: str):
+    bucket = storage_client.bucket(private_cloud_sync_bucket)
+    return bucket.blob(f'{PLAYBACK_ARTIFACT_PREFIX}/{uid}/{conversation_id}/{audio_file_id}.unavailable')
+
+
+def mark_playback_unavailable(uid: str, conversation_id: str, audio_file_id: str, reason: str) -> None:
+    """Mark an audio file as unbuildable (e.g. source chunks gone).
+
+    Without this, /urls would report the file as pending forever and clients
+    would poll to exhaustion. The marker lives under playback/ so the 30-day
+    lifecycle rule grants even these a retry eventually.
+    """
+    blob = _playback_unavailable_blob(uid, conversation_id, audio_file_id)
+    blob.upload_from_string(reason, content_type='text/plain')
+
+
+def is_playback_unavailable(uid: str, conversation_id: str, audio_file_id: str) -> bool:
+    return _playback_unavailable_blob(uid, conversation_id, audio_file_id).exists()
+
+
+def enqueue_conversation_audio_merge(uid: str, conversation_id: str, audio_files: list, caller: str) -> None:
+    """Enqueue one audio-merge Cloud Task per audio file (named-task deduped).
+
+    Enqueue failures are swallowed: the file stays pending and the next /urls
+    poll re-enqueues it.
+    """
+    for af in audio_files:
+        audio_file_id = af.get('id')
+        timestamps = af.get('chunk_timestamps')
+        if not audio_file_id or not timestamps:
+            continue
+        try:
+            enqueue_audio_merge_job(
+                {
+                    'schema_version': 1,
+                    'uid': uid,
+                    'conversation_id': conversation_id,
+                    'audio_file_id': audio_file_id,
+                    'timestamps': timestamps,
+                    'caller': caller,
+                }
+            )
+        except Exception as e:
+            logger.error(f'audio_merge: enqueue failed conv={conversation_id} file={audio_file_id}: {e}')
+
+
+def download_legacy_merged_wav(uid: str, conversation_id: str, audio_file_id: str):
+    """Download a legacy merged WAV cache blob directly — never merges.
+
+    Used by the artifact-backed download path so a cached blob missing
+    expires_at metadata can't fall through get_or_create_merged_audio into
+    the inline merge pipeline (Greptile P1 on #7872).
+    """
+    bucket = storage_client.bucket(private_cloud_sync_bucket)
+    blob = bucket.blob(get_cached_merged_audio_path(uid, conversation_id, audio_file_id))
+    try:
+        return blob.download_as_bytes()
+    except BlobNotFound:
+        return None
+
+
 def precache_conversation_audio(
     uid: str, conversation_id: str, audio_files: list, fill_gaps: bool = True, sample_rate: int = 16000
 ) -> None:
@@ -1091,6 +1209,11 @@ def precache_conversation_audio(
         sample_rate: Audio sample rate in Hz (default 16000)
     """
     if not audio_files:
+        return
+
+    if is_audio_merge_dispatch_enabled():
+        # Eager build at conversation completion, off-process via Cloud Tasks
+        enqueue_conversation_audio_merge(uid, conversation_id, audio_files, caller='process_conversation')
         return
 
     def _precache_all():
