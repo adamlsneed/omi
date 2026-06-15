@@ -655,6 +655,12 @@ class TestProcessSegmentReal:
         sys.modules['pydub'].AudioSegment = MagicMock()
         sys.modules['utils.other.endpoints'].get_current_user_uid = MagicMock()
         sys.modules['utils.other.storage'].get_syncing_file_temporal_signed_url = MagicMock(return_value='https://fake')
+        sys.modules['utils.other.storage'].schedule_syncing_temporal_file_deletion = MagicMock()
+        sys.modules['utils.other.storage'].get_playback_artifact_signed_url = MagicMock(return_value=None)
+        sys.modules['utils.other.storage'].download_legacy_merged_wav = MagicMock(return_value=None)
+        sys.modules['utils.other.storage'].download_playback_artifact = MagicMock(return_value=None)
+        sys.modules['utils.other.storage'].upload_playback_artifact = MagicMock()
+        sys.modules['utils.other.storage'].enqueue_conversation_audio_merge = MagicMock()
         sys.modules['utils.other.storage'].delete_syncing_temporal_file = MagicMock()
         sys.modules['utils.other.storage'].download_audio_chunks_and_merge = MagicMock()
         sys.modules['utils.other.storage'].get_or_create_merged_audio = MagicMock()
@@ -665,6 +671,8 @@ class TestProcessSegmentReal:
         sys.modules['utils.cloud_tasks'].enqueue_sync_job = MagicMock()
         sys.modules['utils.cloud_tasks'].get_sync_tasks_max_attempts = MagicMock(return_value=5)
         sys.modules['utils.cloud_tasks'].is_cloud_tasks_dispatch_enabled = MagicMock(return_value=False)
+        sys.modules['utils.cloud_tasks'].is_audio_merge_dispatch_enabled = MagicMock(return_value=False)
+        sys.modules['utils.cloud_tasks'].enqueue_audio_merge_job = MagicMock()
         sys.modules['utils.cloud_tasks'].verify_cloud_tasks_oidc = MagicMock()
         sys.modules['utils.log_sanitizer'].sanitize = lambda value: value
         sys.modules['utils.encryption'].encrypt = MagicMock()
@@ -1050,9 +1058,6 @@ class TestVoiceMessageRuntimeErrorHandling:
     """Tests that voice message functions in utils/chat.py handle RuntimeError from prerecorded."""
 
     _saved_modules = {}
-    _storage_executor = None
-    _storage_executor_had_submit = False
-    _storage_executor_submit = None
     _transcribe_fn = None
     _process_fn = None
     _process_stream_fn = None
@@ -1070,6 +1075,12 @@ class TestVoiceMessageRuntimeErrorHandling:
         sys.modules['fal_client'].submit = MagicMock()
         sys.modules['utils.other.endpoints'].timeit = lambda f: f
         sys.modules['utils.other.storage'].get_syncing_file_temporal_signed_url = MagicMock(return_value='https://fake')
+        sys.modules['utils.other.storage'].schedule_syncing_temporal_file_deletion = MagicMock()
+        sys.modules['utils.other.storage'].get_playback_artifact_signed_url = MagicMock(return_value=None)
+        sys.modules['utils.other.storage'].download_legacy_merged_wav = MagicMock(return_value=None)
+        sys.modules['utils.other.storage'].download_playback_artifact = MagicMock(return_value=None)
+        sys.modules['utils.other.storage'].upload_playback_artifact = MagicMock()
+        sys.modules['utils.other.storage'].enqueue_conversation_audio_merge = MagicMock()
         sys.modules['utils.other.storage'].delete_syncing_temporal_file = MagicMock()
         sys.modules['utils.notifications'].send_notification = MagicMock()
         sys.modules['utils.retrieval.graph'].execute_graph_chat = MagicMock()
@@ -1116,26 +1127,12 @@ class TestVoiceMessageRuntimeErrorHandling:
         )
         import utils.chat as chat_mod
 
-        cls._storage_executor = chat_mod.storage_executor
-        cls._storage_executor_had_submit = 'submit' in getattr(chat_mod.storage_executor, '__dict__', {})
-        cls._storage_executor_submit = chat_mod.storage_executor.submit
-        chat_mod.storage_executor.submit = MagicMock()
-
         cls._transcribe_fn = staticmethod(transcribe_voice_message_segment)
         cls._process_fn = staticmethod(process_voice_message_segment)
         cls._process_stream_fn = staticmethod(process_voice_message_segment_stream)
 
     @classmethod
     def teardown_class(cls):
-        if cls._storage_executor is not None:
-            if cls._storage_executor_had_submit:
-                cls._storage_executor.submit = cls._storage_executor_submit
-            elif 'submit' in getattr(cls._storage_executor, '__dict__', {}):
-                delattr(cls._storage_executor, 'submit')
-            cls._storage_executor = None
-            cls._storage_executor_submit = None
-            cls._storage_executor_had_submit = False
-
         sys.modules.pop('utils.chat', None)
         for name, orig in cls._saved_modules.items():
             if orig is None:
@@ -1149,7 +1146,7 @@ class TestVoiceMessageRuntimeErrorHandling:
         with patch(
             'utils.chat.prerecorded',
             side_effect=RuntimeError('Deepgram transcription failed after 2 attempts: timeout'),
-        ), patch('utils.chat.time.sleep'):
+        ):
             result = self._transcribe_fn('/tmp/test.wav', 'uid', language='en')
 
         assert result == (None, 'en'), f"Expected (None, 'en'), got {result}"
@@ -1159,7 +1156,7 @@ class TestVoiceMessageRuntimeErrorHandling:
         with patch(
             'utils.chat.prerecorded',
             side_effect=RuntimeError('Deepgram transcription failed after 2 attempts: timeout'),
-        ), patch('utils.chat.time.sleep'):
+        ):
             result = self._process_fn('/tmp/test.wav', 'uid', language='en')
 
         assert result == [], f"Expected [], got {result}"
@@ -1173,7 +1170,7 @@ class TestVoiceMessageRuntimeErrorHandling:
             with patch(
                 'utils.chat.prerecorded',
                 side_effect=RuntimeError('Deepgram transcription failed after 2 attempts: timeout'),
-            ), patch('utils.chat.time.sleep'):
+            ):
                 async for chunk in self._process_stream_fn('/tmp/test.wav', 'uid', language='en'):
                     chunks.append(chunk)
             return chunks

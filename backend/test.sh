@@ -21,6 +21,10 @@ pytest tests/unit/test_parakeet_diarization.py -v
 pytest tests/unit/test_parakeet_prerecorded.py -v
 pytest tests/unit/test_parakeet_nim.py -v
 pytest tests/unit/test_parakeet_stream_session.py -v
+pytest tests/unit/test_parakeet_gpu_worker.py -v
+pytest tests/unit/test_parakeet_batch_engine.py -v
+pytest tests/unit/test_parakeet_batch_routing.py -v
+pytest tests/unit/test_parakeet_endpoints.py -v
 pytest tests/unit/test_memory_leak_buffers.py -v
 pytest tests/unit/test_mcp_search_memories.py -v
 pytest tests/unit/test_mcp_client_tool_result.py -v
@@ -65,6 +69,8 @@ pytest tests/unit/test_storage_upload_audio_chunk_data_protection.py -v
 pytest tests/unit/test_storage_opus_encoding.py -v
 pytest tests/unit/test_speech_profile_existence.py -v
 pytest tests/unit/test_storage_fanout_limits.py -v
+pytest tests/unit/test_deferred_blob_janitor.py -v
+pytest tests/unit/test_audio_merge_tasks.py -v
 pytest tests/unit/test_people_conversations_500s.py -v
 pytest tests/unit/test_firestore_read_ops_cache.py -v
 pytest tests/unit/test_ws_auth_handshake.py -v
