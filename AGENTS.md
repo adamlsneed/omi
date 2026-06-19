@@ -24,7 +24,7 @@ These rules apply to every AI agent working in this repository. This file is the
 - Never deploy fork-owned Python, Rust, pusher, agent-proxy, or GKE backends. This fork must use BasedHardware's hosted backend services.
 - Never push directly to `main`. Land changes through a PR only. Never squash-merge — use a regular merge.
 - **Merging to `main` of the `adamlsneed` fork needs no per-change approval.** When work is finished and verified, push the feature branch, open a PR, and merge it (regular merge).
-- **Never push, merge, or open PRs against BasedHardware repos.** Every push, PR, and merge targets `adamlsneed` remotes only.
+- **Never push, merge, or open PRs against BasedHardware repos.** Every push, PR, and merge targets `adamlsneed` remotes only. Upstream sync is one-way only: fetch/merge `BasedHardware/Omi` into `adamlsneed/omi`; never merge this fork or any Adam branch into BasedHardware.
 - **Prefer testing locally first.** The user prefers to build and run the app locally to verify a change works before it goes to a PR or merge. Default to a local named-bundle build + run for desktop changes (and the equivalent local run for other components) before proposing to land anything.
 
 ## Coding Guidelines
