@@ -15,6 +15,7 @@ os.environ.setdefault("ENCRYPTION_SECRET", "omi_ZwB2ZNqB2HHpMK6wStk7sTpavJiPTFg7
 
 # Mock heavy dependencies at sys.modules level before importing storage
 sys.modules.setdefault("database._client", MagicMock())
+sys.modules.setdefault("database.users", MagicMock())
 
 # We need the real storage module but with mocked GCS client
 _mock_gcs_storage = MagicMock()
@@ -42,7 +43,8 @@ class TestUploadAudioChunkDataProtectionCache:
         return mock_bucket, mock_blob
 
     @patch.object(storage_mod, 'users_db')
-    def test_skips_db_read_when_level_provided(self, mock_users_db):
+    @patch.object(storage_mod, 'encode_pcm_to_opus', return_value=b'encoded-opus')
+    def test_skips_db_read_when_level_provided(self, mock_encode_pcm_to_opus, mock_users_db):
         """When data_protection_level is passed, should NOT call Firestore."""
         self._setup_mock_bucket()
 
@@ -55,9 +57,11 @@ class TestUploadAudioChunkDataProtectionCache:
         )
 
         mock_users_db.get_data_protection_level.assert_not_called()
+        mock_encode_pcm_to_opus.assert_called_once_with(b'\x00' * 100)
 
     @patch.object(storage_mod, 'users_db')
-    def test_falls_back_to_db_when_level_not_provided(self, mock_users_db):
+    @patch.object(storage_mod, 'encode_pcm_to_opus', return_value=b'encoded-opus')
+    def test_falls_back_to_db_when_level_not_provided(self, mock_encode_pcm_to_opus, mock_users_db):
         """When data_protection_level is None (default), should read from Firestore."""
         self._setup_mock_bucket()
         mock_users_db.get_data_protection_level.return_value = 'standard'
@@ -70,10 +74,12 @@ class TestUploadAudioChunkDataProtectionCache:
         )
 
         mock_users_db.get_data_protection_level.assert_called_once_with('test-uid')
+        mock_encode_pcm_to_opus.assert_called_once_with(b'\x00' * 100)
 
     @patch.object(storage_mod, 'users_db')
-    def test_standard_level_uploads_unencrypted(self, mock_users_db):
-        """Standard protection level should upload .bin (no encryption)."""
+    @patch.object(storage_mod, 'encode_pcm_to_opus', return_value=b'encoded-opus')
+    def test_standard_level_uploads_unencrypted(self, mock_encode_pcm_to_opus, mock_users_db):
+        """Standard protection level should upload .opus (no encryption)."""
         _, mock_blob = self._setup_mock_bucket()
 
         path = storage_mod.upload_audio_chunk(
@@ -84,13 +90,16 @@ class TestUploadAudioChunkDataProtectionCache:
             data_protection_level='standard',
         )
 
-        assert path.endswith('.bin')
+        assert path.endswith('.opus')
+        assert not path.endswith('.opus.enc')
+        mock_encode_pcm_to_opus.assert_called_once_with(b'\x00' * 100)
         mock_blob.upload_from_string.assert_called_once()
 
     @patch.object(storage_mod, 'encryption')
     @patch.object(storage_mod, 'users_db')
-    def test_enhanced_level_uploads_encrypted(self, mock_users_db, mock_encryption):
-        """Enhanced protection level should encrypt and upload .enc."""
+    @patch.object(storage_mod, 'encode_pcm_to_opus', return_value=b'encoded-opus')
+    def test_enhanced_level_uploads_encrypted(self, mock_encode_pcm_to_opus, mock_users_db, mock_encryption):
+        """Enhanced protection level should encrypt encoded audio and upload .opus.enc."""
         _, mock_blob = self._setup_mock_bucket()
         mock_encryption.encrypt_audio_chunk.return_value = b'\x01' * 120
 
@@ -102,11 +111,13 @@ class TestUploadAudioChunkDataProtectionCache:
             data_protection_level='enhanced',
         )
 
-        assert path.endswith('.enc')
-        mock_encryption.encrypt_audio_chunk.assert_called_once_with(b'\x00' * 100, 'test-uid')
+        assert path.endswith('.opus.enc')
+        mock_encode_pcm_to_opus.assert_called_once_with(b'\x00' * 100)
+        mock_encryption.encrypt_audio_chunk.assert_called_once_with(b'encoded-opus', 'test-uid')
 
     @patch.object(storage_mod, 'users_db')
-    def test_explicit_none_falls_back_to_db(self, mock_users_db):
+    @patch.object(storage_mod, 'encode_pcm_to_opus', return_value=b'encoded-opus')
+    def test_explicit_none_falls_back_to_db(self, mock_encode_pcm_to_opus, mock_users_db):
         """Explicitly passing None should still fall back to DB read."""
         self._setup_mock_bucket()
         mock_users_db.get_data_protection_level.return_value = 'standard'
@@ -120,3 +131,4 @@ class TestUploadAudioChunkDataProtectionCache:
         )
 
         mock_users_db.get_data_protection_level.assert_called_once_with('test-uid')
+        mock_encode_pcm_to_opus.assert_called_once_with(b'\x00' * 100)

@@ -123,6 +123,7 @@ def _purge_patches(**overrides):
         patchers[name] = patch.object(users_router, name, create=True, **(overrides.get(name) or {'return_value': ids}))
     for name in (
         'delete_conversation_vectors_batch',
+        'delete_transcript_chunk_vectors_batch',
         'delete_memory_vectors_batch',
         'delete_action_item_vectors_batch',
         'delete_screen_activity_vectors',
@@ -149,6 +150,7 @@ def test_purge_runs_all_backends_before_firestore_wipe():
 
     # Pinecone: one batched call per namespace (no per-item loop to abandon on a transient failure)
     m['delete_conversation_vectors_batch'].assert_called_once_with('uid1', ['c1', 'c2'])
+    m['delete_transcript_chunk_vectors_batch'].assert_called_once_with('uid1', ['c1', 'c2'])
     m['delete_memory_vectors_batch'].assert_called_once_with('uid1', ['m1'])
     m['delete_action_item_vectors_batch'].assert_called_once_with('uid1', ['a1', 'a2'])
     m['delete_screen_activity_vectors'].assert_called_once_with('uid1', ['s1'])
@@ -168,7 +170,7 @@ def test_id_enumeration_happens_before_firestore_wipe():
         users_router._background_wipe_user_data('uid1')
     finally:
         _stop(patchers)
-    assert order == ['enumerate', 'wipe'], order
+    assert order == ['enumerate', 'enumerate', 'wipe'], order
 
 
 def test_pinecone_failure_does_not_block_recordings_or_firestore_wipe():

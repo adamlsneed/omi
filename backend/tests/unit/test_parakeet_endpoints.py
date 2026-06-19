@@ -33,14 +33,38 @@ sys.modules["nemo"] = _nemo
 sys.modules["nemo.collections"] = _nemo.collections
 sys.modules["nemo.collections.asr"] = _nemo_asr
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../parakeet"))
+PARAKEET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../parakeet"))
+sys.path.insert(0, PARAKEET_DIR)
 
 import importlib
+
+
+def _is_parakeet_module(module):
+    module_file = getattr(module, "__file__", None)
+    return module_file is not None and os.path.abspath(module_file).startswith(PARAKEET_DIR)
+
+
+def _load_parakeet_main():
+    for module_name in ("main", "transcribe"):
+        existing = sys.modules.get(module_name)
+        if existing is not None and not _is_parakeet_module(existing):
+            del sys.modules[module_name]
+
+    existing_main = sys.modules.get("main")
+    if existing_main is not None:
+        return existing_main
+
+    spec = importlib.util.spec_from_file_location("main", os.path.join(PARAKEET_DIR, "main.py"))
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["main"] = module
+    spec.loader.exec_module(module)
+    return module
+
 
 os.environ["PARAKEET_STREAM_MODEL"] = ""
 if "transcribe" in sys.modules:
     _existing = sys.modules["transcribe"]
-    if not hasattr(_existing, "__file__") or _existing.__file__ is None:
+    if not _is_parakeet_module(_existing):
         del sys.modules["transcribe"]
         import transcribe  # noqa: F811
 
@@ -48,7 +72,7 @@ if "transcribe" in sys.modules:
 
 if "main" in sys.modules:
     _existing_main = sys.modules["main"]
-    if not hasattr(_existing_main, "__file__") or _existing_main.__file__ is None:
+    if not _is_parakeet_module(_existing_main):
         del sys.modules["main"]
 
 from gpu_worker import GPUWorker
@@ -58,7 +82,7 @@ from fastapi.testclient import TestClient
 
 
 def _make_app_with_mocks(gpu_ready=True, nim_mode=False):
-    import main as parakeet_main
+    parakeet_main = _load_parakeet_main()
 
     os.makedirs("_temp", exist_ok=True)
     parakeet_main.start_time = 0.0

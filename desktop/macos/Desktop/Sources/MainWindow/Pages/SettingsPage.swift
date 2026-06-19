@@ -284,6 +284,7 @@ struct SettingsContentView: View {
   @State private var transcriptionAutoDetect: Bool = true
   @State private var transcriptionLanguage: String = "en"
   @State private var vadGateEnabled: Bool = false
+  @State private var systemAudioCaptureMode: AssistantSettings.SystemAudioCaptureMode = .always
 
   // Multi-chat mode setting
   @AppStorage("multiChatEnabled") private var multiChatEnabled = false
@@ -292,6 +293,11 @@ struct SettingsContentView: View {
   // AI Chat settings
   @AppStorage("chatBridgeMode") private var chatBridgeMode: String = "piMono"
   @AppStorage("realtimeOmniProvider") private var realtimeOmniProvider: String = RealtimeOmniProvider.auto.rawValue
+  // Realtime-as-hub (Phase 1, dev/BYOK only): the realtime model is the single
+  // tool-dispatching voice hub. Provider toggle persisted here; RealtimeHubSession
+  // reads it at connect.
+  @AppStorage("realtimeHubEnabled") private var realtimeHubEnabled = false
+  @AppStorage("realtimeHubProvider") private var realtimeHubProvider: String = RealtimeHubProvider.openai.rawValue
   @AppStorage("askModeEnabled") private var askModeEnabled = false
   @AppStorage("claudeMdEnabled") private var claudeMdEnabled = true
   @AppStorage("projectClaudeMdEnabled") private var projectClaudeMdEnabled = true
@@ -455,6 +461,7 @@ struct SettingsContentView: View {
     _vadGateEnabled = State(initialValue: settings.vadGateEnabled)
     _transcriptionLanguage = State(initialValue: settings.transcriptionLanguage)
     _transcriptionAutoDetect = State(initialValue: settings.transcriptionAutoDetect)
+    _systemAudioCaptureMode = State(initialValue: settings.systemAudioCaptureMode)
   }
 
   /// Computed status text for notifications
@@ -674,9 +681,16 @@ struct SettingsContentView: View {
       settingsCard(settingId: "general.audiorecording") {
         HStack(spacing: 16) {
           Circle()
-            .fill(isTranscribing ? OmiColors.success : OmiColors.textTertiary.opacity(0.3))
+            .fill(
+              isTranscribing
+                ? (appState.isAwaitingMeeting ? OmiColors.warning : OmiColors.success)
+                : OmiColors.textTertiary.opacity(0.3)
+            )
             .frame(width: 12, height: 12)
-            .shadow(color: isTranscribing ? OmiColors.success.opacity(0.5) : .clear, radius: 6)
+            .shadow(
+              color: isTranscribing
+                ? (appState.isAwaitingMeeting ? OmiColors.warning : OmiColors.success).opacity(0.5)
+                : .clear, radius: 6)
 
           Image(systemName: "mic.fill")
             .scaledFont(size: 16)
@@ -690,7 +704,9 @@ struct SettingsContentView: View {
             Text(
               transcriptionError
                 ?? (isTranscribing
-                  ? "Recording and transcribing microphone audio" : "Microphone is paused")
+                  ? (appState.isAwaitingMeeting
+                    ? "Waiting for a meeting..." : "Recording and transcribing microphone audio")
+                  : "Microphone recording is paused")
             )
             .scaledFont(size: 13)
             .foregroundColor(transcriptionError != nil ? OmiColors.warning : OmiColors.textTertiary)
@@ -715,6 +731,59 @@ struct SettingsContentView: View {
             .toggleStyle(.switch)
             .labelsHidden()
             .accessibilityLabel(DesktopRecordingControlCopy.microphoneTitle)
+          }
+        }
+      }
+
+      // System Audio capture mode (macOS 14.4+ — system audio capture requires Core Audio taps)
+      if #available(macOS 14.4, *) {
+        settingsCard(settingId: "general.systemaudio") {
+          VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 16) {
+              Image(systemName: "speaker.wave.2.fill")
+                .scaledFont(size: 16)
+                .foregroundColor(OmiColors.purplePrimary)
+
+              VStack(alignment: .leading, spacing: 4) {
+                Text("System Audio")
+                  .scaledFont(size: 16, weight: .semibold)
+                  .foregroundColor(OmiColors.textPrimary)
+
+                Text("Choose when Omi records audio from other apps (calls, videos, music).")
+                  .scaledFont(size: 13)
+                  .foregroundColor(OmiColors.textTertiary)
+              }
+
+              Spacer()
+
+              Picker(
+                "",
+                selection: Binding(
+                  get: { systemAudioCaptureMode },
+                  set: { newValue in
+                    systemAudioCaptureMode = newValue
+                    setSystemAudioCaptureMode(newValue)
+                  }
+                )
+              ) {
+                Text("Always").tag(AssistantSettings.SystemAudioCaptureMode.always)
+                Text("Only during meetings").tag(
+                  AssistantSettings.SystemAudioCaptureMode.onlyDuringMeetings)
+                Text("Never").tag(AssistantSettings.SystemAudioCaptureMode.never)
+              }
+              .pickerStyle(.menu)
+              .labelsHidden()
+              .frame(width: 200)
+            }
+
+            if systemAudioCaptureMode == .onlyDuringMeetings {
+              Text(
+                "Omi captures other apps' audio only while you're in a call (e.g. Zoom, Teams, FaceTime). Detecting browser-based calls like Google Meet requires Screen Recording permission."
+              )
+              .scaledFont(size: 12)
+              .foregroundColor(OmiColors.textTertiary)
+              .fixedSize(horizontal: false, vertical: true)
+            }
           }
         }
       }
@@ -2634,6 +2703,75 @@ struct SettingsContentView: View {
       voiceSpeedSlider(settingId: "floatingbar.voicespeed")
         .opacity(shortcutSettings.hasAnyFloatingBarVoiceAnswersEnabled ? 1 : 0.55)
         .disabled(!shortcutSettings.hasAnyFloatingBarVoiceAnswersEnabled)
+
+      realtimeHubCard
+      realtimeHubProviderCard
+        .opacity(realtimeHubEnabled ? 1 : 0.55)
+        .disabled(!realtimeHubEnabled)
+    }
+  }
+
+  // MARK: Realtime-as-hub (Phase 1, dev/BYOK only)
+
+  /// The realtime model becomes the single voice hub: in-session STT + reasoning
+  /// + tool-choice routing + spoken reply, bypassing the STT→Haiku router→Claude
+  /// cascade. Client-direct using the user's own BYOK key (dev/test only).
+  private var realtimeHubCard: some View {
+    settingsCard(settingId: "floatingbar.realtimehub") {
+      HStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Realtime Voice Hub (experimental)")
+            .scaledFont(size: 16, weight: .semibold)
+            .foregroundColor(OmiColors.textPrimary)
+          Text(
+            "Let the realtime model run the whole voice turn — listen, decide, and speak — "
+              + "instead of the slower transcribe→route→answer pipeline. Uses your own provider key."
+          )
+          .scaledFont(size: 13)
+          .foregroundColor(OmiColors.textSecondary)
+        }
+        Spacer()
+        Toggle("", isOn: $realtimeHubEnabled)
+          .toggleStyle(.switch)
+          .tint(OmiColors.purplePrimary)
+          .onChange(of: realtimeHubEnabled) { _ in
+            NotificationCenter.default.post(name: .realtimeHubSettingsDidChange, object: nil)
+          }
+      }
+    }
+  }
+
+  private var realtimeHubProviderCard: some View {
+    let provider = RealtimeHubProvider(rawValue: realtimeHubProvider) ?? .openai
+    let hasKey = APIKeyService.byokKey(provider.byokProvider) != nil
+    return settingsCard(settingId: "floatingbar.realtimehub.provider") {
+      HStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Hub Provider")
+            .scaledFont(size: 16, weight: .semibold)
+            .foregroundColor(OmiColors.textPrimary)
+          Text(
+            hasKey
+              ? provider.subtitle
+              : "⚠️ No \(provider.byokProvider.displayName) key set — add one in Developer settings to use this provider."
+          )
+          .scaledFont(size: 13)
+          .foregroundColor(hasKey ? OmiColors.textSecondary : OmiColors.purplePrimary)
+        }
+        Spacer()
+        Picker("", selection: $realtimeHubProvider) {
+          ForEach(RealtimeHubProvider.allCases, id: \.rawValue) { p in
+            Text(p.displayName).tag(p.rawValue)
+          }
+        }
+        .pickerStyle(.menu)
+        .labelsHidden()
+        .frame(width: 180)
+        .tint(OmiColors.purplePrimary)
+        .onChange(of: realtimeHubProvider) { _ in
+          NotificationCenter.default.post(name: .realtimeHubSettingsDidChange, object: nil)
+        }
+      }
     }
   }
 
@@ -7121,6 +7259,14 @@ struct SettingsContentView: View {
     AssistantSettings.shared.transcriptionEnabled = enabled
   }
 
+  private func setSystemAudioCaptureMode(_ mode: AssistantSettings.SystemAudioCaptureMode) {
+    AnalyticsManager.shared.settingToggled(
+      setting: "system_audio_capture_mode_\(mode.rawValue)", enabled: mode != .never)
+    // Persisting posts .systemAudioCaptureModeDidChange; AppState re-applies the gate live for
+    // any in-progress recording.
+    AssistantSettings.shared.systemAudioCaptureMode = mode
+  }
+
   private func startGlowPreview() {
     isPreviewRunning = true
 
@@ -7244,6 +7390,7 @@ struct SettingsContentView: View {
     transcriptionAutoDetect = AssistantSettings.shared.transcriptionAutoDetect
     vocabularyList = AssistantSettings.shared.transcriptionVocabulary
     vadGateEnabled = AssistantSettings.shared.vadGateEnabled
+    systemAudioCaptureMode = AssistantSettings.shared.systemAudioCaptureMode
 
     Task {
       do {

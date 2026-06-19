@@ -1,5 +1,4 @@
 import os
-import importlib.util
 import sys
 import types
 from html import escape
@@ -34,16 +33,18 @@ def prepare_twilio_service_import():
 
 def install_phone_calls_stub():
     database_module = restore_backend_package('database')
-    if 'database.phone_calls' not in sys.modules:
+    stub = sys.modules.get('database.phone_calls')
+    if not isinstance(stub, types.ModuleType):
         stub = types.ModuleType('database.phone_calls')
-        stub.get_phone_numbers = lambda uid: []
         sys.modules['database.phone_calls'] = stub
-        setattr(database_module, 'phone_calls', stub)
+    if not hasattr(stub, 'get_phone_numbers'):
+        stub.get_phone_numbers = lambda uid: []
+    setattr(database_module, 'phone_calls', stub)
     return sys.modules['database.phone_calls']
 
 
 def install_twilio_stub():
-    if 'twilio' in sys.modules or importlib.util.find_spec('twilio') is not None:
+    if getattr(sys.modules.get('twilio'), '_omi_test_stub', False):
         return
 
     twilio_mod = types.ModuleType('twilio')
@@ -58,6 +59,7 @@ def install_twilio_stub():
     voice_response_mod = types.ModuleType('twilio.twiml.voice_response')
 
     twilio_mod.__path__ = []
+    twilio_mod._omi_test_stub = True
     jwt_mod.__path__ = []
     base_mod.__path__ = []
     twiml_mod.__path__ = []
@@ -161,13 +163,13 @@ def install_twilio_stub():
     twilio_mod.twiml = twiml_mod
     twiml_mod.voice_response = voice_response_mod
 
-    sys.modules.setdefault('twilio', twilio_mod)
-    sys.modules.setdefault('twilio.rest', rest_mod)
-    sys.modules.setdefault('twilio.jwt', jwt_mod)
-    sys.modules.setdefault('twilio.jwt.access_token', access_token_mod)
-    sys.modules.setdefault('twilio.jwt.access_token.grants', grants_mod)
-    sys.modules.setdefault('twilio.request_validator', request_validator_mod)
-    sys.modules.setdefault('twilio.base', base_mod)
-    sys.modules.setdefault('twilio.base.exceptions', exceptions_mod)
-    sys.modules.setdefault('twilio.twiml', twiml_mod)
-    sys.modules.setdefault('twilio.twiml.voice_response', voice_response_mod)
+    sys.modules['twilio'] = twilio_mod
+    sys.modules['twilio.rest'] = rest_mod
+    sys.modules['twilio.jwt'] = jwt_mod
+    sys.modules['twilio.jwt.access_token'] = access_token_mod
+    sys.modules['twilio.jwt.access_token.grants'] = grants_mod
+    sys.modules['twilio.request_validator'] = request_validator_mod
+    sys.modules['twilio.base'] = base_mod
+    sys.modules['twilio.base.exceptions'] = exceptions_mod
+    sys.modules['twilio.twiml'] = twiml_mod
+    sys.modules['twilio.twiml.voice_response'] = voice_response_mod
