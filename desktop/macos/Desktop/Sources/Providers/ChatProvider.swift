@@ -500,9 +500,9 @@ class ChatProvider: ObservableObject {
 ================================================================================
 🚨 FLOATING BAR MODE — READ THIS FIRST BEFORE ANYTHING ELSE 🚨
 ================================================================================
-ALWAYS check the user's memories and facts using available tools (get_memories, search_memories, execute_sql) before answering ANY question. The user expects personalized answers based on what you know about them.
+SCOPE TOOLS TO THE USER'S OWN DATA. First decide whether the question actually needs the user's personal data. If it's about the user — their memories, facts, preferences, past conversations, tasks, schedule, goals, or app/screen activity — use the available data tools (get_memories, search_memories, execute_sql, get_daily_recap, etc.) to look it up before answering; don't guess. If it's chit-chat, a greeting, or general knowledge that does NOT depend on the user's data, answer directly and immediately WITHOUT calling any tools. The user expects personalized answers when the question is about them — but not a tool round-trip for "hey" or a general question.
 NEVER ask follow-up questions or ask for clarification. ALWAYS give a direct, concrete answer immediately using whatever you know about the user from their memories, context, and facts. If memories mention their devices, preferences, work, budget, or interests — use that to give a specific recommendation, not a generic one.
-If the question contains a product name, software name, or proper noun — search the web for it before answering, even if you think you know what it is.
+Search the web only when you genuinely need current or unfamiliar information you don't already know (e.g. a product/version detail you're unsure of). Don't reflexively look up things you already know — answer general knowledge directly.
 If a screenshot is attached and the user asks a deictic question like "which one", "which option", "which suits me", "what should I choose", or "what's on my screen", ground the answer in the visible options first and prefer what is actually on screen over unrelated context.
 If the screenshot already clearly shows the relevant options, do not ignore it just because the query is short or ambiguous.
 Respond concisely in 1-2 sentences. No lists. No headers. NEVER ask follow-up questions — just answer.
@@ -622,7 +622,19 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
     @Published var showOmiThresholdAlert = false
 
     private let messagesPageSize = 50
-    private let maxMessagesInMemory = 200
+    /// Raw server records consumed by history pagination (the backend pages newest-first).
+    /// Kept separate from messages.count: deduped pages and live messages merged by
+    /// polling would otherwise stall or skew the offset.
+    private var messagesPaginationOffset = 0
+
+    /// Reset history-pagination state. Must accompany every clear/replace of
+    /// `messages` outside the two loaders (`selectSession`,
+    /// `loadDefaultChatMessages`), which set both fields from a fresh fetch.
+    private func resetMessagesPagination() {
+        messagesPaginationOffset = 0
+        hasMoreMessages = false
+    }
+
     private var multiChatObserver: AnyCancellable?
     private var playwrightExtensionObserver: AnyCancellable?
     private var playwrightExtensionTokenObserver: AnyCancellable?
@@ -811,6 +823,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                     await self.agentBridge.stop()
                     self.agentBridgeStarted = false
                     self.messages.removeAll()
+                    self.resetMessagesPagination()
                     self.pendingAttachments.removeAll()
                     self.sessions.removeAll()
                     self.currentSession = nil
@@ -1228,7 +1241,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             currentSession = session
             isInDefaultChat = false
             messages = []
-            hasMoreMessages = false
+            resetMessagesPagination()
             log("Created new chat session: \(session.id)")
             AnalyticsManager.shared.chatSessionCreated()
 
@@ -1297,12 +1310,14 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             )
             messages = persistedMessages.map(ChatMessage.init(from:))
                 .sorted(by: { $0.createdAt < $1.createdAt })
+            messagesPaginationOffset = persistedMessages.count
             // If we got a full page, there might be more messages
             hasMoreMessages = persistedMessages.count == messagesPageSize
             log("ChatProvider loaded \(messages.count) messages for session \(session.id), hasMore: \(hasMoreMessages)")
         } catch {
             logError("Failed to load messages for session", error: error)
             messages = []
+            resetMessagesPagination()
         }
 
         isLoading = false
@@ -1316,36 +1331,54 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         isLoadingMoreMessages = true
 
         do {
-            let offset = messages.count
-            let olderMessages: [ChatMessageDB]
-            if let sessionId = currentSessionId {
-                olderMessages = try await APIClient.shared.getMessages(
-                    sessionId: sessionId,
-                    limit: messagesPageSize,
-                    offset: offset
-                )
-            } else {
-                olderMessages = try await APIClient.shared.getMessages(
-                    appId: selectedAppId,
-                    limit: messagesPageSize,
-                    offset: offset
-                )
+            // A burst of live messages (e.g. from another device) shifts the
+            // newest-first window, so a fetched page can dedupe entirely to
+            // messages we already hold. Consume up to a few windows per call so
+            // one user action always yields visible progress; the cursor
+            // advances every iteration, so this terminates. Deliberately NOT
+            // derived from the local message count — overcounting (deletions,
+            // polling gaps) would overshoot and silently skip history, while a
+            // duplicate window only costs a redundant fetch.
+            var appendedCount = 0
+            var existingIds = Set(messages.map(\.id))
+            for _ in 0..<3 {
+                let offset = messagesPaginationOffset
+                let olderMessages: [ChatMessageDB]
+                if let sessionId = currentSessionId {
+                    olderMessages = try await APIClient.shared.getMessages(
+                        sessionId: sessionId,
+                        limit: messagesPageSize,
+                        offset: offset
+                    )
+                } else {
+                    olderMessages = try await APIClient.shared.getMessages(
+                        appId: selectedAppId,
+                        limit: messagesPageSize,
+                        offset: offset
+                    )
+                }
+
+                // Advance by raw records consumed — even when dedupe below drops
+                // some — so the next request can never re-issue the same window.
+                messagesPaginationOffset += olderMessages.count
+
+                // Drop the window overlap before appending.
+                let newMessages = olderMessages.map(ChatMessage.init(from:))
+                    .filter { !existingIds.contains($0.id) }
+                existingIds.formUnion(newMessages.map(\.id))
+
+                // Append older messages and re-sort to ensure correct chronological order
+                if !newMessages.isEmpty {
+                    messages.append(contentsOf: newMessages)
+                    messages.sort(by: { $0.createdAt < $1.createdAt })
+                }
+                appendedCount += newMessages.count
+
+                // Check if there are more (based on the raw page size, pre-dedupe)
+                hasMoreMessages = olderMessages.count == messagesPageSize
+                if appendedCount > 0 || !hasMoreMessages { break }
             }
-
-            let newMessages = olderMessages.map(ChatMessage.init(from:))
-
-            // Append older messages and re-sort to ensure correct chronological order
-            messages.append(contentsOf: newMessages)
-            messages.sort(by: { $0.createdAt < $1.createdAt })
-
-            // Cap memory usage: keep only the most recent messages
-            if messages.count > maxMessagesInMemory {
-                messages.removeFirst(messages.count - maxMessagesInMemory)
-            }
-
-            // Check if there are more
-            hasMoreMessages = olderMessages.count == messagesPageSize
-            log("Loaded \(newMessages.count) more messages, total: \(messages.count), hasMore: \(hasMoreMessages)")
+            log("Loaded \(appendedCount) more messages, total: \(messages.count), hasMore: \(hasMoreMessages)")
         } catch {
             logError("Failed to load more messages", error: error)
         }
@@ -1371,6 +1404,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 } else {
                     currentSession = nil
                     messages = []
+                    resetMessagesPagination()
                 }
             }
 
@@ -1692,13 +1726,21 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
     /// Called once at warmup (via ensureBridgeStarted) and cached in cachedMainSystemPrompt.
     /// Conversation history is injected here so the brand-new ACP session starts with context
     /// from before the app launch. After session/new the ACP SDK owns history natively.
-    private func buildSystemPrompt(contextString: String, style: ChatSystemPromptStyle) -> String {
-        // Get user name from AuthService
-        let userName = AuthService.shared.displayName.isEmpty ? "there" : AuthService.shared.givenName
+    /// Display name for prompts, with a stable fallback — one source so the
+    /// cached static prefix and the live-context tail never disagree.
+    private var promptUserName: String {
+        AuthService.shared.displayName.isEmpty ? "there" : AuthService.shared.givenName
+    }
 
-        // Use the context string from backend (includes memories + conversations)
-        // Fall back to just memories if context is empty
-        let contextSection = contextString.isEmpty ? formatMemoriesSection() : contextString
+    /// When `staticBody` is true, build a cache-friendly prefix with no live data:
+    /// the datetime is blanked and the memories fallback is skipped, because the
+    /// live context is appended separately after the cache-split sentinel.
+    private func buildSystemPrompt(contextString: String, style: ChatSystemPromptStyle, staticBody: Bool = false) -> String {
+        let userName = promptUserName
+
+        // Backend context (memories + conversations); fall back to local memories
+        // when empty — unless building the static body (live data lives in the tail).
+        let contextSection = (contextString.isEmpty && !staticBody) ? formatMemoriesSection() : contextString
 
         // Build individual sections
         let goalSection = formatGoalSection()
@@ -1712,7 +1754,8 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             goalSection: goalSection,
             tasksSection: tasksSection,
             aiProfileSection: aiProfileSection,
-            databaseSchema: style.includesDatabaseSchema ? cachedDatabaseSchema : ""
+            databaseSchema: style.includesDatabaseSchema ? cachedDatabaseSchema : "",
+            currentDatetime: staticBody ? "" : nil
         )
 
         // Inject conversation history so the new ACP session has context from before app launch.
@@ -1776,17 +1819,34 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         return prompt
     }
 
+    /// Sentinel separating the static (cacheable) system prefix from the
+    /// per-conversation live context. The Rust chat proxy splits on this so the
+    /// `cache_control` breakpoint covers only the stable prefix. Must match
+    /// `SYSTEM_CACHE_SPLIT` in `Backend-Rust/src/routes/chat_completions.rs`.
+    static let cacheSplitSentinel = "<<<OMI_CACHE_SPLIT_V1>>>"
+
     private func buildFloatingBarSystemPrompt(contextString: String) -> String {
-        let prompt = buildSystemPrompt(
-            contextString: contextString,
-            style: .floating
-        )
-        return Self.floatingBarSystemPromptPrefix + "\n\n" + prompt
+        // Cache-friendly split: the static prefix is byte-identical across
+        // conversations (so the proxy can cache it); volatile data — datetime,
+        // memories, screen — goes in the live tail after the sentinel, which the
+        // proxy leaves uncached. See SYSTEM_CACHE_SPLIT in chat_completions.rs.
+        let staticPrefix = Self.floatingBarSystemPromptPrefix + "\n\n"
+            + buildSystemPrompt(contextString: "", style: .floating, staticBody: true)
+
+        let tz = TimeZone.current.identifier
+        var live = "<live_context>\nCurrent date/time in \(promptUserName)'s timezone (\(tz)): "
+            + ChatPromptBuilder.currentDatetimeString()
+        if !contextString.isEmpty {
+            live += "\n\(contextString)"
+        }
+        live += "\n</live_context>"
+
+        return staticPrefix + "\n\n" + Self.cacheSplitSentinel + "\n\n" + live
     }
 
     /// Build system prompt for task chat sessions.
     func buildTaskChatSystemPrompt() -> String {
-        let userName = AuthService.shared.displayName.isEmpty ? "there" : AuthService.shared.givenName
+        let userName = promptUserName
         let contextSection = formatMemoriesSection()
         let goalSection = formatGoalSection()
         let tasksSection = formatTasksSection()
@@ -1828,7 +1888,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
 
     /// Builds system prompt using cached memories only (for simple messages)
     private func buildSystemPromptSimple() -> String {
-        let userName = AuthService.shared.displayName.isEmpty ? "there" : AuthService.shared.givenName
+        let userName = promptUserName
         let memoriesSection = formatMemoriesSection()
 
         return ChatPromptBuilder.buildDesktopChat(
@@ -1848,9 +1908,8 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         prompt = prompt.replacingOccurrences(of: "{user_name}", with: userName)
         prompt = prompt.replacingOccurrences(of: "{tz}", with: TimeZone.current.identifier)
 
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        prompt = prompt.replacingOccurrences(of: "{current_datetime_str}", with: df.string(from: Date()))
+        prompt = prompt.replacingOccurrences(
+            of: "{current_datetime_str}", with: ChatPromptBuilder.currentDatetimeString())
 
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.timeZone = TimeZone.current
@@ -1956,6 +2015,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
     func reinitialize() async {
         sessions = []
         messages = []
+        resetMessagesPagination()
         currentSession = nil
         isInDefaultChat = true
         await initialize()
@@ -2169,6 +2229,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 )
                 messages = persistedMessages.map(ChatMessage.init(from:))
                     .sorted(by: { $0.createdAt < $1.createdAt })
+                messagesPaginationOffset = persistedMessages.count
                 hasMoreMessages = persistedMessages.count == messagesPageSize
                 sessionsLoadError = nil
                 log("ChatProvider loaded \(messages.count) default chat messages, hasMore: \(hasMoreMessages)")
@@ -2184,6 +2245,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         }
 
         messages = []
+        resetMessagesPagination()
         sessionsLoadError = lastError?.localizedDescription ?? "Failed to load messages. Check your connection and try again."
         isLoading = false
     }
@@ -2489,6 +2551,77 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         return aiMessage
     }
 
+    /// Record a completed voice turn (realtime-hub / PTT) into chat history.
+    ///
+    /// The realtime hub plays its spoken reply itself and never routes through the
+    /// normal query path, so without this the turn would never appear in chat history
+    /// or sync to the backend. Appends both messages to the in-memory `messages`
+    /// immediately (so the home-page chat shows them live if open), then persists them
+    /// on a single background task — user message first, so the backend `created_at`
+    /// ordering (and therefore reload order) is stable. Fire-and-forget: the realtime
+    /// hub must never await this on the voice hot path. Empty sides are skipped (a
+    /// tool-only turn with no spoken reply still records the user's request).
+    func recordVoiceTurn(userText: String, assistantText: String) {
+        let user = userText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let assistant = assistantText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !user.isEmpty || !assistant.isEmpty else { return }
+
+        let capturedSessionId = isInDefaultChat ? nil : currentSessionId
+        let capturedAppId = overrideAppId ?? selectedAppId
+
+        var userMessage: ChatMessage?
+        var aiMessage: ChatMessage?
+        if !user.isEmpty {
+            let m = ChatMessage(text: user, sender: .user)
+            messages.append(m)
+            userMessage = m
+        }
+        if !assistant.isEmpty {
+            let m = ChatMessage(text: assistant, sender: .ai)
+            messages.append(m)
+            aiMessage = m
+        }
+
+        // saveMessage site: completed realtime-hub voice turn. Persist both sequentially
+        // (user before assistant) off the voice hot path. `pendingSaves` guards the poll
+        // for the lifetime of both saves so they don't return as duplicates.
+        pendingSaves.begin()
+        Task { [weak self] in
+            if let userMessage {
+                await self?.persistVoiceMessage(
+                    userMessage, text: user, sender: "human",
+                    appId: capturedAppId, sessionId: capturedSessionId)
+            }
+            if let aiMessage {
+                await self?.persistVoiceMessage(
+                    aiMessage, text: assistant, sender: "ai",
+                    appId: capturedAppId, sessionId: capturedSessionId)
+            }
+            await MainActor.run { self?.pendingSaves.end() }
+        }
+    }
+
+    /// Persist one voice-turn message and sync its server ID back into `messages` so a
+    /// subsequent poll doesn't duplicate it. Failures leave the in-memory copy unsynced
+    /// (matches the existing saveMessage sites — no retry).
+    private func persistVoiceMessage(
+        _ message: ChatMessage, text: String, sender: String, appId: String?, sessionId: String?
+    ) async {
+        do {
+            let response = try await APIClient.shared.saveMessage(
+                text: text, sender: sender, appId: appId, sessionId: sessionId)
+            await MainActor.run {
+                if let index = self.messages.firstIndex(where: { $0.id == message.id }) {
+                    self.messages[index].id = response.id
+                    self.messages[index].isSynced = true
+                }
+            }
+            log("Saved voice \(sender) message to backend: \(response.id)")
+        } catch {
+            logError("Failed to persist voice \(sender) message", error: error)
+        }
+    }
+
     // MARK: - Pending Attachments
 
     /// Stage attachments for the next message and kick off background upload.
@@ -2637,13 +2770,21 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             }
         }
 
+        // QueryTracer: picked up from the TaskLocal context established by the
+        // floating-bar / PTT entry points (nil for non-traced call sites).
+        let tracer = QueryTracerContext.current
+
         // Ensure bridge is running
+        tracer?.begin("bridge_ensure")
         guard await ensureBridgeStarted() else {
+            tracer?.end("bridge_ensure", metadata: ["error": "bridge_failed"])
+            tracer?.finalize(tokenCount: 0, model: model ?? modelOverride)
             if errorMessage?.isEmpty ?? true {
                 errorMessage = "AI not available"
             }
             return
         }
+        tracer?.end("bridge_ensure", metadata: ["status": "ok"])
 
         // Show upgrade prompt if over threshold but don't block the message
         if bridgeMode != BridgeMode.userClaude.rawValue && omiAICumulativeCostUsd >= 50.0 {
@@ -2661,6 +2802,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             }
             guard let sid = currentSessionId else {
                 errorMessage = "Failed to create chat session"
+                tracer?.finalize(tokenCount: 0, model: model ?? modelOverride)
                 return
             }
             sessionId = sid
@@ -2707,6 +2849,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             if !ok {
                 isSending = false
                 errorMessage = "Some attachments failed to upload. Remove them and try again."
+                tracer?.finalize(tokenCount: 0, model: model ?? modelOverride)
                 return
             }
             attachmentsForMessage = pendingAttachments
@@ -2849,14 +2992,40 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
 
             // Query the active bridge with streaming
             // Callbacks for agent bridge
+            //
+            // QueryTracer: `isFirstResponse` marks TTFT on the very first output of
+            // any kind (text delta OR tool_use start). `isGenerating` brackets the
+            // text-streaming window so the `generation` span excludes tool time.
+            var isFirstResponse = true
+            var isGenerating = false
             let textDeltaHandler: AgentBridge.TextDeltaHandler = { [weak self] delta in
+                if isFirstResponse {
+                    isFirstResponse = false
+                    tracer?.end("ttft")
+                    tracer?.markTTFT()
+                }
+                if !isGenerating {
+                    isGenerating = true
+                    tracer?.begin("generation")
+                }
                 Task { @MainActor [weak self] in
                     self?.appendToMessage(id: aiMessageId, text: delta)
                 }
             }
             let toolCallHandler: AgentBridge.ToolCallHandler = { callId, name, input in
                 let toolCall = ToolCall(name: name, arguments: input, thoughtSignature: nil)
+                // QueryTracer: time the actual tool execution (client-side run of the
+                // tool, distinct from the model-visible tool span in toolActivity).
+                let toolStart = ContinuousClock.now
                 let result = await ChatToolExecutor.execute(toolCall)
+                if let tracer {
+                    let toolDurMs = (ContinuousClock.now - toolStart).milliseconds
+                    let inputJson =
+                        (try? String(data: JSONSerialization.data(withJSONObject: input), encoding: .utf8))
+                        ?? "\(input)"
+                    tracer.captureToolExecution(
+                        toolUseId: callId, name: name, input: inputJson, output: result, durationMs: toolDurMs)
+                }
                 log("OMI tool \(name) executed for callId=\(callId)")
                 // Track SQL query stats for metadata
                 if name == "execute_sql" {
@@ -2865,6 +3034,22 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 return result
             }
             let toolActivityHandler: AgentBridge.ToolActivityHandler = { [weak self] name, status, toolUseId, input in
+                // QueryTracer: a span per tool invocation, keyed by toolUseId so
+                // concurrent calls to the same tool don't collide. Overlapping
+                // start/end windows across spans reveal parallel vs sequential
+                // tool execution. A tool_use start also counts as first output
+                // for TTFT when the model leads with a tool call (no text first).
+                let spanKey = "tool:\(toolUseId ?? name)"
+                if status == "started" {
+                    if isFirstResponse {
+                        isFirstResponse = false
+                        tracer?.end("ttft")
+                        tracer?.markTTFT()
+                    }
+                    tracer?.begin(spanKey, metadata: ["tool": name])
+                } else if status == "completed" {
+                    tracer?.end(spanKey)
+                }
                 Task { @MainActor [weak self] in
                     self?.addToolActivity(
                         messageId: aiMessageId,
@@ -2921,6 +3106,22 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             // early-return guard has passed, so failed sends don't burn quota.
             if isUsingOmiAccountProvider {
                 usageLimiter.recordQuery()
+            }
+
+            // QueryTracer: snapshot the exact request (system prompt + recent
+            // message history) and open the request/TTFT spans. The clock starts
+            // here so ttft measures input → first streamed output.
+            if let tracer {
+                let tracedModel = model ?? modelOverride ?? "unknown"
+                tracer.captureRequest(
+                    systemPrompt: systemPrompt,
+                    messages: Array(messages.suffix(40)).map {
+                        ["role": $0.sender == .user ? "user" : "assistant", "content": $0.text]
+                    },
+                    hasScreenshot: effectiveImageData != nil
+                )
+                tracer.begin("llm_request", metadata: ["model": tracedModel])
+                tracer.begin("ttft")
             }
 
             let queryResult = try await agentBridge.query(
@@ -2985,6 +3186,23 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 messageText = queryResult.text
                 log("Chat response arrived after session switch")
             }
+
+            // QueryTracer: success path — record the response, close the remaining
+            // spans (end calls are no-ops if already closed), and write the trace
+            // with real token / cache / cost numbers from the bridge result.
+            tracer?.captureResponse(text: messageText)
+            tracer?.end("ttft")
+            tracer?.end("generation")
+            tracer?.end("llm_request")
+            tracer?.finalize(
+                tokenCount: queryResult.outputTokens,
+                model: model ?? modelOverride,
+                inputTokens: queryResult.inputTokens,
+                outputTokens: queryResult.outputTokens,
+                cacheReadTokens: queryResult.cacheReadTokens,
+                cacheWriteTokens: queryResult.cacheWriteTokens,
+                costUsd: queryResult.costUsd
+            )
 
             // Release the sending lock as soon as the AI response is visible in the
             // UI. Backend persistence is slow (can timeout at 30s+) and should not
@@ -3117,6 +3335,13 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 await GoalsAIService.shared.extractProgressFromAllGoals(text: chatText)
             }
         } catch {
+            // QueryTracer: error path — close spans and write the (partial) trace
+            // so failed/timed-out queries still show up in benchmarks.
+            tracer?.end("ttft")
+            tracer?.end("generation")
+            tracer?.end("llm_request")
+            tracer?.finalize(tokenCount: 0, model: model ?? modelOverride)
+
             // On timeout, cancel the stuck ACP session so it's not left dangling
             if let bridgeError = error as? BridgeError, case .timeout = bridgeError {
                 log("ChatProvider: ACP query timed out, sending interrupt to cancel stuck session")
@@ -3502,6 +3727,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         if isInDefaultChat {
             // Default chat mode: clear UI immediately, delete in background
             messages = []
+            resetMessagesPagination()
             log("Cleared default chat messages")
             Task {
                 do {
@@ -3520,6 +3746,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
             }
             currentSession = nil
             messages = []
+            resetMessagesPagination()
 
             // Delete old session in background (don't await — backend is slow)
             if let session = sessionToDelete {
@@ -3549,6 +3776,7 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
         selectedAppId = appId
         currentSession = nil
         messages = []
+        resetMessagesPagination()
         sessions = []
         errorMessage = nil
         isInDefaultChat = true

@@ -301,6 +301,23 @@ final class DesktopAutomationActionRegistry {
       let status = (response as? HTTPURLResponse)?.statusCode ?? -1
       return ["status": String(status), "body": String(data: data, encoding: .utf8) ?? ""]
     }
+
+    // Send a typed query through the real floating-bar AI path
+    // (openAIInputWithQuery → routeQuery → sendAIQuery → ChatProvider → bridge).
+    // Used to drive cache/latency benchmarks without a mic or the cursor.
+    register(
+      name: "ask",
+      summary: "Send a query to the floating-bar AI (typed path); exercises the full chat pipeline",
+      params: ["query"]
+    ) { params in
+      let query = (params["query"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !query.isEmpty else { return ["error": "missing 'query'"] }
+      if !FloatingControlBarManager.shared.isVisible {
+        FloatingControlBarManager.shared.show()
+      }
+      FloatingControlBarManager.shared.openAIInputWithQuery(query, fromVoice: false)
+      return ["sent": query]
+    }
   }
 }
 

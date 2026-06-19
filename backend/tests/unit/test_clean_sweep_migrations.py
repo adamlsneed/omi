@@ -20,7 +20,7 @@ Covers round 3:
 - routers/developer.py: threading.Thread → postprocess_executor for persona update
 - routers/mcp.py: threading.Thread → postprocess_executor for persona update
 - routers/wrapped.py: threading.Thread → llm_executor for wrapped generation
-- utils/chat.py: threading.Thread → storage_executor for file cleanup
+- utils/chat.py: threading.Thread → deferred scheduled file cleanup
 - utils/conversations/postprocess_conversation.py: threading.Thread → storage_executor
 - utils/other/notifications.py: threading.Thread → critical_executor for webhooks
 - utils/other/storage.py: ad-hoc ThreadPoolExecutor → storage_executor
@@ -31,6 +31,7 @@ Covers round 3:
 
 import inspect
 import os
+import re
 import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -327,15 +328,18 @@ class TestWrappedExecutorMigration:
 
 
 class TestChatUtilsExecutorMigration:
-    """Verify utils/chat.py uses storage_executor for file cleanup."""
+    """Verify utils/chat.py uses scheduled file cleanup without ad-hoc threads."""
 
     def test_no_threading_thread(self):
         src = _read_source('utils/chat.py')
         assert 'threading.Thread' not in src
 
-    def test_uses_storage_executor(self):
+    def test_uses_scheduled_file_cleanup(self):
         src = _read_source('utils/chat.py')
-        assert 'storage_executor.submit(' in src
+        storage_src = _read_source('utils/other/storage.py')
+        assert 'schedule_syncing_temporal_file_deletion(path)' in src
+        assert 'DeferredDeleter(delete_syncing_temporal_file' in storage_src
+        assert '_syncing_temporal_deleter.schedule(' in storage_src
 
 
 class TestPostprocessExecutorMigration:
@@ -424,12 +428,16 @@ class TestPerplexityHttpxMigration:
 class TestNoRequestsInProductionCode:
     """Global check: zero import requests in non-test, non-script production code."""
 
+    @staticmethod
+    def _imports_plain_requests(src: str) -> bool:
+        return bool(re.search(r'(^|\n)\s*(import requests\b|from requests\b)', src))
+
     def test_no_import_requests_in_routers(self):
         routers_dir = os.path.join(BACKEND_DIR, 'routers')
         for fname in os.listdir(routers_dir):
             if fname.endswith('.py'):
                 src = _read_source(f'routers/{fname}')
-                assert 'import requests' not in src, f'routers/{fname} still imports requests'
+                assert not self._imports_plain_requests(src), f'routers/{fname} still imports requests'
 
     def test_no_import_requests_in_utils(self):
         # vad.py retains requests for sync onnx-compatible path (not yet migrated)
@@ -441,7 +449,7 @@ class TestNoRequestsInProductionCode:
                     if rel in excluded:
                         continue
                     src = _read_source(rel)
-                    assert 'import requests' not in src, f'{rel} still imports requests'
+                    assert not self._imports_plain_requests(src), f'{rel} still imports requests'
 
     def test_no_threading_thread_start_in_routers(self):
         # users.py retains threading.Thread for background wipe (long-running, not executor-suitable)
