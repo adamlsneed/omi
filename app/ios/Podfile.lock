@@ -242,11 +242,11 @@ PODS:
     - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
-  - PostHog (3.58.1)
+  - PostHog (3.61.0)
   - posthog_flutter (0.0.1):
     - Flutter
     - FlutterMacOS
-    - PostHog (< 4.0.0, >= 3.56.0)
+    - PostHog (< 4.0.0, >= 3.61.0)
   - PromisesObjC (2.4.0)
   - PromisesSwift (2.4.0):
     - PromisesObjC (= 2.4.0)
@@ -535,8 +535,8 @@ SPEC CHECKSUMS:
   pasteboard: 49088aeb6119d51f976a421db60d8e1ab079b63c
   path_provider_foundation: bb55f6dbba17d0dccd6737fe6f7f34fbd0376880
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
-  PostHog: 162c013c6a8e442382f6804076bf3ad072c8778a
-  posthog_flutter: 03b15ff7a78e2a4162baaf11f8db37b079412106
+  PostHog: 82eee1ba92efc8144b06b6e4412abba5438c8fda
+  posthog_flutter: 35d27c0ca7b0afe0e24789b1c6594e88dfffe066
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
   quick_actions_ios: 500fcc11711d9f646739093395c4ae8eec25f779
