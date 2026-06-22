@@ -3108,5 +3108,15 @@
     "templateRoutingTemplateHint": "Wähle eine installierte Zusammenfassungs-App für dieses Profil oder behalte „Keine\", um die obige Eingabeaufforderung zu verwenden.",
     "templateRoutingProfileRequiredError": "Füge für Arbeit und Persönlich je eine Eingabeaufforderung oder Vorlage hinzu, bevor du aktivierst.",
     "syncCustomSttWarningTitle": "Synchronisierung nutzt Omi-Transkription",
-    "syncCustomSttWarningMessage": "Du verwendest einen eigenen Transkriptionsanbieter. Beim Synchronisieren werden diese Aufnahmen stattdessen auf den Servern von Omi transkribiert und auf das Transkriptionslimit deines Tarifs angerechnet."
+    "syncCustomSttWarningMessage": "Du verwendest einen eigenen Transkriptionsanbieter. Beim Synchronisieren werden diese Aufnahmen stattdessen auf den Servern von Omi transkribiert und auf das Transkriptionslimit deines Tarifs angerechnet.",
+    "transcribeLaterTitle": "Später transkribieren",
+    "transcribeLaterDescription": "Nimm Audio jetzt auf und transkribiere es bei Bedarf statt in Echtzeit. Die Aufnahmen werden auf deinem Smartphone gespeichert; lade sie anschließend hoch, um Gespräche zu erstellen.",
+    "transcribeLaterNote": "Funktioniert vorerst mit Omi-Geräten. Das Audio bleibt auf deinem Smartphone, bis du es hochladen möchtest.",
+    "transcribeLaterStorageFull": "Auf deinem Smartphone wird der Speicher knapp, daher ist die Aufnahme pausiert. Gib Speicher frei oder lade deine Aufnahmen hoch – danach wird sie automatisch fortgesetzt.",
+    "unmute": "Ton an",
+    "newRecording": "Neue Aufnahme",
+    "transcribeLaterPaused": "Pausiert – Audio wird nicht aufgenommen",
+    "pressAndHold": "Gedrückt halten",
+    "captureIdea": "Idee erfassen",
+    "savingIdea": "Idee wird gespeichert"
 }

@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 
-import 'package:omi/backend/http/shared.dart';
 import 'package:omi/services/connectivity_service.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/sockets.dart';
@@ -184,6 +183,7 @@ class BackgroundService {
 
   void stop() {
     Logger.debug("invoke stop");
+    if (_status == null) return;
     _service.invoke("stop");
   }
 
@@ -237,6 +237,7 @@ class BackgroundService {
   }
 
   void stopRecorder() {
+    if (_status == null) return;
     _service.invoke("recorder.stop");
   }
 }

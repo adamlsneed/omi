@@ -524,13 +524,13 @@ class AppLocalizationsCa extends AppLocalizations {
   String get micGain => 'Guany del micròfon';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'Mantén premut';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'Captura una idea';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'S\'està desant la idea';
 
   @override
   String get disconnect => 'Desconnectar';
@@ -9608,4 +9608,28 @@ class AppLocalizationsCa extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'Utilitzes el teu propi proveïdor de transcripció. Sincronitzar aquests enregistraments els transcriu als servidors d\'Omi i compten per al límit de transcripció del teu pla.';
+
+  @override
+  String get transcribeLaterTitle => 'Transcriure més tard';
+
+  @override
+  String get transcribeLaterDescription =>
+      'Grava l\'àudio ara i transcriu-lo quan vulguis en comptes de fer-ho en directe. Les gravacions es desen al telèfon i, després, les puges per crear converses.';
+
+  @override
+  String get transcribeLaterNote =>
+      'De moment, funciona amb dispositius Omi. L\'àudio es queda al teu telèfon fins que decideixis pujar-lo.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'El telèfon té poc espai d\'emmagatzematge i la gravació s\'ha posat en pausa. Allibera espai o puja les gravacions i es reprendrà automàticament.';
+
+  @override
+  String get unmute => 'Activar so';
+
+  @override
+  String get newRecording => 'Nou enregistrament';
+
+  @override
+  String get transcribeLaterPaused => 'En pausa — no s\'està gravant àudio';
 }

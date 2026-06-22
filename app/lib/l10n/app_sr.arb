@@ -10845,5 +10845,15 @@
     "templateRoutingTemplateHint": "Изаберите инсталирану апликацију за резиме за овај профил или оставите „Ниједан\" да бисте користили горњи позив.",
     "templateRoutingProfileRequiredError": "Додајте позив или шаблон за Радни и Лични профил пре омогућавања.",
     "syncCustomSttWarningTitle": "Синхронизација користи Omi транскрипцију",
-    "syncCustomSttWarningMessage": "Користите сопственог пружаоца транскрипције. Синхронизација ових снимака их транскрибује на Omi серверима и рачунају се у лимит транскрипције вашег плана."
+    "syncCustomSttWarningMessage": "Користите сопственог пружаоца транскрипције. Синхронизација ових снимака их транскрибује на Omi серверима и рачунају се у лимит транскрипције вашег плана.",
+    "transcribeLaterTitle": "Transkripcija kasnije",
+    "transcribeLaterDescription": "Snimajte zvuk sada, a transkripciju pokrenite kada vam zatreba, umesto uživo. Snimci se čuvaju na telefonu, a zatim ih otpremate da biste kreirali razgovore.",
+    "transcribeLaterNote": "Za sada radi sa Omi uređajima. Zvuk ostaje na vašem telefonu dok ne odlučite da ga otpremite.",
+    "transcribeLaterStorageFull": "Na telefonu je ostalo malo prostora, pa je snimanje pauzirano. Oslobodite prostor ili otpremite snimke i automatski će se nastaviti.",
+    "unmute": "Uključi zvuk",
+    "newRecording": "Novi snimak",
+    "transcribeLaterPaused": "Pauzirano — zvuk se ne snima",
+    "pressAndHold": "Притисните и задржите",
+    "captureIdea": "Забележи идеју",
+    "savingIdea": "Чување идеје"
 }

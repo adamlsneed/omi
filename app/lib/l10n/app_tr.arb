@@ -3175,5 +3175,15 @@
     "templateRoutingTemplateHint": "Bu profil için kurulu bir özet uygulaması seçin veya yukarıdaki komut istemini kullanmak için «Yok» bırakın.",
     "templateRoutingProfileRequiredError": "Etkinleştirmeden önce hem İş hem de Kişisel profil için komut istemi veya şablon ekleyin.",
     "syncCustomSttWarningTitle": "Eşitleme, Omi transkripsiyonunu kullanır",
-    "syncCustomSttWarningMessage": "Kendi transkripsiyon sağlayıcınızı kullanıyorsunuz. Bu kayıtları eşitlemek onları Omi sunucularında yazıya döker ve planınızın transkripsiyon sınırına sayılır."
+    "syncCustomSttWarningMessage": "Kendi transkripsiyon sağlayıcınızı kullanıyorsunuz. Bu kayıtları eşitlemek onları Omi sunucularında yazıya döker ve planınızın transkripsiyon sınırına sayılır.",
+    "transcribeLaterTitle": "Sonradan Transkribe Et",
+    "transcribeLaterDescription": "Sesi anında değil, dilediğin zaman transkribe etmek üzere şimdi kaydet. Kayıtlar telefonunda saklanır; konuşma oluşturmak için onları sen yüklersin.",
+    "transcribeLaterNote": "Şimdilik Omi cihazlarıyla çalışır. Yüklemeyi seçene kadar ses telefonunda kalır.",
+    "transcribeLaterStorageFull": "Telefonunda yer azaldığı için kayıt duraklatıldı. Yer aç ya da kayıtlarını yükle; ardından otomatik olarak devam eder.",
+    "unmute": "Sesi aç",
+    "newRecording": "Yeni kayıt",
+    "transcribeLaterPaused": "Duraklatıldı — ses kaydedilmiyor",
+    "pressAndHold": "Basılı tutun",
+    "captureIdea": "Fikri yakala",
+    "savingIdea": "Fikir kaydediliyor"
 }

@@ -520,13 +520,13 @@ class AppLocalizationsFi extends AppLocalizations {
   String get micGain => 'Mikrofonin vahvistus';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'Paina pitkään';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'Tallenna idea';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'Ideaa tallennetaan';
 
   @override
   String get disconnect => 'Katkaise yhteys';
@@ -9550,4 +9550,28 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'Käytät omaa litterointipalveluasi. Näiden tallenteiden synkronointi litteroi ne Omin palvelimilla, ja ne lasketaan tilauksesi litterointirajaan.';
+
+  @override
+  String get transcribeLaterTitle => 'Litteroi myöhemmin';
+
+  @override
+  String get transcribeLaterDescription =>
+      'Nauhoita ääni nyt ja litteroi se vasta tarvittaessa reaaliaikaisen sijaan. Nauhoitukset tallennetaan puhelimeesi, ja lataat ne myöhemmin luodaksesi keskusteluja.';
+
+  @override
+  String get transcribeLaterNote =>
+      'Toimii toistaiseksi Omi-laitteiden kanssa. Ääni säilyy puhelimessasi, kunnes päätät ladata sen.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'Puhelimesi tallennustila on vähissä, joten nauhoitus on keskeytetty. Vapauta tilaa tai lataa nauhoituksesi, niin se jatkuu automaattisesti.';
+
+  @override
+  String get unmute => 'Poista mykistys';
+
+  @override
+  String get newRecording => 'Uusi tallennus';
+
+  @override
+  String get transcribeLaterPaused => 'Keskeytetty – ääntä ei tallenneta';
 }

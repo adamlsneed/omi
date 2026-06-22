@@ -521,13 +521,13 @@ class AppLocalizationsSr extends AppLocalizations {
   String get micGain => 'Дојачање микрофона';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'Притисните и задржите';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'Забележи идеју';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'Чување идеје';
 
   @override
   String get disconnect => 'Прекини повезаност';
@@ -9563,4 +9563,28 @@ class AppLocalizationsSr extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'Користите сопственог пружаоца транскрипције. Синхронизација ових снимака их транскрибује на Omi серверима и рачунају се у лимит транскрипције вашег плана.';
+
+  @override
+  String get transcribeLaterTitle => 'Transkripcija kasnije';
+
+  @override
+  String get transcribeLaterDescription =>
+      'Snimajte zvuk sada, a transkripciju pokrenite kada vam zatreba, umesto uživo. Snimci se čuvaju na telefonu, a zatim ih otpremate da biste kreirali razgovore.';
+
+  @override
+  String get transcribeLaterNote =>
+      'Za sada radi sa Omi uređajima. Zvuk ostaje na vašem telefonu dok ne odlučite da ga otpremite.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'Na telefonu je ostalo malo prostora, pa je snimanje pauzirano. Oslobodite prostor ili otpremite snimke i automatski će se nastaviti.';
+
+  @override
+  String get unmute => 'Uključi zvuk';
+
+  @override
+  String get newRecording => 'Novi snimak';
+
+  @override
+  String get transcribeLaterPaused => 'Pauzirano — zvuk se ne snima';
 }

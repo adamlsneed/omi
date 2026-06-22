@@ -49,6 +49,9 @@ struct DesktopAutomationSnapshot: Codable {
   var selectedTabIndex: Int?
   var selectedSettingsSection: String?
   var highlightedSettingId: String?
+  var usesLegacyHomeDesign: Bool
+  var showsPrimarySidebar: Bool
+  var isSidebarCollapsed: Bool
   var hasCompletedOnboarding: Bool
   var isSignedIn: Bool
   var isRestoringAuth: Bool
@@ -120,6 +123,9 @@ actor DesktopAutomationStateStore {
     selectedTabIndex: nil,
     selectedSettingsSection: nil,
     highlightedSettingId: nil,
+    usesLegacyHomeDesign: false,
+    showsPrimarySidebar: false,
+    isSidebarCollapsed: true,
     hasCompletedOnboarding: false,
     isSignedIn: false,
     isRestoringAuth: true,

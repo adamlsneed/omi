@@ -525,13 +525,13 @@ class AppLocalizationsEl extends AppLocalizations {
   String get micGain => 'Ενίσχυση Μικροφώνου';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'Πατήστε παρατεταμένα';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'Καταγραφή ιδέας';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'Αποθήκευση ιδέας';
 
   @override
   String get disconnect => 'Αποσύνδεση';
@@ -9621,4 +9621,28 @@ class AppLocalizationsEl extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'Χρησιμοποιείτε δικό σας πάροχο μεταγραφής. Ο συγχρονισμός αυτών των ηχογραφήσεων τις μεταγράφει στους διακομιστές του Omi και προσμετρώνται στο όριο μεταγραφής του προγράμματός σας.';
+
+  @override
+  String get transcribeLaterTitle => 'Μεταγραφή αργότερα';
+
+  @override
+  String get transcribeLaterDescription =>
+      'Ηχογραφήστε τώρα και κάντε τη μεταγραφή αργότερα, όποτε θέλετε, αντί σε πραγματικό χρόνο. Οι ηχογραφήσεις αποθηκεύονται στο τηλέφωνό σας και τις ανεβάζετε για να δημιουργηθούν συνομιλίες.';
+
+  @override
+  String get transcribeLaterNote =>
+      'Προς το παρόν λειτουργεί με συσκευές Omi. Ο ήχος παραμένει στο τηλέφωνό σας μέχρι να επιλέξετε να τον ανεβάσετε.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'Ο αποθηκευτικός χώρος του τηλεφώνου σας τελειώνει, γι\' αυτό η ηχογράφηση είναι σε παύση. Ελευθερώστε χώρο ή ανεβάστε τις ηχογραφήσεις σας και θα συνεχιστεί αυτόματα.';
+
+  @override
+  String get unmute => 'Άρση σίγασης';
+
+  @override
+  String get newRecording => 'Νέα εγγραφή';
+
+  @override
+  String get transcribeLaterPaused => 'Σε παύση — δεν γίνεται εγγραφή ήχου';
 }
