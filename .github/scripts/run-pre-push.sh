@@ -106,4 +106,12 @@ else
   echo "ℹ️  pytest-timeout not installed, running without timeout"
 fi
 
-python -m pytest $PYTEST_ARGS $TEST_TARGETS
+FAIL=0
+for test_target in $TEST_TARGETS; do
+  echo "▶ $test_target"
+  if ! python -m pytest $PYTEST_ARGS "$test_target"; then
+    FAIL=1
+  fi
+done
+
+exit "$FAIL"
