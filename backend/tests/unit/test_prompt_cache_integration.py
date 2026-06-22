@@ -13,6 +13,7 @@ actually import and call the real production functions to verify:
 """
 
 import os
+import re
 import sys
 import types
 import importlib
@@ -652,10 +653,20 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
     source = source.replace("from models.structured import Structured", "")
     source = source.replace("from utils.byok import get_byok_key", "")
     source = source.replace("from utils.llm.usage_tracker import get_usage_callback", "")
+    source = re.sub(r"from utils\.llm\.model_config import \(\n.*?\n\)\n", "", source, flags=re.S)
+    source = re.sub(r"from utils\.llm\.providers import \(\n.*?\n\)\n", "", source, flags=re.S)
 
     # Create a fake anthropic module with AsyncAnthropic
     fake_anthropic = _stub_module("anthropic_fake")
     fake_anthropic.AsyncAnthropic = MagicMock
+
+    active_profile = {"chat_agent": ("claude-sonnet-4-6", "anthropic")}
+
+    def fake_get_model_config(feature):
+        return active_profile.get(feature, ("gpt-4.1-mini", "openai"))
+
+    def fake_get_or_create_openai_compatible_llm(provider, model_name, streaming=False, options=None):
+        return FakeChatOpenAI(model=model_name, streaming=streaming, **(options or {}))
 
     ns = {
         "os": os,
@@ -670,8 +681,42 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
         "get_byok_key": MagicMock(return_value=None),
         "get_usage_callback": MagicMock(return_value=[]),
         "List": list,
+        "MODEL_QOS_PROFILES": {"premium": active_profile},
+        "_ANTHROPIC_ONLY_FEATURES": {"chat_agent"},
+        "_CACHE_KEY_MODELS": {"gpt-5.1"},
+        "_DEFAULT_CONFIG": ("gpt-4.1-mini", "openai"),
+        "_OPENROUTER_TEMPERATURES": {},
+        "_PERPLEXITY_ONLY_FEATURES": set(),
+        "_PINNED_FEATURES": {},
+        "_STRUCTURED_OUTPUT_FEATURES": set(),
+        "_active_profile": active_profile,
+        "_active_profile_name": "premium",
+        "_byok_profile": active_profile,
+        "_byok_profile_name": "byok",
+        "get_active_profile": MagicMock(return_value=active_profile),
+        "get_active_profile_name": MagicMock(return_value="premium"),
+        "get_all_configured_features": MagicMock(return_value=active_profile.keys()),
+        "get_byok_profile": MagicMock(return_value=active_profile),
+        "get_byok_profile_name": MagicMock(return_value="byok"),
+        "get_default_config": MagicMock(return_value=("gpt-4.1-mini", "openai")),
+        "get_model": MagicMock(side_effect=lambda feature: fake_get_model_config(feature)[0]),
+        "get_provider": MagicMock(side_effect=lambda feature: fake_get_model_config(feature)[1]),
+        "get_route_options": MagicMock(return_value={}),
+        "is_anthropic_only_feature": MagicMock(side_effect=lambda feature: feature == "chat_agent"),
+        "is_perplexity_only_feature": MagicMock(return_value=False),
+        "is_structured_output_feature": MagicMock(return_value=False),
+        "supports_prompt_cache": MagicMock(side_effect=lambda model: model == "gpt-5.1"),
+        "_get_model_config": fake_get_model_config,
+        "GEMINI_OPENAI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "get_default_client": MagicMock(side_effect=fake_get_or_create_openai_compatible_llm),
+        "_get_or_create_gemini_llm": MagicMock(side_effect=fake_get_or_create_openai_compatible_llm),
+        "get_or_create_openai_compatible_llm": fake_get_or_create_openai_compatible_llm,
+        "_llm_cache": {},
     }
     exec(source, ns)
+
+    ns["_get_or_create_openai_llm"]("gpt-5.1")
+    ns["_get_or_create_openai_llm"]("gpt-4.1-mini")
 
     # Verify gpt-5.1 clients get prompt_cache_retention via extra_body
     gpt51_clients = [c for c in captured_calls if c.get("model") == "gpt-5.1"]
