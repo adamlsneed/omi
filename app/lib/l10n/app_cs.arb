@@ -3109,5 +3109,15 @@
     "templateRoutingTemplateHint": "Vyberte nainstalovanou aplikaci pro shrnutí pro tento profil nebo ponechte „Žádná\" a použijte výzvu výše.",
     "templateRoutingProfileRequiredError": "Před aktivací přidejte výzvu nebo šablonu pro profily Pracovní i Osobní.",
     "syncCustomSttWarningTitle": "Synchronizace používá přepis Omi",
-    "syncCustomSttWarningMessage": "Používáte vlastního poskytovatele přepisu. Synchronizace těchto nahrávek je přepíše na serverech Omi a započítají se do limitu přepisu vašeho tarifu."
+    "syncCustomSttWarningMessage": "Používáte vlastního poskytovatele přepisu. Synchronizace těchto nahrávek je přepíše na serverech Omi a započítají se do limitu přepisu vašeho tarifu.",
+    "transcribeLaterTitle": "Přepsat později",
+    "transcribeLaterDescription": "Nahrávejte zvuk hned a přepisujte ho podle potřeby místo přepisu naživo. Nahrávky se uloží do telefonu a poté je nahrajete na server, aby z nich vznikly konverzace.",
+    "transcribeLaterNote": "Zatím funguje se zařízeními Omi. Zvuk zůstává v telefonu, dokud se ho nerozhodnete odeslat.",
+    "transcribeLaterStorageFull": "V telefonu dochází místo, proto je nahrávání pozastaveno. Uvolněte místo nebo odešlete své nahrávky a nahrávání se automaticky obnoví.",
+    "unmute": "Zapnout zvuk",
+    "newRecording": "Nová nahrávka",
+    "transcribeLaterPaused": "Pozastaveno — zvuk se nenahrává",
+    "pressAndHold": "Stiskněte a podržte",
+    "captureIdea": "Zachytit nápad",
+    "savingIdea": "Ukládání nápadu"
 }

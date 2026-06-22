@@ -3162,5 +3162,15 @@
     "templateRoutingTemplateHint": "为此配置文件选择一个已安装的摘要应用，或保留「无」以使用上方的提示词。",
     "templateRoutingProfileRequiredError": "启用前，请为工作和个人配置文件各添加一个提示词或模板。",
     "syncCustomSttWarningTitle": "同步会使用 Omi 转录",
-    "syncCustomSttWarningMessage": "您使用的是自己的转录服务。同步这些录音会改为在 Omi 的服务器上转录，并计入您套餐的转录额度。"
+    "syncCustomSttWarningMessage": "您使用的是自己的转录服务。同步这些录音会改为在 Omi 的服务器上转录，并计入您套餐的转录额度。",
+    "transcribeLaterTitle": "稍后转写",
+    "transcribeLaterDescription": "先录音，之后再按需转写，无需实时进行。录音会保存在手机上，上传后即可生成对话。",
+    "transcribeLaterNote": "目前仅支持 Omi 设备。在你主动上传之前，音频会一直保留在手机上。",
+    "transcribeLaterStorageFull": "手机存储空间不足，录音已暂停。请清理空间或上传录音，之后会自动恢复。",
+    "unmute": "取消静音",
+    "newRecording": "新建录音",
+    "transcribeLaterPaused": "已暂停 — 当前未在录音",
+    "pressAndHold": "长按",
+    "captureIdea": "捕捉想法",
+    "savingIdea": "正在保存想法"
 }

@@ -523,13 +523,13 @@ class AppLocalizationsTe extends AppLocalizations {
   String get micGain => 'మైక్రోఫోన్ లాభం';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'నొక్కి పట్టుకోండి';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'ఆలోచనను పట్టుకోండి';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'ఆలోచన సేవ్ అవుతోంది';
 
   @override
   String get disconnect => 'డిస్‌కనెక్ట్ చేయండి';
@@ -9600,4 +9600,28 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'మీరు మీ సొంత ట్రాన్స్‌క్రిప్షన్ ప్రొవైడర్‌ను ఉపయోగిస్తున్నారు. ఈ రికార్డింగ్‌లను సింక్ చేస్తే అవి Omi సర్వర్‌లలో ట్రాన్స్‌క్రైబ్ చేయబడతాయి మరియు మీ ప్లాన్ ట్రాన్స్‌క్రిప్షన్ పరిమితిలో లెక్కించబడతాయి.';
+
+  @override
+  String get transcribeLaterTitle => 'తర్వాత ట్రాన్‌స్క్రైబ్ చేయండి';
+
+  @override
+  String get transcribeLaterDescription =>
+      'లైవ్‌గా కాకుండా ఆడియోను ఇప్పుడు రికార్డ్ చేసి, మీకు కావలసినప్పుడు ట్రాన్‌స్క్రైబ్ చేయండి. రికార్డింగ్‌లు మీ ఫోన్‌లోనే సేవ్ చేయబడతాయి, తర్వాత వాటిని అప్‌లోడ్ చేయడం ద్వారా సంభాషణలను రూపొందించవచ్చు.';
+
+  @override
+  String get transcribeLaterNote =>
+      'ప్రస్తుతానికి Omi పరికరాలతో మాత్రమే పనిచేస్తుంది. మీరు అప్‌లోడ్ చేయాలని ఎంచుకునే వరకు ఆడియో మీ ఫోన్‌లోనే ఉంటుంది.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'మీ ఫోన్‌లో నిల్వ స్థలం తక్కువగా ఉంది, అందుకే రికార్డింగ్ నిలిపివేయబడింది. స్థలాన్ని ఖాళీ చేయండి లేదా మీ రికార్డింగ్‌లను అప్‌లోడ్ చేయండి, ఆ తర్వాత అది దానంతటదే మళ్లీ ప్రారంభమవుతుంది.';
+
+  @override
+  String get unmute => 'అన్‌మ్యూట్ చేయి';
+
+  @override
+  String get newRecording => 'కొత్త రికార్డింగ్';
+
+  @override
+  String get transcribeLaterPaused => 'పాజ్ చేయబడింది — ఆడియో రికార్డ్ కావడం లేదు';
 }

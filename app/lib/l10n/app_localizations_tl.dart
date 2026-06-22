@@ -524,13 +524,13 @@ class AppLocalizationsTl extends AppLocalizations {
   String get micGain => 'Mic Gain';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'Pindutin nang matagal';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'Kunin ang ideya';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'Sine-save ang ideya';
 
   @override
   String get disconnect => 'Putol ang Koneksyon';
@@ -9638,4 +9638,28 @@ class AppLocalizationsTl extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'Gumagamit ka ng sarili mong transcription provider. Kapag in-sync ang mga recording na ito, ita-transcribe ang mga ito sa mga server ng Omi at mabibilang sa limitasyon ng transcription ng iyong plan.';
+
+  @override
+  String get transcribeLaterTitle => 'I-transcribe Mamaya';
+
+  @override
+  String get transcribeLaterDescription =>
+      'Mag-record ng audio ngayon at i-transcribe ito kapag kailangan mo, sa halip na live. Naka-save ang mga recording sa iyong telepono, tapos i-a-upload mo ang mga ito para gumawa ng mga usapan.';
+
+  @override
+  String get transcribeLaterNote =>
+      'Gumagana muna sa mga Omi device. Mananatili ang audio sa iyong telepono hangga\'t hindi mo ito ina-upload.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'Kapos na sa storage ang iyong telepono, kaya naka-pause ang pag-record. Magbakante ng espasyo o i-upload ang iyong mga recording, at awtomatiko itong magpapatuloy.';
+
+  @override
+  String get unmute => 'I-unmute';
+
+  @override
+  String get newRecording => 'Bagong recording';
+
+  @override
+  String get transcribeLaterPaused => 'Naka-pause — hindi nire-record ang audio';
 }

@@ -1086,8 +1086,8 @@ class TestGeminiThinkingBudget:
 
         try:
             with _patch.dict(os.environ, {'GEMINI_API_KEY': '', 'USE_VERTEX_AI': ''}), _patch(
-                'utils.llm.clients.ChatOpenAI', side_effect=fake_openai
-            ), _patch('utils.llm.clients.ChatGoogleGenerativeAI', side_effect=lambda *a, **k: MagicMock()):
+                'utils.llm.providers.ChatOpenAI', side_effect=fake_openai
+            ), _patch('utils.llm.providers.ChatGoogleGenerativeAI', side_effect=lambda *a, **k: MagicMock()):
                 _get_or_create_gemini_llm('gemini-2.5-flash-lite', thinking_budget=0)
             assert 'thinking_budget' not in captured, 'thinking_budget must not reach the ChatOpenAI fallback'
         finally:
@@ -1107,8 +1107,8 @@ class TestGeminiThinkingBudget:
 
         try:
             with _patch.dict(os.environ, {'GEMINI_API_KEY': 'test-key', 'USE_VERTEX_AI': ''}), _patch(
-                'utils.llm.clients.ChatGoogleGenerativeAI', side_effect=fake_genai
-            ), _patch('utils.llm.clients.ChatOpenAI', side_effect=lambda *a, **k: MagicMock()):
+                'utils.llm.providers.ChatGoogleGenerativeAI', side_effect=fake_genai
+            ), _patch('utils.llm.providers.ChatOpenAI', side_effect=lambda *a, **k: MagicMock()):
                 _get_or_create_gemini_llm('gemini-2.5-flash-lite', thinking_budget=0)
             assert captured.get('thinking_budget') == 0, 'native ChatGoogleGenerativeAI must receive thinking_budget'
         finally:
@@ -1128,8 +1128,8 @@ class TestGeminiThinkingBudget:
 
         try:
             with _patch.dict(os.environ, {'GEMINI_API_KEY': 'test-key', 'USE_VERTEX_AI': ''}), _patch(
-                'utils.llm.clients.ChatGoogleGenerativeAI', side_effect=fake_genai
-            ), _patch('utils.llm.clients.ChatOpenAI', side_effect=lambda *a, **k: MagicMock()):
+                'utils.llm.providers.ChatGoogleGenerativeAI', side_effect=fake_genai
+            ), _patch('utils.llm.providers.ChatOpenAI', side_effect=lambda *a, **k: MagicMock()):
                 _get_or_create_gemini_llm('gemini-3-flash-preview', thinking_budget=0)
             assert 'thinking_budget' not in captured, 'thinking_budget only applies to gemini-2.5* models'
         finally:

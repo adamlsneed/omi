@@ -512,13 +512,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get micGain => '麦克风增益';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => '长按';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => '捕捉想法';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => '正在保存想法';
 
   @override
   String get disconnect => '断开连接';
@@ -9377,4 +9377,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get syncCustomSttWarningMessage => '您使用的是自己的转录服务。同步这些录音会改为在 Omi 的服务器上转录，并计入您套餐的转录额度。';
+
+  @override
+  String get transcribeLaterTitle => '稍后转写';
+
+  @override
+  String get transcribeLaterDescription => '先录音，之后再按需转写，无需实时进行。录音会保存在手机上，上传后即可生成对话。';
+
+  @override
+  String get transcribeLaterNote => '目前仅支持 Omi 设备。在你主动上传之前，音频会一直保留在手机上。';
+
+  @override
+  String get transcribeLaterStorageFull => '手机存储空间不足，录音已暂停。请清理空间或上传录音，之后会自动恢复。';
+
+  @override
+  String get unmute => '取消静音';
+
+  @override
+  String get newRecording => '新建录音';
+
+  @override
+  String get transcribeLaterPaused => '已暂停 — 当前未在录音';
 }

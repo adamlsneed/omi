@@ -57,8 +57,6 @@ abstract class Env {
     return 'wss://$host/v1/agent/ws';
   }
 
-  static String? get growthbookApiKey => _instance.growthbookApiKey;
-
   static String? get googleMapsApiKey => _instance.googleMapsApiKey;
 
   static String? get intercomAppId => _instance.intercomAppId;
@@ -82,8 +80,6 @@ abstract class EnvFields {
   String? get posthogApiKey;
 
   String? get apiBaseUrl;
-
-  String? get growthbookApiKey;
 
   String? get googleMapsApiKey;
 

@@ -522,13 +522,13 @@ class AppLocalizationsFa extends AppLocalizations {
   String get micGain => 'بهره میکروفن';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'فشار دهید و نگه دارید';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'ثبت ایده';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'در حال ذخیره ایده';
 
   @override
   String get disconnect => 'قطع‌کردن';
@@ -9554,4 +9554,28 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'شما از سرویس رونویسی خودتان استفاده می‌کنید. همگام‌سازی این ضبط‌ها آن‌ها را روی سرورهای Omi رونویسی می‌کند و در سقف رونویسی پلن شما محاسبه می‌شوند.';
+
+  @override
+  String get transcribeLaterTitle => 'رونویسی در زمان دلخواه';
+
+  @override
+  String get transcribeLaterDescription =>
+      'صدا را همین حالا ضبط کنید و به‌جای رونویسی زنده، هر وقت خواستید آن را رونویسی کنید. ضبط‌ها روی گوشی شما ذخیره می‌شوند و سپس با بارگذاری آن‌ها گفت‌وگوها ساخته می‌شوند.';
+
+  @override
+  String get transcribeLaterNote =>
+      'فعلاً فقط با دستگاه‌های Omi کار می‌کند. صدا تا زمانی که خودتان بارگذاری را انتخاب نکنید، روی گوشی شما باقی می‌ماند.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'فضای ذخیره‌سازی گوشی شما کم است، بنابراین ضبط متوقف شده است. کمی فضا خالی کنید یا ضبط‌هایتان را بارگذاری کنید تا به‌طور خودکار از سر گرفته شود.';
+
+  @override
+  String get unmute => 'باصدا کردن';
+
+  @override
+  String get newRecording => 'ضبط جدید';
+
+  @override
+  String get transcribeLaterPaused => 'متوقف شد — صدا ضبط نمی‌شود';
 }

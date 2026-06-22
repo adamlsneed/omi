@@ -521,13 +521,13 @@ class AppLocalizationsBe extends AppLocalizations {
   String get micGain => 'Узмацненне мікрафона';
 
   @override
-  String get pressAndHold => 'Press & hold';
+  String get pressAndHold => 'Націсніце і ўтрымлівайце';
 
   @override
-  String get captureIdea => 'Capture idea';
+  String get captureIdea => 'Запісаць ідэю';
 
   @override
-  String get savingIdea => 'Saving idea';
+  String get savingIdea => 'Захаванне ідэі';
 
   @override
   String get disconnect => 'Адключыць';
@@ -9580,4 +9580,28 @@ class AppLocalizationsBe extends AppLocalizations {
   @override
   String get syncCustomSttWarningMessage =>
       'Вы карыстаецеся ўласным сэрвісам транскрыпцыі. Сінхранізацыя гэтых запісаў транскрыбуе іх на серверах Omi, і яны залічацца ў ліміт транскрыпцыі вашага тарыфу.';
+
+  @override
+  String get transcribeLaterTitle => 'Транскрыпцыя пазней';
+
+  @override
+  String get transcribeLaterDescription =>
+      'Запісвайце аўдыя зараз, а транскрыбуйце яго пры неабходнасці, а не ў рэжыме рэальнага часу. Запісы захоўваюцца на тэлефоне, а потым вы загружаеце іх, каб стварыць размовы.';
+
+  @override
+  String get transcribeLaterNote =>
+      'Пакуль працуе з прыладамі Omi. Аўдыя застаецца на тэлефоне, пакуль вы самі не вырашыце яго загрузіць.';
+
+  @override
+  String get transcribeLaterStorageFull =>
+      'На тэлефоне мала вольнага месца, таму запіс прыпынены. Вызваліце месца ці загрузіце свае запісы — і ён аднавіцца аўтаматычна.';
+
+  @override
+  String get unmute => 'Уключыць гук';
+
+  @override
+  String get newRecording => 'Новы запіс';
+
+  @override
+  String get transcribeLaterPaused => 'Прыпынена — аўдыя не запісваецца';
 }
