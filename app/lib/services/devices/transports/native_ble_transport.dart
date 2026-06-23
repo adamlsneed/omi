@@ -20,12 +20,17 @@ class NativeBleTransport extends DeviceTransport {
   /// Characteristic notification streams, keyed by "serviceUuid:charUuid" (lowercased).
   final Map<String, StreamController<List<int>>> _streamControllers = {};
 
+  /// Characteristics that currently have at least one Dart listener.
+  /// Only these should keep native notifications enabled or be restored after reconnect.
+  final Set<String> _activeSubscriptionKeys = {};
+
   /// Discovered services from native.
   List<BleService> _services = [];
 
   Completer<List<BleService>>? _deviceReadyCompleter;
 
   DeviceTransportState _state = DeviceTransportState.disconnected;
+  bool _isManagedByNative = false;
 
   NativeBleTransport(this._peripheralUuid, {this.requiresBond = false}) {
     BleBridge.instance.registerPeripheral(
@@ -53,10 +58,12 @@ class NativeBleTransport extends DeviceTransport {
     _deviceReadyCompleter = Completer<List<BleService>>();
 
     try {
-      _hostApi.manageDevice(_peripheralUuid, requiresBond);
+      await _hostApi.manageDevice(_peripheralUuid, requiresBond);
+      _isManagedByNative = true;
     } catch (e) {
       Logger.debug('[NativeBleTransport] manageDevice failed: $e');
       _deviceReadyCompleter = null;
+      _isManagedByNative = false;
       _updateState(DeviceTransportState.disconnected);
       rethrow;
     }
@@ -78,17 +85,21 @@ class NativeBleTransport extends DeviceTransport {
 
   @override
   Future<void> disconnect() async {
-    if (_state == DeviceTransportState.disconnected) return;
+    final needsCleanup = _state != DeviceTransportState.disconnected ||
+        _isManagedByNative ||
+        _streamControllers.isNotEmpty ||
+        _activeSubscriptionKeys.isNotEmpty;
+    if (!needsCleanup) return;
 
-    _updateState(DeviceTransportState.disconnecting);
+    if (_state != DeviceTransportState.disconnected) {
+      _updateState(DeviceTransportState.disconnecting);
+    }
 
     // Unsubscribe all active streams
-    for (final key in _streamControllers.keys.toList()) {
+    for (final key in _activeSubscriptionKeys.toList()) {
       final parts = key.split(':');
       if (parts.length == 2) {
-        try {
-          _hostApi.unsubscribeCharacteristic(_peripheralUuid, parts[0], parts[1]);
-        } catch (_) {}
+        _unsubscribeCharacteristic(parts[0], parts[1]);
       }
     }
 
@@ -96,9 +107,13 @@ class NativeBleTransport extends DeviceTransport {
     _services = [];
 
     try {
-      _hostApi.unmanageDevice(_peripheralUuid);
+      if (_isManagedByNative) {
+        await _hostApi.unmanageDevice(_peripheralUuid);
+      }
     } catch (e) {
       Logger.debug('[NativeBleTransport] unmanageDevice failed: $e');
+    } finally {
+      _isManagedByNative = false;
     }
 
     _updateState(DeviceTransportState.disconnected);
@@ -139,21 +154,39 @@ class NativeBleTransport extends DeviceTransport {
     final key = '${serviceUuid.toLowerCase()}:${characteristicUuid.toLowerCase()}';
 
     if (!_streamControllers.containsKey(key)) {
-      _streamControllers[key] = StreamController<List<int>>.broadcast();
-      if (_hasCharacteristic(serviceUuid, characteristicUuid)) {
-        _subscribeCharacteristic(serviceUuid, characteristicUuid);
-      }
+      _streamControllers[key] = _createStreamController(serviceUuid, characteristicUuid, key);
     }
 
     return _streamControllers[key]!.stream;
   }
 
+  StreamController<List<int>> _createStreamController(String serviceUuid, String characteristicUuid, String key) {
+    return StreamController<List<int>>.broadcast(
+      onListen: () {
+        _activeSubscriptionKeys.add(key);
+        if (_hasCharacteristic(serviceUuid, characteristicUuid)) {
+          _subscribeCharacteristic(serviceUuid, characteristicUuid);
+        }
+      },
+      onCancel: () {
+        _activeSubscriptionKeys.remove(key);
+        if (_hasCharacteristic(serviceUuid, characteristicUuid)) {
+          _unsubscribeCharacteristic(serviceUuid, characteristicUuid);
+        }
+      },
+    );
+  }
+
   void _subscribeCharacteristic(String serviceUuid, String characteristicUuid) {
-    try {
-      _hostApi.subscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid);
-    } catch (e) {
+    _hostApi.subscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid).catchError((e) {
       Logger.debug('[NativeBleTransport] Failed to subscribe $serviceUuid:$characteristicUuid: $e');
-    }
+    });
+  }
+
+  void _unsubscribeCharacteristic(String serviceUuid, String characteristicUuid) {
+    _hostApi.unsubscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid).catchError((e) {
+      Logger.debug('[NativeBleTransport] Failed to unsubscribe $serviceUuid:$characteristicUuid: $e');
+    });
   }
 
   bool _hasCharacteristic(String serviceUuid, String characteristicUuid) {
@@ -197,6 +230,7 @@ class NativeBleTransport extends DeviceTransport {
 
   @override
   Future<void> dispose() async {
+    await disconnect();
     BleBridge.instance.unregisterPeripheral(_peripheralUuid);
     _closeAllStreams();
     await _connectionStateController.close();
@@ -216,6 +250,7 @@ class NativeBleTransport extends DeviceTransport {
       controller.close();
     }
     _streamControllers.clear();
+    _activeSubscriptionKeys.clear();
   }
 
   void _addToStream(String serviceUuid, String characteristicUuid, List<int> data) {
@@ -228,20 +263,8 @@ class NativeBleTransport extends DeviceTransport {
 
   // MARK: - Native Callbacks
 
-  /// Track which characteristics were subscribed so we can re-subscribe on reconnect.
-  final Set<String> _activeSubscriptionKeys = {};
-
   void _handleConnectionState(bool connected, String? error) {
     if (!connected) {
-      // Guard against double-fire (didDisconnect + didFailToConnect both invoke this).
-      // On the 2nd call _streamControllers is already empty; overwriting _activeSubscriptionKeys
-      // with {} would prevent re-subscription on the next reconnect.
-      if (_streamControllers.isNotEmpty) {
-        _activeSubscriptionKeys.clear();
-        _activeSubscriptionKeys.addAll(_streamControllers.keys);
-      }
-
-      _closeAllStreams();
       _services = [];
       _updateState(DeviceTransportState.disconnected);
 
@@ -275,7 +298,7 @@ class NativeBleTransport extends DeviceTransport {
       for (final key in _activeSubscriptionKeys) {
         final parts = key.split(':');
         if (parts.length == 2) {
-          _streamControllers[key] = StreamController<List<int>>.broadcast();
+          _streamControllers[key] ??= _createStreamController(parts[0], parts[1], key);
           _subscribeCharacteristic(parts[0], parts[1]);
         }
       }
