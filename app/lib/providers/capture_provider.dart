@@ -169,7 +169,11 @@ class CaptureProvider extends ChangeNotifier
     return segmentPersonIds.difference(cachedIds).isNotEmpty;
   }
 
-  CaptureProvider() {
+  final Future<void> Function(bool paused)? _recordingPauseRequesterForTesting;
+
+  CaptureProvider({
+    @visibleForTesting Future<void> Function(bool paused)? recordingPauseRequesterForTesting,
+  }) : _recordingPauseRequesterForTesting = recordingPauseRequesterForTesting {
     _connectionStateListener = ConnectivityService().onConnectionChange.listen((bool isConnected) {
       onConnectionStateChanged(isConnected);
     });
@@ -1132,6 +1136,12 @@ class CaptureProvider extends ChangeNotifier
   }
 
   Future<void> _setDeviceRecordingPaused(bool paused) async {
+    final recordingPauseRequester = _recordingPauseRequesterForTesting;
+    if (recordingPauseRequester != null) {
+      await recordingPauseRequester(paused);
+      return;
+    }
+
     final device = _recordingDevice;
     if (device == null || device.type != DeviceType.omi) {
       Logger.debug('Recording pause skipped: device unavailable or unsupported type ${device?.type}');
@@ -1557,7 +1567,9 @@ class CaptureProvider extends ChangeNotifier
   }
 
   Future stopStreamDeviceRecording({bool cleanDevice = false}) async {
-    await _setDeviceRecordingPaused(false);
+    // Stopping the app-side stream should leave CV1 firmware in its low-audio
+    // paused state until the next explicit recording start resumes it.
+    await _setDeviceRecordingPaused(true);
     _isPaused = false;
     await _cleanupCurrentState(disableNativeBackground: true);
     if (cleanDevice) {
