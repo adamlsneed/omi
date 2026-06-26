@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/backend/schema/message_event.dart';
 import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/l10n/app_localizations.dart';
@@ -166,6 +167,27 @@ void main() {
 
       // Should have triggered an additional notification
       expect(notifyCount, greaterThan(countAfterAdd));
+    });
+  });
+
+  group('device recording power state', () {
+    test('stopStreamDeviceRecording leaves CV1 firmware paused', () async {
+      final pauseRequests = <bool>[];
+      final provider = CaptureProvider(
+        recordingPauseRequesterForTesting: (paused) async {
+          pauseRequests.add(paused);
+        },
+      );
+      provider.updateRecordingDevice(
+        BtDevice(id: 'cv1-device', name: 'Omi CV1', type: DeviceType.omi, rssi: -50),
+      );
+      provider.updateRecordingState(RecordingState.deviceRecord);
+
+      await provider.stopStreamDeviceRecording();
+
+      expect(pauseRequests, [true]);
+      expect(provider.recordingState, RecordingState.stop);
+      provider.dispose();
     });
   });
 
