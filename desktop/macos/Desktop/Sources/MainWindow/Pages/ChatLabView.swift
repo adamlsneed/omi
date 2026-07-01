@@ -190,7 +190,6 @@ class ChatLabViewModel: ObservableObject {
             // Deduplicate by date and take last 10
             var seenDates = Set<String>()
             var entries: [PromptHistoryEntry] = []
-
             for line in lines {
                 let parts = line.components(separatedBy: "|")
                 guard parts.count >= 3 else { continue }

@@ -168,6 +168,21 @@ impl IntoResponse for ErrorResponse {
     }
 }
 
+fn api_base_url(config: &Config) -> Result<&str, ErrorResponse> {
+    config
+        .base_api_url
+        .as_deref()
+        .filter(|url| is_nonblank_url(url))
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "BASE_API_URL not configured".to_string(),
+        })
+}
+
+fn is_nonblank_url(url: &str) -> bool {
+    !url.trim().is_empty()
+}
+
 // OAuth credential data stored in auth codes
 #[derive(Debug, Serialize, Deserialize)]
 struct OAuthCredentials {
@@ -221,7 +236,10 @@ async fn auth_authorize(
         redirect_uri: params.redirect_uri,
         state: params.state,
     };
-    state.sessions.set_session(&session_id, session_data, 300).await;
+    state
+        .sessions
+        .set_session(&session_id, session_data, 300)
+        .await;
 
     match params.provider.as_str() {
         "apple" => apple_auth_redirect(&state.config, &session_id),
@@ -234,12 +252,15 @@ async fn auth_authorize(
 }
 
 fn apple_auth_redirect(config: &Config, session_id: &str) -> Result<Redirect, ErrorResponse> {
-    let client_id = config.apple_client_id.as_ref().ok_or_else(|| ErrorResponse {
-        error: "not_configured".to_string(),
-        message: "APPLE_CLIENT_ID not configured".to_string(),
-    })?;
+    let client_id = config
+        .apple_client_id
+        .as_ref()
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "APPLE_CLIENT_ID not configured".to_string(),
+        })?;
 
-    let api_base_url = config.base_api_url.as_deref().unwrap_or("http://localhost:8080");
+    let api_base_url = api_base_url(config)?;
     let callback_url = format!("{}/v1/auth/callback/apple", api_base_url);
 
     let auth_url = format!(
@@ -257,12 +278,15 @@ fn apple_auth_redirect(config: &Config, session_id: &str) -> Result<Redirect, Er
 }
 
 fn google_auth_redirect(config: &Config, session_id: &str) -> Result<Redirect, ErrorResponse> {
-    let client_id = config.google_client_id.as_ref().ok_or_else(|| ErrorResponse {
-        error: "not_configured".to_string(),
-        message: "GOOGLE_CLIENT_ID not configured".to_string(),
-    })?;
+    let client_id = config
+        .google_client_id
+        .as_ref()
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "GOOGLE_CLIENT_ID not configured".to_string(),
+        })?;
 
-    let api_base_url = config.base_api_url.as_deref().unwrap_or("http://localhost:8080");
+    let api_base_url = api_base_url(config)?;
     let callback_url_raw = format!("{}/v1/auth/callback/google", api_base_url);
     let callback_url = urlencoding::encode(&callback_url_raw);
     let scope = urlencoding::encode("openid email profile");
@@ -292,17 +316,24 @@ async fn auth_callback_apple(
         });
     }
 
-    let session_data = state.sessions.get_session(&form.state).await.ok_or_else(|| ErrorResponse {
-        error: "invalid_session".to_string(),
-        message: "Invalid or expired auth session".to_string(),
-    })?;
+    let session_data = state
+        .sessions
+        .get_session(&form.state)
+        .await
+        .ok_or_else(|| ErrorResponse {
+            error: "invalid_session".to_string(),
+            message: "Invalid or expired auth session".to_string(),
+        })?;
 
     // Exchange Apple code for tokens
     let oauth_credentials = exchange_apple_code(&state, &form.code, &session_data).await?;
 
     // Create temporary auth code
     let auth_code = uuid::Uuid::new_v4().to_string();
-    state.sessions.set_code(&auth_code, oauth_credentials, 300).await;
+    state
+        .sessions
+        .set_code(&auth_code, oauth_credentials, 300)
+        .await;
 
     // Return HTML that redirects to app
     let html = render_auth_callback(
@@ -337,17 +368,24 @@ async fn auth_callback_google(
         message: "Missing state parameter".to_string(),
     })?;
 
-    let session_data = state.sessions.get_session(&session_id).await.ok_or_else(|| ErrorResponse {
-        error: "invalid_session".to_string(),
-        message: "Invalid or expired auth session".to_string(),
-    })?;
+    let session_data = state
+        .sessions
+        .get_session(&session_id)
+        .await
+        .ok_or_else(|| ErrorResponse {
+            error: "invalid_session".to_string(),
+            message: "Invalid or expired auth session".to_string(),
+        })?;
 
     // Exchange Google code for tokens
     let oauth_credentials = exchange_google_code(&state, &code, &session_data).await?;
 
     // Create temporary auth code
     let auth_code = uuid::Uuid::new_v4().to_string();
-    state.sessions.set_code(&auth_code, oauth_credentials, 300).await;
+    state
+        .sessions
+        .set_code(&auth_code, oauth_credentials, 300)
+        .await;
 
     // Return HTML that redirects to app
     let html = render_auth_callback(
@@ -372,15 +410,20 @@ async fn auth_token(
         });
     }
 
-    let oauth_credentials_json = state.sessions.get_code(&form.code).await.ok_or_else(|| ErrorResponse {
-        error: "invalid_code".to_string(),
-        message: "Invalid or expired code".to_string(),
-    })?;
+    let oauth_credentials_json =
+        state
+            .sessions
+            .get_code(&form.code)
+            .await
+            .ok_or_else(|| ErrorResponse {
+                error: "invalid_code".to_string(),
+                message: "Invalid or expired code".to_string(),
+            })?;
 
     state.sessions.delete_code(&form.code).await;
 
-    let credentials: OAuthCredentials = serde_json::from_str(&oauth_credentials_json)
-        .map_err(|e| ErrorResponse {
+    let credentials: OAuthCredentials =
+        serde_json::from_str(&oauth_credentials_json).map_err(|e| ErrorResponse {
             error: "parse_error".to_string(),
             message: format!("Failed to parse credentials: {}", e),
         })?;
@@ -421,10 +464,13 @@ async fn exchange_apple_code(
 ) -> Result<String, ErrorResponse> {
     let config = &state.config;
 
-    let client_id = config.apple_client_id.as_ref().ok_or_else(|| ErrorResponse {
-        error: "not_configured".to_string(),
-        message: "Apple auth not configured".to_string(),
-    })?;
+    let client_id = config
+        .apple_client_id
+        .as_ref()
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "Apple auth not configured".to_string(),
+        })?;
 
     let team_id = config.apple_team_id.as_ref().ok_or_else(|| ErrorResponse {
         error: "not_configured".to_string(),
@@ -436,12 +482,15 @@ async fn exchange_apple_code(
         message: "APPLE_KEY_ID not configured".to_string(),
     })?;
 
-    let private_key = config.apple_private_key.as_ref().ok_or_else(|| ErrorResponse {
-        error: "not_configured".to_string(),
-        message: "APPLE_PRIVATE_KEY not configured".to_string(),
-    })?;
+    let private_key = config
+        .apple_private_key
+        .as_ref()
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "APPLE_PRIVATE_KEY not configured".to_string(),
+        })?;
 
-    let api_base_url = config.base_api_url.as_deref().unwrap_or("http://localhost:8080");
+    let api_base_url = api_base_url(config)?;
     let callback_url = format!("{}/v1/auth/callback/apple", api_base_url);
 
     // Generate client secret JWT
@@ -506,17 +555,23 @@ async fn exchange_google_code(
 ) -> Result<String, ErrorResponse> {
     let config = &state.config;
 
-    let client_id = config.google_client_id.as_ref().ok_or_else(|| ErrorResponse {
-        error: "not_configured".to_string(),
-        message: "Google auth not configured".to_string(),
-    })?;
+    let client_id = config
+        .google_client_id
+        .as_ref()
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "Google auth not configured".to_string(),
+        })?;
 
-    let client_secret = config.google_client_secret.as_ref().ok_or_else(|| ErrorResponse {
-        error: "not_configured".to_string(),
-        message: "GOOGLE_CLIENT_SECRET not configured".to_string(),
-    })?;
+    let client_secret = config
+        .google_client_secret
+        .as_ref()
+        .ok_or_else(|| ErrorResponse {
+            error: "not_configured".to_string(),
+            message: "GOOGLE_CLIENT_SECRET not configured".to_string(),
+        })?;
 
-    let api_base_url = config.base_api_url.as_deref().unwrap_or("http://localhost:8080");
+    let api_base_url = api_base_url(config)?;
     let callback_url = format!("{}/v1/auth/callback/google", api_base_url);
 
     // Exchange code for tokens
@@ -604,8 +659,17 @@ async fn generate_custom_token(
     state: &AuthState,
     credentials: &OAuthCredentials,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let firebase_api_key = state.config.firebase_api_key.as_ref()
+    let firebase_api_key = state
+        .config
+        .firebase_api_key
+        .as_ref()
         .ok_or("FIREBASE_API_KEY not configured")?;
+    let request_uri = state
+        .config
+        .base_api_url
+        .as_deref()
+        .filter(|url| is_nonblank_url(url))
+        .ok_or("BASE_API_URL not configured")?;
 
     // Sign in with OAuth credential using Firebase Auth REST API
     let sign_in_url = format!(
@@ -619,7 +683,10 @@ async fn generate_custom_token(
         _ => return Err(format!("Unsupported provider: {}", credentials.provider).into()),
     };
 
-    let mut post_body = format!("id_token={}&providerId={}", credentials.id_token, provider_id);
+    let mut post_body = format!(
+        "id_token={}&providerId={}",
+        credentials.id_token, provider_id
+    );
     if let Some(access_token) = &credentials.access_token {
         post_body.push_str(&format!("&access_token={}", access_token));
     }
@@ -641,7 +708,7 @@ async fn generate_custom_token(
         .post(&sign_in_url)
         .json(&SignInRequest {
             post_body,
-            request_uri: "http://localhost".to_string(),
+            request_uri: request_uri.to_string(),
             return_idp_credential: true,
             return_secure_token: true,
         })
@@ -727,7 +794,10 @@ pub fn auth_routes(config: Arc<Config>) -> Router {
     };
 
     Router::new()
-        .route("/.well-known/apple-developer-domain-association.txt", get(apple_domain_association))
+        .route(
+            "/.well-known/apple-developer-domain-association.txt",
+            get(apple_domain_association),
+        )
         .route("/v1/auth/authorize", get(auth_authorize))
         .route("/v1/auth/callback/apple", post(auth_callback_apple))
         .route("/v1/auth/callback/google", get(auth_callback_google))
@@ -778,5 +848,15 @@ mod tests {
         assert!(!has_executable_scheme("omi://auth/callback"));
         assert!(!has_executable_scheme("omicomputer://oauth"));
         assert!(!has_executable_scheme("/relative/path"));
+    fn auth_base_url_rejects_blank_values() {
+        assert!(!is_nonblank_url(""));
+        assert!(!is_nonblank_url("   "));
+        assert!(!is_nonblank_url("\n\t"));
+    }
+
+    #[test]
+    fn auth_base_url_accepts_nonblank_values() {
+        assert!(is_nonblank_url("https://desktop-backend.example.com"));
+        assert!(is_nonblank_url("  https://desktop-backend.example.com  "));
     }
 }

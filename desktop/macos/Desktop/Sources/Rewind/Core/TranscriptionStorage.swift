@@ -49,7 +49,9 @@ actor TranscriptionStorage {
         source: String,
         language: String = "en",
         timezone: String = "UTC",
-        inputDeviceName: String? = nil
+        inputDeviceName: String? = nil,
+        clientConversationId: String? = nil,
+        finalizationStrategy: TranscriptionFinalizationStrategy = .cloudReconcile
     ) async throws -> Int64 {
         let db = try await ensureInitialized()
 
@@ -59,7 +61,9 @@ actor TranscriptionStorage {
             language: language,
             timezone: timezone,
             inputDeviceName: inputDeviceName,
-            status: .recording
+            status: .recording,
+            clientConversationId: clientConversationId,
+            finalizationStrategy: finalizationStrategy
         )
 
         let record = try await db.write { database in
@@ -70,8 +74,12 @@ actor TranscriptionStorage {
         return record.id!
     }
 
-    /// Mark session as finished (recording complete, ready for upload)
-    func finishSession(id: Int64) async throws {
+    /// Mark session as finished (recording complete, ready for upload/reconciliation)
+    func finishSession(
+        id: Int64,
+        strategy: TranscriptionFinalizationStrategy? = nil,
+        reason: TranscriptionFinalizationReason = .userStop
+    ) async throws {
         let db = try await ensureInitialized()
 
         let didFinish = try await db.write { database -> Bool in
@@ -79,13 +87,23 @@ actor TranscriptionStorage {
                 throw TranscriptionStorageError.sessionNotFound
             }
 
-            guard !record.hasSyncedBackendIdentity else {
-                log("TranscriptionStorage: Skipping finishSession for backend-synced session \(id)")
+            guard record.status != .completed && !record.backendSynced else {
+                log("TranscriptionStorage: Skipping finishSession for completed backend-synced session \(id)")
                 return false
             }
 
             record.finishedAt = Date()
             record.status = .pendingUpload
+            if let strategy {
+                record.finalizationStrategy = strategy
+            } else if record.finalizationStrategy == nil {
+                record.finalizationStrategy =
+                    (record.backendId?.isEmpty == false) ? .cloudReconcile :
+                    (record.source == ConversationSource.desktop.rawValue ? .localSegments : .cloudReconcile)
+            }
+            record.finalizationReason = reason
+            record.finalizationStartedAt = nil
+            record.finalizationCompletedAt = nil
             record.updatedAt = Date()
             try record.update(database)
             return true
@@ -96,18 +114,9 @@ actor TranscriptionStorage {
         }
     }
 
-    /// Mark session as pending upload
-    func markSessionPendingUpload(id: Int64) async throws {
-        try await updateSessionStatus(id: id, status: .pendingUpload)
-    }
-
-    /// Mark session as currently uploading
-    func markSessionUploading(id: Int64) async throws {
-        try await updateSessionStatus(id: id, status: .uploading)
-    }
-
-    /// Mark session as completed (uploaded successfully)
-    func markSessionCompleted(id: Int64, backendId: String) async throws {
+    /// Bind a local recording session to the backend conversation id announced by `/v4/listen`.
+    /// This is not completion: the backend conversation may still be `in_progress` until stop/finalize.
+    func bindBackendConversation(id: Int64, backendId: String) async throws {
         let db = try await ensureInitialized()
 
         try await db.write { database in
@@ -116,23 +125,96 @@ actor TranscriptionStorage {
             }
 
             guard record.canAcceptCompletion(backendId: backendId) else {
-                log("TranscriptionStorage: Skipping conflicting completion for session \(id) (existing: \(record.backendId ?? "nil"), incoming: \(backendId))")
+                log("TranscriptionStorage: Skipping conflicting backend bind for session \(id) (existing: \(record.backendId ?? "nil"), incoming: \(backendId))")
                 return
+            }
+
+            record.backendId = backendId
+            record.conversationStatus = .inProgress
+            record.updatedAt = Date()
+            try record.update(database)
+        }
+
+        log("TranscriptionStorage: Bound session \(id) to backend conversation \(backendId)")
+    }
+
+    /// Mark session as pending upload
+    func markSessionPendingUpload(id: Int64) async throws {
+        try await updateSessionStatus(id: id, status: .pendingUpload)
+    }
+
+    /// Mark session as currently uploading
+    @discardableResult
+    func markSessionUploading(id: Int64) async throws -> Bool {
+        let db = try await ensureInitialized()
+
+        let claimed = try await db.write { database -> Bool in
+            guard var record = try TranscriptionSessionRecord.fetchOne(database, key: id) else {
+                throw TranscriptionStorageError.sessionNotFound
+            }
+
+            let now = Date()
+            let staleUploadingCutoff = now.addingTimeInterval(-300)
+            guard record.status != .uploading || record.updatedAt < staleUploadingCutoff else {
+                log("TranscriptionStorage: Skipping markSessionUploading for in-progress session \(id)")
+                return false
+            }
+
+            guard record.status != .completed && !record.backendSynced else {
+                log("TranscriptionStorage: Skipping markSessionUploading for completed backend-synced session \(id)")
+                return false
+            }
+
+            record.status = .uploading
+            record.finalizationStartedAt = now
+            record.updatedAt = now
+            try record.update(database)
+            return true
+        }
+
+        if claimed {
+            log("TranscriptionStorage: Marked session \(id) finalization in progress")
+        }
+        return claimed
+    }
+
+    /// Mark session as completed (uploaded successfully)
+    @discardableResult
+    func markSessionCompleted(
+        id: Int64,
+        backendId: String,
+        conversationStatus: LocalConversationStatus = .completed
+    ) async throws -> Bool {
+        let db = try await ensureInitialized()
+
+        let completed = try await db.write { database -> Bool in
+            guard var record = try TranscriptionSessionRecord.fetchOne(database, key: id) else {
+                throw TranscriptionStorageError.sessionNotFound
+            }
+
+            guard record.canAcceptCompletion(backendId: backendId) else {
+                log("TranscriptionStorage: Skipping conflicting completion for session \(id) (existing: \(record.backendId ?? "nil"), incoming: \(backendId))")
+                return false
             }
 
             let completedAt = Date()
             record.status = .completed
-            record.conversationStatus = .completed
+            record.conversationStatus = conversationStatus
             record.finishedAt = record.finishedAt ?? completedAt
             record.backendId = backendId
             record.backendSynced = true
             record.retryCount = 0
             record.lastError = nil
+            record.finalizationCompletedAt = completedAt
             record.updatedAt = completedAt
             try record.update(database)
+            return true
         }
 
-        log("TranscriptionStorage: Completed session \(id) (backendId: \(backendId))")
+        if completed {
+            log("TranscriptionStorage: Completed session \(id) (backendId: \(backendId))")
+        }
+        return completed
     }
 
     /// Mark session as failed with error.
@@ -150,8 +232,8 @@ actor TranscriptionStorage {
                 log("TranscriptionStorage: Skipping markSessionFailed for already-completed session \(id)")
                 return
             }
-            guard !record.hasSyncedBackendIdentity else {
-                log("TranscriptionStorage: Skipping markSessionFailed for backend-synced session \(id)")
+            guard record.status != .completed && !record.backendSynced else {
+                log("TranscriptionStorage: Skipping markSessionFailed for completed backend-synced session \(id)")
                 return
             }
 
@@ -179,8 +261,8 @@ actor TranscriptionStorage {
                 log("TranscriptionStorage: Skipping incrementRetryCount for already-completed session \(id)")
                 return
             }
-            guard !record.hasSyncedBackendIdentity else {
-                log("TranscriptionStorage: Skipping incrementRetryCount for backend-synced session \(id)")
+            guard record.status != .completed && !record.backendSynced else {
+                log("TranscriptionStorage: Skipping incrementRetryCount for completed backend-synced session \(id)")
                 return
             }
 
@@ -215,8 +297,8 @@ actor TranscriptionStorage {
                 throw TranscriptionStorageError.sessionNotFound
             }
 
-            guard !record.hasSyncedBackendIdentity else {
-                log("TranscriptionStorage: Skipping status update for backend-synced session \(id)")
+            guard record.status != .completed && !record.backendSynced else {
+                log("TranscriptionStorage: Skipping status update for completed backend-synced session \(id)")
                 return
             }
 
@@ -528,7 +610,6 @@ actor TranscriptionStorage {
             try TranscriptionSessionRecord
                 .filter(Column("status") == TranscriptionSessionStatus.pendingUpload.rawValue)
                 .filter(Column("backendSynced") == false)
-                .filter((Column("backendId") == nil) || (Column("backendId") == ""))
                 .order(Column("createdAt").asc)
                 .fetchAll(database)
         }
@@ -543,8 +624,25 @@ actor TranscriptionStorage {
                 .filter(Column("status") == TranscriptionSessionStatus.failed.rawValue)
                 .filter(Column("retryCount") < maxRetries)
                 .filter(Column("backendSynced") == false)
-                .filter((Column("backendId") == nil) || (Column("backendId") == ""))
                 .order(Column("updatedAt").asc)
+                .fetchAll(database)
+        }
+    }
+
+    /// Get all unfinished sessions that should be finalized or retried by the canonical finalizer.
+    func getSessionsNeedingFinalization(maxRetries: Int = 5, uploadingStaleAfter seconds: TimeInterval = 300) async throws -> [TranscriptionSessionRecord] {
+        let db = try await ensureInitialized()
+        let uploadingCutoff = Date().addingTimeInterval(-seconds)
+
+        return try await db.read { database in
+            try TranscriptionSessionRecord
+                .filter(Column("backendSynced") == false)
+                .filter(
+                    Column("status") == TranscriptionSessionStatus.pendingUpload.rawValue ||
+                    (Column("status") == TranscriptionSessionStatus.uploading.rawValue && Column("updatedAt") < uploadingCutoff) ||
+                    (Column("status") == TranscriptionSessionStatus.failed.rawValue && Column("retryCount") < maxRetries)
+                )
+                .order(Column("createdAt").asc)
                 .fetchAll(database)
         }
     }
@@ -557,7 +655,6 @@ actor TranscriptionStorage {
             try TranscriptionSessionRecord
                 .filter(Column("status") == TranscriptionSessionStatus.recording.rawValue)
                 .filter(Column("backendSynced") == false)
-                .filter((Column("backendId") == nil) || (Column("backendId") == ""))
                 .order(Column("createdAt").asc)
                 .fetchAll(database)
         }
@@ -574,7 +671,6 @@ actor TranscriptionStorage {
                 .filter(Column("status") == TranscriptionSessionStatus.uploading.rawValue)
                 .filter(Column("updatedAt") < cutoff)
                 .filter(Column("backendSynced") == false)
-                .filter((Column("backendId") == nil) || (Column("backendId") == ""))
                 .order(Column("createdAt").asc)
                 .fetchAll(database)
         }
@@ -610,7 +706,6 @@ actor TranscriptionStorage {
                     (Column("status") == TranscriptionSessionStatus.failed.rawValue && Column("retryCount") < 5)
                 )
                 .filter(Column("backendSynced") == false)
-                .filter((Column("backendId") == nil) || (Column("backendId") == ""))
                 .order(Column("createdAt").asc)
                 .fetchAll(database)
         }
@@ -822,7 +917,7 @@ actor TranscriptionStorage {
     }
 
     /// Get count of local conversations
-    func getLocalConversationsCount(starredOnly: Bool = false) async throws -> Int {
+    func getLocalConversationsCount(starredOnly: Bool = false, folderId: String? = nil) async throws -> Int {
         let db = try await ensureInitialized()
 
         return try await db.read { database in
@@ -833,6 +928,10 @@ actor TranscriptionStorage {
 
             if starredOnly {
                 query = query.filter(Column("starred") == true)
+            }
+
+            if let folderId = folderId {
+                query = query.filter(Column("folderId") == folderId)
             }
 
             return try query.fetchCount(database)

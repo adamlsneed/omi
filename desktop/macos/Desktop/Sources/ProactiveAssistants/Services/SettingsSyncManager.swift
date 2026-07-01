@@ -105,7 +105,11 @@ class SettingsSyncManager {
             if let v = shared.cooldownInterval { AssistantSettings.shared.cooldownInterval = v }
             if let v = shared.glowOverlayEnabled { AssistantSettings.shared.glowOverlayEnabled = v }
             if let v = shared.analysisDelay { AssistantSettings.shared.analysisDelay = v }
-            if let v = shared.screenAnalysisEnabled { AssistantSettings.shared.screenAnalysisEnabled = v }
+            // Lazy-dev bundles keep the local seed (false) and ignore the remote value
+            // so the named bundle cannot start screen analysis until the user opts in.
+            if let v = shared.screenAnalysisEnabled, !shouldKeepLocalScreenAnalysisDefault {
+                AssistantSettings.shared.screenAnalysisEnabled = v
+            }
         }
 
         // Focus settings
@@ -148,15 +152,8 @@ class SettingsSyncManager {
             if let v = memory.excludedApps { MemoryAssistantSettings.shared.excludedApps = Set(v) }
         }
 
-        if let floatingBar = remote.floatingBar {
-            if let v = floatingBar.voiceAnswersEnabled {
-                if pendingVoiceAnswersPush == nil {
-                    ShortcutSettings.shared.floatingBarVoiceAnswersEnabled = v
-                } else {
-                    log("SettingsSyncManager: skipped floating bar voice answers from server (local change pending)")
-                }
-            }
-        }
+        // Push-to-talk voice replies are no longer configurable. Ignore the legacy
+        // server field so old synced `false` values cannot suppress spoken answers.
 
         // Update channel (server-authoritative override)
         // Note: updateChannel.didSet already calls checkForUpdatesInBackground()
@@ -170,12 +167,16 @@ class SettingsSyncManager {
 
     // MARK: - Build Local → Response
 
+    private var shouldKeepLocalScreenAnalysisDefault: Bool {
+        AppBuild.usesLazyDevPermissions
+    }
+
     private func buildFromLocal() -> AssistantSettingsResponse {
         let shared = SharedAssistantSettingsResponse(
             cooldownInterval: AssistantSettings.shared.cooldownInterval,
             glowOverlayEnabled: AssistantSettings.shared.glowOverlayEnabled,
             analysisDelay: AssistantSettings.shared.analysisDelay,
-            screenAnalysisEnabled: AssistantSettings.shared.screenAnalysisEnabled
+            screenAnalysisEnabled: shouldKeepLocalScreenAnalysisDefault ? nil : AssistantSettings.shared.screenAnalysisEnabled
         )
 
         let focus = FocusSettingsResponse(

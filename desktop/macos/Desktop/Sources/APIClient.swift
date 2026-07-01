@@ -29,8 +29,9 @@ actor APIClient {
   // Short-lived caches to deduplicate simultaneous calls from multiple services
   private var goalsCacheTime: Date?
   private var goalsCache: [Goal]?
-  private var conversationsCountCacheTime: Date?
-  private var conversationsCountCache: Int?
+  // Keyed by the query parameters so a cached total for one filter set is never
+  // returned for a different one (e.g. includeDiscarded / statuses).
+  private var conversationsCountCache: [String: (count: Int, time: Date)] = [:]
 
   init() {
     let config = URLSessionConfiguration.default
@@ -91,11 +92,17 @@ actor APIClient {
 
   // MARK: - Request Building
 
-  func buildHeaders(requireAuth: Bool = true) async throws -> [String: String] {
+  func buildHeaders(
+    requireAuth: Bool = true,
+    forceRefreshAuth: Bool = false,
+    includeBYOK: Bool = true
+  ) async throws -> [String: String] {
     var headers: [String: String] = [
       "Content-Type": "application/json",
       "X-App-Platform": "macos",
+      "X-Device-Id-Hash": ClientDeviceService.shared.deviceIdHash,
       "X-Request-Start-Time": String(Date().timeIntervalSince1970),
+      "X-Desktop-Request-ID": UUID().uuidString,
     ]
 
     if requireAuth {
@@ -103,15 +110,28 @@ actor APIClient {
         headers["Authorization"] = testHeader
       } else {
         let authService = await MainActor.run { AuthService.shared }
-        let authHeader = try await authService.getAuthHeader()
+        let authHeader = try await authService.getAuthHeader(forceRefresh: forceRefreshAuth)
         headers["Authorization"] = authHeader
       }
     }
 
     // BYOK: attach user-provided keys so the backend uses them for LLM/STT
     // calls this request triggers. Sent per-request; never stored server-side.
-    for (provider, entry) in APIKeyService.byokSnapshot {
-      headers[provider.headerName] = entry.key
+    if includeBYOK, APIKeyService.isByokActive {
+      let health = await MainActor.run { CredentialHealthManager.shared }
+      let snapshot = APIKeyService.byokSnapshot
+      for (provider, entry) in snapshot {
+        let canAttach = await MainActor.run {
+          health.canUseBYOK(provider: provider, fingerprint: entry.fingerprint)
+        }
+        if canAttach {
+          headers[provider.headerName] = entry.key
+        } else {
+          log(
+            "CredentialHealth: context=build_headers failure_class=byok_invalid_suppressed"
+              + " provider=\(provider.rawValue)")
+        }
+      }
     }
 
     return headers
@@ -137,14 +157,15 @@ actor APIClient {
     _ endpoint: String,
     body: B,
     requireAuth: Bool = true,
-    customBaseURL: String? = nil
+    customBaseURL: String? = nil,
+    includeBYOK: Bool = true
   ) async throws -> T {
     let base = customBaseURL ?? baseURL
     let url = try makeURL(base: base, endpoint: endpoint)
     log("APIClient: POST \(url.absoluteString)")
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
-    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth, includeBYOK: includeBYOK)
     request.httpBody = try JSONEncoder().encode(body)
 
     return try await performRequest(request)
@@ -153,13 +174,14 @@ actor APIClient {
   func post<T: Decodable>(
     _ endpoint: String,
     requireAuth: Bool = true,
-    customBaseURL: String? = nil
+    customBaseURL: String? = nil,
+    includeBYOK: Bool = true
   ) async throws -> T {
     let base = customBaseURL ?? baseURL
     let url = try makeURL(base: base, endpoint: endpoint)
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
-    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth, includeBYOK: includeBYOK)
 
     return try await performRequest(request)
   }
@@ -209,26 +231,89 @@ actor APIClient {
   }
 
   /// Phase 2 realtime hub: ask the backend to mint a short-lived ephemeral token
-  /// for `provider` ("openai"|"gemini"). The backend gates on auth + paywall and
-  /// returns 402/403 if not entitled — any non-200 surfaces here as a thrown error,
-  /// so we return nil and the caller falls back to the legacy cascade.
-  func mintRealtimeToken(provider: String) async -> String? {
+  /// for `provider` ("openai"|"gemini"). The backend gates on auth + paywall.
+  /// Credential failures are typed so the hub can recover deterministically instead
+  /// of treating every failure as a silent fallback.
+  func mintRealtimeToken(provider: String) async throws -> String {
     struct Resp: Decodable { let token: String }
     let base = rustBackendURL
-    guard !base.isEmpty else { return nil }
+    guard !base.isEmpty else {
+      throw CredentialHealthError.backendTransient(
+        statusCode: nil,
+        message: "Desktop backend URL is not configured.")
+    }
     let normalized = base.hasSuffix("/") ? base : base + "/"
+    guard let url = URL(string: normalized + "v2/realtime/session") else {
+      throw CredentialHealthError.backendTransient(statusCode: nil, message: "Invalid desktop backend URL.")
+    }
+
+    let providerType = CredentialHealthManager.realtimeProvider(from: provider)
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true, includeBYOK: false)
+    request.httpBody = try JSONEncoder().encode(["provider": provider])
+
     do {
-      let resp: Resp = try await post(
-        "v2/realtime/session", body: ["provider": provider], customBaseURL: normalized)
-      return resp.token.isEmpty ? nil : resp.token
+      return try await performRealtimeMintRequest(request, provider: providerType, retriedAuth: false)
+    } catch let error as CredentialHealthError {
+      log("APIClient: realtime token mint failed for \(provider): \(error.localizedDescription)")
+      throw error
     } catch {
       log("APIClient: realtime token mint failed for \(provider): \(error.localizedDescription)")
-      return nil
+      throw CredentialHealthError.backendTransient(statusCode: nil, message: error.localizedDescription)
     }
   }
 
+  private func performRealtimeMintRequest(
+    _ request: URLRequest,
+    provider: RealtimeHubProvider?,
+    retriedAuth: Bool
+  ) async throws -> String {
+    struct Resp: Decodable { let token: String }
+    let (data, response) = try await session.data(for: request)
+    guard let httpResponse = response as? HTTPURLResponse else {
+      throw CredentialHealthError.backendTransient(statusCode: nil, message: APIError.invalidResponse.localizedDescription)
+    }
+
+    if httpResponse.statusCode == 401, !retriedAuth {
+      let authService = await MainActor.run { AuthService.shared }
+      var retry = request
+      do {
+        retry.setValue(try await authService.getAuthHeader(forceRefresh: true), forHTTPHeaderField: "Authorization")
+      } catch AuthError.notSignedIn {
+        throw CredentialHealthError.requiresLogin(message: "Please sign in again to use voice responses.")
+      } catch {
+        throw CredentialHealthError.backendTransient(statusCode: nil, message: error.localizedDescription)
+      }
+
+      do {
+        let token = try await performRealtimeMintRequest(retry, provider: provider, retriedAuth: true)
+        log("CredentialHealth: context=realtime_mint_auth_retry failure_class=retry_succeeded")
+        return token
+      } catch let error as CredentialHealthError {
+        throw error
+      } catch {
+        throw CredentialHealthError.backendTransient(statusCode: nil, message: error.localizedDescription)
+      }
+    }
+
+    guard (200...299).contains(httpResponse.statusCode) else {
+      let payload = Self.extractErrorPayload(from: data)
+      throw CredentialHealthManager.classifyHTTPFailure(
+        statusCode: httpResponse.statusCode,
+        payload: payload,
+        provider: provider)
+    }
+
+    let resp = try decoder.decode(Resp.self, from: data)
+    guard !resp.token.isEmpty else {
+      throw CredentialHealthError.backendTransient(statusCode: httpResponse.statusCode, message: "Realtime token was empty.")
+    }
+    return resp.token
+  }
+
   /// Report a managed realtime turn's token usage so the backend can price it and record
-  /// it into the llm_usage ledger (counts toward quota). Fire-and-forget; failures are
+  /// it into the llm_usage cost ledger. Fire-and-forget; failures are
   /// logged and dropped (the backend reconciler is the eventual safety net). Only called
   /// for managed (ephemeral) sessions — BYOK users pay the provider directly.
   func reportRealtimeUsage(
@@ -270,13 +355,14 @@ actor APIClient {
   func delete(
     _ endpoint: String,
     requireAuth: Bool = true,
-    customBaseURL: String? = nil
+    customBaseURL: String? = nil,
+    includeBYOK: Bool = true
   ) async throws {
     let base = customBaseURL ?? baseURL
     let url = try makeURL(base: base, endpoint: endpoint)
     var request = URLRequest(url: url)
     request.httpMethod = "DELETE"
-    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
+    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth, includeBYOK: includeBYOK)
 
     let (_, response) = try await session.data(for: request)
 
@@ -306,11 +392,10 @@ actor APIClient {
     if httpResponse.statusCode == 401 {
       // Try to refresh token and retry once
       let authService = await MainActor.run { AuthService.shared }
-      _ = try await authService.getIdToken(forceRefresh: true)
 
       var retryRequest = request
       retryRequest.setValue(
-        try await authService.getAuthHeader(), forHTTPHeaderField: "Authorization")
+        try await authService.getAuthHeader(forceRefresh: true), forHTTPHeaderField: "Authorization")
 
       let (retryData, retryResponse) = try await session.data(for: retryRequest)
 
@@ -363,11 +448,18 @@ actor APIClient {
   }
 
   private static func extractErrorDetail(from data: Data) -> String? {
+    if let payload = extractErrorPayload(from: data) {
+      return payload.preferredMessage
+    }
     guard
       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
       let detail = json["detail"] as? String
     else { return nil }
     return detail
+  }
+
+  private static func extractErrorPayload(from data: Data) -> APIErrorPayload? {
+    try? JSONDecoder().decode(APIErrorPayload.self, from: data)
   }
 }
 
@@ -379,6 +471,7 @@ enum APIError: LocalizedError {
   case httpError(statusCode: Int, detail: String? = nil)
   case decodingError(Error)
   case invalidURL(String)
+  case unsupportedTierScopedBulkMutation(String)
 
   var detail: String? {
     if case .httpError(_, let detail) = self { return detail }
@@ -398,6 +491,8 @@ enum APIError: LocalizedError {
       return "Failed to decode response: \(error.localizedDescription)"
     case .invalidURL(let url):
       return "Invalid URL: \(url)"
+    case .unsupportedTierScopedBulkMutation(let operation):
+      return "Layer-scoped bulk memory \(operation) is not supported yet."
     }
   }
 }
@@ -424,21 +519,16 @@ extension APIClient {
 
 extension APIClient {
 
-  /// Fetches conversations from the API with optional filtering
-  func getConversations(
-    limit: Int = 50,
-    offset: Int = 0,
+  static func conversationFilterQueryItems(
     statuses: [ConversationStatus] = [],
     includeDiscarded: Bool = false,
     startDate: Date? = nil,
     endDate: Date? = nil,
     folderId: String? = nil,
     starred: Bool? = nil
-  ) async throws -> [ServerConversation] {
+  ) -> [String] {
     var queryItems: [String] = [
-      "limit=\(limit)",
-      "offset=\(offset)",
-      "include_discarded=\(includeDiscarded)",
+      "include_discarded=\(includeDiscarded)"
     ]
 
     if !statuses.isEmpty {
@@ -464,6 +554,33 @@ extension APIClient {
       queryItems.append("starred=\(starred)")
     }
 
+    return queryItems
+  }
+
+  /// Fetches conversations from the API with optional filtering
+  func getConversations(
+    limit: Int = 50,
+    offset: Int = 0,
+    statuses: [ConversationStatus] = [],
+    includeDiscarded: Bool = false,
+    startDate: Date? = nil,
+    endDate: Date? = nil,
+    folderId: String? = nil,
+    starred: Bool? = nil
+  ) async throws -> [ServerConversation] {
+    var queryItems: [String] = [
+      "limit=\(limit)",
+      "offset=\(offset)",
+    ]
+    queryItems += Self.conversationFilterQueryItems(
+      statuses: statuses,
+      includeDiscarded: includeDiscarded,
+      startDate: startDate,
+      endDate: endDate,
+      folderId: folderId,
+      starred: starred
+    )
+
     let endpoint = "v1/conversations?\(queryItems.joined(separator: "&"))"
     return try await get(endpoint)
   }
@@ -476,6 +593,7 @@ extension APIClient {
   /// Deletes a conversation by ID
   func deleteConversation(id: String) async throws {
     try await delete("v1/conversations/\(id)")
+    invalidateConversationsCountCache()
   }
 
   /// Updates the starred status of a conversation
@@ -491,6 +609,7 @@ extension APIClient {
     else {
       throw APIError.httpError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
+    invalidateConversationsCountCache()
   }
 
   /// Sets the visibility of a conversation for sharing
@@ -571,35 +690,58 @@ extension APIClient {
     return try await post("v1/conversations/search", body: body)
   }
 
+  static func conversationsCountEndpoint(
+    includeDiscarded: Bool = false,
+    statuses: [ConversationStatus] = [.completed, .processing],
+    startDate: Date? = nil,
+    endDate: Date? = nil,
+    folderId: String? = nil,
+    starred: Bool? = nil
+  ) -> String {
+    let queryItems = Self.conversationFilterQueryItems(
+      statuses: statuses,
+      includeDiscarded: includeDiscarded,
+      startDate: startDate,
+      endDate: endDate,
+      folderId: folderId,
+      starred: starred
+    )
+
+    return "v1/conversations/count?\(queryItems.joined(separator: "&"))"
+  }
+
+  func invalidateConversationsCountCache() {
+    conversationsCountCache.removeAll()
+  }
+
   /// Gets the total count of conversations. Uses 5-second cache to deduplicate parallel calls.
   func getConversationsCount(
     includeDiscarded: Bool = false,
-    statuses: [ConversationStatus] = [.completed, .processing]
+    statuses: [ConversationStatus] = [.completed, .processing],
+    startDate: Date? = nil,
+    endDate: Date? = nil,
+    folderId: String? = nil,
+    starred: Bool? = nil
   ) async throws -> Int {
-    if let cache = conversationsCountCache, let time = conversationsCountCacheTime,
-      Date().timeIntervalSince(time) < 5
-    {
-      return cache
+    let endpoint = Self.conversationsCountEndpoint(
+      includeDiscarded: includeDiscarded,
+      statuses: statuses,
+      startDate: startDate,
+      endDate: endDate,
+      folderId: folderId,
+      starred: starred
+    )
+
+    if let cache = conversationsCountCache[endpoint], Date().timeIntervalSince(cache.time) < 5 {
+      return cache.count
     }
-
-    var queryItems: [String] = [
-      "include_discarded=\(includeDiscarded)"
-    ]
-
-    if !statuses.isEmpty {
-      let statusStrings = statuses.map { $0.rawValue }.joined(separator: ",")
-      queryItems.append("statuses=\(statusStrings)")
-    }
-
-    let endpoint = "v1/conversations/count?\(queryItems.joined(separator: "&"))"
 
     struct CountResponse: Decodable {
       let count: Int
     }
 
     let response: CountResponse = try await get(endpoint)
-    conversationsCountCache = response.count
-    conversationsCountCacheTime = Date()
+    conversationsCountCache[endpoint] = (count: response.count, time: Date())
     return response.count
   }
 
@@ -628,7 +770,9 @@ extension APIClient {
     }
 
     let body = MergeRequest(conversationIds: ids, reprocess: reprocess)
-    return try await post("v1/conversations/merge", body: body)
+    let response: MergeConversationsResponse = try await post("v1/conversations/merge", body: body)
+    invalidateConversationsCountCache()
+    return response
   }
 
   // MARK: - Folder API
@@ -662,6 +806,7 @@ extension APIClient {
       endpoint += "?move_to_folder_id=\(moveToId)"
     }
     try await delete(endpoint)
+    invalidateConversationsCountCache()
   }
 
   /// Moves a conversation to a folder
@@ -679,6 +824,7 @@ extension APIClient {
     else {
       throw APIError.httpError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
+    invalidateConversationsCountCache()
   }
 
 }
@@ -719,12 +865,21 @@ enum ConversationSource: String, Codable {
   }
 }
 
+enum TranscriptPresenceState: Equatable {
+  case omittedFromResponse
+  case lockedOrRedacted
+  case includedEmpty
+  case includedNonEmpty
+}
+
 struct ServerConversation: Codable, Identifiable, Equatable {
   static func == (lhs: ServerConversation, rhs: ServerConversation) -> Bool {
     lhs.id == rhs.id && lhs.createdAt == rhs.createdAt && lhs.startedAt == rhs.startedAt
       && lhs.finishedAt == rhs.finishedAt && lhs.structured == rhs.structured
       && lhs.status == rhs.status && lhs.discarded == rhs.discarded && lhs.deleted == rhs.deleted
-      && lhs.starred == rhs.starred && lhs.folderId == rhs.folderId && lhs.source == rhs.source
+      && lhs.isLocked == rhs.isLocked && lhs.starred == rhs.starred && lhs.folderId == rhs.folderId
+      && lhs.source == rhs.source
+      && lhs.transcriptSegmentsIncluded == rhs.transcriptSegmentsIncluded
   }
 
   let id: String
@@ -734,6 +889,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
 
   var structured: Structured
   var transcriptSegments: [TranscriptSegment]
+  var transcriptSegmentsIncluded: Bool
   let geolocation: Geolocation?
   let photos: [ConversationPhoto]
 
@@ -748,6 +904,9 @@ struct ServerConversation: Codable, Identifiable, Equatable {
   var starred: Bool
   let folderId: String?
   let inputDeviceName: String?
+  // Lazy processing: true while only the raw transcript is stored (no LLM summary yet);
+  // cleared once enriched on first open (get_conversation_by_id).
+  let deferred: Bool
 
   enum CodingKeys: String, CodingKey {
     case id
@@ -768,6 +927,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     case starred
     case folderId = "folder_id"
     case inputDeviceName = "input_device_name"
+    case deferred
   }
 
   init(from decoder: Decoder) throws {
@@ -778,6 +938,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     startedAt = try container.decodeIfPresent(Date.self, forKey: .startedAt)
     finishedAt = try container.decodeIfPresent(Date.self, forKey: .finishedAt)
     structured = try container.decode(Structured.self, forKey: .structured)
+    transcriptSegmentsIncluded = container.contains(.transcriptSegments)
     transcriptSegments =
       try container.decodeIfPresent([TranscriptSegment].self, forKey: .transcriptSegments) ?? []
     geolocation = try container.decodeIfPresent(Geolocation.self, forKey: .geolocation)
@@ -792,6 +953,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     starred = try container.decodeIfPresent(Bool.self, forKey: .starred) ?? false
     folderId = try container.decodeIfPresent(String.self, forKey: .folderId)
     inputDeviceName = try container.decodeIfPresent(String.self, forKey: .inputDeviceName)
+    deferred = try container.decodeIfPresent(Bool.self, forKey: .deferred) ?? false
   }
 
   /// Memberwise initializer for creating from local storage
@@ -802,6 +964,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     finishedAt: Date?,
     structured: Structured,
     transcriptSegments: [TranscriptSegment],
+    transcriptSegmentsIncluded: Bool,
     geolocation: Geolocation?,
     photos: [ConversationPhoto],
     appsResults: [AppResponse],
@@ -813,7 +976,8 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     isLocked: Bool,
     starred: Bool,
     folderId: String?,
-    inputDeviceName: String?
+    inputDeviceName: String?,
+    deferred: Bool = false
   ) {
     self.id = id
     self.createdAt = createdAt
@@ -821,6 +985,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     self.finishedAt = finishedAt
     self.structured = structured
     self.transcriptSegments = transcriptSegments
+    self.transcriptSegmentsIncluded = transcriptSegmentsIncluded
     self.geolocation = geolocation
     self.photos = photos
     self.appsResults = appsResults
@@ -833,6 +998,7 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     self.starred = starred
     self.folderId = folderId
     self.inputDeviceName = inputDeviceName
+    self.deferred = deferred
   }
 
   /// Returns the title from structured data, or a fallback
@@ -872,6 +1038,23 @@ struct ServerConversation: Codable, Identifiable, Equatable {
       let speaker = segment.isUser ? "You" : "Speaker \(segment.speakerId)"
       return "\(speaker): \(segment.text)"
     }.joined(separator: "\n\n")
+  }
+
+  var transcriptPresenceState: TranscriptPresenceState {
+    if isLocked {
+      return .lockedOrRedacted
+    }
+    if !transcriptSegmentsIncluded {
+      return .omittedFromResponse
+    }
+    if transcriptSegments.isEmpty {
+      return .includedEmpty
+    }
+    return .includedNonEmpty
+  }
+
+  var shouldFetchDetailForTranscript: Bool {
+    transcriptPresenceState == .omittedFromResponse
   }
 }
 
@@ -1220,12 +1403,118 @@ enum MemoryCategory: String, Codable, CaseIterable {
   }
 }
 
-struct ServerMemory: Codable, Identifiable {
+enum MemoryLayer: String, Codable, CaseIterable, Identifiable {
+  case shortTerm = "short_term"
+  case longTerm = "long_term"
+  case archive
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    let rawValue = try container.decode(String.self)
+    guard let layer = MemoryLayer(rawValue: rawValue) else {
+      throw DecodingError.dataCorruptedError(
+        in: container,
+        debugDescription: "Unknown ServerMemory layer '\(rawValue)'"
+      )
+    }
+    self = layer
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    try container.encode(rawValue)
+  }
+
+  var id: String { rawValue }
+
+  var displayName: String {
+    switch self {
+    case .shortTerm: return "Short-term"
+    case .longTerm: return "Long-term"
+    case .archive: return "Archive"
+    }
+  }
+
+  var icon: String {
+    switch self {
+    case .shortTerm: return "clock"
+    case .longTerm: return "brain.head.profile"
+    case .archive: return "archivebox"
+    }
+  }
+
+  var isDefaultAccessible: Bool {
+    self == .shortTerm || self == .longTerm
+  }
+
+  var layerInfoText: String {
+    switch self {
+    case .shortTerm:
+      return
+        "Recent observations from your activity. May decay or promote to Long-term when corroborated."
+    case .longTerm:
+      return
+        "Durable facts Omi keeps long-term - stable details about you, your preferences, and your life."
+    case .archive:
+      return "Aged-out long-term memories. Hidden by default; search Archive to find them."
+    }
+  }
+}
+
+/// Reversible alias during WS-G client rename.
+typealias MemoryTier = MemoryLayer
+
+struct MemoryLayerScope: Equatable {
+  let tiers: [MemoryLayer]
+  let requiresArchiveAcknowledgement: Bool
+
+  static let defaultAccess = MemoryLayerScope(
+    tiers: [.shortTerm, .longTerm],
+    requiresArchiveAcknowledgement: false
+  )
+  static let archiveOnly = MemoryLayerScope(
+    tiers: [.archive],
+    requiresArchiveAcknowledgement: true
+  )
+  static let allIncludingArchive = MemoryLayerScope(
+    tiers: [.shortTerm, .longTerm, .archive],
+    requiresArchiveAcknowledgement: true
+  )
+
+  var includesArchive: Bool { tiers.contains(.archive) }
+  var sqlTierRawValues: [String] { tiers.map { $0.rawValue } }
+}
+
+/// Reversible alias during WS-G client rename.
+typealias MemoryTierScope = MemoryLayerScope
+
+private enum ServerMemoryAliasDecodeError {
+  static func conflict(
+    _ firstField: String,
+    _ firstValue: String,
+    _ secondField: String,
+    _ secondValue: String,
+    codingPath: [CodingKey]
+  ) -> DecodingError {
+    DecodingError.dataCorrupted(
+      DecodingError.Context(
+        codingPath: codingPath,
+        debugDescription: "Conflicting ServerMemory aliases: \(firstField)=\(firstValue) differs from \(secondField)=\(secondValue)"
+      )
+    )
+  }
+}
+
+struct ServerMemory: Decodable, Identifiable {
   let id: String
   let content: String
   let category: MemoryCategory
   let createdAt: Date
   let updatedAt: Date
+  let capturedAt: Date?
+  let expiresAt: Date?
+  let tier: MemoryLayer
+  let tierIsExplicit: Bool
   let conversationId: String?
   let reviewed: Bool
   let userReview: Bool?
@@ -1249,14 +1538,21 @@ struct ServerMemory: Codable, Identifiable {
   let inputDeviceName: String?
   // Window title when memory was extracted
   let windowTitle: String?
+  // Capture-device provenance (optional; absent on legacy memories)
+  let primaryCaptureDevice: String?
+  let captureDeviceIds: [String]
   // Short headline for notification preview (advice/tips only)
   let headline: String?
 
   enum CodingKeys: String, CodingKey {
     case id, content, category, reviewed, visibility, scoring, source, confidence, tags, reasoning,
-      headline
+      headline, tier, layer
+    case memoryId = "memory_id"
+    case memoryTier = "memory_tier"
     case createdAt = "created_at"
     case updatedAt = "updated_at"
+    case capturedAt = "captured_at"
+    case expiresAt = "expires_at"
     case conversationId = "conversation_id"
     case userReview = "user_review"
     case manuallyAdded = "manually_added"
@@ -1267,15 +1563,68 @@ struct ServerMemory: Codable, Identifiable {
     case currentActivity = "current_activity"
     case inputDeviceName = "input_device_name"
     case windowTitle = "window_title"
+    case primaryCaptureDevice = "primary_capture_device"
+    case captureDeviceIds = "capture_device_ids"
   }
 
   init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    id = try container.decode(String.self, forKey: .id)
+    let idValue = try container.decodeIfPresent(String.self, forKey: .id)
+    let memoryIdValue = try container.decodeIfPresent(String.self, forKey: .memoryId)
+    switch (idValue, memoryIdValue) {
+    case let (.some(id), .some(memoryId)) where id != memoryId:
+      throw ServerMemoryAliasDecodeError.conflict(
+        "id", id, "memory_id", memoryId, codingPath: container.codingPath)
+    case let (.some(id), _):
+      self.id = id
+    case let (_, .some(memoryId)):
+      self.id = memoryId
+    case (.none, .none):
+      throw DecodingError.keyNotFound(
+        CodingKeys.id,
+        DecodingError.Context(
+          codingPath: container.codingPath,
+          debugDescription: "ServerMemory requires either id or memory_id"
+        )
+      )
+    }
+
     content = try container.decode(String.self, forKey: .content)
     category = try container.decodeIfPresent(MemoryCategory.self, forKey: .category) ?? .system
-    createdAt = try container.decode(Date.self, forKey: .createdAt)
-    updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    capturedAt = try container.decodeIfPresent(Date.self, forKey: .capturedAt)
+    createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? capturedAt ?? Date()
+    updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+    expiresAt = try container.decodeIfPresent(Date.self, forKey: .expiresAt)
+
+    let layerValue = try container.decodeIfPresent(MemoryLayer.self, forKey: .layer)
+    let tierValue = try container.decodeIfPresent(MemoryLayer.self, forKey: .tier)
+    let memoryTierValue = try container.decodeIfPresent(MemoryLayer.self, forKey: .memoryTier)
+    tierIsExplicit = layerValue != nil || tierValue != nil || memoryTierValue != nil
+
+    let presentTierAliases: [(String, MemoryLayer)] = [
+      layerValue.map { ("layer", $0) },
+      tierValue.map { ("tier", $0) },
+      memoryTierValue.map { ("memory_tier", $0) },
+    ].compactMap { $0 }
+    if presentTierAliases.count >= 2 {
+      let first = presentTierAliases[0]
+      for other in presentTierAliases.dropFirst() where other.1 != first.1 {
+        throw ServerMemoryAliasDecodeError.conflict(
+          first.0, first.1.rawValue, other.0, other.1.rawValue, codingPath: container.codingPath)
+      }
+    }
+
+    switch (layerValue, tierValue, memoryTierValue) {
+    case let (.some(layer), _, _):
+      self.tier = layer
+    case let (_, .some(tier), _):
+      self.tier = tier
+    case let (_, _, .some(memoryTier)):
+      self.tier = memoryTier
+    case (.none, .none, .none):
+      self.tier = .longTerm
+    }
+
     conversationId = try container.decodeIfPresent(String.self, forKey: .conversationId)
     reviewed = try container.decodeIfPresent(Bool.self, forKey: .reviewed) ?? false
     userReview = try container.decodeIfPresent(Bool.self, forKey: .userReview)
@@ -1293,6 +1642,8 @@ struct ServerMemory: Codable, Identifiable {
     currentActivity = try container.decodeIfPresent(String.self, forKey: .currentActivity)
     inputDeviceName = try container.decodeIfPresent(String.self, forKey: .inputDeviceName)
     windowTitle = try container.decodeIfPresent(String.self, forKey: .windowTitle)
+    primaryCaptureDevice = try container.decodeIfPresent(String.self, forKey: .primaryCaptureDevice)
+    captureDeviceIds = try container.decodeIfPresent([String].self, forKey: .captureDeviceIds) ?? []
     headline = try container.decodeIfPresent(String.self, forKey: .headline)
   }
 
@@ -1403,6 +1754,19 @@ extension APIClient {
       return nil
     }
   }
+
+  /// Finalize a specific backend conversation id. This avoids the global Redis-backed
+  /// force-process endpoint, which can act on a newer in-progress recording after rotation.
+  func finalizeConversation(id conversationId: String) async throws -> ServerConversation {
+    struct EmptyBody: Encodable {}
+
+    let response: ForceProcessConversationResponse = try await post(
+      "v1/conversations/\(conversationId)/finalize",
+      body: EmptyBody(),
+      customBaseURL: nil
+    )
+    return response.conversation
+  }
 }
 
 // MARK: - Create Conversation From Segments (on-device transcription upload)
@@ -1425,6 +1789,7 @@ extension APIClient {
     let started_at: String?  // ISO8601
     let finished_at: String?  // ISO8601
     let language: String
+    let client_conversation_id: String?
   }
 
   struct CreateConversationFromSegmentsResponse: Decodable {
@@ -1440,7 +1805,10 @@ extension APIClient {
   func createConversationFromSegments(_ request: CreateConversationFromSegmentsRequest)
     async throws -> CreateConversationFromSegmentsResponse
   {
-    return try await post("v1/conversations/from-segments", body: request, customBaseURL: nil)
+    let response: CreateConversationFromSegmentsResponse = try await post(
+      "v1/conversations/from-segments", body: request, customBaseURL: nil)
+    invalidateConversationsCountCache()
+    return response
   }
 }
 
@@ -1454,7 +1822,8 @@ extension APIClient {
     offset: Int = 0,
     category: String? = nil,
     tags: [String]? = nil,
-    includeDismissed: Bool = false
+    includeDismissed: Bool = false,
+    deviceScope: String? = nil
   ) async throws -> [ServerMemory] {
     var endpoint = "v3/memories?limit=\(limit)&offset=\(offset)"
     if let category = category {
@@ -1465,6 +1834,9 @@ extension APIClient {
     }
     if includeDismissed {
       endpoint += "&include_dismissed=true"
+    }
+    if let deviceScope = deviceScope {
+      endpoint += "&device_scope=\(deviceScope)"
     }
     return try await get(endpoint)
   }
@@ -1590,6 +1962,11 @@ extension APIClient {
     let _: MemoryStatusResponse = try await post("v3/memories/mark-all-read", body: EmptyBody())
   }
 
+  /// Layer/archive scoped bulk read-state mutations remain disabled until backend semantics exist.
+  func markAllMemoriesRead(scope: MemoryLayerScope) async throws {
+    throw APIError.unsupportedTierScopedBulkMutation("read-state updates")
+  }
+
   /// Updates visibility of all memories
   func updateAllMemoriesVisibility(visibility: String) async throws {
     struct VisibilityRequest: Encodable {
@@ -1599,9 +1976,29 @@ extension APIClient {
     let _: MemoryStatusResponse = try await patch("v3/memories/visibility", body: body)
   }
 
+  /// Updates visibility of all default-scope memories.
+  /// Layer/archive scoped bulk mutations remain disabled until backend semantics exist.
+  func updateAllMemoriesVisibility(scope: MemoryLayerScope, visibility: String) async throws {
+    if scope == .defaultAccess {
+      try await updateAllMemoriesVisibility(visibility: visibility)
+      return
+    }
+    throw APIError.unsupportedTierScopedBulkMutation("visibility updates")
+  }
+
   /// Deletes all memories
   func deleteAllMemories() async throws {
     try await delete("v3/memories")
+  }
+
+  /// Deletes all default-scope memories.
+  /// Layer/archive scoped bulk mutations remain disabled until backend semantics exist.
+  func deleteAllMemories(scope: MemoryLayerScope) async throws {
+    if scope == .defaultAccess {
+      try await deleteAllMemories()
+      return
+    }
+    throw APIError.unsupportedTierScopedBulkMutation("deletion")
   }
 
   // MARK: - PATCH helper
@@ -1655,19 +2052,30 @@ struct MemoryBatchItem: Encodable {
   let category: String
   let tags: [String]
   let headline: String?
+  let source: String?
+  let windowTitle: String?
 
   init(
     content: String,
     visibility: String = "private",
     category: MemoryCategory = .system,
     tags: [String] = [],
-    headline: String? = nil
+    headline: String? = nil,
+    source: String? = nil,
+    windowTitle: String? = nil
   ) {
     self.content = content
     self.visibility = visibility
     self.category = category.rawValue
     self.tags = tags
     self.headline = headline
+    self.source = source
+    self.windowTitle = windowTitle
+  }
+
+  enum CodingKeys: String, CodingKey {
+    case content, visibility, category, tags, headline, source
+    case windowTitle = "window_title"
   }
 }
 
@@ -1771,6 +2179,11 @@ extension APIClient {
 
     let endpoint = "v1/action-items?\(queryItems.joined(separator: "&"))"
     return try await get(endpoint)
+  }
+
+  /// Fetches one action item by backend ID.
+  func getActionItem(id: String) async throws -> TaskActionItem {
+    try await get("v1/action-items/\(id)")
   }
 
   /// Updates an action item
@@ -2791,7 +3204,8 @@ struct Goal: Codable, Identifiable {
   /// Progress as a percentage (0-100), based on targetValue
   var progress: Double {
     guard targetValue != minValue else { return 0 }
-    return ((currentValue - minValue) / (targetValue - minValue)) * 100.0
+    let pct = ((currentValue - minValue) / (targetValue - minValue)) * 100.0
+    return min(max(pct, 0), 100)
   }
 
   /// Whether the goal is completed
@@ -4352,7 +4766,9 @@ extension APIClient {
     sender: String,
     appId: String? = nil,
     sessionId: String? = nil,
-    metadata: String? = nil
+    metadata: String? = nil,
+    clientMessageId: String? = nil,
+    messageSource: String = "desktop_chat"
   ) async throws -> SaveMessageResponse {
     struct SaveRequest: Encodable {
       let text: String
@@ -4360,9 +4776,18 @@ extension APIClient {
       let app_id: String?
       let session_id: String?
       let metadata: String?
+      let client_message_id: String?
+      let message_source: String
     }
     let body = SaveRequest(
-      text: text, sender: sender, app_id: appId, session_id: sessionId, metadata: metadata)
+      text: text,
+      sender: sender,
+      app_id: appId,
+      session_id: sessionId,
+      metadata: metadata,
+      client_message_id: clientMessageId,
+      message_source: messageSource
+    )
     return try await post("v2/desktop/messages", body: body)
   }
 
@@ -4654,10 +5079,14 @@ struct InitialMessageResponse: Codable {
 struct SaveMessageResponse: Codable {
   let id: String
   let createdAt: Date
+  let sessionId: String?
+  let created: Bool?
 
   enum CodingKeys: String, CodingKey {
     case id
     case createdAt = "created_at"
+    case sessionId = "session_id"
+    case created
   }
 }
 
@@ -4864,13 +5293,13 @@ extension APIClient {
     }
     struct Empty: Decodable {}
     let _: Empty = try await post(
-      "v1/users/me/byok-active", body: Request(fingerprints: fingerprints)
+      "v1/users/me/byok-active", body: Request(fingerprints: fingerprints), includeBYOK: false
     )
   }
 
   /// Deactivate BYOK (user cleared keys) so they return to the paid plan gate.
   func deactivateBYOK() async throws {
-    try await delete("v1/users/me/byok-active")
+    try await delete("v1/users/me/byok-active", includeBYOK: false)
   }
 
   /// Fetches all people for the current user
@@ -5153,6 +5582,24 @@ extension APIClient {
     }
   }
 
+  struct CreateCalendarEventRequest: Encodable {
+    let title: String
+    let startTime: String
+    let endTime: String
+    let description: String?
+    let location: String?
+    let attendees: String?
+
+    enum CodingKeys: String, CodingKey {
+      case title
+      case startTime = "start_time"
+      case endTime = "end_time"
+      case description
+      case location
+      case attendees
+    }
+  }
+
   /// Percent-encode a date string for use in query parameters.
   /// `.urlQueryAllowed` does not encode `+`, but servers decode `+` as space in query strings.
   /// This encodes `+` as `%2B` so timezone offsets like `+07:00` survive round-trip.
@@ -5237,6 +5684,25 @@ extension APIClient {
   ) async throws -> ToolResponse {
     let body = UpdateActionItemRequest(completed: completed, description: description, dueAt: dueAt)
     return try await patch("v1/tools/action-items/\(id)", body: body, customBaseURL: nil)
+  }
+
+  func toolCreateCalendarEvent(
+    title: String,
+    startTime: String,
+    endTime: String,
+    description: String? = nil,
+    location: String? = nil,
+    attendees: String? = nil
+  ) async throws -> ToolResponse {
+    let body = CreateCalendarEventRequest(
+      title: title,
+      startTime: startTime,
+      endTime: endTime,
+      description: description,
+      location: location,
+      attendees: attendees
+    )
+    return try await post("v1/tools/calendar-events", body: body, customBaseURL: nil)
   }
 
   // MARK: - X (Twitter) Connector

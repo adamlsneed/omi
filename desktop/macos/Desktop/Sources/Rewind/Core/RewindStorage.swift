@@ -36,10 +36,8 @@ actor RewindStorage {
 
     /// Initialize the storage directories
     func initialize() async throws {
-        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let userId = RewindDatabase.currentUserId ?? "anonymous"
-        let omiDir = appSupport
-            .appendingPathComponent("Omi", isDirectory: true)
+        let omiDir = DesktopLocalProfile.applicationSupportURL()
             .appendingPathComponent("users", isDirectory: true)
             .appendingPathComponent(userId, isDirectory: true)
 
@@ -200,10 +198,6 @@ actor RewindStorage {
     private func extractFrameWithFFmpeg(from videoPath: String, frameOffset: Int) async throws -> NSImage {
         let ffmpegPath = findFFmpegPath()
 
-        // Calculate time offset based on capture frame rate
-        let captureInterval = UserDefaults.standard.object(forKey: "rewindCaptureInterval") as? Double ?? 1.0
-        let timeOffset = Double(frameOffset) * captureInterval
-
         // Create a temporary file for the output
         let tempDir = FileManager.default.temporaryDirectory
         let outputPath = tempDir.appendingPathComponent("frame_\(UUID().uuidString).jpg")
@@ -213,8 +207,9 @@ actor RewindStorage {
         process.executableURL = URL(fileURLWithPath: ffmpegPath)
         process.environment = ffmpegEnvironment()
         process.arguments = [
-            "-ss", String(format: "%.3f", timeOffset),
             "-i", videoPath,
+            "-vf", "select=eq(n\\,\(frameOffset))",
+            "-vsync", "0",
             "-vframes", "1",
             "-f", "image2",
             "-c:v", "mjpeg",
@@ -249,7 +244,7 @@ actor RewindStorage {
         let image = imageData.flatMap { NSImage(data: $0) }
 
         guard let imageData, let image else {
-            // ffmpeg exited 0 but produced no output — seek was beyond video duration.
+            // ffmpeg exited 0 but produced no output — selected frame was not present.
             // Treat as missing frame (not a real error) so the backfill silently skips it.
             if !fileExists || fileSize == 0 {
                 throw RewindError.screenshotNotFound
@@ -258,7 +253,7 @@ actor RewindStorage {
             let memoryMB = ProcessInfo.processInfo.physicalMemory > 0
                 ? Int(Double(ProcessInfo.processInfo.physicalMemory) / 1_048_576)
                 : -1
-            let detail = "fileExists=\(fileExists), fileSize=\(fileSize), dataLoaded=\(imageData != nil), imageDecoded=\(image != nil), systemMemoryMB=\(memoryMB), videoPath=\(videoPath), frameOffset=\(frameOffset), timeOffset=\(timeOffset)"
+            let detail = "fileExists=\(fileExists), fileSize=\(fileSize), dataLoaded=\(imageData != nil), imageDecoded=\(image != nil), systemMemoryMB=\(memoryMB), videoPath=\(videoPath), frameOffset=\(frameOffset)"
             throw RewindError.storageError("Failed to load extracted frame, \(detail)")
         }
 

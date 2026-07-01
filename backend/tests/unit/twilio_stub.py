@@ -1,4 +1,5 @@
 import os
+import importlib.util
 import sys
 import types
 from html import escape
@@ -34,18 +35,34 @@ def prepare_twilio_service_import():
 def install_phone_calls_stub():
     database_module = restore_backend_package('database')
     stub = sys.modules.get('database.phone_calls')
-    if not isinstance(stub, types.ModuleType):
+    if stub is None:
         stub = types.ModuleType('database.phone_calls')
         sys.modules['database.phone_calls'] = stub
-    if not hasattr(stub, 'get_phone_numbers'):
+    if 'get_phone_numbers' not in getattr(stub, '__dict__', {}):
         stub.get_phone_numbers = lambda uid: []
     setattr(database_module, 'phone_calls', stub)
-    return sys.modules['database.phone_calls']
+    return stub
 
 
 def install_twilio_stub():
-    if getattr(sys.modules.get('twilio'), '_omi_test_stub', False):
+    existing_twilio = sys.modules.get('twilio')
+    required_stub_modules = (
+        'twilio',
+        'twilio.rest',
+        'twilio.jwt.access_token',
+        'twilio.jwt.access_token.grants',
+        'twilio.request_validator',
+        'twilio.base.exceptions',
+        'twilio.twiml.voice_response',
+    )
+    if all(name in sys.modules for name in required_stub_modules):
         return
+    if existing_twilio is None and importlib.util.find_spec('twilio') is not None:
+        return
+    if isinstance(existing_twilio, types.ModuleType):
+        existing_spec = getattr(existing_twilio, '__spec__', None)
+        if existing_spec is not None and getattr(existing_spec, 'origin', None):
+            return
 
     twilio_mod = types.ModuleType('twilio')
     rest_mod = types.ModuleType('twilio.rest')
@@ -59,7 +76,6 @@ def install_twilio_stub():
     voice_response_mod = types.ModuleType('twilio.twiml.voice_response')
 
     twilio_mod.__path__ = []
-    twilio_mod._omi_test_stub = True
     jwt_mod.__path__ = []
     base_mod.__path__ = []
     twiml_mod.__path__ = []

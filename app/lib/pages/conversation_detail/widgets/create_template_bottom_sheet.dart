@@ -403,7 +403,7 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
                                         _isPublic = value;
                                       });
                                     },
-                              activeColor: const Color(0xFF6366F1),
+                              activeThumbColor: const Color(0xFF6366F1),
                             ),
                           ],
                         ),

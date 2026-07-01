@@ -103,6 +103,7 @@ class TranscriptionService {
     private let channels: Int
     private let streamingMode: StreamingMode
     private let contextKeywords: [String]
+    private let clientConversationId: String?
 
     /// Python backend base URL for transcription endpoints.
     /// Resolution order: beta release channel → OMI_PYTHON_API_URL → https://api.omi.me/
@@ -173,12 +174,19 @@ class TranscriptionService {
     ///   - language: Language code for transcription (e.g., "en", "uk", "ru", "multi" for auto-detect)
     ///   - mode: Streaming mode — `.conversation` for `/v4/listen` (default), `.ptt` for `/v2/voice-message/transcribe-stream`
     ///   - channels: Number of backend audio channels. Conversation mode uses 2 when mic and system audio are streamed separately.
-    init(language: String = "en", mode: StreamingMode = .conversation, channels: Int = 1, contextKeywords: [String] = []) throws {
+    init(
+        language: String = "en",
+        mode: StreamingMode = .conversation,
+        channels: Int = 1,
+        contextKeywords: [String] = [],
+        clientConversationId: String? = nil
+    ) throws {
         self.apiKey = ""  // Not needed — Python backend uses Firebase auth
         self.language = language
         self.channels = max(1, channels)
         self.streamingMode = mode
         self.contextKeywords = Self.sanitizedContextKeywords(contextKeywords)
+        self.clientConversationId = clientConversationId?.trimmingCharacters(in: .whitespacesAndNewlines)
         log("TranscriptionService: Initialized for \(mode == .conversation ? "/v4/listen" : "/v2/voice-message/transcribe-stream"), language=\(language), channels=\(self.channels), contextKeywords=\(self.contextKeywords.count)")
     }
 
@@ -197,6 +205,7 @@ class TranscriptionService {
         self.channels = 1
         self.streamingMode = .ptt  // Batch doesn't stream, but PTT is the correct context
         self.contextKeywords = []
+        self.clientConversationId = nil
         log("TranscriptionService: Initialized for batch (PTT) mode via Python backend")
     }
 
@@ -384,7 +393,7 @@ class TranscriptionService {
         case .conversation:
             // Full conversation pipeline with speech profiles, speaker assignment, memory events
             path = "/v4/listen"
-            queryItems = [
+            var items = [
                 URLQueryItem(name: "language", value: language),
                 URLQueryItem(name: "sample_rate", value: String(sampleRate)),
                 URLQueryItem(name: "codec", value: encoding),
@@ -393,6 +402,10 @@ class TranscriptionService {
                 URLQueryItem(name: "source", value: "desktop"),
                 URLQueryItem(name: "speaker_auto_assign", value: "enabled"),
             ]
+            if let clientConversationId, !clientConversationId.isEmpty {
+                items.append(URLQueryItem(name: "client_conversation_id", value: clientConversationId))
+            }
+            queryItems = items
         case .ptt:
             // PTT-only transcription — no conversation lifecycle
             path = "/v2/voice-message/transcribe-stream"

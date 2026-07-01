@@ -15,7 +15,7 @@ import 'package:omi/pages/home/omiglass_ota_update.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/providers/local_recordings_provider.dart';
 import 'package:omi/services/devices.dart';
-import 'package:omi/services/devices/omi_connection.dart';
+import 'package:omi/services/devices/connectors/omi_connection.dart';
 import 'package:omi/services/notifications.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/battery_widget_service.dart';
@@ -408,6 +408,9 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
       deviceType: 'omi',
       isConnected: false,
     );
+
+    // Notify interactive device onboarding of disconnect
+    captureProvider?.deviceOnboardingProvider?.onDeviceDisconnected();
   }
 
   Future<(String, bool, String, Map)> shouldUpdateFirmware() async {
@@ -492,6 +495,9 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     }
 
     onDeviceConnected?.call(device);
+
+    // Notify interactive device onboarding of reconnect
+    captureProvider?.deviceOnboardingProvider?.onDeviceReconnected();
   }
 
   /// Check firmware version to determine multi-file sync support.

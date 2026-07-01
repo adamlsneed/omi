@@ -15,8 +15,6 @@ class _TestEnvFields implements EnvFields {
   @override
   String? get apiBaseUrl => 'https://api.prod.example.com/';
   @override
-  String? get growthbookApiKey => null;
-  @override
   String? get googleMapsApiKey => null;
   @override
   String? get intercomAppId => null;

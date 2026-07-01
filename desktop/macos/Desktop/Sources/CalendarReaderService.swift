@@ -256,23 +256,20 @@ actor CalendarReaderService {
       let taskDicts = parsed["tasks"] as? [[String: Any]] ?? []
       let profileSummary = parsed["profile"] as? String ?? ""
 
-      // Save memories
-      var memoriesSaved = 0
-      for memory in memoryStrings {
-        do {
-          _ = try await APIClient.shared.createMemory(
+      let memoryItems = memoryStrings.map { memory in
+        MemoryBatchItem(
             content: memory,
             visibility: "private",
             category: .system,
             tags: ["calendar", "onboarding", "profile"],
-            source: "google_calendar",
-            headline: "Calendar Profile Insight"
-          )
-          memoriesSaved += 1
-        } catch {
-          log("CalendarReaderService: Failed to save memory: \(error)")
-        }
+            headline: "Calendar Profile Insight",
+            source: "google_calendar"
+        )
       }
+      let saveResult = await OnboardingMemoryBatchImportService.save(
+        memoryItems,
+        logPrefix: "CalendarReaderService"
+      )
 
       // Save tasks
       var tasksSaved = 0
@@ -294,9 +291,9 @@ actor CalendarReaderService {
       }
 
       log(
-        "CalendarReaderService: Synthesis complete — \(memoriesSaved) memories, \(tasksSaved) tasks, profile: \(profileSummary.prefix(80))"
+        "CalendarReaderService: Synthesis complete — \(saveResult.saved) memories, \(tasksSaved) tasks, profile: \(profileSummary.prefix(80))"
       )
-      return (memoriesSaved, tasksSaved, profileSummary)
+      return (saveResult.saved, tasksSaved, profileSummary)
 
     } catch {
       if attempt < maxAttempts {
@@ -316,38 +313,34 @@ actor CalendarReaderService {
     let eventsToSave = limit.map { Array(events.prefix($0)) } ?? events
     guard !eventsToSave.isEmpty else { return (0, 0) }
 
-    let concurrency = min(8, eventsToSave.count)
-    var nextIndex = 0
-
-    return await withTaskGroup(of: Bool.self) { group in
-      func enqueueNext() {
-        guard nextIndex < eventsToSave.count else { return }
-        let event = eventsToSave[nextIndex]
-        nextIndex += 1
-        group.addTask {
-          await Self.saveMemory(for: event)
-        }
+    let memoryItems = eventsToSave.map { event in
+      var parts = ["Calendar event — \(event.summary)"]
+      if !event.startTime.isEmpty {
+        parts.append("Starts: \(event.startTime)")
+      }
+      if !event.location.isEmpty {
+        parts.append("Location: \(event.location)")
+      }
+      if !event.attendees.isEmpty {
+        parts.append("With: \(event.attendees.prefix(5).joined(separator: ", "))")
       }
 
-      for _ in 0..<concurrency {
-        enqueueNext()
-      }
-
-      var saved = 0
-      var failed = 0
-
-      while let success = await group.next() {
-        if success {
-          saved += 1
-        } else {
-          failed += 1
-        }
-        enqueueNext()
-      }
-
-      log("CalendarReaderService: Saved \(saved) events as memories (\(failed) failed)")
-      return (saved, failed)
+      return MemoryBatchItem(
+        content: parts.joined(separator: " | "),
+        visibility: "private",
+        category: .system,
+        tags: ["calendar", "onboarding", "event"],
+        headline: event.summary,
+        source: "google_calendar"
+      )
     }
+
+    let result = await OnboardingMemoryBatchImportService.save(
+      memoryItems,
+      logPrefix: "CalendarReaderService"
+    )
+    log("CalendarReaderService: Saved \(result.saved) events as memories (\(result.failed) failed)")
+    return result
   }
 
   // MARK: - Python: decrypt cookies + fetch Calendar events via SAPISID auth
@@ -717,32 +710,28 @@ actor CalendarReaderService {
     }
   }
 
-  nonisolated private static func saveMemory(for event: CalendarEvent) async -> Bool {
-    var parts = ["Calendar event — \(event.summary)"]
-    if !event.startTime.isEmpty {
-      parts.append("Starts: \(event.startTime)")
-    }
-    if !event.location.isEmpty {
-      parts.append("Location: \(event.location)")
-    }
-    if !event.attendees.isEmpty {
-      parts.append("With: \(event.attendees.prefix(5).joined(separator: ", "))")
-    }
-    let content = parts.joined(separator: " | ")
+  // MARK: - Keychain
 
-    do {
-      _ = try await APIClient.shared.createMemory(
-        content: content,
-        visibility: "private",
-        category: .system,
-        tags: ["calendar", "onboarding", "event"],
-        source: "google_calendar",
-        headline: event.summary
-      )
-      return true
-    } catch {
-      log("CalendarReaderService: Failed to save raw event memory \(event.id): \(error)")
-      return false
+  private func getKeychainPassword(service: String) -> String? {
+    BrowserKeychainCache.shared.password(for: service) {
+      let process = Process()
+      process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+      process.arguments = ["find-generic-password", "-s", service, "-w"]
+      let pipe = Pipe()
+      let errPipe = Pipe()
+      process.standardOutput = pipe
+      process.standardError = errPipe
+      do {
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+        return output?.isEmpty == false ? output : nil
+      } catch {
+        return nil
+      }
     }
   }
+
 }

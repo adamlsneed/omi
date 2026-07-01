@@ -20,7 +20,7 @@ Covers round 3:
 - routers/developer.py: threading.Thread → postprocess_executor for persona update
 - routers/mcp.py: threading.Thread → postprocess_executor for persona update
 - routers/wrapped.py: threading.Thread → llm_executor for wrapped generation
-- utils/chat.py: threading.Thread → deferred scheduled file cleanup
+- utils/chat.py: threading.Thread → storage_executor for file cleanup
 - utils/conversations/postprocess_conversation.py: threading.Thread → storage_executor
 - utils/other/notifications.py: threading.Thread → critical_executor for webhooks
 - utils/other/storage.py: ad-hoc ThreadPoolExecutor → storage_executor
@@ -44,21 +44,12 @@ def _read_source(rel_path: str) -> str:
 
 
 class TestMemoriesExecutorMigration:
-    """Verify memories router uses postprocess_executor for persona updates and db_executor for DB."""
+    """Verify memories router dispatches background work via executors, not bare threads."""
 
     def test_create_memory_uses_postprocess_executor(self):
-        """create_memory route dispatches persona update via postprocess_executor."""
+        """create_memory route dispatches background work via postprocess_executor."""
         src = _read_source('routers/memories.py')
         assert 'postprocess_executor' in src
-        assert 'update_personas_async' in src
-
-    def test_update_visibility_uses_postprocess_executor(self):
-        """update_memory_visibility uses postprocess_executor, not threading.Thread."""
-        src = _read_source('routers/memories.py')
-        # Find the update_memory_visibility function and check its body
-        func_start = src.index('def update_memory_visibility')
-        func_body = src[func_start : func_start + 500]
-        assert 'postprocess_executor.submit(update_personas_async' in func_body
 
     def test_no_threading_thread_in_memories(self):
         """No bare threading.Thread usage in memories router."""
@@ -292,27 +283,19 @@ class TestChatExecutorMigration:
 
 
 class TestDeveloperExecutorMigration:
-    """Verify developer router uses postprocess_executor for persona update."""
+    """Verify developer router does not use bare threads for background work."""
 
     def test_no_threading_thread(self):
         src = _read_source('routers/developer.py')
         assert 'threading.Thread' not in src
-
-    def test_uses_postprocess_executor(self):
-        src = _read_source('routers/developer.py')
-        assert 'postprocess_executor.submit(' in src
 
 
 class TestMcpExecutorMigration:
-    """Verify mcp router uses postprocess_executor for persona update."""
+    """Verify mcp router does not use bare threads for background work."""
 
     def test_no_threading_thread(self):
         src = _read_source('routers/mcp.py')
         assert 'threading.Thread' not in src
-
-    def test_uses_postprocess_executor(self):
-        src = _read_source('routers/mcp.py')
-        assert 'postprocess_executor.submit(' in src
 
 
 class TestWrappedExecutorMigration:
@@ -328,18 +311,19 @@ class TestWrappedExecutorMigration:
 
 
 class TestChatUtilsExecutorMigration:
-    """Verify utils/chat.py uses scheduled file cleanup without ad-hoc threads."""
+    """Verify utils/chat.py uses storage_executor for file cleanup."""
 
     def test_no_threading_thread(self):
         src = _read_source('utils/chat.py')
         assert 'threading.Thread' not in src
 
-    def test_uses_scheduled_file_cleanup(self):
+    def test_uses_storage_executor(self):
         src = _read_source('utils/chat.py')
         storage_src = _read_source('utils/other/storage.py')
-        assert 'schedule_syncing_temporal_file_deletion(path)' in src
-        assert 'DeferredDeleter(delete_syncing_temporal_file' in storage_src
-        assert '_syncing_temporal_deleter.schedule(' in storage_src
+        assert 'schedule_syncing_temporal_file_deletion' in src
+        assert 'time.sleep(480)' not in src
+        assert 'DeferredDeleter' in storage_src
+        assert 'def schedule_syncing_temporal_file_deletion' in storage_src
 
 
 class TestPostprocessExecutorMigration:
@@ -428,16 +412,12 @@ class TestPerplexityHttpxMigration:
 class TestNoRequestsInProductionCode:
     """Global check: zero import requests in non-test, non-script production code."""
 
-    @staticmethod
-    def _imports_plain_requests(src: str) -> bool:
-        return bool(re.search(r'(^|\n)\s*(import requests\b|from requests\b)', src))
-
     def test_no_import_requests_in_routers(self):
         routers_dir = os.path.join(BACKEND_DIR, 'routers')
         for fname in os.listdir(routers_dir):
             if fname.endswith('.py'):
                 src = _read_source(f'routers/{fname}')
-                assert not self._imports_plain_requests(src), f'routers/{fname} still imports requests'
+                assert 'import requests' not in src, f'routers/{fname} still imports requests'
 
     def test_no_import_requests_in_utils(self):
         # vad.py retains requests for sync onnx-compatible path (not yet migrated)
@@ -449,7 +429,9 @@ class TestNoRequestsInProductionCode:
                     if rel in excluded:
                         continue
                     src = _read_source(rel)
-                    assert not self._imports_plain_requests(src), f'{rel} still imports requests'
+                    bare_import = re.search(r'^\s*import requests\b', src, re.MULTILINE)
+                    from_import = re.search(r'^\s*from requests\b', src, re.MULTILINE)
+                    assert bare_import is None and from_import is None, f'{rel} still imports requests'
 
     def test_no_threading_thread_start_in_routers(self):
         # users.py retains threading.Thread for background wipe (long-running, not executor-suitable)

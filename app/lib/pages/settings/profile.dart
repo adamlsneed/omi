@@ -5,7 +5,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/pages/payments/payments_page.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:omi/pages/settings/change_name_widget.dart';
 import 'package:omi/pages/settings/language_settings_page.dart';
@@ -78,7 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.2),
+                              color: Colors.orange.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Text(
@@ -245,12 +244,16 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final captureProvider = context.read<CaptureProvider>();
             final enabled = SharedPreferencesUtil().backgroundModeEnabled;
-            void setEnabled(bool value) {
-              SharedPreferencesUtil().backgroundModeEnabled = value;
-              SharedPreferencesUtil().saveBool('nativeBleStreamingEnabled', value);
-              setSheetState(() {});
-              setState(() {});
+            final canEnable = captureProvider.hasNativeBleAudioRoute;
+            void setEnabled(bool value) async {
+              if (value && !canEnable) return;
+              final accepted = await captureProvider.setBackgroundModeEnabled(value);
+              if (accepted) {
+                setSheetState(() {});
+                setState(() {});
+              }
             }
 
             return SafeArea(
@@ -265,8 +268,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         margin: const EdgeInsets.only(bottom: 16),
                         width: 36,
                         height: 4,
-                        decoration:
-                            BoxDecoration(color: const Color(0xFF3C3C43), borderRadius: BorderRadius.circular(2)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3C3C43),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                     Row(
@@ -281,7 +286,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           value: enabled,
                           activeThumbColor: Colors.white,
                           activeTrackColor: const Color(0xFF8B5CF6),
-                          onChanged: setEnabled,
+                          onChanged: (enabled || canEnable) ? (v) => setEnabled(v) : null,
                         ),
                       ],
                     ),
@@ -293,8 +298,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration:
-                          BoxDecoration(color: const Color(0xFF2A2A2E), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -309,6 +316,29 @@ class _ProfilePageState extends State<ProfilePage> {
                         ],
                       ),
                     ),
+                    if (!canEnable) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3A2A2A),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFE0A030), size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                context.l10n.backgroundModeUnavailable,
+                                style: TextStyle(color: Colors.orange.shade200, fontSize: 13, height: 1.4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -330,18 +360,9 @@ class _ProfilePageState extends State<ProfilePage> {
           builder: (context, setSheetState) {
             final enabled = SharedPreferencesUtil().batchModeEnabled;
             Future<void> setEnabled(bool value) async {
-              SharedPreferencesUtil().batchModeEnabled = value;
-              final docs = await getApplicationDocumentsDirectory();
-              await SharedPreferencesUtil().saveString('batchAudioDir', docs.path);
-              // Batch capture takes precedence over background streaming.
-              await SharedPreferencesUtil()
-                  .saveBool('nativeBleStreamingEnabled', !value && SharedPreferencesUtil().backgroundModeEnabled);
+              await captureProvider.setBatchMode(value);
               setSheetState(() {});
               setState(() {});
-              // Re-apply capture so the transcription socket closes/opens to match.
-              try {
-                await captureProvider.onRecordProfileSettingChanged();
-              } catch (_) {}
             }
 
             return SafeArea(
@@ -356,8 +377,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         margin: const EdgeInsets.only(bottom: 16),
                         width: 36,
                         height: 4,
-                        decoration:
-                            BoxDecoration(color: const Color(0xFF3C3C43), borderRadius: BorderRadius.circular(2)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3C3C43),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
                     Row(
@@ -384,8 +407,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration:
-                          BoxDecoration(color: const Color(0xFF2A2A2E), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A2A2E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -404,8 +429,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration:
-                            BoxDecoration(color: const Color(0xFF3A2A2A), borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3A2A2A),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
