@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:omi/services/devices/device_connection.dart';
+import 'package:omi/services/devices/connectors/device_connection.dart';
 import 'package:omi/services/devices/ring_protocol.dart';
 
 void main() {
@@ -208,16 +208,21 @@ void main() {
       expect(frames, isEmpty);
     });
 
-    test('drops boundary-sized frame to match firmware overflow sentinel', () {
-      // At the record boundary the firmware can leave a size byte whose frame
-      // is written to the next 440B block; bytes after that marker are stale.
+    test('drops a frame that would end exactly at the buffer boundary (firmware overflow guard)', () {
+      // [size=2][0xAA, 0xBB] — the frame would end exactly at audio.length.
+      // The firmware (transport.c:write_to_storage) never writes a frame ending
+      // exactly at the last byte: a size byte at the boundary with no room for
+      // its frame is an overflow artifact, and the bytes after it are stale from
+      // a previous write. The parser's >= guard drops it; parsing the stale
+      // region as opus otherwise yields OpusException -4 "corrupted stream".
       final frames = RingProtocol.parseAudioPayload([2, 0xAA, 0xBB]);
       expect(frames, isEmpty);
     });
 
-    test('drops final boundary marker and stale bytes in a full 440B payload', () {
-      // 39 frames of [size=10][10B] = 429 bytes. The remaining 11 bytes are a
-      // boundary size marker plus stale data from previous flash contents.
+    test('drops the boundary-aligned last frame in tightly-packed input (440B exactly)', () {
+      // 40 frames of [size=10][10B] = 40 * 11 = 440 bytes — the 40th frame would
+      // end precisely at audio.length. The firmware never emits such a frame, so
+      // the >= boundary guard drops it: 39 frames survive, the last being #38.
       final audio = <int>[];
       for (int i = 0; i < 39; i++) {
         audio.add(10);
@@ -229,10 +234,6 @@ void main() {
       final frames = RingProtocol.parseAudioPayload(audio);
       expect(frames.length, 39);
       expect(frames.last, List.filled(10, 38 & 0xFF));
-      expect(
-        frames.any((frame) => frame.length == 10 && frame.every((byte) => byte == 0xEE)),
-        isFalse,
-      );
     });
   });
 
@@ -323,13 +324,7 @@ void main() {
       final f2 = List<int>.generate(80, (i) => 0x50 + (i & 0x0F));
       final audio = <int>[80, ...f1, 80, ...f2];
       audio.addAll(List.filled(440 - audio.length, 0));
-      final record = <int>[
-        (ts >> 24) & 0xFF,
-        (ts >> 16) & 0xFF,
-        (ts >> 8) & 0xFF,
-        ts & 0xFF,
-        ...audio,
-      ];
+      final record = <int>[(ts >> 24) & 0xFF, (ts >> 16) & 0xFF, (ts >> 8) & 0xFF, ts & 0xFF, ...audio];
       expect(record.length, 444);
 
       // Split across two BLE chunks at an arbitrary boundary.

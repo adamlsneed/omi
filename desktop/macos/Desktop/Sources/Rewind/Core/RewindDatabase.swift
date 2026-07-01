@@ -67,21 +67,46 @@ actor RewindDatabase {
     /// closes the database so the next initialize() call triggers recovery.
     func reportQueryError(_ error: Error) {
         guard dbQueue != nil else { return }  // DB already closed, nothing to do
-        guard let dbError = error as? DatabaseError else { return }
-        let code = dbError.resultCode
-        let extendedCode = dbError.extendedResultCode.rawValue
-        let isIOError = code == .SQLITE_IOERR
-        let isCorrupt = code == .SQLITE_CORRUPT
-        let isCorruptFS = extendedCode == 6922
-
-        guard isIOError || isCorrupt || isCorruptFS else { return }
+        guard isRecoverableDatabaseError(error) else { return }
 
         consecutiveQueryIOErrors += 1
         if consecutiveQueryIOErrors >= maxQueryIOErrorsBeforeRecovery {
-            logError("RewindDatabase: \(consecutiveQueryIOErrors) consecutive I/O errors during queries, closing database for recovery")
+            logError("RewindDatabase: \(consecutiveQueryIOErrors) consecutive recoverable SQLite errors during queries, closing database for recovery")
             close()
             // Next getDatabaseQueue() returns nil → callers get databaseNotInitialized
             // Next initialize() call will go through full recovery path
+        }
+    }
+
+    /// A sanitized SQLite corruption/I/O classifier. Avoid logging DB paths or row data.
+    private func isRecoverableDatabaseError(_ error: Error) -> Bool {
+        guard let dbError = error as? DatabaseError else { return false }
+        let code = dbError.resultCode
+        let extendedCode = dbError.extendedResultCode.rawValue
+        return code == .SQLITE_IOERR || code == .SQLITE_CORRUPT || extendedCode == 6922
+    }
+
+    /// Handle corruption/I/O failures from cleanup and other maintenance operations.
+    /// Those paths can otherwise run repeatedly and emit the same Sentry error forever.
+    private func recoverFromMaintenanceError(_ error: Error, operation: String) async {
+        guard dbQueue != nil else { return }
+        guard isRecoverableDatabaseError(error) else { return }
+
+        let omiDir = userBaseDirectory()
+        let dbPath = omiDir.appendingPathComponent("omi.db").path
+        logError("RewindDatabase: recoverable SQLite error during \(operation); backing up and recreating local database")
+
+        // Close before file-level recovery so SQLite releases handles/WAL state.
+        close()
+
+        guard FileManager.default.fileExists(atPath: dbPath) else { return }
+        do {
+            try await handleCorruptedDatabase(at: dbPath, in: omiDir)
+            try await initialize()
+            log("RewindDatabase: recovered and reopened database after \(operation)")
+        } catch {
+            // Keep this sanitized: operation name and SQLite/file recovery action only.
+            logError("RewindDatabase: recovery after \(operation) failed; next initialization will retry")
         }
     }
 
@@ -90,6 +115,123 @@ actor RewindDatabase {
         if consecutiveQueryIOErrors > 0 {
             consecutiveQueryIOErrors = 0
         }
+    }
+
+    /// Return true for SQLite failures that specifically implicate action_items_fts.
+    /// Keep this narrow so unrelated write/constraint failures are never hidden by an FTS repair retry.
+    func isActionItemsFTSError(_ error: Error) -> Bool {
+        guard let dbError = error as? DatabaseError else { return false }
+        let message = "\(dbError)".lowercased()
+        guard message.contains("action_items_fts") || message.contains("vtable constructor failed") else {
+            return false
+        }
+
+        return dbError.resultCode == .SQLITE_IOERR
+            || dbError.resultCode == .SQLITE_CORRUPT
+            || message.contains("no such table")
+            || message.contains("malformed")
+            || message.contains("database disk image is malformed")
+            || dbError.extendedResultCode.rawValue == 6922
+    }
+
+    /// Rebuild only the action_items full-text-search table and triggers from durable action_items rows.
+    /// This intentionally never drops or rewrites action_items itself.
+    func repairActionItemsFTS(reason: String) async throws {
+        guard let queue = dbQueue else {
+            throw DatabaseError(resultCode: .SQLITE_MISUSE, message: "database is not initialized")
+        }
+        try await repairActionItemsFTS(in: queue, reason: reason)
+    }
+
+    /// Rebuild action_items_fts on a specific database queue. Callers that caught an FTS-trigger
+    /// write failure should pass the same queue they will retry on, avoiding stale queue races.
+    func repairActionItemsFTS(in queue: DatabasePool, reason: String) async throws {
+        try await queue.write { db in
+            try Self.recreateActionItemsFTS(in: db)
+        }
+        log("RewindDatabase: Rebuilt action_items_fts after \(reason)")
+    }
+
+    private static let actionItemsFTSShadowTables = [
+        "action_items_fts_data",
+        "action_items_fts_idx",
+        "action_items_fts_content",
+        "action_items_fts_docsize",
+        "action_items_fts_config",
+    ]
+
+    private static func recreateActionItemsFTS(in db: Database) throws {
+        try dropActionItemsFTSIfPresent(in: db)
+        try installActionItemsFTS(in: db, populateExistingRows: true)
+    }
+
+    private static func installActionItemsFTS(in db: Database, populateExistingRows: Bool) throws {
+        try db.execute(sql: """
+            CREATE VIRTUAL TABLE action_items_fts USING fts5(
+                description,
+                content='action_items',
+                content_rowid='id',
+                tokenize='unicode61'
+            )
+            """)
+
+        try db.execute(sql: """
+            CREATE TRIGGER action_items_fts_ai AFTER INSERT ON action_items BEGIN
+                INSERT INTO action_items_fts(rowid, description)
+                VALUES (new.id, new.description);
+            END
+            """)
+
+        try db.execute(sql: """
+            CREATE TRIGGER action_items_fts_ad AFTER DELETE ON action_items BEGIN
+                INSERT INTO action_items_fts(action_items_fts, rowid, description)
+                VALUES ('delete', old.id, old.description);
+            END
+            """)
+
+        try db.execute(sql: """
+            CREATE TRIGGER action_items_fts_au AFTER UPDATE ON action_items BEGIN
+                INSERT INTO action_items_fts(action_items_fts, rowid, description)
+                VALUES ('delete', old.id, old.description);
+                INSERT INTO action_items_fts(rowid, description)
+                VALUES (new.id, new.description);
+            END
+            """)
+
+        guard populateExistingRows else { return }
+        try db.execute(sql: """
+            INSERT INTO action_items_fts(rowid, description)
+            SELECT id, description FROM action_items
+            """)
+    }
+
+    private static func dropActionItemsFTSIfPresent(in db: Database) throws {
+        try db.execute(sql: "DROP TRIGGER IF EXISTS action_items_fts_ai")
+        try db.execute(sql: "DROP TRIGGER IF EXISTS action_items_fts_ad")
+        try db.execute(sql: "DROP TRIGGER IF EXISTS action_items_fts_au")
+
+        do {
+            try db.execute(sql: "DROP TABLE IF EXISTS action_items_fts")
+        } catch {
+            try forceRemoveBrokenActionItemsFTSMetadata(in: db)
+        }
+    }
+
+    private static func forceRemoveBrokenActionItemsFTSMetadata(in db: Database) throws {
+        try db.execute(sql: "PRAGMA writable_schema = ON")
+        defer { try? db.execute(sql: "PRAGMA writable_schema = OFF") }
+
+        try db.execute(sql: "DELETE FROM sqlite_master WHERE type = 'table' AND name = 'action_items_fts'")
+        for table in actionItemsFTSShadowTables {
+            do {
+                try db.execute(sql: "DROP TABLE IF EXISTS \(table)")
+            } catch {
+                try db.execute(sql: "DELETE FROM sqlite_master WHERE type = 'table' AND name = '\(table)'")
+            }
+        }
+
+        let schemaVersion = (try Int.fetchOne(db, sql: "PRAGMA schema_version")) ?? 0
+        try db.execute(sql: "PRAGMA schema_version = \(schemaVersion + 1)")
     }
 
     /// Configure the database for a specific user.
@@ -134,20 +276,16 @@ actor RewindDatabase {
     /// Falls back to the static currentUserId (set synchronously at app start) when
     /// configure() hasn't been called yet (e.g., TierManager triggers init early).
     private func userBaseDirectory() -> URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let userId = configuredUserId ?? RewindDatabase.currentUserId ?? "anonymous"
-        return appSupport
-            .appendingPathComponent("Omi", isDirectory: true)
+        return DesktopLocalProfile.applicationSupportURL()
             .appendingPathComponent("users", isDirectory: true)
             .appendingPathComponent(userId, isDirectory: true)
     }
 
     /// Static version of userBaseDirectory for nonisolated markCleanShutdown
     private static func staticUserBaseDirectory() -> URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let userId = currentUserId ?? "anonymous"
-        return appSupport
-            .appendingPathComponent("Omi", isDirectory: true)
+        return DesktopLocalProfile.applicationSupportURL()
             .appendingPathComponent("users", isDirectory: true)
             .appendingPathComponent(userId, isDirectory: true)
     }
@@ -1213,6 +1351,26 @@ actor RewindDatabase {
             try db.create(index: "idx_segments_session", on: "transcription_segments", columns: ["sessionId"])
         }
 
+        migrator.registerMigration("addTranscriptionFinalizationMetadata") { db in
+            try db.alter(table: "transcription_sessions") { t in
+                t.add(column: "finalizationStrategy", .text)
+                t.add(column: "finalizationReason", .text)
+                t.add(column: "finalizationStartedAt", .datetime)
+                t.add(column: "finalizationCompletedAt", .datetime)
+            }
+        }
+
+        migrator.registerMigration("addTranscriptionClientConversationId") { db in
+            try db.alter(table: "transcription_sessions") { t in
+                t.add(column: "clientConversationId", .text)
+            }
+            try db.create(
+                index: "idx_sessions_client_conversation",
+                on: "transcription_sessions",
+                columns: ["clientConversationId"]
+            )
+        }
+
         // Migration 11: Create live_notes table for AI-generated notes during recording
         migrator.registerMigration("createLiveNotes") { db in
             try db.create(table: "live_notes") { t in
@@ -1457,44 +1615,7 @@ actor RewindDatabase {
 
         // Migration 19: Create FTS5 virtual table on action_items.description for keyword search
         migrator.registerMigration("createActionItemsFTS") { db in
-            try db.execute(sql: """
-                CREATE VIRTUAL TABLE action_items_fts USING fts5(
-                    description,
-                    content='action_items',
-                    content_rowid='id',
-                    tokenize='unicode61'
-                )
-                """)
-
-            // Sync triggers
-            try db.execute(sql: """
-                CREATE TRIGGER action_items_fts_ai AFTER INSERT ON action_items BEGIN
-                    INSERT INTO action_items_fts(rowid, description)
-                    VALUES (new.id, new.description);
-                END
-                """)
-
-            try db.execute(sql: """
-                CREATE TRIGGER action_items_fts_ad AFTER DELETE ON action_items BEGIN
-                    INSERT INTO action_items_fts(action_items_fts, rowid, description)
-                    VALUES ('delete', old.id, old.description);
-                END
-                """)
-
-            try db.execute(sql: """
-                CREATE TRIGGER action_items_fts_au AFTER UPDATE ON action_items BEGIN
-                    INSERT INTO action_items_fts(action_items_fts, rowid, description)
-                    VALUES ('delete', old.id, old.description);
-                    INSERT INTO action_items_fts(rowid, description)
-                    VALUES (new.id, new.description);
-                END
-                """)
-
-            // Populate with existing data
-            try db.execute(sql: """
-                INSERT INTO action_items_fts(rowid, description)
-                SELECT id, description FROM action_items
-                """)
+            try Self.installActionItemsFTS(in: db, populateExistingRows: true)
         }
 
         // Migration 20: Create ai_user_profiles table for daily AI-generated user profile history
@@ -2233,6 +2354,43 @@ actor RewindDatabase {
             }
         }
 
+        migrator.registerMigration("createDroppedArtifacts") { db in
+            try db.create(table: "dropped_artifacts") { t in
+                t.autoIncrementedPrimaryKey("id")
+                t.column("reason", .text).notNull()
+                t.column("sourceType", .text).notNull()
+                t.column("appName", .text)
+                t.column("windowTitle", .text)
+                t.column("categoriesJson", .text).notNull()
+                t.column("timestamp", .datetime).notNull()
+                t.column("createdAt", .datetime).notNull()
+            }
+            try db.create(index: "idx_dropped_artifacts_timestamp", on: "dropped_artifacts", columns: ["timestamp"])
+        }
+
+        migrator.registerMigration("addMemoryTier") { db in
+            try db.alter(table: "memories") { t in
+                t.add(column: "tier", .text).notNull().defaults(to: "long_term")
+            }
+            try db.create(index: "idx_memories_tier", on: "memories", columns: ["tier"])
+        }
+
+        // Records cached before tiering shipped were all defaulted to "long_term".
+        // Default this flag to false so those legacy rows render with no tier badge;
+        // a backend sync re-flags any memory the server actually tiers.
+        migrator.registerMigration("addMemoryTierIsExplicit") { db in
+            try db.alter(table: "memories") { t in
+                t.add(column: "tierIsExplicit", .boolean).notNull().defaults(to: false)
+            }
+        }
+
+        migrator.registerMigration("addCaptureDeviceProvenance") { db in
+            try db.alter(table: "memories") { t in
+                t.add(column: "primaryCaptureDevice", .text)
+                t.add(column: "captureDeviceIdsJson", .text)
+            }
+        }
+
         try migrator.migrate(queue)
     }
 
@@ -2438,6 +2596,33 @@ actor RewindDatabase {
                         : CapturedTextSource.ocr.rawValue,
                     id,
                 ]
+            )
+        }
+    }
+
+    func insertDroppedArtifact(
+        reason: String,
+        sourceType: String,
+        appName: String?,
+        windowTitle: String?,
+        categories: [String],
+        timestamp: Date
+    ) throws {
+        guard let dbQueue = dbQueue else {
+            throw RewindError.databaseNotInitialized
+        }
+
+        let data = try JSONEncoder().encode(categories)
+        let categoriesJson = String(data: data, encoding: .utf8) ?? "[]"
+        let createdAt = Date()
+        try dbQueue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO dropped_artifacts
+                    (reason, sourceType, appName, windowTitle, categoriesJson, timestamp, createdAt)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                arguments: [reason, sourceType, appName, windowTitle, categoriesJson, timestamp, createdAt]
             )
         }
     }
@@ -2931,54 +3116,49 @@ actor RewindDatabase {
     // MARK: - Cleanup
 
     /// Delete screenshots older than the specified date
-    func deleteScreenshotsOlderThan(_ date: Date) throws -> DeleteResult {
+    func deleteScreenshotsOlderThan(_ date: Date) async throws -> DeleteResult {
         guard let dbQueue = dbQueue else {
             throw RewindError.databaseNotInitialized
         }
 
-        // First get the image paths to delete (legacy JPEGs)
-        let imagePaths = try dbQueue.read { db -> [String] in
-            try String.fetchAll(
-                db,
-                sql: "SELECT imagePath FROM screenshots WHERE timestamp < ? AND imagePath IS NOT NULL",
-                arguments: [date]
-            )
-        }
-
-        // Get video chunk paths that will have frames deleted
-        let videoChunksToCheck = try dbQueue.read { db -> [String] in
-            try String.fetchAll(
-                db,
-                sql: "SELECT DISTINCT videoChunkPath FROM screenshots WHERE timestamp < ? AND videoChunkPath IS NOT NULL",
-                arguments: [date]
-            )
-        }
-
-        // Delete the records
-        try dbQueue.write { db in
-            try db.execute(
-                sql: "DELETE FROM screenshots WHERE timestamp < ?",
-                arguments: [date]
-            )
-        }
-
-        // Check which video chunks are now orphaned (no remaining frames)
-        let orphanedChunks = try dbQueue.read { db -> [String] in
-            var orphaned: [String] = []
-            for chunkPath in videoChunksToCheck {
-                let remainingCount = try Int.fetchOne(
+        do {
+            let deleteResult = try await dbQueue.write { db -> DeleteResult in
+                let imagePaths = try String.fetchAll(
                     db,
-                    sql: "SELECT COUNT(*) FROM screenshots WHERE videoChunkPath = ?",
-                    arguments: [chunkPath]
-                ) ?? 0
-                if remainingCount == 0 {
-                    orphaned.append(chunkPath)
-                }
-            }
-            return orphaned
-        }
+                    sql: "SELECT imagePath FROM screenshots WHERE timestamp < ? AND imagePath IS NOT NULL",
+                    arguments: [date]
+                )
 
-        return DeleteResult(imagePaths: imagePaths, orphanedVideoChunks: orphanedChunks)
+                let videoChunksToCheck = try String.fetchAll(
+                    db,
+                    sql: "SELECT DISTINCT videoChunkPath FROM screenshots WHERE timestamp < ? AND videoChunkPath IS NOT NULL",
+                    arguments: [date]
+                )
+
+                try db.execute(
+                    sql: "DELETE FROM screenshots WHERE timestamp < ?",
+                    arguments: [date]
+                )
+
+                var orphaned: [String] = []
+                for chunkPath in videoChunksToCheck {
+                    let remainingCount = try Int.fetchOne(
+                        db,
+                        sql: "SELECT COUNT(*) FROM screenshots WHERE videoChunkPath = ?",
+                        arguments: [chunkPath]
+                    ) ?? 0
+                    if remainingCount == 0 {
+                        orphaned.append(chunkPath)
+                    }
+                }
+                return DeleteResult(imagePaths: imagePaths, orphanedVideoChunks: orphaned)
+            }
+
+            return deleteResult
+        } catch {
+            await recoverFromMaintenanceError(error, operation: "retention_cleanup")
+            throw error
+        }
     }
 
     /// Delete a specific screenshot

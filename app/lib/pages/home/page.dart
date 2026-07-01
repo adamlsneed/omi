@@ -55,8 +55,9 @@ import 'package:omi/providers/home_provider.dart';
 import 'package:omi/providers/message_provider.dart';
 import 'package:omi/providers/sync_provider.dart';
 import 'package:omi/providers/task_integration_provider.dart';
-import 'package:omi/services/apple_reminders_sync_service.dart';
+import 'package:omi/services/integrations/apple_reminders_sync_service.dart';
 import 'package:omi/services/quick_actions_service.dart';
+import 'package:omi/utils/device.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 import 'package:omi/services/announcement_service.dart';
 import 'package:omi/services/notifications.dart';
@@ -70,7 +71,9 @@ import 'package:omi/widgets/calendar_date_picker_sheet.dart';
 import 'package:omi/widgets/freemium_switch_dialog.dart';
 import 'package:omi/widgets/upgrade_alert.dart';
 import 'package:omi/widgets/bottom_nav_bar.dart';
+import 'package:omi/pages/onboarding/interactive_device_onboarding/interactive_device_onboarding_wrapper.dart';
 import 'widgets/battery_info_widget.dart';
+import 'widgets/capture_mode_chip.dart';
 
 class HomePageWrapper extends StatefulWidget {
   final String? navigateToRoute;
@@ -460,9 +463,43 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
         connectedDevice: deviceProvider.connectedDevice,
       );
 
-      // Register callback for device connection to check firmware announcements
-      deviceProvider.onDeviceConnected = _onDeviceConnectedForAnnouncements;
+      // Register callback for device connection to check firmware announcements and device onboarding
+      deviceProvider.onDeviceConnected = (BtDevice device) {
+        _onDeviceConnectedForAnnouncements(device);
+        _checkDeviceOnboarding(device);
+      };
+
+      // Also check if already connected right now
+      if (deviceProvider.isConnected && deviceProvider.connectedDevice != null) {
+        _checkDeviceOnboarding(deviceProvider.connectedDevice!);
+      }
     });
+  }
+
+  bool _deviceOnboardingShown = false;
+
+  void _checkDeviceOnboarding(BtDevice device) async {
+    if (device.type != DeviceType.omi) return;
+    if (!mounted) return;
+
+    // Onboarding targets the consumer pendant; DevKit boards also enumerate as
+    // DeviceType.omi, so skip them. pairedDevice has the GATT model by now.
+    final pairedModel = Provider.of<DeviceProvider>(context, listen: false).pairedDevice?.modelNumber;
+    if (DeviceUtils.isOmiDevKit(modelNumber: pairedModel, deviceName: device.name)) return;
+
+    if (_deviceOnboardingShown) return;
+    if (SharedPreferencesUtil().deviceOnboardingCompleted) return;
+
+    // Double-check with Firestore
+    final state = await getUserOnboardingState();
+    if (state?['device_onboarding_completed'] == true) {
+      SharedPreferencesUtil().deviceOnboardingCompleted = true;
+      return;
+    }
+
+    if (!mounted || _deviceOnboardingShown) return;
+    _deviceOnboardingShown = true;
+    routeToPage(context, const InteractiveDeviceOnboardingWrapper());
   }
 
   void _registerAutoSyncCallback() {
@@ -1103,6 +1140,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                         ),
                       ),
                     ),
+                  );
+                },
+              ),
+              // Recording mode chip — home tab only, when a Transcribe-Later-capable device is connected
+              Consumer2<HomeProvider, DeviceProvider>(
+                builder: (context, homeProvider, deviceProvider, _) {
+                  final device = deviceProvider.connectedDevice;
+                  if (homeProvider.selectedIndex != 0 ||
+                      device == null ||
+                      !CaptureModeChip.supportsDevice(device.type)) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: CaptureModeChip(deviceType: device.type),
                   );
                 },
               ),

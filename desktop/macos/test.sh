@@ -19,6 +19,11 @@ if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.j
   npm install --no-fund --no-audit
 fi
 npm test
+echo "=== Desktop Launcher Script Tests ==="
+cd "$SCRIPT_DIR"
+bash tests/test-app-config.sh
+bash tests/test-settings-seed.sh
+bash tests/test-cleanup-omi-tcc.sh
 echo ""
 
 echo "=== Rust Backend Tests ==="

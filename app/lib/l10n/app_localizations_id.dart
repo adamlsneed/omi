@@ -1727,12 +1727,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'PERANGKAT',
-      one: 'PERANGKAT',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'PERANGKAT', one: 'PERANGKAT');
     return '$count $_temp0 DITEMUKAN DI SEKITAR';
   }
 
@@ -7784,6 +7779,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get viewAll => 'Lihat semua';
 
   @override
+  String get expand => 'Perluas';
+
+  @override
   String get addTask => 'Tambah tugas';
 
   @override
@@ -9209,11 +9207,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String syncCardReadyCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count rekaman siap disinkronkan',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count rekaman siap disinkronkan');
     return '$_temp0';
   }
 
@@ -9225,11 +9219,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String syncCardNeedsAttention(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count rekaman perlu perhatian',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: '$count rekaman perlu perhatian');
     return '$_temp0';
   }
 
@@ -9540,6 +9530,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get backgroundModeNote => 'Untuk saat ini hanya berfungsi dengan perangkat Omi dan terus ditingkatkan.';
 
   @override
+  String get backgroundModeUnavailable =>
+      'Mode Latar Belakang tidak tersedia karena tidak ada perangkat kompatibel yang terhubung. Hubungkan perangkat Omi, OpenGlass, atau Friend Pendant untuk menggunakan fitur ini.';
+
+  @override
   String get regenerateRecap => 'Buat ulang ringkasan';
 
   @override
@@ -9577,6 +9571,18 @@ class AppLocalizationsId extends AppLocalizations {
       'Penyimpanan ponsel Anda hampir penuh, jadi perekaman dijeda. Kosongkan ruang atau unggah rekaman Anda, lalu perekaman akan dilanjutkan secara otomatis.';
 
   @override
+  String get recordingMode => 'Mode perekaman';
+
+  @override
+  String get captureModeLater => 'Nanti';
+
+  @override
+  String get captureModeLiveDescription => 'Transkripsikan secara langsung saat Anda berbicara.';
+
+  @override
+  String get captureModeLaterDescription => 'Simpan audio sekarang dan transkripsikan kapan saja.';
+
+  @override
   String get unmute => 'Bunyikan';
 
   @override
@@ -9584,4 +9590,119 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get transcribeLaterPaused => 'Dijeda — audio tidak sedang direkam';
+
+  @override
+  String get memoryThisDevice => 'Perangkat ini';
+  @override
+  String get memoryThisIphone => 'iPhone ini';
+  @override
+  String get memoryThisPhone => 'Ponsel ini';
+  @override
+  String get memoryProvenanceMac => 'Mac';
+  @override
+  String get memoryProvenanceIphone => 'iPhone';
+  @override
+  String get memoryProvenanceAndroid => 'Android';
+  String get deviceTutorial => 'Cara Menggunakan Omi';
+
+  @override
+  String get deviceOnboardingTranscriptionTitle => 'Bicara ke Omi Anda';
+
+  @override
+  String get deviceOnboardingTranscriptionSubtitle =>
+      'Ucapkan beberapa kata dan lihat kata-katanya muncul secara langsung';
+
+  @override
+  String get deviceOnboardingGoodJob => 'Bagus sekali!';
+
+  @override
+  String get deviceOnboardingStartSpeaking => 'Mulai bicara...';
+
+  @override
+  String get deviceOnboardingAskQuestionTitle => 'Ajukan Pertanyaan ke Omi';
+
+  @override
+  String get deviceOnboardingAskQuestionSubtitle =>
+      'Tekan tombol sekali, ucapkan pertanyaan Anda, lalu tekan lagi setelah selesai';
+
+  @override
+  String get deviceOnboardingProcessingQuestion => 'Memproses pertanyaan Anda...';
+
+  @override
+  String get deviceOnboardingListening => 'Mendengarkan...';
+
+  @override
+  String get deviceOnboardingTurnOffTitle => 'Matikan';
+
+  @override
+  String get deviceOnboardingTurnOnTitle => 'Nyalakan';
+
+  @override
+  String get deviceOnboardingTurnOffSubtitle => 'Tahan tombol selama 3 detik';
+
+  @override
+  String get deviceOnboardingTurnOnSubtitle => 'Tekan tombol untuk menyalakannya kembali';
+
+  @override
+  String get deviceOnboardingHoldButtonHint => 'Tahan tombol dengan kuat hingga lampu mati';
+
+  @override
+  String get deviceOnboardingStatusConnected => 'Terhubung';
+
+  @override
+  String get deviceOnboardingStatusConnectedDone => 'Terhubung!';
+
+  @override
+  String get deviceOnboardingStatusDisconnected => 'Terputus';
+
+  @override
+  String get deviceOnboardingStatusTurningOff => 'Mematikan...';
+
+  @override
+  String get deviceOnboardingDoubleTapTitle => 'Sesuaikan Ketuk Dua Kali';
+
+  @override
+  String get deviceOnboardingEndConversation => 'Akhiri Percakapan';
+
+  @override
+  String get deviceOnboardingEndConversationDesc => 'Simpan dan akhiri percakapan saat ini';
+
+  @override
+  String get deviceOnboardingMuteUnmute => 'Bisukan / Aktifkan';
+
+  @override
+  String get deviceOnboardingMuteUnmuteDesc => 'Aktifkan atau nonaktifkan mikrofon';
+
+  @override
+  String get deviceOnboardingStarConversation => 'Bintangi Percakapan Berlangsung';
+
+  @override
+  String get deviceOnboardingStarConversationDesc => 'Tandai percakapan sebagai penting';
+
+  @override
+  String get deviceOnboardingSingleTapHint => 'Itu hanya satu ketukan — coba ketuk dua kali dengan cepat!';
+
+  @override
+  String get deviceOnboardingTryDoubleTap => 'Coba sekarang! Ketuk Omi Anda dua kali';
+
+  @override
+  String get deviceOnboardingContinue => 'Lanjutkan';
+
+  @override
+  String get deviceOnboardingFinish => 'Selesai';
+
+  @override
+  String get deviceOnboardingIntroTitle => 'Kenali Omi Anda';
+
+  @override
+  String get deviceOnboardingIntroSubtitle => 'Tur singkat dan praktis tentang semua yang bisa dilakukan Omi Anda.';
+
+  @override
+  String get deviceOnboardingIntroDuration => 'Sekitar 1 menit';
+
+  @override
+  String get jumpToLatestMessage => 'Lompat ke pesan terbaru';
+
+  @override
+  String get latest => 'Terbaru';
 }

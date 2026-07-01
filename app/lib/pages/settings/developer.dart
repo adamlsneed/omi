@@ -146,7 +146,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
             ],
           ),
         ),
-        Switch(value: value, onChanged: onChanged, activeColor: const Color(0xFF22C55E)),
+        Switch(value: value, onChanged: onChanged, activeThumbColor: const Color(0xFF22C55E)),
       ],
     );
   }
@@ -184,7 +184,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
                 ],
               ),
             ),
-            Switch(value: isEnabled, onChanged: onToggle, activeColor: const Color(0xFF22C55E)),
+            Switch(value: isEnabled, onChanged: onToggle, activeThumbColor: const Color(0xFF22C55E)),
           ],
         ),
         if (isEnabled) ...[
@@ -339,7 +339,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -371,8 +371,10 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
           TextButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
+              final message = context.l10n.apiEnvSavedRestartRequired;
               await SharedPreferencesUtil().saveString('testFlightApiEnvironment', targetEnvironment);
-              AppSnackbar.showSnackbar(context.l10n.apiEnvSavedRestartRequired, duration: const Duration(seconds: 5));
+              if (!context.mounted) return;
+              AppSnackbar.showSnackbar(message, duration: const Duration(seconds: 5));
             },
             child: Text(context.l10n.switchAndRestart, style: const TextStyle(color: Colors.orange)),
           ),
@@ -381,7 +383,6 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
     );
   }
 
-  @override
   Widget _buildManualFirmwareFlash(DeviceProvider provider) {
     return _buildSectionContainer(
       children: [
@@ -429,6 +430,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -676,7 +678,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
                                 await DebugLogManager.setEnabled(v);
                                 setState(() {});
                               },
-                              activeColor: const Color(0xFF22C55E),
+                              activeThumbColor: const Color(0xFF22C55E),
                             ),
                           ],
                         ),
@@ -706,7 +708,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
                                       return;
                                     }
 
-                                    if (!mounted) return;
+                                    if (!context.mounted) return;
                                     final selected = await showModalBottomSheet<File>(
                                       context: context,
                                       backgroundColor: const Color(0xFF1C1C1E),
@@ -803,13 +805,15 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
                               const SizedBox(width: 12),
                               GestureDetector(
                                 onTap: () async {
+                                  final message = context.l10n.debugLogCleared;
                                   await DebugLogManager.clear();
-                                  AppSnackbar.showSnackbar(context.l10n.debugLogCleared);
+                                  if (!context.mounted) return;
+                                  AppSnackbar.showSnackbar(message);
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.15),
+                                    color: Colors.red.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Row(
@@ -1591,7 +1595,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.purple.withOpacity(0.2),
+                                          color: Colors.purple.withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: const Text(
@@ -1624,7 +1628,7 @@ class _DeveloperSettingsPageState extends State<_DeveloperSettingsPageView> {
                               Switch(
                                 value: provider.claudeAgentEnabled,
                                 onChanged: (v) => provider.onClaudeAgentChanged(v),
-                                activeColor: const Color(0xFF22C55E),
+                                activeThumbColor: const Color(0xFF22C55E),
                               ),
                           ],
                         ),

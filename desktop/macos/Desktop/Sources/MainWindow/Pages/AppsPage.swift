@@ -380,7 +380,7 @@ struct AppsPage: View {
                             // Featured section (apps marked as is_popular in backend)
                             if !appProvider.popularApps.isEmpty {
                                 AppGridSection(
-                                    title: "Featured",
+                                    title: "Other",
                                     apps: Array(appProvider.popularApps.prefix(6)),
                                     appProvider: appProvider,
                                     onSelectApp: { selectedApp = $0 },
@@ -454,7 +454,7 @@ struct AppsPage: View {
             .frame(width: 520, height: 620)
         }
         .dismissableSheet(item: $selectedExportDestination) { destination in
-            MemoryExportDestinationSheet(
+            ConnectDestinationSheet(
                 destination: destination,
                 statuses: $exportStatuses,
                 onDismiss: {
@@ -1112,12 +1112,6 @@ struct ImportsSection: View {
                     }
                 }
             }
-            .background(OmiColors.backgroundPrimary)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
-            )
         }
     }
 }
@@ -1787,13 +1781,13 @@ struct ImportConnectorSheet: View {
     private var primaryActionTitle: String {
         switch connector.id {
         case "calendar":
-            return model.isRunning ? "Importing…" : "Connect Calendar"
+            return model.isRunning ? "Importing…" : (snapshot.isConnected ? "Sync now" : "Connect Calendar")
         case "email":
-            return model.isRunning ? "Importing…" : "Connect Gmail"
+            return model.isRunning ? "Importing…" : (snapshot.isConnected ? "Sync now" : "Connect Gmail")
         case "apple-notes":
-            return model.isRunning ? "Importing…" : "Connect Apple Notes"
+            return model.isRunning ? "Importing…" : (snapshot.isConnected ? "Sync now" : "Connect Apple Notes")
         case "x":
-            return model.isRunning ? "Connecting…" : "Connect X"
+            return model.isRunning ? "Connecting…" : (snapshot.isConnected ? "Sync now" : "Connect X")
         case "local-files":
             return model.isRunning ? "Reindexing…" : "Reindex Local Files"
         default:
@@ -2233,6 +2227,9 @@ struct AppCard: View {
 
                 AppActionButton(app: app, appProvider: appProvider, onOpen: onSelect)
             }
+            .padding(14)
+            .background(isHovering ? OmiColors.backgroundTertiary : OmiColors.backgroundSecondary)
+            .cornerRadius(12)
         }
         .padding(14)
         .background(isHovering ? OmiColors.backgroundSecondary : OmiColors.backgroundPrimary)

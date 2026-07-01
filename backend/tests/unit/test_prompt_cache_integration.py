@@ -13,7 +13,6 @@ actually import and call the real production functions to verify:
 """
 
 import os
-import re
 import sys
 import types
 import importlib
@@ -106,15 +105,28 @@ clients_mod.encoding = MagicMock()
 clients_mod.num_tokens_from_string = MagicMock(return_value=100)
 clients_mod.parser = MagicMock()
 
+providers_mod = _stub_module("utils.llm.providers")
+providers_mod.ChatGoogleGenerativeAI = MagicMock
+providers_mod.GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+providers_mod.get_default_client = MagicMock(return_value=mock_llm)
+providers_mod.get_or_create_gemini_llm = MagicMock(return_value=mock_llm)
+providers_mod.get_or_create_openai_compatible_llm = MagicMock(return_value=mock_llm)
+providers_mod._llm_cache = {}
+
 llm_mod = _stub_module("utils.llm")
 if not hasattr(llm_mod, "__path__"):
-    llm_mod.__path__ = []
+    llm_mod.__path__ = [str(BACKEND_DIR / "utils" / "llm")]
 tracker_mod = _stub_module("utils.llm.usage_tracker")
 tracker_mod.get_usage_callback = MagicMock(return_value=[])
 tracker_mod.set_usage_context = MagicMock()
 tracker_mod.reset_usage_context = MagicMock()
 tracker_mod.Features = MagicMock()
 tracker_mod.track_usage = MagicMock()
+
+gateway_mod = _stub_module("utils.llm.gateway_client")
+gateway_mod.invoke_chat_structured_gateway = MagicMock(return_value=None)
+gateway_mod.is_auto_lane_id = lambda value: isinstance(value, str) and value.startswith('omi:auto:')
+gateway_mod.record_chat_extraction_gateway_result = MagicMock()
 
 # --- langchain core stubs ---
 langchain_core_mod = _stub_module("langchain_core")
@@ -163,6 +175,13 @@ if not hasattr(retrieval_mod, "__path__"):
 safety_mod = _stub_module("utils.retrieval.safety")
 safety_mod.AgentSafetyGuard = MagicMock()
 safety_mod.SafetyGuardError = type("SafetyGuardError", (Exception,), {})
+
+boundaries_mod = _stub_module("utils.retrieval.tool_result_boundaries")
+setattr(
+    boundaries_mod,
+    "preserve_chat_memory_tool_result_boundary",
+    MagicMock(side_effect=lambda _tool_name, result: result),
+)
 
 # --- MCP client stub ---
 mcp_mod = _stub_module("utils.mcp_client")
@@ -297,6 +316,7 @@ def _get_agentic_module():
         "search_screen_activity_tool",
         "save_user_preference_tool",
         "fetch_url_tool",
+        "traverse_knowledge_graph_tool",
     ]
     for name in tool_names:
         mock_tool = MagicMock()
@@ -530,10 +550,10 @@ def test_static_prefix_exceeds_minimum_cache_tokens():
 # ---------------------------------------------------------------------------
 
 
-def test_core_tools_has_25_tools():
-    """CORE_TOOLS must contain exactly 25 tools (web search is now a built-in server tool)."""
+def test_core_tools_has_26_tools():
+    """CORE_TOOLS must contain exactly 26 tools (web search is now a built-in server tool)."""
     agentic_mod = _get_agentic_module()
-    assert len(agentic_mod.CORE_TOOLS) == 25, f"CORE_TOOLS has {len(agentic_mod.CORE_TOOLS)} tools, expected 25"
+    assert len(agentic_mod.CORE_TOOLS) == 26, f"CORE_TOOLS has {len(agentic_mod.CORE_TOOLS)} tools, expected 26"
 
 
 def test_core_tools_list_creates_independent_copy():
@@ -556,9 +576,9 @@ def test_core_tools_list_creates_independent_copy():
     mock_app_tool.name = "custom_app_tool"
     tools_a.append(mock_app_tool)
 
-    assert len(tools_a) == 26
-    assert len(tools_b) == 25
-    assert len(agentic_mod.CORE_TOOLS) == 25, "CORE_TOOLS was mutated!"
+    assert len(tools_a) == 27
+    assert len(tools_b) == 26
+    assert len(agentic_mod.CORE_TOOLS) == 26, "CORE_TOOLS was mutated!"
 
 
 def test_core_tools_order_matches_exports():
@@ -594,6 +614,7 @@ def test_core_tools_order_matches_exports():
         "search_screen_activity_tool",
         "save_user_preference_tool",
         "fetch_url_tool",
+        "traverse_knowledge_graph_tool",
     ]
 
     actual_names = [t.name for t in agentic_mod.CORE_TOOLS]
@@ -653,20 +674,10 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
     source = source.replace("from models.structured import Structured", "")
     source = source.replace("from utils.byok import get_byok_key", "")
     source = source.replace("from utils.llm.usage_tracker import get_usage_callback", "")
-    source = re.sub(r"from utils\.llm\.model_config import \(\n.*?\n\)\n", "", source, flags=re.S)
-    source = re.sub(r"from utils\.llm\.providers import \(\n.*?\n\)\n", "", source, flags=re.S)
 
     # Create a fake anthropic module with AsyncAnthropic
     fake_anthropic = _stub_module("anthropic_fake")
     fake_anthropic.AsyncAnthropic = MagicMock
-
-    active_profile = {"chat_agent": ("claude-sonnet-4-6", "anthropic")}
-
-    def fake_get_model_config(feature):
-        return active_profile.get(feature, ("gpt-4.1-mini", "openai"))
-
-    def fake_get_or_create_openai_compatible_llm(provider, model_name, streaming=False, options=None):
-        return FakeChatOpenAI(model=model_name, streaming=streaming, **(options or {}))
 
     ns = {
         "os": os,
@@ -681,57 +692,33 @@ def test_llm_agent_model_kwargs_via_real_instantiation():
         "get_byok_key": MagicMock(return_value=None),
         "get_usage_callback": MagicMock(return_value=[]),
         "List": list,
-        "MODEL_QOS_PROFILES": {"premium": active_profile},
-        "_ANTHROPIC_ONLY_FEATURES": {"chat_agent"},
-        "_CACHE_KEY_MODELS": {"gpt-5.1"},
-        "_DEFAULT_CONFIG": ("gpt-4.1-mini", "openai"),
-        "_OPENROUTER_TEMPERATURES": {},
-        "_PERPLEXITY_ONLY_FEATURES": set(),
-        "_PINNED_FEATURES": {},
-        "_STRUCTURED_OUTPUT_FEATURES": set(),
-        "_active_profile": active_profile,
-        "_active_profile_name": "premium",
-        "_byok_profile": active_profile,
-        "_byok_profile_name": "byok",
-        "get_active_profile": MagicMock(return_value=active_profile),
-        "get_active_profile_name": MagicMock(return_value="premium"),
-        "get_all_configured_features": MagicMock(return_value=active_profile.keys()),
-        "get_byok_profile": MagicMock(return_value=active_profile),
-        "get_byok_profile_name": MagicMock(return_value="byok"),
-        "get_default_config": MagicMock(return_value=("gpt-4.1-mini", "openai")),
-        "get_model": MagicMock(side_effect=lambda feature: fake_get_model_config(feature)[0]),
-        "get_provider": MagicMock(side_effect=lambda feature: fake_get_model_config(feature)[1]),
-        "get_route_options": MagicMock(return_value={}),
-        "is_anthropic_only_feature": MagicMock(side_effect=lambda feature: feature == "chat_agent"),
-        "is_perplexity_only_feature": MagicMock(return_value=False),
-        "is_structured_output_feature": MagicMock(return_value=False),
-        "supports_prompt_cache": MagicMock(side_effect=lambda model: model == "gpt-5.1"),
-        "_get_model_config": fake_get_model_config,
-        "GEMINI_OPENAI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "get_default_client": MagicMock(side_effect=fake_get_or_create_openai_compatible_llm),
-        "_get_or_create_gemini_llm": MagicMock(side_effect=fake_get_or_create_openai_compatible_llm),
-        "get_or_create_openai_compatible_llm": fake_get_or_create_openai_compatible_llm,
-        "_llm_cache": {},
     }
     exec(source, ns)
 
-    ns["_get_or_create_openai_llm"]("gpt-5.1")
-    ns["_get_or_create_openai_llm"]("gpt-4.1-mini")
+    # Retention is gated by capability (gpt-5.x / o-series families), not an exact model name.
+    # Classify each captured client the same way clients.py does, via model_config.
+    import importlib.util as _ilu
 
-    # Verify gpt-5.1 clients get prompt_cache_retention via extra_body
-    gpt51_clients = [c for c in captured_calls if c.get("model") == "gpt-5.1"]
-    for call in gpt51_clients:
-        eb = call.get("extra_body", {})
-        assert (
-            eb.get("prompt_cache_retention") == "24h"
-        ), f"gpt-5.1 client missing prompt_cache_retention in extra_body: {call}"
+    _spec = _ilu.spec_from_file_location("_mc_cap_test", BACKEND_DIR / "utils" / "llm" / "model_config.py")
+    _mc = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_mc)
+    supports_cache_retention = _mc.supports_cache_retention
 
-    # Verify non-gpt-5.1 clients do NOT have prompt_cache_retention
-    non_gpt51_clients = [c for c in captured_calls if c.get("model") != "gpt-5.1"]
-    for call in non_gpt51_clients:
+    # Retention-capable models must carry prompt_cache_retention; all others must not.
+    for call in captured_calls:
+        model = call.get("model")
         eb = call.get("extra_body", {})
-        assert "prompt_cache_retention" not in eb, f"Non-gpt-5.1 client should not have prompt_cache_retention: {call}"
-    for call in non_gpt51_clients:
+        if model and supports_cache_retention(model):
+            assert (
+                eb.get("prompt_cache_retention") == "24h"
+            ), f"retention-capable client {model} missing prompt_cache_retention in extra_body: {call}"
+        else:
+            assert (
+                "prompt_cache_retention" not in eb
+            ), f"non-retention-capable client {model} should not have prompt_cache_retention: {call}"
+
+    # prompt_cache_key is bound per-request in get_llm(), never baked into module-level model_kwargs.
+    for call in captured_calls:
         mkw = call.get("model_kwargs", {})
         assert "prompt_cache_key" not in mkw, f"Client {call.get('model')} should not have prompt_cache_key"
 
@@ -948,6 +935,145 @@ def test_anthropic_cache_control_not_5min_default():
         # Must NOT be the bare {"type": "ephemeral"} form
         if '"type": "ephemeral"' in line or "'type': 'ephemeral'" in line:
             assert "ttl" in line, f"cache_control line missing ttl field: {line.strip()}"
+
+
+# ---------------------------------------------------------------------------
+# Tests: Current datetime is kept out of the cached system prefix
+# ---------------------------------------------------------------------------
+
+
+class _FixedDatetime:
+    """datetime stand-in whose now() returns a fixed instant (other attrs pass through)."""
+
+    def __init__(self, fixed):
+        self._fixed = fixed
+
+    def now(self, tz=None):
+        if tz is not None:
+            return self._fixed.astimezone(tz)
+        return self._fixed
+
+    def __getattr__(self, name):
+        from datetime import datetime as _real_datetime
+
+        return getattr(_real_datetime, name)
+
+
+def test_system_prompt_is_time_invariant():
+    """
+    The whole agentic system prompt is wrapped in one cache_control breakpoint, so it must
+    be byte-identical across requests even as wall-clock time advances. The live datetime
+    must NOT leak into it (it goes into the user turn instead).
+    """
+    from datetime import datetime as _dt
+
+    chat_mod = _get_chat_module()
+    fn = chat_mod._get_agentic_qa_prompt
+    _set_user(chat_mod, "Alice", "America/New_York")
+
+    real_datetime = chat_mod.datetime
+    try:
+        chat_mod.datetime = _FixedDatetime(_dt(2024, 1, 19, 14, 23, 45, 123456, tzinfo=timezone.utc))
+        prompt_early = fn("uid_alice")
+        chat_mod.datetime = _FixedDatetime(_dt(2024, 6, 1, 9, 0, 0, 654321, tzinfo=timezone.utc))
+        prompt_late = fn("uid_alice")
+    finally:
+        chat_mod.datetime = real_datetime
+
+    assert prompt_early == prompt_late, (
+        "System prompt changed as time advanced — it must be time-invariant for cache hits.\n"
+        f"First diff at: {_find_first_diff(prompt_early, prompt_late)}"
+    )
+    # The microsecond-precision live timestamp must not appear anywhere in the prompt.
+    assert "123456" not in prompt_early, "Live timestamp leaked into the cached system prompt"
+    assert "654321" not in prompt_late, "Live timestamp leaked into the cached system prompt"
+
+
+def test_current_datetime_block_carries_live_time():
+    """get_current_datetime_block must produce the live time for injection into the user turn."""
+    from datetime import datetime as _dt
+
+    chat_mod = _get_chat_module()
+    _set_user(chat_mod, "Alice", "America/New_York")
+
+    real_datetime = chat_mod.datetime
+    try:
+        chat_mod.datetime = _FixedDatetime(_dt(2024, 1, 19, 14, 23, 45, 123456, tzinfo=timezone.utc))
+        block = chat_mod.get_current_datetime_block("uid_alice")
+    finally:
+        chat_mod.datetime = real_datetime
+
+    assert "<current_datetime>" in block
+    assert "2024-01-19" in block, "Datetime block should contain the live date"
+
+
+def test_datetime_injected_into_user_turn_not_system():
+    """
+    _inject_current_datetime must attach the datetime block to the latest user turn so the
+    model still sees the current time without touching the cached system prefix.
+    """
+    agentic_mod = _get_agentic_module()
+
+    messages = [
+        {"role": "user", "content": "what did I do yesterday?"},
+        {"role": "assistant", "content": "let me check"},
+        {"role": "user", "content": "thanks, and today?"},
+    ]
+    block = "<current_datetime>\nCurrent date time in UTC: 2024-01-19 14:23:45\n</current_datetime>"
+    result = agentic_mod._inject_current_datetime(list(messages), block)
+
+    # The block must be attached to the LAST user message, not the earlier one.
+    assert result[-1]["content"].startswith(block), "Datetime block should prepend the latest user turn"
+    assert result[0]["content"] == "what did I do yesterday?", "Earlier user turns must be untouched"
+
+
+def test_datetime_injected_into_list_content_user_turn():
+    """
+    When the latest user turn carries list (multimodal) content, the datetime block must be
+    prepended as a leading text block on that same turn — not appended as a separate message
+    and not attached to an earlier string turn.
+    """
+    agentic_mod = _get_agentic_module()
+
+    messages = [
+        {"role": "user", "content": "earlier text turn"},
+        {"role": "assistant", "content": "ok"},
+        {"role": "user", "content": [{"type": "image", "source": {"type": "base64", "data": "..."}}]},
+    ]
+    block = "<current_datetime>\nCurrent date time in UTC: 2024-01-19 14:23:45\n</current_datetime>"
+    result = agentic_mod._inject_current_datetime(list(messages), block)
+
+    # No extra trailing message was appended; the last turn is still the image turn.
+    assert len(result) == len(messages), "Should not append a separate datetime message for list content"
+    last = result[-1]
+    assert last["role"] == "user" and isinstance(last["content"], list)
+    # Datetime is the leading text block, original blocks preserved after it.
+    assert last["content"][0] == {"type": "text", "text": block}, "Datetime should be the leading text block"
+    assert last["content"][1]["type"] == "image", "Original content blocks must be preserved"
+    # The earlier string user turn must be left untouched.
+    assert result[0]["content"] == "earlier text turn"
+
+
+def test_passed_timezone_skips_duplicate_db_lookup():
+    """A pre-resolved tz passed to get_current_datetime_block must avoid re-querying the tz DB.
+
+    The agentic flow resolves the timezone once and shares it between the system prompt and
+    the datetime block, so the second consumer must not trigger another lookup.
+    """
+    chat_mod = _get_chat_module()
+    _set_user(chat_mod, "Alice", "America/New_York")
+    chat_mod.notification_db.get_user_time_zone.reset_mock()
+
+    block = chat_mod.get_current_datetime_block("uid_alice", tz="America/New_York")
+    assert "America/New_York" in block
+    assert (
+        chat_mod.notification_db.get_user_time_zone.call_count == 0
+    ), "Passing a resolved tz must not trigger another get_user_time_zone lookup"
+
+    # Without a passed tz it still resolves on its own (one lookup).
+    block2 = chat_mod.get_current_datetime_block("uid_alice")
+    assert "America/New_York" in block2
+    assert chat_mod.notification_db.get_user_time_zone.call_count == 1
 
 
 # ---------------------------------------------------------------------------

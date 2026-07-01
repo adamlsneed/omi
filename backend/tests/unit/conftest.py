@@ -2,13 +2,15 @@
 
 from contextlib import contextmanager
 import importlib.util
-import os
 import sys
 import types
 
-UNIT_TEST_DIR = os.path.dirname(__file__)
-if UNIT_TEST_DIR not in sys.path:
-    sys.path.insert(0, UNIT_TEST_DIR)
+from tests.unit.memory_import_isolation import (  # noqa: F401 — re-export for test modules
+    AutoMockModule as _AutoMockModule,
+    install_database_client_stub,
+    restore_sys_modules,
+    snapshot_sys_modules,
+)
 
 
 def _install_prometheus_client_stub():

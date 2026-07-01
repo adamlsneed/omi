@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import logging
 import uuid
 
 from utils.executors import db_executor
@@ -29,9 +30,27 @@ from utils.notifications import (
     sync_action_item_reminder,
 )
 from utils.task_sync import auto_sync_action_item
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
+
+
+def _batch_mutation_response(result, *, locked_ids: Optional[set[str]] = None) -> dict:
+    """Preserve legacy success shape unless there is partial-outcome detail.
+
+    Mobile clients historically treat batch endpoints as boolean success paths,
+    and the hermetic e2e harness pins that happy-path contract. Missing/no-op
+    details are only emitted when they carry actionable information.
+    """
+    body = {"status": "ok", "updated_count": result.updated_count}
+    locked_ids = locked_ids or set()
+    if result.missing_ids or result.noop_ids or locked_ids:
+        body.update(result.model())
+        if locked_ids:
+            body["locked_ids"] = sorted(locked_ids)
+    return body
 
 
 # Request models specific to action items
@@ -103,8 +122,8 @@ class BatchUpdateActionItemsRequest(BaseModel):
 @router.patch("/v1/action-items/batch", tags=['action-items'])
 def batch_update_action_items(request: BatchUpdateActionItemsRequest, uid: str = Depends(auth.get_current_user_uid)):
     """Batch update sort_order and indent_level for multiple action items."""
-    action_items_db.batch_update_action_items(uid, request.items)
-    return {"status": "ok", "updated_count": len(request.items)}
+    result = action_items_db.batch_update_action_items(uid, request.items)
+    return _batch_mutation_response(result)
 
 
 # *****************************
@@ -178,16 +197,17 @@ def sync_batch_update(request: SyncBatchRequest, uid: str = Depends(auth.get_cur
         if update_data:
             updates.append({'id': item.id, 'data': update_data})
 
-    action_items_db.batch_sync_update_action_items(uid, updates)
+    result = action_items_db.batch_sync_update_action_items(uid, updates)
 
-    desc_updates = [u for u in updates if 'description' in u['data']]
+    updated_ids = set(result.updated_ids)
+    desc_updates = [u for u in updates if u['id'] in updated_ids and 'description' in u['data']]
     if desc_updates:
         upsert_action_item_vectors_batch(
             uid,
             [{'action_item_id': u['id'], 'description': u['data']['description']} for u in desc_updates],
         )
 
-    return {"status": "ok", "updated_count": len(updates)}
+    return _batch_mutation_response(result, locked_ids=locked_ids)
 
 
 # *****************************
@@ -254,6 +274,13 @@ def create_action_item(request: CreateActionItemRequest, uid: str = Depends(auth
     return ActionItemResponse(**action_item)
 
 
+def _ensure_aware(value: datetime) -> datetime:
+    # FastAPI parses a query datetime as naive or timezone-aware depending on whether the client
+    # included a UTC offset. Normalize to timezone-aware (UTC) so comparing the two ends of a date
+    # range never raises TypeError on mixed awareness (which would surface as a 500).
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
 @router.get("/v1/action-items", tags=['action-items'])
 def get_action_items(
     limit: int = Query(50, ge=1, le=500, description="Maximum number of action items to return"),
@@ -267,6 +294,15 @@ def get_action_items(
     uid: str = Depends(auth.get_current_user_uid),
 ):
     """Get action items for the current user."""
+    if start_date is not None and end_date is not None and _ensure_aware(start_date) > _ensure_aware(end_date):
+        raise HTTPException(status_code=400, detail="start_date must be earlier than or equal to end_date")
+    if (
+        due_start_date is not None
+        and due_end_date is not None
+        and _ensure_aware(due_start_date) > _ensure_aware(due_end_date)
+    ):
+        raise HTTPException(status_code=400, detail="due_start_date must be earlier than or equal to due_end_date")
+
     action_items = action_items_db.get_action_items(
         uid=uid,
         conversation_id=conversation_id,
@@ -496,7 +532,15 @@ def get_conversation_action_items(conversation_id: str, uid: str = Depends(auth.
     if conversation.get('is_locked', False):
         raise HTTPException(status_code=402, detail="A paid plan is required to access this conversation.")
     action_items = action_items_db.get_action_items_by_conversation(uid, conversation_id)
-    response_items = [ActionItemResponse(**item) for item in action_items]
+    response_items = []
+    for item in action_items:
+        try:
+            response_items.append(ActionItemResponse(**item))
+        except ValidationError:
+            logger.warning(
+                f"Skipping malformed action item {item.get('id')} for conversation {conversation_id}, uid {uid}"
+            )
+            continue
 
     return {"action_items": response_items, "conversation_id": conversation_id}
 

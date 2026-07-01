@@ -1,16 +1,12 @@
 import AppKit
+import AVFoundation
 import CoreGraphics
-import Darwin
 import Foundation
 import Sentry
 
-/// Encodes screenshot frames into H.265 video chunks using ffmpeg for efficient storage.
-/// Uses fragmented MP4 format so frames can be read while the file is still being written.
+/// Encodes screenshot frames into H.265 video chunks using VideoToolbox for efficient storage.
 actor VideoChunkEncoder {
     static let shared = VideoChunkEncoder()
-
-    // Track if we've reported ffmpeg source this session (once per app launch)
-    private static var hasReportedFFmpegSource = false
 
     // MARK: - Configuration
 
@@ -21,7 +17,7 @@ actor VideoChunkEncoder {
     /// see nothing on the Rewind page for ~1-2 minutes after every launch.
     private let firstChunkDuration: TimeInterval = 5.0
     private var frameRate: Double {
-        let interval = UserDefaults.standard.object(forKey: "rewindCaptureInterval") as? Double ?? 1.0
+        let interval = RewindSettings.shared.effectiveCaptureInterval(isOnBattery: PowerMonitor.cachedBatteryState())
         return 1.0 / interval // e.g. 0.5s interval = 2 FPS
     }
     private let maxResolution: CGFloat = 3000 // Maximum dimension
@@ -30,8 +26,8 @@ actor VideoChunkEncoder {
     private let aspectRatioChangeThreshold: CGFloat = 0.2
 
     /// Seconds the new aspect ratio must remain stable before switching chunks.
-    /// Prevents rapid app switching from spawning bursts of short-lived ffmpeg processes
-    /// that hang the hevc_videotoolbox hardware encoder during finalization (10s stall each).
+    /// Prevents rapid app switching from spawning bursts of short-lived chunks
+    /// that churn the hardware encoder during finalization.
     private let aspectRatioStabilityDelay: TimeInterval = 2.0
 
     /// Maximum frames to buffer before forcing a flush (memory safety)
@@ -41,19 +37,24 @@ actor VideoChunkEncoder {
         Int(chunkDuration * frameRate) + 20
     }
 
-    /// Maximum consecutive ffmpeg failures before emergency reset
+    /// Maximum consecutive encoder failures before emergency reset
     private let maxConsecutiveFailures = 5
-    private let ffmpegFinalizeTimeout: TimeInterval = 10.0
-    private let ffmpegForceKillGrace: TimeInterval = 2.0
+
+    /// Consecutive not-ready states that force an encoder reset. This keeps
+    /// writer readiness loops bounded instead of emitting one Sentry event per frame.
+    private let maxConsecutiveNotReadyFailures = 3
 
     // MARK: - State
 
     /// Buffer stores only timestamps, not CGImages (memory optimization)
-    /// CGImages are written to ffmpeg immediately and not retained
+    /// CGImages are written to the encoder immediately and not retained.
     private var frameTimestamps: [Date] = []
 
-    /// Track consecutive ffmpeg write failures for recovery
+    /// Track consecutive encoder write failures for recovery.
     private var consecutiveWriteFailures = 0
+    private var encoderRestartCount = 0
+    private var emergencyResetCount = 0
+    private var writerNotReadyCount = 0
 
     /// Pending aspect ratio debounce state
     private var pendingAspectRatioSize: CGSize?
@@ -62,9 +63,10 @@ actor VideoChunkEncoder {
     private(set) var currentChunkPath: String?
     private var frameOffsetInChunk: Int = 0
 
-    // FFmpeg process state
-    private var ffmpegProcess: Process?
-    private var ffmpegStdin: FileHandle?
+    // Native HEVC writer state
+    private var assetWriter: AVAssetWriter?
+    private var writerInput: AVAssetWriterInput?
+    private var pixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     private var currentOutputSize: CGSize?
     private var currentChunkInputSize: CGSize?  // Track input size for aspect ratio comparison
 
@@ -105,6 +107,10 @@ actor VideoChunkEncoder {
         log("VideoChunkEncoder: Initialized at \(videosDirectory.path)")
     }
 
+    func hasFinalizedChunkForDedupe() -> Bool {
+        hasFinalizedAnyChunk
+    }
+
     // MARK: - Frame Processing
 
     /// Add a frame to the buffer. Returns encoded info if this frame completed a chunk.
@@ -119,7 +125,7 @@ actor VideoChunkEncoder {
         if frameTimestamps.count >= maxBufferFrames {
             log("VideoChunkEncoder: Buffer exceeded \(maxBufferFrames) frames, forcing flush to prevent memory leak")
             logError("VideoChunkEncoder: Emergency buffer flush triggered - \(frameTimestamps.count) frames")
-            try await emergencyReset()
+            try await emergencyReset(reason: "buffer_overflow")
         }
 
         // Check if aspect ratio changed significantly.
@@ -163,21 +169,35 @@ actor VideoChunkEncoder {
             frameOffsetInChunk = 0
             currentChunkInputSize = newFrameSize
 
-            // Start ffmpeg process for this chunk
+            // Start native HEVC writer for this chunk
             do {
-                try await startFFmpegProcess(
+                try startVideoWriter(
                     for: currentChunkPath!,
                     videosDir: videosDir,
                     imageSize: newFrameSize
                 )
                 consecutiveWriteFailures = 0 // Reset on successful start
+                writerNotReadyCount = 0
+                encoderRestartCount += 1
             } catch {
                 consecutiveWriteFailures += 1
-                logError("VideoChunkEncoder: Failed to start ffmpeg (\(consecutiveWriteFailures)/\(maxConsecutiveFailures)): \(error)")
+                logError("VideoChunkEncoder: Failed to start video writer (\(consecutiveWriteFailures)/\(maxConsecutiveFailures)): \(error)")
+
+                // Reset the half-initialized chunk state so the NEXT frame cleanly retries
+                // starting the writer. Without this, currentChunkStartTime stays set while
+                // writer state is nil, so every subsequent frame skips the start path and
+                // fails inside writeFrame() with "Video writer not ready" — needlessly dropping
+                // ~5 frames (2.5s of Rewind footage) and emitting misleading write-failure
+                // errors until the emergency-reset threshold finally clears the state.
+                currentChunkStartTime = nil
+                currentChunkPath = nil
+                currentChunkInputSize = nil
+                currentOutputSize = nil
+                frameOffsetInChunk = 0
 
                 if consecutiveWriteFailures >= maxConsecutiveFailures {
-                    logError("VideoChunkEncoder: Too many ffmpeg failures, performing emergency reset")
-                    try await emergencyReset()
+                    logError("VideoChunkEncoder: Too many video writer failures, performing emergency reset")
+                    try await emergencyReset(reason: "writer_start_failure")
                 }
                 throw error
             }
@@ -194,7 +214,7 @@ actor VideoChunkEncoder {
 
         frameOffsetInChunk += 1
 
-        // Write frame to ffmpeg immediately (CGImage not stored after this)
+        // Write frame to the encoder immediately (CGImage not stored after this)
         do {
             try await writeFrame(image: image)
             consecutiveWriteFailures = 0 // Reset on successful write
@@ -205,7 +225,7 @@ actor VideoChunkEncoder {
 
             if consecutiveWriteFailures >= maxConsecutiveFailures {
                 logError("VideoChunkEncoder: Too many write failures, performing emergency reset")
-                try await emergencyReset()
+                try await emergencyReset(reason: "write_failure")
             }
             throw error
         }
@@ -246,9 +266,9 @@ actor VideoChunkEncoder {
         return ChunkFlushResult(videoChunkPath: chunkPath, frames: frames)
     }
 
-    // MARK: - FFmpeg Process Management
+    // MARK: - Video Writer Management
 
-    private func startFFmpegProcess(for relativePath: String, videosDir: URL, imageSize: CGSize) async throws {
+    private func startVideoWriter(for relativePath: String, videosDir: URL, imageSize: CGSize) throws {
         // Create day subdirectory if needed
         let components = relativePath.components(separatedBy: "/")
         if components.count > 1 {
@@ -262,45 +282,57 @@ actor VideoChunkEncoder {
         let outputSize = calculateOutputSize(for: imageSize)
         currentOutputSize = outputSize
 
-        // Find ffmpeg path
-        let ffmpegPath = findFFmpegPath()
+        if FileManager.default.fileExists(atPath: fullPath.path) {
+            try FileManager.default.removeItem(at: fullPath)
+        }
 
-        // Build ffmpeg command
-        // Uses fragmented MP4 so the file can be read while still being written
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: ffmpegPath)
-        process.environment = ffmpegEnvironment()
-        process.arguments = [
-            "-f", "image2pipe",
-            "-vcodec", "png",
-            "-r", String(frameRate),
-            "-i", "-",
-            "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", // Ensure even dimensions
-            "-vcodec", "hevc_videotoolbox",
-            "-tag:v", "hvc1",
-            "-q:v", "65",  // Quality scale 1-100 (65 ≈ CRF 15 equivalent)
-            "-allow_sw", "true",  // Fall back to software if HW encoder busy
-            "-realtime", "true",  // Hint: real-time capture, don't block
-            "-prio_speed", "true",  // Prioritize speed over compression
-            // Fragmented MP4 - allows reading while writing
-            "-movflags", "frag_keyframe+empty_moov+default_base_moof",
-            "-pix_fmt", "yuv420p",
-            "-y", // Overwrite output
-            fullPath.path
+        let width = Int(outputSize.width)
+        let height = Int(outputSize.height)
+        let bitrate = estimatedHEVCBitrate(width: width, height: height)
+
+        let writer = try AVAssetWriter(outputURL: fullPath, fileType: .mp4)
+        writer.shouldOptimizeForNetworkUse = true
+
+        let settings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoWidthKey: width,
+            AVVideoHeightKey: height,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: bitrate,
+                AVVideoExpectedSourceFrameRateKey: max(1, Int(ceil(frameRate))),
+                AVVideoMaxKeyFrameIntervalDurationKey: 10,
+                AVVideoAllowFrameReorderingKey: false
+            ]
         ]
 
-        // Set up pipes
-        let stdinPipe = Pipe()
-        process.standardInput = stdinPipe
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+        input.expectsMediaDataInRealTime = true
 
-        try process.run()
+        guard writer.canAdd(input) else {
+            throw RewindError.storageError("Cannot add HEVC writer input")
+        }
+        writer.add(input)
 
-        ffmpegProcess = process
-        ffmpegStdin = stdinPipe.fileHandleForWriting
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+            assetWriterInput: input,
+            sourcePixelBufferAttributes: [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+                kCVPixelBufferWidthKey as String: width,
+                kCVPixelBufferHeightKey as String: height,
+                kCVPixelBufferIOSurfacePropertiesKey as String: [:]
+            ]
+        )
 
-        log("VideoChunkEncoder: Started ffmpeg for chunk at \(relativePath)")
+        guard writer.startWriting() else {
+            throw RewindError.storageError("Failed to start HEVC writer: \(writer.error?.localizedDescription ?? "unknown error")")
+        }
+        writer.startSession(atSourceTime: .zero)
+
+        assetWriter = writer
+        writerInput = input
+        pixelBufferAdaptor = adaptor
+
+        log("VideoChunkEncoder: Started native HEVC writer for chunk at \(relativePath)")
 
         // Log frame dimensions to Sentry for debugging user quality issues
         let breadcrumb = Breadcrumb(level: .info, category: "video_encoder")
@@ -312,83 +344,65 @@ actor VideoChunkEncoder {
             "output_width": Int(outputSize.width),
             "output_height": Int(outputSize.height),
             "quality": 65,
-            "encoder": "hevc_videotoolbox",
+            "estimated_bitrate": bitrate,
+            "encoder": "AVAssetWriter.hevc",
+            "input_format": "cvpixelbuffer_bgra",
             "max_resolution": Int(maxResolution)
         ]
         SentrySDK.addBreadcrumb(breadcrumb)
     }
 
-    private func ffmpegEnvironment() -> [String: String] {
-        [
-            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-            "TMPDIR": NSTemporaryDirectory()
-        ]
-    }
-
     private func writeFrame(image: CGImage) async throws {
-        guard let stdin = ffmpegStdin,
+        guard let input = writerInput,
+              let adaptor = pixelBufferAdaptor,
               let outputSize = currentOutputSize
         else {
-            throw RewindError.storageError("FFmpeg not ready")
-        }
+            writerNotReadyCount += 1
 
-        // Wrap image scaling + PNG encoding in autoreleasepool to prevent
-        // CGContext/NSBitmapImageRep accumulation in async actor contexts.
-        // Without this, temporary Obj-C objects from each frame pile up
-        // because Swift concurrency doesn't drain autorelease pools between tasks.
-        let pngData: Data = try autoreleasepool {
-            let scaledImage = scaleImage(image, to: outputSize)
-            guard let data = createPNGData(from: scaledImage) else {
-                throw RewindError.storageError("Failed to create PNG data")
+            if writerNotReadyCount >= maxConsecutiveNotReadyFailures {
+                logError("VideoChunkEncoder: Video writer not ready \(writerNotReadyCount)x, resetting encoder state")
+                try await emergencyReset(reason: "writer_not_ready_loop")
+            } else {
+                log("VideoChunkEncoder: Video writer not ready (\(writerNotReadyCount)/\(maxConsecutiveNotReadyFailures))")
             }
-            return data
+
+            throw RewindError.storageError("Video writer not ready")
         }
 
-        // Write to ffmpeg stdin
-        do {
-            try stdin.write(contentsOf: pngData)
-        } catch {
-            throw RewindError.storageError("Failed to write frame to ffmpeg: \(error.localizedDescription)")
+        try await waitForWriterInputReady(input)
+
+        let pixelBuffer: CVPixelBuffer = try autoreleasepool {
+            try createPixelBuffer(from: image, size: outputSize, adaptor: adaptor)
         }
+
+        let presentationTime = CMTime(seconds: Double(max(0, frameOffsetInChunk - 1)) / frameRate, preferredTimescale: 600)
+        guard adaptor.append(pixelBuffer, withPresentationTime: presentationTime) else {
+            throw RewindError.storageError("Failed to append frame to HEVC writer: \(assetWriter?.error?.localizedDescription ?? "unknown error")")
+        }
+        writerNotReadyCount = 0
     }
 
     private func finalizeCurrentChunk() async throws {
         stalenessCheckTask?.cancel()
         stalenessCheckTask = nil
-
-        // Close stdin to signal end of input to ffmpeg
-        if let stdin = ffmpegStdin {
-            try? stdin.close()
-            ffmpegStdin = nil
+        defer {
+            resetCurrentChunkState()
         }
 
-        // Wait for ffmpeg to finish, but do it cooperatively. A synchronous
-        // wait here blocks the encoder actor and can indirectly keep the Rewind
-        // page stuck on its loading spinner while capture finalization is wedged.
-        if let process = ffmpegProcess {
-            let pid = process.processIdentifier
+        if let input = writerInput, let writer = assetWriter {
             let frameCount = frameTimestamps.count
-
-            let didExit = await waitForProcessExit(
-                process,
-                pid: pid,
-                timeout: ffmpegFinalizeTimeout,
-                forceKillGrace: ffmpegForceKillGrace
-            )
-
-            if didExit {
-                if process.terminationStatus != 0 {
-                    logError("VideoChunkEncoder: FFmpeg exited with status \(process.terminationStatus)")
-                } else {
-                    log("VideoChunkEncoder: Finalized chunk with \(frameCount) frames")
-                }
-            } else {
-                logError("VideoChunkEncoder: FFmpeg PID \(pid) did not exit after SIGKILL; resetting encoder state")
+            input.markAsFinished()
+            do {
+                try await finishWriting(writer)
+            } catch {
+                writer.cancelWriting()
+                throw error
             }
-
-            ffmpegProcess = nil
+            log("VideoChunkEncoder: Finalized chunk with \(frameCount) frames (restartCount=\(encoderRestartCount), emergencyResets=\(emergencyResetCount))")
         }
+    }
 
+    private func resetCurrentChunkState() {
         // Reset state (timestamps only - no CGImages retained)
         frameTimestamps.removeAll()
         currentChunkStartTime = nil
@@ -396,42 +410,19 @@ actor VideoChunkEncoder {
         frameOffsetInChunk = 0
         currentOutputSize = nil
         currentChunkInputSize = nil
+        assetWriter = nil
+        writerInput = nil
+        pixelBufferAdaptor = nil
         consecutiveWriteFailures = 0
         pendingAspectRatioSize = nil
         pendingAspectRatioSince = nil
-    }
-
-    private func waitForProcessExit(
-        _ process: Process,
-        pid: pid_t,
-        timeout: TimeInterval,
-        forceKillGrace: TimeInterval
-    ) async -> Bool {
-        let pollNanoseconds: UInt64 = 100_000_000
-        let deadline = Date().addingTimeInterval(timeout)
-
-        while process.isRunning, Date() < deadline {
-            try? await Task.sleep(nanoseconds: pollNanoseconds)
-        }
-
-        if process.isRunning {
-            logError("VideoChunkEncoder: ffmpeg hung for \(Int(timeout))s — force killing PID \(pid)")
-            kill(pid, SIGKILL)
-
-            let killDeadline = Date().addingTimeInterval(forceKillGrace)
-            while process.isRunning, Date() < killDeadline {
-                try? await Task.sleep(nanoseconds: pollNanoseconds)
-            }
-        }
-
-        return !process.isRunning
     }
 
     // MARK: - Staleness Detection
 
     /// Reset the staleness timer after each successful frame write.
     /// If no new frame arrives within chunkDuration + 10s, finalize the chunk
-    /// to release the ffmpeg process and H.265 hardware encoder context.
+    /// to release the H.265 hardware encoder context.
     private func resetStalenessTimer() {
         stalenessCheckTask?.cancel()
         let timeout = chunkDuration + 10.0
@@ -508,68 +499,108 @@ actor VideoChunkEncoder {
         return CGSize(width: CGFloat(newWidth), height: CGFloat(newHeight))
     }
 
-    private func scaleImage(_ image: CGImage, to targetSize: CGSize) -> CGImage {
-        let currentSize = CGSize(width: image.width, height: image.height)
+    private func estimatedHEVCBitrate(width: Int, height: Int) -> Int {
+        let bitsPerPixelFrame = 0.35
+        let bitrate = Double(width * height) * max(frameRate, 1.0) * bitsPerPixelFrame
+        return max(350_000, min(8_000_000, Int(bitrate)))
+    }
 
-        // If already the right size, return as-is
-        if currentSize.width == targetSize.width && currentSize.height == targetSize.height {
-            return image
+    private func createPixelBuffer(
+        from image: CGImage,
+        size: CGSize,
+        adaptor: AVAssetWriterInputPixelBufferAdaptor
+    ) throws -> CVPixelBuffer {
+        let width = Int(size.width)
+        let height = Int(size.height)
+        guard width > 0, height > 0 else {
+            throw RewindError.storageError("Invalid pixel buffer size \(size)")
         }
 
-        // Create a context at the target size
+        let pixelBuffer: CVPixelBuffer
+        if let pool = adaptor.pixelBufferPool {
+            var pooledBuffer: CVPixelBuffer?
+            let status = CVPixelBufferPoolCreatePixelBuffer(nil, pool, &pooledBuffer)
+            guard status == kCVReturnSuccess, let pooledBuffer else {
+                throw RewindError.storageError("Failed to create pooled pixel buffer: \(status)")
+            }
+            pixelBuffer = pooledBuffer
+        } else {
+            var createdBuffer: CVPixelBuffer?
+            let status = CVPixelBufferCreate(
+                nil,
+                width,
+                height,
+                kCVPixelFormatType_32BGRA,
+                [
+                    kCVPixelBufferIOSurfacePropertiesKey as String: [:]
+                ] as CFDictionary,
+                &createdBuffer
+            )
+            guard status == kCVReturnSuccess, let createdBuffer else {
+                throw RewindError.storageError("Failed to create pixel buffer: \(status)")
+            }
+            pixelBuffer = createdBuffer
+        }
+
+        CVPixelBufferLockBaseAddress(pixelBuffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, []) }
+
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+            throw RewindError.storageError("Pixel buffer has no base address")
+        }
+
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         guard let context = CGContext(
-            data: nil,
-            width: Int(targetSize.width),
-            height: Int(targetSize.height),
+            data: baseAddress,
+            width: width,
+            height: height,
             bitsPerComponent: 8,
-            bytesPerRow: 0,
+            bytesPerRow: bytesPerRow,
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
         ) else {
-            return image
+            throw RewindError.storageError("Failed to create pixel buffer context")
         }
 
         context.interpolationQuality = .high
-        context.draw(image, in: CGRect(origin: .zero, size: targetSize))
-
-        return context.makeImage() ?? image
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return pixelBuffer
     }
 
-    private func createPNGData(from image: CGImage) -> Data? {
-        let bitmapRep = NSBitmapImageRep(cgImage: image)
-        return bitmapRep.representation(using: .png, properties: [:])
-    }
-
-    private func findFFmpegPath() -> String {
-        // Common locations for ffmpeg (bundled first for users without Homebrew)
-        // Use Bundle.resourceBundle for SPM resources (they're in a nested bundle, not main bundle)
-        let bundledPath = Bundle.resourceBundle.path(forResource: "ffmpeg", ofType: nil)
-        let possiblePaths: [(path: String, source: String)] = [
-            (bundledPath ?? "", "bundled"),
-            ("/opt/homebrew/bin/ffmpeg", "homebrew"),
-            ("/usr/local/bin/ffmpeg", "usr_local"),
-            ("/usr/bin/ffmpeg", "system"),
-        ].filter { !$0.path.isEmpty }
-
-        for (path, source) in possiblePaths {
-            if FileManager.default.fileExists(atPath: path) {
-                reportFFmpegSource(source: source, path: path)
-                return path
+    private func finishWriting(_ writer: AVAssetWriter) async throws {
+        let writerBox = AssetWriterBox(writer)
+        try await withCheckedThrowingContinuation { continuation in
+            writerBox.writer.finishWriting {
+                switch writerBox.writer.status {
+                case .completed:
+                    continuation.resume()
+                case .failed, .cancelled:
+                    continuation.resume(throwing: RewindError.storageError("HEVC writer failed: \(writerBox.writer.error?.localizedDescription ?? Self.writerStatusDescription(writerBox.writer.status))"))
+                default:
+                    continuation.resume(throwing: RewindError.storageError("HEVC writer ended in unexpected state: \(Self.writerStatusDescription(writerBox.writer.status))"))
+                }
             }
         }
-
-        // Fall back to PATH lookup
-        reportFFmpegSource(source: "path_fallback", path: "ffmpeg")
-        return "ffmpeg"
     }
 
-    private func reportFFmpegSource(source: String, path: String) {
-        // Only report once per app launch
-        guard !Self.hasReportedFFmpegSource else { return }
-        Self.hasReportedFFmpegSource = true
+    private func waitForWriterInputReady(_ input: AVAssetWriterInput) async throws {
+        let deadline = Date().addingTimeInterval(2.0)
+        while !input.isReadyForMoreMediaData {
+            if Date() >= deadline {
+                throw RewindError.storageError("Video writer input backpressured")
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+    }
 
-        Task { @MainActor in
-            PostHogManager.shared.ffmpegResolved(source: source, path: path)
+    private nonisolated static func writerStatusDescription(_ status: AVAssetWriter.Status) -> String {
+        switch status {
+        case .unknown: return "unknown"
+        case .writing: return "writing"
+        case .completed: return "completed"
+        case .failed: return "failed"
+        case .cancelled: return "cancelled"
+        @unknown default: return "unrecognized"
         }
     }
 
@@ -580,26 +611,11 @@ actor VideoChunkEncoder {
         stalenessCheckTask?.cancel()
         stalenessCheckTask = nil
 
-        // Close stdin first
-        if let stdin = ffmpegStdin {
-            try? stdin.close()
-            ffmpegStdin = nil
-        }
-
-        // Terminate ffmpeg process
-        if let process = ffmpegProcess {
-            let pid = process.processIdentifier
-            process.terminate() // SIGTERM
-            ffmpegProcess = nil
-            // Force kill after 2s if ffmpeg didn't respond to SIGTERM
-            // (e.g., stuck in disk I/O under memory pressure)
-            Task.detached(priority: .background) {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                if process.isRunning {
-                    kill(pid, SIGKILL)
-                }
-            }
-        }
+        writerInput?.markAsFinished()
+        assetWriter?.cancelWriting()
+        assetWriter = nil
+        writerInput = nil
+        pixelBufferAdaptor = nil
 
         frameTimestamps.removeAll()
         currentChunkStartTime = nil
@@ -608,69 +624,77 @@ actor VideoChunkEncoder {
         currentOutputSize = nil
         currentChunkInputSize = nil
         consecutiveWriteFailures = 0
+        writerNotReadyCount = 0
     }
 
-    /// Emergency reset when ffmpeg fails repeatedly or buffer overflows
+    /// Emergency reset when encoding fails repeatedly or buffer overflows
     /// Clears all state and allows fresh start on next frame
-    private func emergencyReset() async throws {
+    private func emergencyReset(reason: String = "failure_threshold") async throws {
         stalenessCheckTask?.cancel()
         stalenessCheckTask = nil
 
         let droppedFrames = frameTimestamps.count
+        emergencyResetCount += 1
 
         // Report to Sentry for monitoring
         let breadcrumb = Breadcrumb(level: .error, category: "video_encoder")
         breadcrumb.message = "Emergency reset triggered"
         breadcrumb.data = [
+            "reason": reason,
             "dropped_frames": droppedFrames,
             "consecutive_failures": consecutiveWriteFailures,
+            "writer_not_ready_count": writerNotReadyCount,
+            "encoder_restart_count": encoderRestartCount,
+            "emergency_reset_count": emergencyResetCount,
+            "buffer_limit": maxBufferFrames,
             "chunk_path": currentChunkPath ?? "none"
         ]
         SentrySDK.addBreadcrumb(breadcrumb)
 
-        logError("VideoChunkEncoder: Emergency reset - dropping \(droppedFrames) frames to prevent memory leak")
+        logError("VideoChunkEncoder: Emergency reset (reason=\(reason)) - dropping \(droppedFrames) frames to prevent memory leak")
 
-        // Close stdin first (don't wait for ffmpeg to finish - it may be hung)
-        if let stdin = ffmpegStdin {
-            try? stdin.close()
-            ffmpegStdin = nil
-        }
+        writerInput?.markAsFinished()
+        assetWriter?.cancelWriting()
 
-        // Terminate ffmpeg process forcefully.
-        // Use SIGTERM first, then SIGKILL after 2s if it doesn't respond.
-        // ffmpeg can get stuck in disk I/O when the system is under memory pressure,
-        // causing SIGTERM to be ignored (process is in uninterruptible sleep in the kernel).
-        // Without the SIGKILL fallback, zombie ffmpeg processes accumulate and eventually
-        // push the app's memory to 7GB+, making the entire system unresponsive.
-        if let process = ffmpegProcess {
-            let pid = process.processIdentifier
-            process.terminate() // SIGTERM
-            ffmpegProcess = nil
-            Task.detached(priority: .background) {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                if process.isRunning {
-                    logError("VideoChunkEncoder: ffmpeg still running 2s after SIGTERM — force killing PID \(pid)")
-                    kill(pid, SIGKILL)
-                }
-            }
-        }
-
-        // Clear all state
-        frameTimestamps.removeAll()
-        currentChunkStartTime = nil
-        currentChunkPath = nil
-        frameOffsetInChunk = 0
-        currentOutputSize = nil
-        currentChunkInputSize = nil
-        consecutiveWriteFailures = 0
+        resetCurrentChunkState()
+        writerNotReadyCount = 0
 
         log("VideoChunkEncoder: Emergency reset complete, ready for new frames")
     }
 
-    /// Get current buffer status for debugging
-    func getBufferStatus() -> (frameCount: Int, oldestFrameAge: TimeInterval?) {
-        let count = frameTimestamps.count
-        let age = frameTimestamps.first.map { Date().timeIntervalSince($0) }
-        return (count, age)
+    struct EncoderStatus {
+        let frameCount: Int
+        let maxBufferFrames: Int
+        let oldestFrameAge: TimeInterval?
+        let currentChunkAge: TimeInterval?
+        let isEncoderRunning: Bool
+        let consecutiveWriteFailures: Int
+        let encoderRestartCount: Int
+        let emergencyResetCount: Int
+        let writerNotReadyCount: Int
+    }
+
+    /// Get current buffer and lifecycle status for memory diagnostics.
+    func getBufferStatus() -> EncoderStatus {
+        let now = Date()
+        return EncoderStatus(
+            frameCount: frameTimestamps.count,
+            maxBufferFrames: maxBufferFrames,
+            oldestFrameAge: frameTimestamps.first.map { now.timeIntervalSince($0) },
+            currentChunkAge: currentChunkStartTime.map { now.timeIntervalSince($0) },
+            isEncoderRunning: assetWriter != nil,
+            consecutiveWriteFailures: consecutiveWriteFailures,
+            encoderRestartCount: encoderRestartCount,
+            emergencyResetCount: emergencyResetCount,
+            writerNotReadyCount: writerNotReadyCount
+        )
+    }
+}
+
+private final class AssetWriterBox: @unchecked Sendable {
+    let writer: AVAssetWriter
+
+    init(_ writer: AVAssetWriter) {
+        self.writer = writer
     }
 }

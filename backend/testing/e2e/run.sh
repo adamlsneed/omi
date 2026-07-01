@@ -40,7 +40,7 @@ fi
 # ─── Verify fake dependencies are installed ───────────────────────────
 python -c "import fake_firestore; import fakeredis; import pytest_httpserver; import aioresponses" 2>/dev/null || {
     echo "ERROR: E2E test dependencies are not installed."
-    echo "Run: python -m pip install -r testing/e2e/requirements.txt"
+    echo "Run from backend/: ./scripts/sync-python-deps.sh"
     echo "Then retry: bash testing/e2e/run.sh"
     exit 1
 }
@@ -48,7 +48,7 @@ python -c "import fake_firestore; import fakeredis; import pytest_httpserver; im
 # ─── Verify core backend deps are installed ────────────────────────────
 python -c "import fastapi; import firebase_admin; import google.cloud.firestore" 2>/dev/null || {
     echo "ERROR: Backend dependencies not installed."
-    echo "Run: python -m pip install -r requirements.txt"
+    echo "Run from backend/: ./scripts/sync-python-deps.sh"
     exit 1
 }
 
@@ -69,6 +69,12 @@ fi
 # WebSocket/provider-seam regressions should fail instead of hanging forever.
 # Override with E2E_PYTEST_TIMEOUT=300s when deliberately debugging a slow run.
 PYTEST_TIMEOUT="${E2E_PYTEST_TIMEOUT:-120s}"
+TIMEOUT_BIN=""
+if command -v timeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="$(command -v timeout)"
+elif command -v gtimeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="$(command -v gtimeout)"
+fi
 
 # tiktoken lazily downloads tokenizer data the first time a clean environment calls
 # encoding_for_model(). Do this before pytest imports the hermetic socket guard so
@@ -81,14 +87,17 @@ tiktoken.encoding_for_model('gpt-4')
 PY
 
 set +e
-if command -v timeout >/dev/null 2>&1; then
-    timeout --preserve-status --kill-after=5s "$PYTEST_TIMEOUT" python -m pytest testing/e2e/ "$@"
+if [ -n "$TIMEOUT_BIN" ]; then
+    "$TIMEOUT_BIN" --preserve-status --kill-after=5s "$PYTEST_TIMEOUT" python -m pytest testing/e2e/ "$@"
     PYTEST_EXIT_CODE=$?
     if [ $PYTEST_EXIT_CODE -eq 143 ] || [ $PYTEST_EXIT_CODE -eq 124 ]; then
         echo "ERROR: e2e pytest exceeded timeout ${PYTEST_TIMEOUT}"
     fi
 else
     echo "ERROR: GNU timeout is required so E2E_PYTEST_TIMEOUT=${PYTEST_TIMEOUT} is enforced"
+    if [ "$(uname -s)" = "Darwin" ]; then
+        echo "Install it on macOS with: brew install coreutils"
+    fi
     PYTEST_EXIT_CODE=1
 fi
 set -e

@@ -34,7 +34,12 @@ _db_user_usage_mod = types.SimpleNamespace(get_monthly_chat_usage=MagicMock())
 sys.modules.setdefault("database._client", types.SimpleNamespace(db=MagicMock()))
 sys.modules["database.users"] = _db_users_mod
 sys.modules["database.user_usage"] = _db_user_usage_mod
-sys.modules["database.announcements"] = _announcements_mod
+sys.modules.setdefault("database.announcements", _announcements_mod)
+
+_byok_mod = types.ModuleType("utils.byok")
+_byok_mod.get_byok_key = MagicMock(return_value=None)
+_byok_mod.get_byok_keys = MagicMock(return_value={})
+sys.modules.setdefault("utils.byok", _byok_mod)
 
 from models.users import PlanType, PlanLimits, Subscription
 
@@ -322,8 +327,8 @@ class TestEnforceChatQuota:
         ):
             sub_mod.enforce_chat_quota("uid123")  # no exception
 
-    def test_free_plan_exceeded_raises_402(self, monkeypatch):
-        """Free users past quota are blocked with HTTPException 402."""
+    def test_enforcement_exceeded_basic_raises_402(self, monkeypatch):
+        """When a free user exceeds quota, raises HTTPException 402."""
         from fastapi import HTTPException
 
         sub_mod = _reload_subscription_module()
@@ -352,8 +357,8 @@ class TestEnforceChatQuota:
             assert exc_info.value.detail['limit'] == 30
             assert exc_info.value.detail['reset_at'] == _RESET_AT
 
-    def test_enforcement_operator_plan_overage_allowed(self, monkeypatch):
-        """Paid Operator over quota is allowed and handled by overage billing."""
+    def test_enforcement_allows_operator_overage(self, monkeypatch):
+        """Operator plan exceeds included quota via overage, not 402."""
         sub_mod = _reload_subscription_module()
 
         with patch.object(
@@ -370,8 +375,8 @@ class TestEnforceChatQuota:
         ):
             sub_mod.enforce_chat_quota("uid123")
 
-    def test_enforcement_architect_cost_based_overage_allowed(self, monkeypatch):
-        """Paid Architect over quota is allowed and handled by overage billing."""
+    def test_enforcement_allows_architect_cost_overage(self, monkeypatch):
+        """Architect plan exceeds included cost via overage, not 402."""
         sub_mod = _reload_subscription_module()
 
         with patch.object(

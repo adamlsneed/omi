@@ -18,9 +18,14 @@ actor RewindIndexer {
     private var statsOCRRan = 0
     private var statsSkippedFrequency = 0
     private var statsSkippedDedup = 0
-    private var statsSkippedBattery = 0
     private var statsLastLogTime = Date()
     private let statsLogInterval: TimeInterval = 60
+
+    /// Drop repeated static captures, but keep periodic anchors so long-running
+    /// unchanged screens still appear in the timeline.
+    private let frameDedupeMaxInterval: TimeInterval = 30.0
+    private var lastEncodedFrameSignature: FrameDedupeSignature?
+    private var lastEncodedFrameTimestamp: Date?
 
     /// Backoff state for initialization retries
     private var initFailureCount = 0
@@ -32,6 +37,7 @@ actor RewindIndexer {
     /// launch runs cleanup immediately; afterwards it runs at most every 6h.
     private var lastRetentionCleanupAt: Date = .distantPast
     private let retentionCleanupInterval: TimeInterval = 6 * 60 * 60
+    private var isRetentionCleanupRunning = false
 
     // MARK: - Initialization
 
@@ -44,6 +50,8 @@ actor RewindIndexer {
         isInitializing = false
         initFailureCount = 0
         nextRetryTime = .distantPast
+        lastEncodedFrameSignature = nil
+        lastEncodedFrameTimestamp = nil
         log("RewindIndexer: Reset (will re-initialize on next frame)")
     }
 
@@ -110,7 +118,7 @@ actor RewindIndexer {
 
     // MARK: - OCR Stats
 
-    private enum OCROutcome { case ran, skippedFrequency, skippedDedup, skippedBattery }
+    private enum OCROutcome { case ran, skippedFrequency, skippedDedup }
 
     private func recordOCROutcome(_ outcome: OCROutcome) {
         statsTotalFrames += 1
@@ -118,28 +126,55 @@ actor RewindIndexer {
         case .ran: statsOCRRan += 1
         case .skippedFrequency: statsSkippedFrequency += 1
         case .skippedDedup: statsSkippedDedup += 1
-        case .skippedBattery: statsSkippedBattery += 1
         }
 
         let now = Date()
         if now.timeIntervalSince(statsLastLogTime) >= statsLogInterval {
-            var parts = ["\(statsTotalFrames) frames", "\(statsOCRRan) OCR'd", "\(statsSkippedFrequency) skipped (frequency)", "\(statsSkippedDedup) skipped (dedup)"]
-            if statsSkippedBattery > 0 {
-                parts.append("\(statsSkippedBattery) skipped (battery)")
-            }
+            let parts = ["\(statsTotalFrames) frames", "\(statsOCRRan) OCR'd", "\(statsSkippedFrequency) skipped (frequency)", "\(statsSkippedDedup) skipped (dedup)"]
             log("RewindIndexer: Last \(Int(statsLogInterval))s — \(parts.joined(separator: ", "))")
             statsTotalFrames = 0
             statsOCRRan = 0
             statsSkippedFrequency = 0
             statsSkippedDedup = 0
-            statsSkippedBattery = 0
             statsLastLogTime = now
         }
     }
 
-    /// Check if OCR should be paused due to battery power
-    private func shouldPauseOCRForBattery() -> Bool {
-        return RewindSettings.shared.pauseOCROnBattery && PowerMonitor.checkBatteryState()
+    private func makeFrameDedupeSignature(cgImage: CGImage, appName: String, windowTitle: String?) -> FrameDedupeSignature {
+        FrameDedupeSignature(
+            fingerprint: RewindOCRService.dHash(of: cgImage),
+            width: cgImage.width,
+            height: cgImage.height,
+            appName: appName,
+            windowTitle: windowTitle
+        )
+    }
+
+    private func shouldSkipFrameForDedupe(_ signature: FrameDedupeSignature, timestamp: Date) async -> Bool {
+        guard await VideoChunkEncoder.shared.hasFinalizedChunkForDedupe() else {
+            return false
+        }
+
+        guard let lastSignature = lastEncodedFrameSignature,
+              let lastTimestamp = lastEncodedFrameTimestamp,
+              signature == lastSignature
+        else {
+            return false
+        }
+
+        return timestamp.timeIntervalSince(lastTimestamp) <= frameDedupeMaxInterval
+    }
+
+    private func markFrameEncodedForDedupe(_ signature: FrameDedupeSignature, timestamp: Date) {
+        lastEncodedFrameSignature = signature
+        lastEncodedFrameTimestamp = timestamp
+    }
+
+    private func hasMetadata(focusStatus: String?, extractedTasks: [String]?, insight: String?) -> Bool {
+        if focusStatus != nil { return true }
+        if extractedTasks?.isEmpty == false { return true }
+        if insight?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false { return true }
+        return false
     }
 
     private func textSource(ocrText: String?, skippedForBattery: Bool) -> String {
@@ -174,6 +209,11 @@ actor RewindIndexer {
                 return
             }
 
+            let dedupeSignature = makeFrameDedupeSignature(cgImage: cgImage, appName: frame.appName, windowTitle: frame.windowTitle)
+            if await shouldSkipFrameForDedupe(dedupeSignature, timestamp: frame.captureTime) {
+                return
+            }
+
             // Add frame to video encoder
             let encodedFrame = try await VideoChunkEncoder.shared.addFrame(
                 image: cgImage,
@@ -188,7 +228,6 @@ actor RewindIndexer {
             var ocrText: String?
             var ocrDataJson: String?
             var isIndexed = false
-            var skippedForBattery = false
 
             framesSinceLastOCR += 1
             if framesSinceLastOCR < ocrEveryNthFrame {
@@ -197,16 +236,12 @@ actor RewindIndexer {
             } else if await RewindOCRService.shared.shouldSkipOCR(for: cgImage) {
                 recordOCROutcome(.skippedDedup)
                 isIndexed = true
-            } else if shouldPauseOCRForBattery() {
-                framesSinceLastOCR = 0
-                recordOCROutcome(.skippedBattery)
-                skippedForBattery = true
             } else {
                 framesSinceLastOCR = 0
                 recordOCROutcome(.ran)
                 do {
                     let ocrResult = try await Task(priority: .utility) {
-                        try await RewindOCRService.shared.extractTextWithBounds(from: frame.jpegData)
+                        try await RewindOCRService.shared.extractTextWithBounds(from: cgImage)
                     }.value
                     ocrText = ocrResult.fullText
                     if let data = try? JSONEncoder().encode(ocrResult) {
@@ -235,6 +270,7 @@ actor RewindIndexer {
             )
 
             let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
+            markFrameEncodedForDedupe(dedupeSignature, timestamp: frame.captureTime)
 
             // Embed OCR text for semantic search (non-blocking)
             if let ocrText = ocrText, !ocrText.isEmpty, let id = inserted.id {
@@ -266,6 +302,11 @@ actor RewindIndexer {
         scheduleRetentionCleanupIfDue()
 
         do {
+            let dedupeSignature = makeFrameDedupeSignature(cgImage: cgImage, appName: appName, windowTitle: windowTitle)
+            if await shouldSkipFrameForDedupe(dedupeSignature, timestamp: captureTime) {
+                return
+            }
+
             // Add frame to video encoder (CGImage directly, no decode needed)
             let encodedFrame = try await VideoChunkEncoder.shared.addFrame(
                 image: cgImage,
@@ -279,7 +320,6 @@ actor RewindIndexer {
             var ocrText: String?
             var ocrDataJson: String?
             var isIndexed = false
-            var skippedForBattery = false
 
             framesSinceLastOCR += 1
             if framesSinceLastOCR < ocrEveryNthFrame {
@@ -288,10 +328,6 @@ actor RewindIndexer {
             } else if await RewindOCRService.shared.shouldSkipOCR(for: cgImage) {
                 recordOCROutcome(.skippedDedup)
                 isIndexed = true
-            } else if shouldPauseOCRForBattery() {
-                framesSinceLastOCR = 0
-                recordOCROutcome(.skippedBattery)
-                skippedForBattery = true
             } else {
                 framesSinceLastOCR = 0
                 recordOCROutcome(.ran)
@@ -325,6 +361,7 @@ actor RewindIndexer {
             )
 
             let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
+            markFrameEncodedForDedupe(dedupeSignature, timestamp: captureTime)
 
             // Embed OCR text for semantic search (non-blocking)
             if let ocrText = ocrText, !ocrText.isEmpty, let id = inserted.id {
@@ -362,6 +399,12 @@ actor RewindIndexer {
                 return
             }
 
+            let dedupeSignature = makeFrameDedupeSignature(cgImage: cgImage, appName: frame.appName, windowTitle: frame.windowTitle)
+            let carriesMetadata = hasMetadata(focusStatus: focusStatus, extractedTasks: extractedTasks, insight: insight)
+            if !carriesMetadata, await shouldSkipFrameForDedupe(dedupeSignature, timestamp: frame.captureTime) {
+                return
+            }
+
             // Add frame to video encoder
             let encodedFrame = try await VideoChunkEncoder.shared.addFrame(
                 image: cgImage,
@@ -375,7 +418,6 @@ actor RewindIndexer {
             var ocrText: String?
             var ocrDataJson: String?
             var isIndexed = false
-            var skippedForBattery = false
 
             framesSinceLastOCR += 1
             if framesSinceLastOCR < ocrEveryNthFrame {
@@ -384,16 +426,12 @@ actor RewindIndexer {
             } else if await RewindOCRService.shared.shouldSkipOCR(for: cgImage) {
                 recordOCROutcome(.skippedDedup)
                 isIndexed = true
-            } else if shouldPauseOCRForBattery() {
-                framesSinceLastOCR = 0
-                recordOCROutcome(.skippedBattery)
-                skippedForBattery = true
             } else {
                 framesSinceLastOCR = 0
                 recordOCROutcome(.ran)
                 do {
                     let ocrResult = try await Task(priority: .utility) {
-                        try await RewindOCRService.shared.extractTextWithBounds(from: frame.jpegData)
+                        try await RewindOCRService.shared.extractTextWithBounds(from: cgImage)
                     }.value
                     ocrText = ocrResult.fullText
                     if let data = try? JSONEncoder().encode(ocrResult) {
@@ -433,6 +471,9 @@ actor RewindIndexer {
             )
 
             let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
+            if !carriesMetadata {
+                markFrameEncodedForDedupe(dedupeSignature, timestamp: frame.captureTime)
+            }
 
             // Embed OCR text for semantic search (non-blocking)
             if let ocrText = ocrText, !ocrText.isEmpty, let id = inserted.id {
@@ -466,9 +507,20 @@ actor RewindIndexer {
 
     /// Run cleanup to remove old screenshots
     func runCleanup() async {
+        guard !isRetentionCleanupRunning else {
+            log("RewindIndexer: Cleanup already in progress, skipping")
+            return
+        }
+        isRetentionCleanupRunning = true
+        defer { isRetentionCleanupRunning = false }
+
         let retentionDays = RewindSettings.shared.retentionDays
 
         do {
+            // Ensure recovery has a chance to run if a previous cleanup closed the DB
+            // after a corruption/I/O error.
+            try await RewindDatabase.shared.initialize()
+
             // Get cutoff date
             let cutoffDate = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date())!
 
@@ -498,16 +550,19 @@ actor RewindIndexer {
         }
     }
 
-    /// Stop the indexer
-    func stop() async {
+    /// Stop the indexer and return whether pending video frames flushed successfully.
+    @discardableResult
+    func stop() async -> Bool {
         // Flush any pending video frames before stopping
         do {
             _ = try await VideoChunkEncoder.shared.flushCurrentChunk()
         } catch {
             logError("RewindIndexer: Failed to flush video chunk: \(error)")
+            return false
         }
 
         log("RewindIndexer: Stopped")
+        return true
     }
 
     // MARK: - OCR Backfill (battery → AC)
@@ -531,8 +586,7 @@ actor RewindIndexer {
 
         do {
             while true {
-                // Stop backfill if we went back to battery
-                if shouldPauseOCRForBattery() {
+                if PowerMonitor.cachedBatteryState() {
                     log("RewindIndexer: Backfill paused — back on battery after \(totalProcessed) screenshots")
                     return
                 }
@@ -541,8 +595,7 @@ actor RewindIndexer {
                 if pending.isEmpty { break }
 
                 for screenshot in pending {
-                    // Check battery again between frames
-                    if shouldPauseOCRForBattery() {
+                    if PowerMonitor.cachedBatteryState() {
                         log("RewindIndexer: Backfill paused — back on battery after \(totalProcessed) screenshots")
                         return
                     }
@@ -740,10 +793,56 @@ actor RewindIndexer {
     }
 }
 
+enum RewindShutdownFlush {
+    static func flush(timeout: TimeInterval, context: String) -> Bool {
+        let state = RewindFlushState()
+        let semaphore = DispatchSemaphore(value: 0)
+        Task.detached(priority: .userInitiated) {
+            state.setFlushed(await RewindIndexer.shared.stop())
+            semaphore.signal()
+        }
+
+        if semaphore.wait(timeout: .now() + timeout) == .timedOut {
+            logError("\(context): Timed out flushing Rewind chunk")
+            return false
+        }
+
+        if !state.didFlush {
+            logError("\(context): Failed to flush Rewind chunk")
+        }
+        return state.didFlush
+    }
+}
+
+private final class RewindFlushState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flushed = false
+
+    var didFlush: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return flushed
+    }
+
+    func setFlushed(_ value: Bool) {
+        lock.lock()
+        flushed = value
+        lock.unlock()
+    }
+}
+
 /// Metadata for a frame extracted from video
 private struct FrameMetadata {
     let timestamp: Date
     let frameOffset: Int
     let appName: String?
+    let windowTitle: String?
+}
+
+private struct FrameDedupeSignature: Equatable {
+    let fingerprint: UInt64
+    let width: Int
+    let height: Int
+    let appName: String
     let windowTitle: String?
 }

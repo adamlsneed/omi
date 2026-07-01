@@ -51,12 +51,24 @@ class DashboardViewModel: ObservableObject {
 
         // Load all data in parallel
         async let scoreTask: Void = loadScores()
-        async let tasksTask: Void = tasksStore.loadTasksIfNeeded()  // Don't re-fetch if ViewModelContainer already loaded
+        async let tasksTask: Void = tasksStore.refreshDashboardTasksFromServer()
         async let goalsTask: Void = loadGoals()
 
         let _ = await (scoreTask, tasksTask, goalsTask)
 
         isLoading = false
+    }
+
+    func loadCachedDashboardData() async {
+        await loadGoalsFromLocalSnapshot()
+    }
+
+    func resetSessionState() {
+        scoreResponse = nil
+        goals = []
+        isLoading = false
+        error = nil
+        lastGoalRefreshTime = .distantPast
     }
 
     private func loadScores() async {
@@ -95,11 +107,15 @@ class DashboardViewModel: ObservableObject {
 
     private func loadGoalsFromLocal() {
         Task {
-            do {
-                goals = try await GoalStorage.shared.getLocalGoals()
-            } catch {
-                logError("Failed to load goals from local storage", error: error)
-            }
+            await loadGoalsFromLocalSnapshot()
+        }
+    }
+
+    private func loadGoalsFromLocalSnapshot() async {
+        do {
+            goals = try await GoalStorage.shared.getLocalGoals()
+        } catch {
+            logError("Failed to load goals from local storage", error: error)
         }
     }
 
@@ -201,6 +217,7 @@ struct DashboardPage: View {
     @ObservedObject var chatProvider: ChatProvider
     @ObservedObject var memoriesViewModel: MemoriesViewModel
     @ObservedObject private var deviceProvider = DeviceProvider.shared
+    @StateObject private var importConnectorStatusStore = ImportConnectorStatusStore()
     @Binding var selectedIndex: Int
     @State private var citedConversation: ServerConversation? = nil
     @State private var isLoadingCitation = false
@@ -210,6 +227,7 @@ struct DashboardPage: View {
     @State private var conversationCount: Int?
     @State private var memoryCount: Int?
     @State private var taskCount: Int?
+    @State private var memoryExportStatuses: [MemoryExportDestination: MemoryExportStatus] = [:]
     @State private var isCaptureMonitoring = false
     @State private var isTogglingCapture = false
     @State private var isTogglingListening = false
@@ -228,15 +246,36 @@ struct DashboardPage: View {
             return .blocked
         }
 
-        if screenAnalysisEnabled && isCaptureMonitoring {
+        if isCaptureLive {
             return .active
         }
 
         return .inactive
     }
 
+    private var isCaptureLive: Bool {
+        isCaptureMonitoring || ProactiveAssistantsPlugin.shared.isMonitoring
+    }
+
     private var hasOmiDeviceHistory: Bool {
         deviceProvider.connectedDevice != nil || deviceProvider.pairedDevice != nil
+    }
+
+    /// Real persisted import-connector state (UserDefaults-backed via ImportConnectorStatusStore).
+    private func isImportConnectorConnected(_ connectorID: String) -> Bool {
+        guard let connector = ImportConnector.all.first(where: { $0.id == connectorID }) else { return false }
+        return importConnectorStatusStore.snapshot(for: connector).isConnected
+    }
+
+    private func isMCPDestinationConnected(_ destination: MemoryExportDestination) -> Bool {
+        switch destination {
+        case .claude, .claudeCode:
+            return [.claude, .claudeCode].contains { memoryExportStatuses[$0]?.hasConnection == true }
+        case .chatgpt, .codex:
+            return [.chatgpt, .codex].contains { memoryExportStatuses[$0]?.hasConnection == true }
+        default:
+            return memoryExportStatuses[destination]?.hasConnection == true
+        }
     }
 
     var body: some View {
@@ -281,6 +320,7 @@ struct DashboardPage: View {
             syncCaptureState()
             Task { await loadScreenshotCount() }
             Task { await loadKnowledgeCounts() }
+            Task { await loadMemoryExportStatuses() }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             viewModel.refreshGoals()
@@ -288,6 +328,7 @@ struct DashboardPage: View {
             syncCaptureState()
             Task { await loadScreenshotCount() }
             Task { await loadKnowledgeCounts() }
+            Task { await loadMemoryExportStatuses() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .assistantMonitoringStateDidChange)) { _ in
             syncCaptureState()
@@ -321,6 +362,7 @@ struct DashboardPage: View {
                 },
                 sessionsLoadError: chatProvider.sessionsLoadError,
                 onRetry: { Task { await chatProvider.retryLoad() } },
+                localSendToken: chatProvider.localSendToken,
                 welcomeContent: { dashboardChatWelcome }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -448,18 +490,26 @@ struct DashboardPage: View {
                 }
                 .frame(width: 320)
 
-                VStack(spacing: 12) {
-                    centerMemoryHeader
-                    homeMetricsStrip
-                }
-                .frame(width: 340)
+                centerMemoryColumn
 
                 destinationStack
                     .frame(width: 300)
             }
-            .frame(height: 318)
             .padding(26)
         }
+    }
+
+    private var centerMemoryColumn: some View {
+        HomeCenterMemoryColumn(
+            conversationValue: conversationMetricValue,
+            taskValue: taskMetricValue,
+            memoryValue: memoryMetricValue,
+            screenshotValue: screenshotMetricValue,
+            onConversations: { navigate(to: .conversations) },
+            onTasks: { navigate(to: .tasks) },
+            onMemories: { navigate(to: .memories) },
+            onScreenshots: { navigate(to: .rewind) }
+        )
     }
 
     private var sourceColumnHeader: some View {
@@ -482,7 +532,7 @@ struct DashboardPage: View {
                 .font(.system(size: 42, weight: .bold, design: .rounded))
                 .foregroundStyle(HomePalette.ink)
                 .lineLimit(1)
-                .shadow(color: HomePalette.purple.opacity(0.42), radius: 20)
+                .shadow(color: HomePalette.glow.opacity(0.42), radius: 20)
 
             Text("What omi knows")
                 .font(.system(size: 15, weight: .medium, design: .serif))
@@ -495,36 +545,23 @@ struct DashboardPage: View {
 
     private var sourceConstellation: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                HomeSourceIconTile(title: "Gmail", brand: .gmail) {
-                    openImportConnector("email")
-                }
-
-                HomeSourceIconTile(title: "Calendar", brand: .calendar) {
-                    openImportConnector("calendar")
-                }
-
-                HomeSourceIconTile(title: "Files", brand: .localFiles, isConnected: true) {
-                    openImportConnector("local-files")
-                }
+            HomeAIChoiceButton(title: "Gmail", brand: .gmail, isConnected: isImportConnectorConnected("email")) {
+                openImportConnector("email")
             }
-
-            HStack(spacing: 10) {
-                HomeSourceIconTile(title: "Notes", brand: .appleNotes) {
-                    openImportConnector("apple-notes")
-                }
-
-                HomeSourceIconTile(
-                    title: "Omi Device",
-                    usesOmiDeviceImage: true,
-                    isConnected: hasOmiDeviceHistory
-                ) {
-                    openOmiDeviceWebsite()
-                }
-
-                HomeSourceIconTile(title: "More", systemImage: "plus", isBrowse: true) {
-                    openAppsPage()
-                }
+            HomeAIChoiceButton(title: "Calendar", brand: .calendar, isConnected: isImportConnectorConnected("calendar")) {
+                openImportConnector("calendar")
+            }
+            HomeAIChoiceButton(title: "Files", brand: .localFiles, isConnected: isImportConnectorConnected("local-files")) {
+                openImportConnector("local-files")
+            }
+            HomeAIChoiceButton(title: "Notes", brand: .appleNotes, isConnected: isImportConnectorConnected("apple-notes")) {
+                openImportConnector("apple-notes")
+            }
+            HomeAIChoiceButton(title: "Omi Device", usesOmiMark: true, isConnected: hasOmiDeviceHistory) {
+                openOmiDeviceWebsite()
+            }
+            HomeAIChoiceButton(title: "More", systemImage: "plus") {
+                openAppsPage()
             }
         }
     }
@@ -532,27 +569,33 @@ struct DashboardPage: View {
     private var destinationStack: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
-                Text("Connect your AI")
+                Text("Use omi memory anywhere")
                     .font(.system(size: 22, weight: .medium, design: .serif))
                     .foregroundStyle(HomePalette.ink)
 
-                Text("Use Omi memory where you already work.")
+                Text("Bring your memories and tasks into the apps you already use")
                     .scaledFont(size: 12, weight: .medium)
                     .foregroundStyle(HomePalette.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(height: 62, alignment: .bottomLeading)
 
-            HomeAIChoiceButton(title: "Claude", brand: .claude) {
-                openExportDestination(.claude)
+            HomeAIChoiceButton(title: "Claude / Claude Code", brand: .claude, isConnected: isMCPDestinationConnected(.claude)) {
+                openExportDestination(.claudeCode)
             }
-            HomeAIChoiceButton(title: "ChatGPT", brand: .chatgpt) {
-                openExportDestination(.chatgpt)
+            HomeAIChoiceButton(title: "ChatGPT / Codex", brand: .chatgpt, isConnected: isMCPDestinationConnected(.chatgpt)) {
+                openExportDestination(.codex)
+            }
+            HomeAIChoiceButton(title: "OpenClaw", brand: .openclaw, isConnected: isMCPDestinationConnected(.openclaw)) {
+                openExportDestination(.openclaw)
+            }
+            HomeAIChoiceButton(title: "Hermes", brand: .hermes, isConnected: isMCPDestinationConnected(.hermes)) {
+                openExportDestination(.hermes)
             }
             HomeAIChoiceButton(title: "Ask Omi", usesOmiMark: true) {
                 navigate(to: .chat)
             }
-            HomeAIChoiceButton(title: "More", brand: .agents) {
+            HomeAIChoiceButton(title: "More", systemImage: "plus") {
                 openAppsPage()
             }
         }
@@ -560,43 +603,63 @@ struct DashboardPage: View {
 
     private var homeMetricsStrip: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 8) {
-                HomeCenterMetricTile(
-                    title: "Conversations",
-                    value: formattedCount(
-                        conversationCount ?? appState.totalConversationsCount
-                            ?? appState.conversations.count),
-                    systemImage: "text.bubble.fill",
-                    action: { navigate(to: .conversations) }
-                )
-                HomeCenterMetricTile(
-                    title: "Tasks",
-                    value: formattedCount(taskCount ?? incompleteTaskCount),
-                    systemImage: "checklist",
-                    action: { navigate(to: .tasks) }
-                )
-            }
-
-            HStack(spacing: 8) {
-                HomeCenterMetricTile(
-                    title: "Memories",
-                    value: formattedCount(
-                        memoryCount
-                            ?? (memoriesViewModel.totalMemoriesCount > 0
-                                ? memoriesViewModel.totalMemoriesCount
-                                : memoriesViewModel.memories.count)),
-                    systemImage: "brain",
-                    action: { navigate(to: .memories) }
-                )
-                HomeCenterMetricTile(
-                    title: "Screenshots",
-                    value: screenshotCount.map(formattedCount) ?? "—",
-                    systemImage: "photo.on.rectangle.angled",
-                    action: { navigate(to: .rewind) }
-                )
-            }
+            homeMetricTopRow
+            homeMetricBottomRow
         }
-        .frame(maxWidth: 300)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var homeMetricTopRow: some View {
+        HStack(spacing: 8) {
+            HomeCenterMetricTile(
+                title: "Conversations",
+                value: conversationMetricValue,
+                systemImage: "text.bubble.fill",
+                action: { navigate(to: .conversations) }
+            )
+            HomeCenterMetricTile(
+                title: "Tasks",
+                value: taskMetricValue,
+                systemImage: "checklist",
+                action: { navigate(to: .tasks) }
+            )
+        }
+    }
+
+    private var homeMetricBottomRow: some View {
+        HStack(spacing: 8) {
+            HomeCenterMetricTile(
+                title: "Memories",
+                value: memoryMetricValue,
+                systemImage: "brain",
+                action: { navigate(to: .memories) }
+            )
+            HomeCenterMetricTile(
+                title: "Screenshots",
+                value: screenshotMetricValue,
+                systemImage: "photo.on.rectangle.angled",
+                action: { navigate(to: .rewind) }
+            )
+        }
+    }
+
+    private var conversationMetricValue: String {
+        formattedCount(conversationCount ?? appState.totalConversationsCount ?? appState.conversations.count)
+    }
+
+    private var taskMetricValue: String {
+        formattedCount(taskCount ?? incompleteTaskCount)
+    }
+
+    private var memoryMetricValue: String {
+        let count = memoryCount ?? (memoriesViewModel.totalMemoriesCount > 0
+            ? memoriesViewModel.totalMemoriesCount
+            : memoriesViewModel.memories.count)
+        return formattedCount(count)
+    }
+
+    private var screenshotMetricValue: String {
+        screenshotCount.map(formattedCount) ?? "—"
     }
 
     private func navigate(to item: SidebarNavItem) {
@@ -671,7 +734,8 @@ struct DashboardPage: View {
     }
 
     private func toggleCapture() {
-        let enabled = !screenAnalysisEnabled
+        syncCaptureState()
+        let enabled = !isCaptureLive
         isTogglingCapture = true
 
         if enabled {
@@ -723,6 +787,13 @@ struct DashboardPage: View {
         let stats = await RewindIndexer.shared.getStats()
         await MainActor.run {
             screenshotCount = stats?.total
+        }
+    }
+
+    private func loadMemoryExportStatuses() async {
+        let statuses = await MemoryExportService.shared.allStatuses()
+        await MainActor.run {
+            memoryExportStatuses = statuses
         }
     }
 
@@ -1002,8 +1073,13 @@ private enum HomePalette {
     static let faint = Color(red: 0.36, green: 0.35, blue: 0.33)
     static let hairline = Color(red: 0.155, green: 0.155, blue: 0.172)
     static let green = Color(red: 0.17, green: 0.78, blue: 0.38)
-    static let purple = Color(red: 0.48, green: 0.30, blue: 0.95)
-    static let purpleSoft = Color(red: 0.28, green: 0.17, blue: 0.57)
+    // Home ambient glow is PURPLE per Nik's explicit, repeated preference — the rose/red
+    // variant (0.95,0.33,0.45) was disliked. The purple VALUE lives on `.glow` on purpose:
+    // earlier purple fixes kept getting reverted by "HomePalette.purple → .glow" merge
+    // cleanups (e.g. 317424f57), so we put the purple on the name those reverts converge to.
+    // Do NOT change this back to red/rose.
+    static let glow = Color(red: 0.48, green: 0.30, blue: 0.95)      // purple
+    static let glowSoft = Color(red: 0.28, green: 0.17, blue: 0.57)  // purpleSoft
     static let flowPink = Color(red: 1.0, green: 0.16, blue: 0.44)
 }
 
@@ -1025,8 +1101,8 @@ private struct HomeCanvasBackground: View {
 
             RadialGradient(
                 colors: [
-                    HomePalette.purple.opacity(0.16),
-                    HomePalette.purple.opacity(0.035),
+                    HomePalette.glow.opacity(0.16),
+                    HomePalette.glow.opacity(0.035),
                     .clear,
                 ],
                 center: .center,
@@ -1040,30 +1116,55 @@ private struct HomeCanvasBackground: View {
 }
 
 private struct HomeMemoryBridgeBackdrop: View {
+    @State private var isAppActive = NSApp.isActive
+
     var body: some View {
-        TimelineView(.animation) { timeline in
-            GeometryReader { proxy in
-                let width = proxy.size.width
-                let height = proxy.size.height
-                let progress = CGFloat(
-                    timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 7.0) / 7.0)
-
-                ZStack {
-                    ForEach(0..<5, id: \.self) { index in
-                        HomeFlowCloud(index: index, progress: progress, width: width, height: height)
-                    }
-
-                    ForEach(0..<14, id: \.self) { index in
-                        HomeFlowParticle(index: index, progress: progress, width: width, height: height)
-                    }
+        Group {
+            if isAppActive {
+                TimelineView(.periodic(from: .now, by: 1.0 / 10.0)) { timeline in
+                    HomeMemoryBridgeBackdropContent(
+                        progress: Self.progress(for: timeline.date)
+                    )
                 }
+            } else {
+                HomeMemoryBridgeBackdropContent(progress: 0.18)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            isAppActive = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            isAppActive = false
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
+
+    private static func progress(for date: Date) -> CGFloat {
+        CGFloat(date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 7.0) / 7.0)
+    }
 }
 
+private struct HomeMemoryBridgeBackdropContent: View {
+    let progress: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+
+            ZStack {
+                ForEach(0..<5, id: \.self) { index in
+                    HomeFlowCloud(index: index, progress: progress, width: width, height: height)
+                }
+
+                ForEach(0..<14, id: \.self) { index in
+                    HomeFlowParticle(index: index, progress: progress, width: width, height: height)
+                }
+            }
+        }
+    }
+}
 private struct HomeFlowCloud: View {
     let index: Int
     let progress: CGFloat
@@ -1082,8 +1183,8 @@ private struct HomeFlowCloud: View {
             .fill(
                 RadialGradient(
                     colors: [
-                        (index % 2 == 0 ? HomePalette.purple : HomePalette.flowPink).opacity(opacity),
-                        HomePalette.purpleSoft.opacity(opacity * 0.58),
+                        (index % 2 == 0 ? HomePalette.glow : HomePalette.flowPink).opacity(opacity),
+                        HomePalette.glowSoft.opacity(opacity * 0.58),
                         .clear,
                     ],
                     center: .center,
@@ -1122,8 +1223,8 @@ private struct HomeFlowParticle: View {
             .fill(
                 RadialGradient(
                     colors: [
-                        (index % 3 == 0 ? HomePalette.flowPink : HomePalette.purple).opacity(opacity),
-                        HomePalette.purpleSoft.opacity(opacity * 0.46),
+                        (index % 3 == 0 ? HomePalette.flowPink : HomePalette.glow).opacity(opacity),
+                        HomePalette.glowSoft.opacity(opacity * 0.46),
                         .clear,
                     ],
                     center: .center,
@@ -1330,9 +1431,9 @@ private struct HomeSourceIconTile: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .stroke(isHovering ? HomePalette.purple.opacity(0.58) : HomePalette.hairline.opacity(0.9), lineWidth: 1)
+                    .stroke(isHovering ? HomePalette.glow.opacity(0.58) : HomePalette.hairline.opacity(0.9), lineWidth: 1)
             )
-            .shadow(color: isHovering ? HomePalette.purple.opacity(0.16) : .clear, radius: 14)
+            .shadow(color: isHovering ? HomePalette.glow.opacity(0.16) : .clear, radius: 14)
             .contentShape(.rect(cornerRadius: 17))
         }
         .buttonStyle(.plain)
@@ -1482,9 +1583,9 @@ private struct HomeDataSourceCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .stroke(isHovering ? HomePalette.purple.opacity(0.5) : HomePalette.hairline.opacity(0.9), lineWidth: 1)
+                    .stroke(isHovering ? HomePalette.glow.opacity(0.5) : HomePalette.hairline.opacity(0.9), lineWidth: 1)
             )
-            .shadow(color: isHovering ? HomePalette.purple.opacity(0.12) : .clear, radius: 12)
+            .shadow(color: isHovering ? HomePalette.glow.opacity(0.12) : .clear, radius: 12)
             .contentShape(.rect(cornerRadius: 15))
         }
         .buttonStyle(.plain)
@@ -1515,34 +1616,38 @@ private struct HomeAIChoiceButton: View {
     let systemImage: String?
     let usesOmiMark: Bool
     let isPrimary: Bool
+    let isConnected: Bool
     let action: () -> Void
 
     @State private var isHovering = false
 
-    init(title: String, brand: ConnectorBrand, isPrimary: Bool = false, action: @escaping () -> Void) {
+    init(title: String, brand: ConnectorBrand, isPrimary: Bool = false, isConnected: Bool = false, action: @escaping () -> Void) {
         self.title = title
         self.brand = brand
         self.systemImage = nil
         self.usesOmiMark = false
         self.isPrimary = isPrimary
+        self.isConnected = isConnected
         self.action = action
     }
 
-    init(title: String, systemImage: String, isPrimary: Bool = false, action: @escaping () -> Void) {
+    init(title: String, systemImage: String, isPrimary: Bool = false, isConnected: Bool = false, action: @escaping () -> Void) {
         self.title = title
         self.brand = nil
         self.systemImage = systemImage
         self.usesOmiMark = false
         self.isPrimary = isPrimary
+        self.isConnected = isConnected
         self.action = action
     }
 
-    init(title: String, usesOmiMark: Bool, isPrimary: Bool = false, action: @escaping () -> Void) {
+    init(title: String, usesOmiMark: Bool, isPrimary: Bool = false, isConnected: Bool = false, action: @escaping () -> Void) {
         self.title = title
         self.brand = nil
         self.systemImage = nil
         self.usesOmiMark = usesOmiMark
         self.isPrimary = isPrimary
+        self.isConnected = isConnected
         self.action = action
     }
 
@@ -1557,6 +1662,12 @@ private struct HomeAIChoiceButton: View {
                     .lineLimit(1)
 
                 Spacer(minLength: 8)
+
+                if isConnected {
+                    Text("Connected")
+                        .scaledFont(size: 11, weight: .medium)
+                        .foregroundStyle(HomePalette.faint)
+                }
 
                 Image(systemName: "chevron.right")
                     .scaledFont(size: 10, weight: .bold)
@@ -1584,7 +1695,7 @@ private struct HomeAIChoiceButton: View {
         } else if let systemImage {
             Image(systemName: systemImage)
                 .scaledFont(size: 14, weight: .bold)
-                .foregroundStyle(HomePalette.purple)
+                .foregroundStyle(HomePalette.ink)
                 .frame(width: 24, height: 24)
         }
     }
@@ -1939,6 +2050,85 @@ private struct HomeSourceTile: View {
     }
 }
 
+private struct HomeCenterMemoryColumn: View {
+    let conversationValue: String
+    let taskValue: String
+    let memoryValue: String
+    let screenshotValue: String
+    let onConversations: () -> Void
+    let onTasks: () -> Void
+    let onMemories: () -> Void
+    let onScreenshots: () -> Void
+
+    var body: some View {
+        content
+    }
+
+    private var content: AnyView {
+        let stack = VStack(spacing: 18) {
+            header
+            metrics
+        }
+        // Group the title directly above the cards and center the unit in a
+        // column the same height as the side lists.
+        let columnHeight = CGFloat(422)
+        let framed = stack.frame(width: CGFloat(340), height: columnHeight, alignment: Alignment.center)
+        return AnyView(framed)
+    }
+
+    private var header: AnyView {
+        AnyView(VStack(spacing: 2) {
+            Text("omi.")
+                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .foregroundStyle(HomePalette.ink)
+                .lineLimit(1)
+                .shadow(color: HomePalette.glow.opacity(0.42), radius: 20)
+
+            Text("What omi knows")
+                .font(.system(size: 15, weight: .medium, design: .serif))
+                .foregroundStyle(HomePalette.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+        }
+        .frame(height: 62, alignment: .bottom))
+    }
+
+    private var metrics: AnyView {
+        AnyView(VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                HomeCenterMetricTile(
+                    title: "Conversations",
+                    value: conversationValue,
+                    systemImage: "text.bubble.fill",
+                    action: onConversations
+                )
+                HomeCenterMetricTile(
+                    title: "Tasks",
+                    value: taskValue,
+                    systemImage: "checklist",
+                    action: onTasks
+                )
+            }
+
+            HStack(spacing: 8) {
+                HomeCenterMetricTile(
+                    title: "Memories",
+                    value: memoryValue,
+                    systemImage: "brain",
+                    action: onMemories
+                )
+                HomeCenterMetricTile(
+                    title: "Screenshots",
+                    value: screenshotValue,
+                    systemImage: "photo.on.rectangle.angled",
+                    action: onScreenshots
+                )
+            }
+        }
+        .frame(maxWidth: .infinity))
+    }
+}
+
 private struct HomeCenterMetricTile: View {
     let title: String
     let value: String
@@ -1975,7 +2165,7 @@ private struct HomeCenterMetricTile: View {
                     .minimumScaleFactor(0.82)
             }
             .padding(10)
-            .frame(width: 146, height: 82, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 82, maxHeight: 82, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .fill(isHovering ? HomePalette.tileHover : HomePalette.tile.opacity(0.92))
@@ -2030,7 +2220,7 @@ private struct HomeMemoryMetricCard: View {
 
                 Image(systemName: "arrow.up.right")
                     .scaledFont(size: 10, weight: .bold)
-                    .foregroundStyle(isHovering ? HomePalette.purple : HomePalette.faint)
+                    .foregroundStyle(isHovering ? HomePalette.glow : HomePalette.faint)
             }
             .padding(.horizontal, 14)
             .frame(height: 76)
@@ -2041,7 +2231,7 @@ private struct HomeMemoryMetricCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 17, style: .continuous)
-                    .stroke(isHovering ? HomePalette.purple.opacity(0.56) : HomePalette.hairline.opacity(0.86), lineWidth: 1)
+                    .stroke(isHovering ? HomePalette.glow.opacity(0.56) : HomePalette.hairline.opacity(0.86), lineWidth: 1)
             )
             .contentShape(.rect(cornerRadius: 17))
         }

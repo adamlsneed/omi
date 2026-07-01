@@ -2,9 +2,57 @@ import AppKit
 import SwiftUI
 
 struct ExportsSection: View {
-  private let destinations = MemoryExportDestination.allCases
   let statuses: [MemoryExportDestination: MemoryExportStatus]
   let onSelectDestination: (MemoryExportDestination) -> Void
+
+  // Claude/Claude Code and ChatGPT/Codex are merged into one row each; tapping
+  // opens the grouped sheet that shows both options. The CLI-only cases drop out.
+  private var entries: [(destination: MemoryExportDestination, title: String?, subtitle: String?)] {
+    MemoryExportDestination.allCases.compactMap { d in
+      switch d {
+      case .claudeCode, .codex:
+        return nil
+      case .claude:
+        return (.claude, "Claude / Claude Code", "Claude Code (CLI) or Claude cloud — choose in setup.")
+      case .chatgpt:
+        return (.chatgpt, "ChatGPT / Codex", "Codex (CLI) or ChatGPT cloud — choose in setup.")
+      default:
+        return (d, nil, nil)
+      }
+    }
+  }
+
+  private func status(for destination: MemoryExportDestination) -> MemoryExportStatus {
+    let fallback = MemoryExportStatus(
+      exportedCount: 0,
+      lastExportedAt: nil,
+      detailText: nil,
+      isConfigured: false,
+      hasConnection: false)
+
+    switch destination {
+    case .claude:
+      return aggregateStatus(for: [.claude, .claudeCode], fallback: fallback)
+    case .chatgpt:
+      return aggregateStatus(for: [.chatgpt, .codex], fallback: fallback)
+    default:
+      return statuses[destination] ?? fallback
+    }
+  }
+
+  private func aggregateStatus(
+    for destinations: [MemoryExportDestination],
+    fallback: MemoryExportStatus
+  ) -> MemoryExportStatus {
+    let values = destinations.map { statuses[$0] ?? fallback }
+    return MemoryExportStatus(
+      exportedCount: values.map(\.exportedCount).max() ?? 0,
+      lastExportedAt: values.compactMap(\.lastExportedAt).max(),
+      detailText: values.compactMap(\.detailText).first,
+      isConfigured: values.contains(where: \.hasConnection),
+      hasConnection: values.contains(where: \.hasConnection)
+    )
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -13,27 +61,21 @@ struct ExportsSection: View {
         .foregroundColor(OmiColors.textPrimary)
 
       VStack(spacing: 0) {
-        ForEach(Array(destinations.enumerated()), id: \.element.id) { index, destination in
+        ForEach(Array(entries.enumerated()), id: \.element.destination.id) { index, entry in
           if index > 0 {
             Divider()
               .background(OmiColors.backgroundTertiary)
           }
           MemoryExportRow(
-            destination: destination,
-            status: statuses[destination]
-              ?? MemoryExportStatus(
-                exportedCount: 0, lastExportedAt: nil, detailText: nil, isConfigured: false)
+            destination: entry.destination,
+            titleOverride: entry.title,
+            subtitleOverride: entry.subtitle,
+            status: status(for: entry.destination)
           ) {
-            onSelectDestination(destination)
+            onSelectDestination(entry.destination)
           }
         }
       }
-      .background(OmiColors.backgroundPrimary)
-      .cornerRadius(12)
-      .overlay(
-        RoundedRectangle(cornerRadius: 12)
-          .stroke(OmiColors.backgroundTertiary, lineWidth: 1)
-      )
     }
   }
 }
@@ -71,6 +113,8 @@ private struct AgentSetupActionButtonStyle: ButtonStyle {
 
 private struct MemoryExportRow: View {
   let destination: MemoryExportDestination
+  var titleOverride: String? = nil
+  var subtitleOverride: String? = nil
   let status: MemoryExportStatus
   let action: () -> Void
 
@@ -86,7 +130,7 @@ private struct MemoryExportRow: View {
     switch destination {
     case .obsidian:
       return status.isConfigured ? "Sync" : "Connect"
-    case .notion, .chatgpt, .claude, .gemini, .agents, .claudeCode, .codex:
+    case .notion, .chatgpt, .claude, .gemini, .agents, .claudeCode, .codex, .openclaw, .hermes:
       return "Open"
     }
   }
@@ -97,12 +141,12 @@ private struct MemoryExportRow: View {
         ConnectorBrandIcon(brand: destination.brand, size: 34, cornerRadius: 9)
 
         VStack(alignment: .leading, spacing: 2) {
-          Text(destination.title)
+          Text(titleOverride ?? destination.title)
             .scaledFont(size: 14, weight: .medium)
             .foregroundColor(OmiColors.textPrimary)
             .lineLimit(1)
 
-          Text(destination.description)
+          Text(subtitleOverride ?? destination.description)
             .scaledFont(size: 12)
             .foregroundColor(OmiColors.textTertiary)
             .lineLimit(1)
@@ -112,7 +156,7 @@ private struct MemoryExportRow: View {
         Spacer(minLength: 12)
 
         ImportConnectorActionButton(
-          title: actionTitle, isConnected: status.isConfigured || status.exportedCount > 0)
+          title: actionTitle, isConnected: status.hasConnection)
       }
       .padding(.horizontal, 14)
       .padding(.vertical, 11)
@@ -241,6 +285,9 @@ final class MemoryExportDestinationSheetModel: ObservableObject {
       case .assisted:
         statusMessage =
           "Opened \(destination.title) and copied your key — finish with the steps below."
+      case .completed:
+        // Deterministic local write (OpenClaw/Hermes) — show the result directly.
+        statusMessage = outcome.taskTitle
       }
     } catch {
       errorMessage = error.localizedDescription
@@ -292,7 +339,7 @@ final class MemoryExportDestinationSheetModel: ObservableObject {
         }
         statusMessage = "Memory pack ready for \(destination.title). Prompt and export copied."
 
-      case .agents, .claudeCode, .codex:
+      case .agents, .claudeCode, .codex, .openclaw, .hermes:
         // MCP-only destinations have no memory-pack run step.
         return nil
       }
@@ -382,6 +429,10 @@ struct MemoryExportDestinationSheet: View {
   let onDismiss: () -> Void
 
   @StateObject private var model = MemoryExportDestinationSheetModel()
+  @State private var showManualSetup = false
+  @State private var permissionRefreshID = 0
+
+  private let permissionRefreshTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
   var body: some View {
     VStack(alignment: .leading, spacing: 18) {
@@ -433,7 +484,21 @@ struct MemoryExportDestinationSheet: View {
     .background(OmiColors.backgroundPrimary)
     .task {
       await model.loadConfiguration()
+      if destination == .claude && model.mcpKey == nil {
+        await model.generateMCPKey()
+      }
     }
+    .onReceive(permissionRefreshTimer) { _ in
+      refreshPermissionStateIfNeeded()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+      refreshPermissionStateIfNeeded()
+    }
+  }
+
+  private func refreshPermissionStateIfNeeded() {
+    guard MemoryExportExecutor.requiresAccessibilityPreflight(destination) else { return }
+    permissionRefreshID += 1
   }
 
   @ViewBuilder
@@ -442,27 +507,12 @@ struct MemoryExportDestinationSheet: View {
       if destination.supportsAgentSetup {
         agentSetupSection
       } else if destination.supportsMCP {
+        // Lead with the one action — "Do it for me". Everything manual (live
+        // MCP fields, memory pack) is tucked behind a collapsed disclosure so
+        // the default view stays simple.
         executeBlock
-        Divider()
-          .background(OmiColors.backgroundTertiary)
-          .padding(.vertical, 2)
-
-        methodHeader(
-          icon: "bolt.fill",
-          title: "Live connection",
-          tag: "AUTOMATIC",
-          tagColor: OmiColors.success,
-          subtitle: "Set it once — \(destination.title) reads your memories live and stays in sync."
-        )
-        mcpSection
-      }
-
-      if destination.supportsMemoryPack {
-        if destination.supportsMCP {
-          Divider()
-            .background(OmiColors.backgroundTertiary)
-            .padding(.vertical, 2)
-        }
+        manualSetupDisclosure
+      } else if destination.supportsMemoryPack {
         methodHeader(
           icon: "doc.on.clipboard.fill",
           title: "Memory pack",
@@ -474,6 +524,43 @@ struct MemoryExportDestinationSheet: View {
         packActionButton
       }
     }
+  }
+
+  @ViewBuilder
+  private var manualSetupDisclosure: some View {
+    DisclosureGroup(isExpanded: $showManualSetup) {
+      VStack(alignment: .leading, spacing: 18) {
+        methodHeader(
+          icon: "bolt.fill",
+          title: "Live connection",
+          tag: "AUTOMATIC",
+          tagColor: OmiColors.success,
+          subtitle: "Set it once — \(destination.title) reads your memories live and stays in sync."
+        )
+        mcpSection
+
+        if destination.supportsMemoryPack {
+          Divider()
+            .background(OmiColors.backgroundTertiary)
+            .padding(.vertical, 2)
+          methodHeader(
+            icon: "doc.on.clipboard.fill",
+            title: "Memory pack",
+            tag: "MANUAL",
+            tagColor: OmiColors.textTertiary,
+            subtitle: "Copy a one-time snapshot and paste it in yourself. Won't update on its own."
+          )
+          packSection
+          packActionButton
+        }
+      }
+      .padding(.top, 10)
+    } label: {
+      Text("Manual installation")
+        .scaledFont(size: 13, weight: .medium)
+        .foregroundColor(OmiColors.textTertiary)
+    }
+    .tint(OmiColors.textTertiary)
   }
 
   private var agentSetupSection: some View {
@@ -563,14 +650,32 @@ struct MemoryExportDestinationSheet: View {
   }
 
   private var executeButtonTitle: String {
-    destination.mcpExecuteKind == .autonomous ? "Do it for me" : "Open & copy key"
+    _ = permissionRefreshID
+    switch destination.mcpExecuteKind {
+    case .localAutonomous:
+      return "Do it for me"
+    case .browserAutonomous:
+      return MemoryExportExecutor.accessibilityPreflightMissing(for: destination)
+        ? "Grant Accessibility"
+        : "Do it for me"
+    case .assisted:
+      return "Open & copy key"
+    }
   }
 
   private var executeBlockSubtitle: String {
     switch destination.mcpExecuteKind {
-    case .autonomous:
+    case .localAutonomous:
       return
         "Omi sets up \(destination.title) for you — it runs as an Omi task you can watch in the floating bar. If it gets stuck, use the manual steps below."
+    case .browserAutonomous:
+      if MemoryExportExecutor.accessibilityPreflightMissing(for: destination) {
+        return
+          "Omi needs Accessibility permission to use your signed-in browser for \(destination.title). If you prefer not to grant it, use the manual steps below."
+      } else {
+        return
+          "Omi uses your signed-in browser to set up \(destination.title). If sign-in or permissions block it, Omi will tell you exactly where it stopped."
+      }
     case .assisted:
       return
         "Omi opens \(destination.title) and copies your key, then you confirm the quick steps below."
@@ -600,7 +705,10 @@ struct MemoryExportDestinationSheet: View {
         .fixedSize(horizontal: false, vertical: true)
 
       Button(model.isExecuting ? "Starting Omi…" : executeButtonTitle) {
-        Task { await model.executeWithOmi(destination: destination) }
+        Task {
+          await model.executeWithOmi(destination: destination)
+          statuses[destination] = await MemoryExportService.shared.status(for: destination)
+        }
       }
       .buttonStyle(OnboardingCardButtonStyle(isPrimary: true))
       .disabled(model.isExecuting)
@@ -641,10 +749,14 @@ struct MemoryExportDestinationSheet: View {
   private var mcpSection: some View {
     let setup = destination.mcpSetup(key: model.mcpKey ?? "YOUR_OMI_KEY")
     VStack(alignment: .leading, spacing: 12) {
-      mcpCodeRow(
-        label: "Server URL", value: MemoryExportDestination.mcpServerURL, copyLabel: "Server URL")
+      if destination == .claude {
+        claudeConnectorFields
+      } else {
+        mcpCodeRow(
+          label: "Server URL", value: MemoryExportDestination.mcpServerURL, copyLabel: "Server URL")
 
-      mcpKeyRow
+        mcpKeyRow
+      }
 
       if let setup, let copyText = setup.copyText, let copyTitle = setup.copyTitle {
         mcpSnippet(copyText, title: copyTitle, enabled: model.mcpKey != nil)
@@ -673,6 +785,73 @@ struct MemoryExportDestinationSheet: View {
             .foregroundColor(OmiColors.textSecondary)
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private var claudeConnectorFields: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Text("Copy these fields into Claude's Add custom connector form.")
+        .scaledFont(size: 12)
+        .foregroundColor(OmiColors.textTertiary)
+        .fixedSize(horizontal: false, vertical: true)
+
+      mcpCodeRow(label: "Name", value: "Omi Memory", copyLabel: "Name")
+
+      mcpCodeRow(
+        label: "Remote MCP server URL",
+        value: MemoryExportDestination.mcpServerURL,
+        copyLabel: "Remote MCP server URL"
+      )
+
+      Text("Advanced settings")
+        .scaledFont(size: 12, weight: .medium)
+        .foregroundColor(OmiColors.textSecondary)
+        .padding(.top, 2)
+
+      mcpCodeRow(label: "OAuth Client ID", value: "omi", copyLabel: "OAuth Client ID")
+
+      if let key = model.mcpKey {
+        mcpCodeRow(
+          label: "OAuth Client Secret",
+          value: key,
+          copyLabel: "OAuth Client Secret",
+          secure: true
+        )
+      } else {
+        claudeConnectorPendingSecretRow
+      }
+    }
+  }
+
+  private var claudeConnectorPendingSecretRow: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text("OAuth Client Secret")
+        .scaledFont(size: 12, weight: .medium)
+        .foregroundColor(OmiColors.textSecondary)
+      HStack(spacing: 8) {
+        Text(model.isLoadingMCPKey ? "Generating connection key..." : "Connection key unavailable")
+          .scaledFont(size: 12)
+          .foregroundColor(OmiColors.textTertiary)
+          .lineLimit(1)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        Button("Retry") {
+          Task { await model.generateMCPKey() }
+        }
+        .buttonStyle(.plain)
+        .scaledFont(size: 11, weight: .medium)
+        .foregroundColor(OmiColors.textSecondary)
+        .disabled(model.isLoadingMCPKey)
+      }
+      .padding(.horizontal, 12)
+      .padding(.vertical, 10)
+      .background(
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(OmiColors.backgroundSecondary)
+          .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+              .stroke(Color.white.opacity(0.08), lineWidth: 1))
+      )
     }
   }
 
@@ -799,7 +978,7 @@ struct MemoryExportDestinationSheet: View {
           )
       }
 
-    case .agents, .claudeCode, .codex:
+    case .agents, .claudeCode, .codex, .openclaw, .hermes:
       EmptyView()
     }
   }
@@ -824,7 +1003,7 @@ struct MemoryExportDestinationSheet: View {
       return (model.obsidianVaultPath.isEmpty ? "Choose vault" : "Export", "Exporting…")
     case .chatgpt, .claude, .gemini:
       return ("Copy & open", "Preparing…")
-    case .agents, .claudeCode, .codex:
+    case .agents, .claudeCode, .codex, .openclaw, .hermes:
       return ("Copy", "…")
     }
   }

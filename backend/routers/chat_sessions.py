@@ -11,11 +11,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 import database.chat as chat_db
+import database.llm_usage as llm_usage_db
 from database.users import set_chat_message_rating_score
+from utils.chat import initial_message_util
+from utils.llm.clients import get_llm
 from utils.other import endpoints as auth
 
 logger = logging.getLogger(__name__)
@@ -44,6 +47,8 @@ class SaveMessageRequest(BaseModel):
     app_id: str | None = Field(None, max_length=200)
     session_id: str | None = Field(None, max_length=200)
     metadata: str | None = None
+    client_message_id: str | None = Field(None, pattern=r'^[A-Za-z0-9_-]{1,128}$')
+    message_source: str = Field('desktop_chat', pattern=r'^(desktop_chat|realtime_voice)$')
 
 
 class RateMessageRequest(BaseModel):
@@ -132,16 +137,32 @@ def delete_chat_session(
 @router.post('/v2/desktop/messages', tags=['chat-sessions'])
 def save_message(
     request: SaveMessageRequest,
+    x_app_platform: str | None = Header(None),
     uid: str = Depends(auth.get_current_user_uid),
 ):
-    return chat_db.save_message(
+    saved = chat_db.save_message(
         uid,
         text=request.text,
         sender=request.sender,
         app_id=request.app_id,
         session_id=request.session_id,
         metadata=request.metadata,
+        client_message_id=request.client_message_id,
+        message_source=request.message_source,
     )
+    if request.sender == 'human' and request.message_source == 'desktop_chat':
+        try:
+            llm_usage_db.record_chat_quota_question(
+                uid,
+                idempotency_key=f'desktop_messages:{saved["id"]}',
+                source='desktop_messages',
+                message_id=saved['id'],
+                chat_session_id=saved.get('session_id'),
+                platform=x_app_platform,
+            )
+        except Exception:
+            logger.exception('Failed to record desktop chat quota question uid=%s message_id=%s', uid, saved['id'])
+    return saved
 
 
 @router.get('/v2/desktop/messages', tags=['chat-sessions'])
@@ -194,11 +215,9 @@ def create_initial_message(
 ):
     """Generate an initial greeting message for a chat session.
 
-    Delegates to the existing initial_message_util in routers/chat.py which
+    Delegates to the shared chat helper which
     handles persona detection, previous message context, and LLM generation.
     """
-    from routers.chat import initial_message_util
-
     ai_message = initial_message_util(uid, request.app_id, chat_session_id=request.session_id)
     return {'message': ai_message.text, 'message_id': ai_message.id}
 
@@ -209,8 +228,6 @@ def generate_session_title(
     uid: str = Depends(auth.with_rate_limit(auth.get_current_user_uid, "chat:initial")),
 ):
     """Generate a title for a chat session based on its messages."""
-    from utils.llm.clients import get_llm
-
     conversation = '\n'.join(f"{m.sender}: {m.text}" for m in request.messages[:10])
     prompt = (
         "Generate a short, descriptive title (max 6 words) for this chat conversation. "

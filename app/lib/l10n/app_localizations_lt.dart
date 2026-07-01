@@ -1721,12 +1721,7 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'ĮRENGINIAI',
-      one: 'ĮRENGINYS',
-    );
+    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'ĮRENGINIAI', one: 'ĮRENGINYS');
     return 'RASTA $count $_temp0 NETOLIESE';
   }
 
@@ -7781,6 +7776,9 @@ class AppLocalizationsLt extends AppLocalizations {
   String get viewAll => 'Peržiūrėti viską';
 
   @override
+  String get expand => 'Išskleisti';
+
+  @override
   String get addTask => 'Pridėti užduotį';
 
   @override
@@ -9545,6 +9543,10 @@ class AppLocalizationsLt extends AppLocalizations {
   String get backgroundModeNote => 'Kol kas veikia tik su Omi įrenginiais ir nuolat tobulinama.';
 
   @override
+  String get backgroundModeUnavailable =>
+      'Foninis režimas nepasiekiamas, nes neprijungtas suderinamas įrenginys. Prijunkite Omi, OpenGlass arba Friend Pendant įrenginį, kad galėtumėte naudoti šią funkciją.';
+
+  @override
   String get regenerateRecap => 'Sukurti santrauką iš naujo';
 
   @override
@@ -9582,6 +9584,18 @@ class AppLocalizationsLt extends AppLocalizations {
       'Telefone trūksta vietos, todėl įrašymas pristabdytas. Atlaisvinkite vietos arba įkelkite įrašus ir įrašymas bus automatiškai atnaujintas.';
 
   @override
+  String get recordingMode => 'Įrašymo režimas';
+
+  @override
+  String get captureModeLater => 'Vėliau';
+
+  @override
+  String get captureModeLiveDescription => 'Transkribuokite tikruoju laiku, kol kalbate.';
+
+  @override
+  String get captureModeLaterDescription => 'Išsaugokite garsą dabar ir transkribuokite kada panorėję.';
+
+  @override
   String get unmute => 'Įjungti garsą';
 
   @override
@@ -9589,4 +9603,120 @@ class AppLocalizationsLt extends AppLocalizations {
 
   @override
   String get transcribeLaterPaused => 'Pristabdyta — garsas neįrašomas';
+
+  @override
+  String get memoryThisDevice => 'Šis įrenginys';
+  @override
+  String get memoryThisIphone => 'Šis iPhone';
+  @override
+  String get memoryThisPhone => 'Šis telefonas';
+  @override
+  String get memoryProvenanceMac => 'Mac';
+  @override
+  String get memoryProvenanceIphone => 'iPhone';
+  @override
+  String get memoryProvenanceAndroid => 'Android';
+  String get deviceTutorial => 'Kaip naudoti Omi';
+
+  @override
+  String get deviceOnboardingTranscriptionTitle => 'Kalbėkite į Omi';
+
+  @override
+  String get deviceOnboardingTranscriptionSubtitle =>
+      'Pasakykite kelis žodžius ir stebėkite, kaip jie atsiranda realiuoju laiku';
+
+  @override
+  String get deviceOnboardingGoodJob => 'Šaunu!';
+
+  @override
+  String get deviceOnboardingStartSpeaking => 'Pradėkite kalbėti...';
+
+  @override
+  String get deviceOnboardingAskQuestionTitle => 'Užduokite Omi klausimą';
+
+  @override
+  String get deviceOnboardingAskQuestionSubtitle =>
+      'Vieną kartą paspauskite mygtuką, užduokite klausimą ir baigę paspauskite dar kartą';
+
+  @override
+  String get deviceOnboardingProcessingQuestion => 'Apdorojamas jūsų klausimas...';
+
+  @override
+  String get deviceOnboardingListening => 'Klausoma...';
+
+  @override
+  String get deviceOnboardingTurnOffTitle => 'Išjungti';
+
+  @override
+  String get deviceOnboardingTurnOnTitle => 'Įjungti';
+
+  @override
+  String get deviceOnboardingTurnOffSubtitle => 'Palaikykite mygtuką 3 sekundes';
+
+  @override
+  String get deviceOnboardingTurnOnSubtitle => 'Paspauskite mygtuką, kad vėl įjungtumėte';
+
+  @override
+  String get deviceOnboardingHoldButtonHint => 'Tvirtai laikykite mygtuką, kol užges lemputė';
+
+  @override
+  String get deviceOnboardingStatusConnected => 'Prijungta';
+
+  @override
+  String get deviceOnboardingStatusConnectedDone => 'Prijungta!';
+
+  @override
+  String get deviceOnboardingStatusDisconnected => 'Atjungta';
+
+  @override
+  String get deviceOnboardingStatusTurningOff => 'Išjungiama...';
+
+  @override
+  String get deviceOnboardingDoubleTapTitle => 'Tinkinti dvigubą bakstelėjimą';
+
+  @override
+  String get deviceOnboardingEndConversation => 'Baigti pokalbį';
+
+  @override
+  String get deviceOnboardingEndConversationDesc => 'Išsaugoti ir baigti esamą pokalbį';
+
+  @override
+  String get deviceOnboardingMuteUnmute => 'Nutildyti / Įjungti garsą';
+
+  @override
+  String get deviceOnboardingMuteUnmuteDesc => 'Įjungti arba išjungti mikrofoną';
+
+  @override
+  String get deviceOnboardingStarConversation => 'Pažymėti vykstantį pokalbį žvaigždute';
+
+  @override
+  String get deviceOnboardingStarConversationDesc => 'Pažymėti pokalbį kaip svarbų';
+
+  @override
+  String get deviceOnboardingSingleTapHint =>
+      'Tai buvo vienas bakstelėjimas — pabandykite greitai bakstelėti du kartus!';
+
+  @override
+  String get deviceOnboardingTryDoubleTap => 'Išbandykite dabar! Dukart bakstelėkite Omi';
+
+  @override
+  String get deviceOnboardingContinue => 'Tęsti';
+
+  @override
+  String get deviceOnboardingFinish => 'Baigti';
+
+  @override
+  String get deviceOnboardingIntroTitle => 'Susipažinkite su savo Omi';
+
+  @override
+  String get deviceOnboardingIntroSubtitle => 'Greita praktinė apžvalga visko, ką gali jūsų Omi.';
+
+  @override
+  String get deviceOnboardingIntroDuration => 'Maždaug 1 minutė';
+
+  @override
+  String get jumpToLatestMessage => 'Peršokti į naujausią pranešimą';
+
+  @override
+  String get latest => 'Naujausias';
 }

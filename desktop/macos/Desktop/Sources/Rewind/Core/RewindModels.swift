@@ -362,6 +362,7 @@ class RewindSettings: ObservableObject {
     static let shared = RewindSettings()
 
     private let defaults = UserDefaults.standard
+    static let batteryCaptureIntervalMultiplier = 3.0
 
     /// Default apps that should be excluded from screen capture for privacy
     static let defaultExcludedApps: Set<String> = [
@@ -472,6 +473,10 @@ class RewindSettings: ObservableObject {
             excludedWindowPatterns: excludedWindowPatterns,
             suppressPrivateBrowsing: suppressPrivateBrowsing
         )
+    }
+
+    func effectiveCaptureInterval(isOnBattery: Bool) -> Double {
+        isOnBattery ? captureInterval * Self.batteryCaptureIntervalMultiplier : captureInterval
     }
 
     /// Add an app to the exclusion list
