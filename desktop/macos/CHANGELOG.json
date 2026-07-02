@@ -1,19 +1,5 @@
 {
-  "unreleased": [
-    "Reworked menu-bar Capture Idea into a start/stop toggle that records an idea (turning the mic on automatically), then saves it to your Ideas folder with an on-screen confirmation",
-    "Capture Idea in the menu-bar dropdown is now a real button that flips to a recording state in place and confirms instantly when you click it",
-    "Fixed the idea-capture confirmation toast so tapping it opens your Ideas folder",
-    "The menu-bar Audio Recording switch now updates live when Capture Idea turns the mic on or off",
-    "Fixed the Dock Icon setting: re-enabling now reliably brings the icon back and keeps the window in front instead of dropping it behind other apps",
-    "Made the General > Dock Icon switch read intuitively (on = icon visible)",
-    "Fixed idea-capture clicks being ignored for a few seconds after starting or stopping a capture (no more closing and reopening the menu to stop)",
-    "Fixed captured ideas not appearing in the Ideas folder: the app now files the conversation it actually recorded instead of whatever the server thought was in progress, and short ideas are no longer lost to the transcription window",
-    "Launch at Login can now be enabled from the dev build as well",
-    "Fixed on-device transcriptions being permanently lost when a recording hit the 4-hour limit, the app quit before syncing, or the first upload failed: stranded recordings now upload automatically, including ones that failed in the past",
-    "Fixed the floating bar reappearing and re-enabling itself after a push-to-talk press when you had turned it off",
-    "Fixed onboarding silently turning off the floating bar for users who skipped the voice steps",
-    "Fixed the floating bar voice answers toggle reverting when a settings sync raced or failed to reach the server"
-  ],
+  "unreleased": [],
   "releases": [
     {
       "version": "0.11.592",
@@ -64,6 +50,16 @@
         "Google Calendar connection checks now preserve specific network failure details and can be verified through the same real connector path the app uses",
         "Fixed Gmail import getting stuck while reading large email histories",
         "Improved Apple Notes connection checks so existing folder access keeps working and database read errors show the right recovery message"
+      ]
+    },
+    {
+      "version": "0.1.7",
+      "date": "2026-07-02",
+      "changes": [
+        "The hard-secret scrubber now also catches refresh tokens and 'Authorization: bearer' header values before they leave the device",
+        "Fixed the desktop Rust backend failing to build after the upstream sync (broken test scaffolding and a renamed timeout constant)",
+        "Browser-access setup now checks the same Node.js locations the AI runtime actually launches from, so its 'runtime missing' guidance can no longer disagree with reality; the Dock Icon setting uses a neutral icon color",
+        "Synced upstream Omi improvements: update-available banner, assisted ChatGPT/Claude connector setup with one-click copy, hardened Google connector probes and Gmail imports, and device mute that survives an app restart"
       ]
     },
     {
@@ -4102,16 +4098,6 @@
       "changes": [
         "Unified search field into persistent top bar",
         "Added backward compatibility for Flutter chat sessions"
-      ]
-    },
-    {
-      "version": "0.1.7",
-      "date": "2026-02-02",
-      "changes": [
-        "Fixed window screenshot to maintain aspect ratio",
-        "Added no-results state to search UI",
-        "Fixed bundled ffmpeg path for SPM builds",
-        "Enhanced reset onboarding with thorough cleanup"
       ]
     },
     {

@@ -1,0 +1,10 @@
+{
+  "version": "0.1.7",
+  "date": "2026-07-02",
+  "changes": [
+    "The hard-secret scrubber now also catches refresh tokens and 'Authorization: bearer' header values before they leave the device",
+    "Fixed the desktop Rust backend failing to build after the upstream sync (broken test scaffolding and a renamed timeout constant)",
+    "Browser-access setup now checks the same Node.js locations the AI runtime actually launches from, so its 'runtime missing' guidance can no longer disagree with reality; the Dock Icon setting uses a neutral icon color",
+    "Synced upstream Omi improvements: update-available banner, assisted ChatGPT/Claude connector setup with one-click copy, hardened Google connector probes and Gmail imports, and device mute that survives an app restart"
+  ]
+}
