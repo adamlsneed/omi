@@ -11,6 +11,16 @@ final class HardSecretDetectorTests: XCTestCase {
     XCTAssertTrue(HardSecretDetector.containsHardSecret("postgres://user:secret@example.com/db"))
     XCTAssertTrue(HardSecretDetector.containsHardSecret("-----BEGIN PRIVATE KEY-----"))
     XCTAssertTrue(HardSecretDetector.containsHardSecret("My one-time code is 123456"))
+    // HTTP header form: whitespace separator after "bearer" (no ':' or '=').
+    XCTAssertTrue(
+      HardSecretDetector.containsHardSecret("Authorization: bearer abcdefghijklmnopqrstuvwxyz123456"))
+    XCTAssertTrue(HardSecretDetector.containsHardSecret("refresh_token=abcdefghijklmnopqrstuvwxyz123456"))
+  }
+
+  func testBareBearerWordIsNotASecret() {
+    // "bearer" followed by prose must not match; only a long opaque value after it.
+    XCTAssertFalse(HardSecretDetector.containsHardSecret("the bearer of this message is a friend"))
+    XCTAssertFalse(HardSecretDetector.containsHardSecret("bearer bonds are a thing"))
   }
 
   func testDoesNotTreatEmailPIIAsHardSecret() {
