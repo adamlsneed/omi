@@ -84,14 +84,14 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
             children: [
               ListTile(
                 title: Text(context.l10n.templateRoutingTemplateNone, style: const TextStyle(color: Colors.white)),
-                trailing: currentAppId.trim().isEmpty ? const Icon(Icons.check, color: Color(0xFF7C4DFF)) : null,
+                trailing: currentAppId.trim().isEmpty ? const Icon(Icons.check, color: Colors.white) : null,
                 onTap: () => Navigator.pop(sheetContext, ''),
               ),
               const Divider(height: 1, color: Color(0xFF3C3C43)),
               ...apps.map(
                 (app) => ListTile(
                   title: Text(app.name, style: const TextStyle(color: Colors.white)),
-                  trailing: app.id == currentAppId ? const Icon(Icons.check, color: Color(0xFF7C4DFF)) : null,
+                  trailing: app.id == currentAppId ? const Icon(Icons.check, color: Colors.white) : null,
                   onTap: () => Navigator.pop(sheetContext, app.id),
                 ),
               ),
@@ -250,7 +250,10 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w500),
+          ),
           const SizedBox(height: 10),
           TextField(
             controller: controller,
@@ -294,8 +297,8 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
               children: [
                 SwitchListTile(
                   value: _config.enabled,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: const Color(0xFF7C4DFF),
+                  activeThumbColor: Colors.black,
+                  activeTrackColor: Colors.white,
                   inactiveThumbColor: const Color(0xFF8E8E93),
                   title: Text(
                     context.l10n.permissionEnabled,
@@ -306,8 +309,8 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
                 _divider(),
                 SwitchListTile(
                   value: _config.autoRunOnOpen,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: const Color(0xFF7C4DFF),
+                  activeThumbColor: Colors.black,
+                  activeTrackColor: Colors.white,
                   inactiveThumbColor: const Color(0xFF8E8E93),
                   title: Text(
                     context.l10n.templateRoutingAutoRunOnOpen,
@@ -370,9 +373,9 @@ class _FrontendTemplateRoutingSettingsPageState extends State<FrontendTemplateRo
                 ListTile(
                   title: Text(
                     context.l10n.templateRoutingManageApps,
-                    style: const TextStyle(color: Color(0xFF7C4DFF), fontSize: 16, fontWeight: FontWeight.w500),
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Color(0xFF7C4DFF), size: 20),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.white, size: 20),
                   onTap: _openSummaryApps,
                 ),
               ],

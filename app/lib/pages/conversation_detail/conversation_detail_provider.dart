@@ -431,6 +431,13 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     _routedSummaryRequestKey = null;
   }
 
+  void _setRoutedSummaryIdle({FrontendTemplateRoutingResult? result, String? error}) {
+    routedSummary = result;
+    routedSummaryLoading = false;
+    routedSummaryError = error;
+    notifyListeners();
+  }
+
   void loadCachedRoutedSummary() {
     final currentConversation = conversationOrNull;
     if (currentConversation == null) return;
@@ -509,34 +516,22 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     if (!force &&
         cached != null &&
         cached.isFreshFor(profile: profile, promptHash: promptHash, conversationStartedAt: localTime)) {
-      routedSummary = cached;
-      routedSummaryLoading = false;
-      routedSummaryError = null;
-      notifyListeners();
+      _setRoutedSummaryIdle(result: cached);
       return;
     }
 
     if (!config.hasRequiredPrompts) {
-      routedSummary = null;
-      routedSummaryLoading = false;
-      routedSummaryError = routedSummaryMissingPromptsError;
-      notifyListeners();
+      _setRoutedSummaryIdle(error: routedSummaryMissingPromptsError);
       return;
     }
 
     if (!config.autoRunOnOpen && !force) {
-      routedSummary = null;
-      routedSummaryLoading = false;
-      routedSummaryError = null;
-      notifyListeners();
+      _setRoutedSummaryIdle();
       return;
     }
 
     if (currentConversation.discarded || currentConversation.status != ConversationStatus.completed) {
-      routedSummary = null;
-      routedSummaryLoading = false;
-      routedSummaryError = null;
-      notifyListeners();
+      _setRoutedSummaryIdle();
       return;
     }
 

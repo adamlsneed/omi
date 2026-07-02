@@ -1731,7 +1731,12 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String devicesFoundNearby(int count) {
-    String _temp0 = intl.Intl.pluralLogic(count, locale: localeName, other: 'DISPOZITIVE', one: 'DISPOZITIV');
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'DISPOZITIVE',
+      one: 'DISPOZITIV',
+    );
     return '$count $_temp0 GĂSIT(E) ÎN APROPIERE';
   }
 
@@ -9639,16 +9644,23 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get memoryThisDevice => 'Acest dispozitiv';
+
   @override
   String get memoryThisIphone => 'Acest iPhone';
+
   @override
   String get memoryThisPhone => 'Acest telefon';
+
   @override
   String get memoryProvenanceMac => 'Mac';
+
   @override
   String get memoryProvenanceIphone => 'iPhone';
+
   @override
   String get memoryProvenanceAndroid => 'Android';
+
+  @override
   String get deviceTutorial => 'Cum să folosești Omi';
 
   @override
