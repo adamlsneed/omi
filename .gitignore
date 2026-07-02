@@ -245,3 +245,6 @@ omi/firmware/omi/prj.conf
 # Agent planning artifacts (ephemeral; do not commit)
 .cursor/plans/
 .hermes/
+
+# Merge artifacts
+*.orig

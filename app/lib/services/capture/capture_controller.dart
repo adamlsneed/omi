@@ -869,10 +869,8 @@ class CaptureController extends ChangeNotifier
           return;
         }
 
-        // idea-capture: the custom firmware drives the LED itself at the ~1s hold
-        // and tells us the new state explicitly — ENTER (6) or EXIT (7). We follow
-        // that state (never toggle), so a dropped BLE packet can't invert it. The
-        // firmware already set the LED, so the app does NOT drive it here.
+        // idea-capture: firmware hold signal, ENTER (6) or EXIT (7); rationale on
+        // _onIdeaCaptureSignal.
         if (buttonState == 6 && _voiceCommandSession == null) {
           Logger.debug("idea-capture: HOLD ENTER");
           _onIdeaCaptureSignal(deviceId, active: true);
@@ -1003,9 +1001,9 @@ class CaptureController extends ChangeNotifier
     }
   }
 
-  /// idea-capture: follow the firmware's explicit hold signal — ENTER(6)/EXIT(7).
+  /// idea-capture: follow the firmware's explicit hold signal, ENTER (6) or EXIT (7).
   /// We set state to match the firmware (never toggle), so a dropped BLE packet
-  /// can't invert it. The firmware already drove the LED, so driveLed: false.
+  /// cannot invert it. The firmware already drove the LED, so driveLed: false.
   Future<void> _onIdeaCaptureSignal(String deviceId, {required bool active}) async {
     if (_isProcessingButtonEvent) {
       Logger.debug('idea-capture: already processing, deferring signal active=$active');
@@ -2005,8 +2003,8 @@ class CaptureController extends ChangeNotifier
   }
 
   /// Force-process the current in-progress conversation (bypasses the server's
-  /// short-conversation discard). When [asIdea] is true the resulting
-  /// conversation is filed under the "Ideas" folder. // idea-capture
+  /// short-conversation discard). idea-capture: when [asIdea] is true the
+  /// resulting conversation is filed under the "Ideas" folder.
   Future<void> forceProcessingCurrentConversation({bool asIdea = false}) async {
     final sessionStart = _sessionStartSeconds;
 

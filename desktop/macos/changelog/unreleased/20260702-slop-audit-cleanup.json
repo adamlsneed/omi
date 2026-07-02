@@ -1,0 +1,3 @@
+{
+  "change": "Browser-access setup now checks the same Node.js locations the AI runtime actually launches from, so its 'runtime missing' guidance can no longer disagree with reality; the Dock Icon setting uses a neutral icon color"
+}

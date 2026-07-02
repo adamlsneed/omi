@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/backend/schema/conversation.dart';
-import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/backend/schema/message_event.dart';
 import 'package:omi/backend/schema/transcript_segment.dart';
 import 'package:omi/env/env.dart';
@@ -246,9 +245,7 @@ void main() {
           pauseRequests.add(paused);
         },
       );
-      provider.updateRecordingDevice(
-        BtDevice(id: 'cv1-device', name: 'Omi CV1', type: DeviceType.omi, rssi: -50),
-      );
+      provider.updateRecordingDevice(BtDevice(id: 'cv1-device', name: 'Omi CV1', type: DeviceType.omi, rssi: -50));
       provider.updateRecordingState(RecordingState.deviceRecord);
 
       await provider.stopStreamDeviceRecording();

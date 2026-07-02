@@ -266,7 +266,6 @@ bool app_settings_is_recording_paused(void)
     return atomic_get(&recording_paused) != 0;
 }
 
-// idea-capture: runtime "idea capture mode" flag (not persisted; resets on reboot).
 void app_settings_set_idea_capture_active(bool active)
 {
     atomic_set(&idea_capture_active, active ? 1 : 0);

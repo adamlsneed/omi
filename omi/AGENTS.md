@@ -27,11 +27,9 @@ git show "$(git merge-base upstream/main HEAD):<path>" | tr -d '[:space:]'  # vs
 ## Feature flags are an app<->device contract
 `omi/firmware/omi/src/lib/core/features.h` `OMI_FEATURE_*` bit values must match the
 app side in `app/lib/services/devices.dart` (`OmiFeatures`) for every bit the app reads.
-Example: mic-gain is `1 << 8` in BOTH. (Firmware may advertise bits the app does not
-currently read, like recording-pause `1 << 10`; the numbering contract still holds if
-the app ever reads them.) The firmware advertises the bitmask over BLE and the app reads
-specific bits, so do NOT renumber a feature bit (gaps like a skipped `1 << 9` may be
-intentional to keep the two in sync). Changing a value breaks the handshake.
+Example: mic-gain is `1 << 8` in BOTH. The firmware advertises the bitmask over BLE and
+the app reads specific bits, so do NOT renumber a feature bit, and add any new bit on
+both sides in the same change. Changing a value breaks the handshake.
 
 ## Upstream sync
 Pulling BasedHardware/omi is a one-way, fork-specific process. Full runbook:

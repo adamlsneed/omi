@@ -267,7 +267,7 @@ extension SettingsContentView {
         HStack(spacing: 16) {
           Image(systemName: "dock.rectangle")
             .scaledFont(size: 16)
-            .foregroundColor(OmiColors.purplePrimary)
+            .foregroundColor(OmiColors.textPrimary)
             .frame(width: 12)
 
           VStack(alignment: .leading, spacing: 4) {

@@ -101,13 +101,11 @@ for Xcode builds is `66K48S8RD4`.
      com.adam.omi.dev
    ```
 
-The full recipe, including the Firebase repoint and failure modes, lives in
+The full recipe, including the Firebase repoint, failure modes, and the
+troubleshooting notes from the local iPhone replacement issue (a `Debug-dev`
+build crashing from the home screen), lives in
 [`docs/local-ios-standalone-install.md`](docs/local-ios-standalone-install.md);
 that document is the single source of truth.
-
-For the detailed troubleshooting notes from the local iPhone replacement issue
-where a `Debug-dev` build crashed from the home screen, see
-[`docs/local-ios-standalone-install.md`](docs/local-ios-standalone-install.md).
 
 Do not change the checked-in official bundle IDs just to satisfy local signing. The app
 group is build-setting driven through `APP_GROUP_IDENTIFIER`, so the official default
