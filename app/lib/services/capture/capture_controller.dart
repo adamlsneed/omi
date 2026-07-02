@@ -155,6 +155,10 @@ class CaptureController extends ChangeNotifier
     @visibleForTesting Future<void> Function(bool paused)? recordingPauseRequesterForTesting,
   })  : externalActions = externalActions ?? const NoopCaptureExternalActions(),
         _recordingPauseRequesterForTesting = recordingPauseRequesterForTesting {
+    // Restore a persisted device mute so it survives an app kill/restart. When
+    // the device reconnects, streamDeviceRecording() reads _isPaused as
+    // `wasPaused` and re-applies the mute instead of silently resuming.
+    _isPaused = SharedPreferencesUtil().deviceMuted;
     _connectionStateListener = ConnectivityService().onConnectionChange.listen((bool isConnected) {
       onConnectionStateChanged(isConnected);
     });
@@ -2454,6 +2458,8 @@ class CaptureController extends ChangeNotifier
     // Write mute state first — before BLE cancel which may fire other events
     await BatteryWidgetService().updateMuteState(true);
     _isPaused = true;
+    // Persist so the mute survives an app kill/restart, not just a reconnect.
+    SharedPreferencesUtil().deviceMuted = true;
     // Phone haptic for mute confirmation — the pendant motor is the only device
     // feedback channel and it's non-functional on some units, so confirm on the
     // phone (the device-side buzz is still requested below for units that have it).
@@ -2470,6 +2476,8 @@ class CaptureController extends ChangeNotifier
   Future<void> resumeDeviceRecording() async {
     if (_recordingDevice == null) return;
     _isPaused = false;
+    // Clear the persisted mute so we don't re-mute on the next restart.
+    SharedPreferencesUtil().deviceMuted = false;
     // Phone haptic for unmute confirmation (see pauseDeviceRecording).
     HapticFeedback.lightImpact();
     // Update widget immediately — don't wait for streaming setup

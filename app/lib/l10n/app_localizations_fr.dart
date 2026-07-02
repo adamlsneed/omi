@@ -9803,4 +9803,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get latest => 'Récent';
+
+  @override
+  String get flashFirmware => 'Flasher le firmware';
 }

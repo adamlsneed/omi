@@ -9536,4 +9536,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get latest => '最新';
+
+  @override
+  String get flashFirmware => '刷写固件';
 }

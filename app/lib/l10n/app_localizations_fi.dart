@@ -9714,4 +9714,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get latest => 'Uusin';
+
+  @override
+  String get flashFirmware => 'Asenna laiteohjelmisto';
 }

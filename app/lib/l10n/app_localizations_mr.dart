@@ -9724,4 +9724,7 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get latest => 'नवीनतम';
+
+  @override
+  String get flashFirmware => 'फर्मवेअर फ्लॅश करा';
 }

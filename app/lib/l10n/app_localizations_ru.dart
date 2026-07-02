@@ -9749,4 +9749,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get latest => 'Последнее';
+
+  @override
+  String get flashFirmware => 'Установить прошивку';
 }

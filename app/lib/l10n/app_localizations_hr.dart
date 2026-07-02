@@ -9748,4 +9748,7 @@ class AppLocalizationsHr extends AppLocalizations {
 
   @override
   String get latest => 'Najnovije';
+
+  @override
+  String get flashFirmware => 'Instaliraj firmver';
 }
