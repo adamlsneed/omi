@@ -63,7 +63,9 @@ enum LocalSessionUploader {
       source: "desktop",
       started_at: iso.string(from: session.startedAt),
       finished_at: session.finishedAt.map { iso.string(from: $0) },
-      language: session.language
+      language: session.language,
+      client_conversation_id: ConversationFinalizationService.localClientConversationId(
+        session: session, sessionId: sessionId)
     )
     let response = try await APIClient.shared.createConversationFromSegments(request)
     try? await TranscriptionStorage.shared.markSessionCompleted(id: sessionId, backendId: response.id)

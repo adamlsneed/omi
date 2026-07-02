@@ -1200,16 +1200,14 @@ BROWSER TABS: when you use the browser (Playwright), on your FIRST browser actio
                 self.groupedSessions = self.computeGroupedSessions()
             }
 
-        // Kill agent bridge subprocess on app quit to prevent orphaned Node.js
-        // processes. Must run synchronously: AppKit exits before an enqueued
-        // Task would ever execute.
+        // Stop the agent bridge on app quit so it unregisters from the shared runtime.
         terminationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            MainActor.assumeIsolated {
-                self.agentBridge.terminateProcessNow()
+            Task { @MainActor in
+                await self.agentBridge.stop()
             }
         }
     }

@@ -521,16 +521,14 @@ class AppState: ObservableObject {
       MainActor.assumeIsolated {
         if self.isTranscribing {
           log("App terminating - stopping transcription (backend handles conversation)")
-          let sessionId = self.currentSessionId
           self.stopAudioCapture()
-          if let sessionId {
-            try? await TranscriptionStorage.shared.finishSession(id: sessionId, reason: .userStop)
-          }
+          // clearTranscriptionState finishes the DB session (finishSession: true) via its
+          // own Task; the observer must stay synchronous, so we cannot await it here.
           self.clearTranscriptionState(
             finalizationReason: .userStop,
             runFinalizer: false,
             allowCloudForceProcess: false,
-            finishSession: false
+            finishSession: true
           )
         }
       }

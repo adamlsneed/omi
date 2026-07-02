@@ -7,56 +7,6 @@ class SettingsSyncManager {
     static let shared = SettingsSyncManager()
     private init() {}
 
-    /// UserDefaults key holding a floating-bar voice-answers value the user set
-    /// locally but the server has not yet confirmed. Persisted so a toggle made
-    /// offline is not reverted by the first pull after relaunch.
-    private static let pendingVoiceAnswersKey = "settingsSync_pendingFloatingBarVoiceAnswers"
-
-    private var pendingVoiceAnswersPush: Bool? {
-        get { UserDefaults.standard.object(forKey: Self.pendingVoiceAnswersKey) as? Bool }
-        set {
-            if let newValue {
-                UserDefaults.standard.set(newValue, forKey: Self.pendingVoiceAnswersKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.pendingVoiceAnswersKey)
-            }
-        }
-    }
-
-    /// Chains voice-answers pushes so rapid toggles cannot land on the server out of order.
-    private var voiceAnswersPushTask: Task<Void, Never>?
-
-    /// Set the floating-bar voice answers toggle and sync it to the server.
-    /// The value stays marked as pending until the server confirms it, so a pull
-    /// racing the push cannot revert the user's choice, and a failed push is
-    /// retried on the next sync instead of being silently lost.
-    func setFloatingBarVoiceAnswers(_ enabled: Bool) {
-        ShortcutSettings.shared.floatingBarVoiceAnswersEnabled = enabled
-        pendingVoiceAnswersPush = enabled
-        pushPendingVoiceAnswers()
-    }
-
-    private func pushPendingVoiceAnswers() {
-        let previous = voiceAnswersPushTask
-        voiceAnswersPushTask = Task {
-            await previous?.value
-            guard let value = self.pendingVoiceAnswersPush else { return }
-            do {
-                _ = try await APIClient.shared.updateAssistantSettings(
-                    AssistantSettingsResponse(
-                        floatingBar: FloatingBarSettingsResponse(voiceAnswersEnabled: value)
-                    )
-                )
-                // Only clear if the user has not toggled again while this push was in flight.
-                if self.pendingVoiceAnswersPush == value {
-                    self.pendingVoiceAnswersPush = nil
-                }
-                log("SettingsSyncManager: pushed floating bar voice answers = \(value)")
-            } catch {
-                logError("SettingsSyncManager: failed to push floating bar voice answers", error: error)
-            }
-        }
-    }
 
     /// Pull settings from server and apply non-nil values to local singletons.
     func syncFromServer() async {
@@ -67,11 +17,6 @@ class SettingsSyncManager {
             log("SettingsSyncManager: synced from server")
         } catch {
             logError("SettingsSyncManager: failed to sync from server", error: error)
-        }
-        // A pending value means an earlier push failed or is still in flight.
-        // Re-push so the server converges on the user's latest choice.
-        if pendingVoiceAnswersPush != nil {
-            pushPendingVoiceAnswers()
         }
     }
 
