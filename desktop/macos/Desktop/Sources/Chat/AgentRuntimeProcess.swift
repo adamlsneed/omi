@@ -431,10 +431,10 @@ actor AgentRuntimeProcess {
     lastExitWasOOM = false
     receivedInit = false
 
-    guard let nodePath = findNodeBinary() else {
+    guard let nodePath = Self.findNodeBinary() else {
       throw BridgeError.nodeNotFound
     }
-    guard let bridgePath = findBridgeScript() else {
+    guard let bridgePath = Self.findBridgeScript() else {
       throw BridgeError.bridgeScriptNotFound
     }
 
@@ -1084,7 +1084,9 @@ actor AgentRuntimeProcess {
       .path
   }
 
-  private func findNodeBinary() -> String? {
+  // Also used by BrowserExtensionSetup.isLocalAIRuntimeReady so the readiness
+  // probe and the actual launcher can never disagree about where node lives.
+  static func findNodeBinary() -> String? {
     let bundledNode = Bundle.resourceBundle.path(forResource: "node", ofType: nil)
     if let bundledNode, FileManager.default.isExecutableFile(atPath: bundledNode) {
       return bundledNode
@@ -1131,7 +1133,7 @@ actor AgentRuntimeProcess {
     return nil
   }
 
-  private func findBridgeScript() -> String? {
+  static func findBridgeScript() -> String? {
     if let bundlePath = Bundle.main.resourcePath {
       let bundledScript = (bundlePath as NSString).appendingPathComponent("agent/dist/index.js")
       if FileManager.default.fileExists(atPath: bundledScript) {

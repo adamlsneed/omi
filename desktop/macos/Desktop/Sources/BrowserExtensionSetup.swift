@@ -604,40 +604,10 @@ struct BrowserExtensionSetup: View {
         )
     }
 
+    // Delegates to the launcher's own discovery so this readiness probe can
+    // never disagree with what AgentRuntimeProcess.startProcess would find.
     static var isLocalAIRuntimeReady: Bool {
-        let fileManager = FileManager.default
-        return findNodeBinary(fileManager: fileManager) != nil
-            && findAgentScript(fileManager: fileManager) != nil
-    }
-
-    private static func findNodeBinary(fileManager: FileManager) -> String? {
-        let resourcePath = Bundle.main.resourcePath ?? ""
-        let cwd = fileManager.currentDirectoryPath
-        let home = fileManager.homeDirectoryForCurrentUser.path
-        let candidates = [
-            (resourcePath as NSString).appendingPathComponent("Omi Computer_Omi Computer.bundle/node"),
-            (cwd as NSString).appendingPathComponent("Desktop/Sources/Resources/node"),
-            (cwd as NSString).appendingPathComponent("desktop/macos/Desktop/Sources/Resources/node"),
-            "\(home)/.hermes/node/bin/node",
-            "/opt/homebrew/bin/node",
-            "/usr/local/bin/node",
-            "/usr/bin/node",
-        ]
-
-        return candidates.first { fileManager.isExecutableFile(atPath: $0) }
-    }
-
-    private static func findAgentScript(fileManager: FileManager) -> String? {
-        let resourcePath = Bundle.main.resourcePath ?? ""
-        let cwd = fileManager.currentDirectoryPath
-        let candidates = [
-            (resourcePath as NSString).appendingPathComponent("agent/dist/index.js"),
-            (cwd as NSString).appendingPathComponent("agent/dist/index.js"),
-            (cwd as NSString).appendingPathComponent("desktop/macos/agent/dist/index.js"),
-            (cwd as NSString).appendingPathComponent("../desktop/macos/agent/dist/index.js"),
-        ].map { ($0 as NSString).standardizingPath }
-
-        return candidates.first { fileManager.fileExists(atPath: $0) }
+        AgentRuntimeProcess.findNodeBinary() != nil && AgentRuntimeProcess.findBridgeScript() != nil
     }
 
     private func resetConnectionStateForSelectedBrowser() {
