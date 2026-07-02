@@ -265,8 +265,7 @@ void check_button_level(struct k_work *work_item)
         notify_double_tap();
     }
 
-    // idea-capture: hold, one-time event. Firmware drives the LED itself so feedback
-    // is instant, then notifies the app of the new state.
+    // idea-capture: hold, one-time event; rationale at the HOLD_ENTER/HOLD_EXIT defines.
     if (event == BUTTON_EVENT_HOLD && btn_last_event != BUTTON_EVENT_HOLD) {
         LOG_INF("hold detected\n");
         btn_last_event = event;
