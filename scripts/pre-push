@@ -224,8 +224,14 @@ check_backend_runtime_env_if_needed() {
     return
   fi
 
-  python3 backend/scripts/validate-backend-runtime-env.py --env dev --check-workflows
-  python3 backend/scripts/validate-backend-runtime-env.py --env prod --check-workflows
+  # Fork note: --check-workflows needs gcp_backend_auto_dev.yml, which this
+  # fork removed with the auto-deploy workflows; validate the manifests only.
+  local check_workflows_flag="--check-workflows"
+  if [ ! -f .github/workflows/gcp_backend_auto_dev.yml ]; then
+    check_workflows_flag=""
+  fi
+  python3 backend/scripts/validate-backend-runtime-env.py --env dev $check_workflows_flag
+  python3 backend/scripts/validate-backend-runtime-env.py --env prod $check_workflows_flag
 }
 
 check_release_process_guards() {

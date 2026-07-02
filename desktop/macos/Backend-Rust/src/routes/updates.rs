@@ -567,17 +567,18 @@ mod tests {
         let xml = generate_appcast_xml(&[release], "macos&test");
 
         assert!(xml.contains("<title>Omi 1.0 &amp; &lt;beta&gt;</title>"));
-        assert!(
-            xml.contains(
-                "<sparkle:shortVersionString>1.0 &amp; &lt;beta&gt;</sparkle:shortVersionString>"
-            )
-        );
+        assert!(xml.contains(
+            "<sparkle:shortVersionString>1.0 &amp; &lt;beta&gt;</sparkle:shortVersionString>"
+        ));
         assert!(xml.contains("<pubDate>2025-01-01T00:00:00Z &amp; later</pubDate>"));
         assert!(xml.contains("url=\"https://example.com/update?x=1&amp;name=&quot;bad&quot;\""));
         assert!(xml.contains("sparkle:os=\"macos&amp;test\""));
         assert!(xml.contains("sparkle:edSignature=\"sig&quot;&lt;&amp;\""));
         assert!(xml.contains("<li>Fix &lt;window&gt; &amp; keep quotes \"ok\"</li>"));
         assert!(xml.contains("<sparkle:channel>beta&amp;internal</sparkle:channel>"));
+    }
+
+    #[test]
     fn test_manual_download_url_prefers_explicit_url() {
         let mut release = make_release("0.1.0", 100, Some("stable"), true);
         release.manual_download_url = Some("https://cdn.example.com/omi.dmg".to_string());

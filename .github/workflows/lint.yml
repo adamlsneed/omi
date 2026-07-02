@@ -205,8 +205,12 @@ jobs:
           fi
 
       # -- C/C++ --
+      # Fork note: report-only. Upstream's committed firmware is not
+      # clang-format-clean and this fork keeps firmware byte-close to upstream
+      # (commits use --no-verify), so a hard gate here would stay red forever.
       - name: Check C/C++ formatting
         if: steps.changed.outputs.has_firmware == 'true'
+        continue-on-error: true
         run: |
           FILES=$(grep -E '^(omi|omiGlass)/.*\.(c|cpp|cc|cxx|h|hpp)$' /tmp/changed-files.txt || true)
           if [ -n "$FILES" ]; then
