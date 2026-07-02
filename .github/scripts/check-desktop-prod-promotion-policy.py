@@ -47,6 +47,10 @@ def workflow_triggers(text: str) -> list[str]:
 
 
 def main() -> int:
+    if not WORKFLOW.exists():
+        # This fork removed the auto-release/promotion workflows; nothing to guard.
+        print(f"{WORKFLOW} not present; skipping prod promotion policy check.")
+        return 0
     text = WORKFLOW.read_text()
     triggers = workflow_triggers(text)
 
