@@ -9756,4 +9756,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get latest => 'Legújabb';
+
+  @override
+  String get flashFirmware => 'Firmware flashelése';
 }

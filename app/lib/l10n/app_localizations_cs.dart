@@ -9715,4 +9715,7 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get latest => 'Nejnovější';
+
+  @override
+  String get flashFirmware => 'Nahrát firmware';
 }

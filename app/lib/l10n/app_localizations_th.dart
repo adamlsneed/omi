@@ -9662,4 +9662,7 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get latest => 'ล่าสุด';
+
+  @override
+  String get flashFirmware => 'แฟลชเฟิร์มแวร์';
 }

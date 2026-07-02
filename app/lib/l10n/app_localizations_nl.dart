@@ -9745,4 +9745,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get latest => 'Nieuwste';
+
+  @override
+  String get flashFirmware => 'Firmware flashen';
 }

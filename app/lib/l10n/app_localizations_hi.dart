@@ -9692,4 +9692,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get latest => 'नवीनतम';
+
+  @override
+  String get flashFirmware => 'फ़र्मवेयर फ़्लैश करें';
 }

@@ -9641,4 +9641,7 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get latest => 'האחרון';
+
+  @override
+  String get flashFirmware => 'צריבת קושחה';
 }

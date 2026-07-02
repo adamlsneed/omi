@@ -361,8 +361,12 @@ class _ProfilePageState extends State<ProfilePage> {
             final enabled = SharedPreferencesUtil().batchModeEnabled;
             Future<void> setEnabled(bool value) async {
               await captureProvider.setBatchMode(value);
-              setSheetState(() {});
-              setState(() {});
+              if (sheetContext.mounted) {
+                setSheetState(() {});
+              }
+              if (mounted) {
+                setState(() {});
+              }
             }
 
             return SafeArea(
