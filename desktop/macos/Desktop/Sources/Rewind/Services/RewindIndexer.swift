@@ -224,10 +224,13 @@ actor RewindIndexer {
             // since there's no video chunk to load later
             guard let encodedFrame = encodedFrame else { return }
 
-            // OCR gating: throttle frequency, deduplicate, then check battery
+            // OCR gating: throttle frequency, then deduplicate
             var ocrText: String?
             var ocrDataJson: String?
             var isIndexed = false
+            // Legacy flag: battery handling now uses adaptive capture cadence, so frames
+            // are never skipped for battery here. Kept for the existing DB column/textSource.
+            let skippedForBattery = false
 
             framesSinceLastOCR += 1
             if framesSinceLastOCR < ocrEveryNthFrame {
@@ -316,10 +319,13 @@ actor RewindIndexer {
             // Frame was dropped by encoder (e.g. aspect ratio debounce) — skip DB insert
             guard let encodedFrame = encodedFrame else { return }
 
-            // OCR gating: throttle frequency, deduplicate, then check battery
+            // OCR gating: throttle frequency, then deduplicate
             var ocrText: String?
             var ocrDataJson: String?
             var isIndexed = false
+            // Legacy flag: battery handling now uses adaptive capture cadence, so frames
+            // are never skipped for battery here. Kept for the existing DB column/textSource.
+            let skippedForBattery = false
 
             framesSinceLastOCR += 1
             if framesSinceLastOCR < ocrEveryNthFrame {
@@ -414,10 +420,13 @@ actor RewindIndexer {
             // Frame was dropped by encoder (e.g. aspect ratio debounce) — skip DB insert
             guard let encodedFrame = encodedFrame else { return }
 
-            // OCR gating: throttle frequency, deduplicate, then check battery
+            // OCR gating: throttle frequency, then deduplicate
             var ocrText: String?
             var ocrDataJson: String?
             var isIndexed = false
+            // Legacy flag: battery handling now uses adaptive capture cadence, so frames
+            // are never skipped for battery here. Kept for the existing DB column/textSource.
+            let skippedForBattery = false
 
             framesSinceLastOCR += 1
             if framesSinceLastOCR < ocrEveryNthFrame {
