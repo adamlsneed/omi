@@ -4,6 +4,10 @@ set -eo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# Git exports GIT_DIR to hooks; it leaks into child tools (dart pub's git calls)
+# and breaks them after the cd above. Discovery from cwd finds the repo fine.
+unset GIT_DIR GIT_WORK_TREE
+
 REMOTE="${1:-origin}"
 BASE_BRANCH="${PRE_PUSH_BASE_BRANCH:-main}"
 BASE_REMOTE_REF="refs/remotes/${REMOTE}/${BASE_BRANCH}"
