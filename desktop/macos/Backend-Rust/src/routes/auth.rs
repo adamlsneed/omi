@@ -742,7 +742,12 @@ async fn generate_custom_token(
     Err("Custom token generation requires Firebase Admin SDK - not yet implemented in Rust".into())
 }
 
-fn render_auth_callback(code: &str, state: &str, redirect_uri: &str, error: Option<&str>) -> String {
+fn render_auth_callback(
+    code: &str,
+    state: &str,
+    redirect_uri: &str,
+    error: Option<&str>,
+) -> String {
     // Load template and replace placeholders. Each value is injected as a
     // JSON-encoded JS string literal; the template placeholders are unquoted.
     let template = include_str!("../../templates/auth_callback.html");
@@ -751,7 +756,10 @@ fn render_auth_callback(code: &str, state: &str, redirect_uri: &str, error: Opti
         .replace("{{ code }}", &js_string_literal(code))
         .replace("{{ state }}", &js_string_literal(state))
         .replace("{{ redirect_uri }}", &js_string_literal(redirect_uri))
-        .replace("{{ error if error is defined else '' }}", &js_string_literal(error.unwrap_or("")))
+        .replace(
+            "{{ error if error is defined else '' }}",
+            &js_string_literal(error.unwrap_or("")),
+        )
 }
 
 /// True when redirect_uri uses a scheme that executes script when navigated to
@@ -820,7 +828,9 @@ mod tests {
         // Values land as complete JSON-encoded literals on the unquoted placeholders,
         // with quotes and angle brackets neutralized.
         assert!(html.contains(r#"const code = "code-123";"#));
-        assert!(html.contains(r#"const state = "\";\u003c/script\u003e\u003cscript\u003ealert(1)//";"#));
+        assert!(
+            html.contains(r#"const state = "\";\u003c/script\u003e\u003cscript\u003ealert(1)//";"#)
+        );
         assert!(html.contains(r#"const redirectUri = "javascript:alert(1)";"#));
         assert!(html.contains(r#"const error = "";"#));
         // No script-tag breakout: the payload never appears unescaped.
@@ -848,6 +858,9 @@ mod tests {
         assert!(!has_executable_scheme("omi://auth/callback"));
         assert!(!has_executable_scheme("omicomputer://oauth"));
         assert!(!has_executable_scheme("/relative/path"));
+    }
+
+    #[test]
     fn auth_base_url_rejects_blank_values() {
         assert!(!is_nonblank_url(""));
         assert!(!is_nonblank_url("   "));

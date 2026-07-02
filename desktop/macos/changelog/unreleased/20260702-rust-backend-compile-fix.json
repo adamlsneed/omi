@@ -1,0 +1,3 @@
+{
+  "change": "Fixed the desktop Rust backend failing to build after the upstream sync (broken test scaffolding and a renamed timeout constant)"
+}
