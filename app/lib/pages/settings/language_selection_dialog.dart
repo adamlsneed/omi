@@ -234,6 +234,6 @@ class LanguageSelectionDialog {
         );
       },
     );
-    _scrollController.dispose();
+    scrollController.dispose();
   }
 }
