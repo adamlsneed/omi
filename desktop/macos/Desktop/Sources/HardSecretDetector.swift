@@ -50,7 +50,7 @@ enum HardSecretDetector {
     Pattern(
       category: "token",
       regex: try! NSRegularExpression(
-        pattern: #"\b(?:token|auth[_-]?token|access[_-]?token|bearer)\s*[:=]\s*['"]?([A-Za-z0-9._~+/=-]{16,})"#,
+        pattern: #"\b(?:(?:token|auth[_-]?token|access[_-]?token|refresh[_-]?token)\s*[:=]|bearer\s*[:=\s])\s*['"]?([A-Za-z0-9._~+/=-]{16,})"#,
         options: [.caseInsensitive]
       )
     ),

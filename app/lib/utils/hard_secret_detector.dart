@@ -25,8 +25,10 @@ class HardSecretDetector {
     ),
     (
       category: 'token',
+      // Bare token= (desktop parity) and the "Authorization: bearer <x>" header
+      // form (whitespace separator, bearer only) are both caught.
       pattern: RegExp(
-        r"""\b(?:access[_-]?token|auth[_-]?token|refresh[_-]?token|bearer)\b\s*[:=]\s*["']?[A-Za-z0-9._~+/=-]{16,}""",
+        r"""\b(?:(?:access[_-]?token|auth[_-]?token|refresh[_-]?token|token)\b\s*[:=]|bearer\b\s*[:=\s])\s*["']?[A-Za-z0-9._~+/=-]{16,}""",
         caseSensitive: false,
       ),
     ),

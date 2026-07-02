@@ -6,11 +6,15 @@ void main() {
     test('detects credential-shaped secrets', () {
       expect(HardSecretDetector.contains('api key sk-1234567890abcdefghijklmnop'), isTrue);
       expect(HardSecretDetector.contains('password = correct-horse-battery-staple'), isTrue);
-      // Known gap: the token pattern requires a ':' or '=' after the keyword, so
-      // the bare HTTP header form "Authorization: bearer <token>" is NOT caught
-      // (same on desktop's HardSecretDetector.swift). Keep parity if closing it.
+      // HTTP header form: whitespace separator after "bearer" (no ':' or '=').
+      expect(HardSecretDetector.contains('Authorization: bearer abcdefghijklmnopqrstuvwxyz123456'), isTrue);
       expect(HardSecretDetector.contains('bearer: abcdefghijklmnopqrstuvwxyz123456'), isTrue);
       expect(HardSecretDetector.contains('-----BEGIN PRIVATE KEY-----'), isTrue);
+    });
+
+    test('bearer needs a long opaque value, not prose', () {
+      expect(HardSecretDetector.contains('the bearer of this message is a friend'), isFalse);
+      expect(HardSecretDetector.contains('bearer bonds are a thing'), isFalse);
     });
 
     test('drops underscore-prefixed Stripe-style keys (parity with desktop)', () {
@@ -29,10 +33,9 @@ void main() {
     });
 
     test('returns stable sorted categories', () {
-      // Known gap: unlike desktop, the mobile token pattern has no bare "token"
-      // alternative, so plain "token=..." is not caught; the prefixed forms are.
+      // Bare token= is caught (desktop parity).
       final categories = HardSecretDetector.categories(
-        'access_token=abcdefghijklmnopqrstuvwxyz123456 and password=superSecret123',
+        'token=abcdefghijklmnopqrstuvwxyz123456 and password=superSecret123',
       );
 
       expect(categories, ['password', 'token']);
