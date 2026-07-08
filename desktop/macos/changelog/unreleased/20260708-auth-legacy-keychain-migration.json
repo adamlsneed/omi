@@ -1,0 +1,3 @@
+{
+  "change": "Fixed being signed out after updating the app by migrating saved sign-in tokens from the previous storage location"
+}

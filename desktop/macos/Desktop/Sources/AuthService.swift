@@ -1854,8 +1854,54 @@ class AuthService {
             tokens = loadUserDefaultsTokens()
         }
 
-        cachedStoredTokens = tokens
+        // Fork: seed the current store once from the pre-2026-07-08 fork keychain layout
+        // if it's otherwise empty, so upgrades boot signed-in instead of landing in the
+        // "signed in but token unavailable" limbo until a manual re-login.
+        let resolved = tokens ?? migrateLegacyForkKeychainTokens()
+
+        cachedStoredTokens = resolved
         cachedStoredTokensLoaded = true
+        return resolved
+    }
+
+    // Fork: one-time migration off the old fork's token layout. The previous fork build
+    // stored the Firebase idToken/refreshToken in the login keychain under service
+    // "<bundleId>.auth" (accounts auth_idToken/auth_refreshToken), with expiry/userId already
+    // in UserDefaults. Upstream's refactor reads from UserDefaults (dev) or a single keychain
+    // blob (prod), so existing installs find no tokens after upgrading. Read the legacy items,
+    // seed the current store, and delete them. Kept small and fork-local to limit conflicts on
+    // this upstream-owned file.
+    private func migrateLegacyForkKeychainTokens() -> StoredAuthTokens? {
+        let legacyService = "\(currentBundleIdentifier).auth"
+        guard
+            let idToken = DesktopKeychainStore.string(service: legacyService, account: DefaultsKey.authIdToken.rawValue),
+            let refreshToken = DesktopKeychainStore.string(service: legacyService, account: DefaultsKey.authRefreshToken.rawValue),
+            !idToken.isEmpty,
+            !refreshToken.isEmpty
+        else {
+            return nil
+        }
+        let expiryTime = UserDefaults.standard.double(forKey: .authTokenExpiry)
+        let userId = UserDefaults.standard.string(forKey: .authTokenUserId) ?? ""
+        let tokens = StoredAuthTokens(
+            idToken: idToken,
+            refreshToken: refreshToken,
+            expiryTime: expiryTime,
+            tokenUserId: userId
+        )
+        if usesKeychainTokenStorage {
+            _ = saveKeychainTokens(tokens)
+        } else {
+            saveUserDefaultsTokens(
+                idToken: idToken,
+                refreshToken: refreshToken,
+                expiryTime: Date(timeIntervalSince1970: expiryTime),
+                userId: userId
+            )
+        }
+        DesktopKeychainStore.delete(service: legacyService, account: DefaultsKey.authIdToken.rawValue)
+        DesktopKeychainStore.delete(service: legacyService, account: DefaultsKey.authRefreshToken.rawValue)
+        NSLog("OMI AUTH: Migrated legacy fork keychain auth tokens for user %@", userId)
         return tokens
     }
 
