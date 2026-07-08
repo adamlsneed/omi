@@ -1,0 +1,8 @@
+{
+  "version": "0.1.8",
+  "date": "2026-07-08",
+  "changes": [
+    "Fork release notes on GitHub now list what changed in each build, and releases fold their changelog fragments into the app changelog automatically",
+    "Restored web search in desktop chat, added a Response Context (i) icon to the main chat, and pulled in the latest upstream desktop fixes and stability improvements"
+  ]
+}
