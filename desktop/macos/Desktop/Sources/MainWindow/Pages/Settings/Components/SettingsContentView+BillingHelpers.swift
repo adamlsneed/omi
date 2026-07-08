@@ -2,6 +2,7 @@ import Sparkle
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
+import OmiTheme
 
 extension SettingsContentView {
   var hasPaidSubscription: Bool {
@@ -538,7 +539,7 @@ extension SettingsContentView {
     if enabled && !ProactiveAssistantsPlugin.shared.hasScreenRecordingPermission {
       permissionError = "Screen recording permission required"
       isMonitoring = false
-      ProactiveAssistantsPlugin.shared.openScreenRecordingPreferences()
+      ScreenCaptureService.requestScreenRecordingAccessAndOpenSettings()
       return
     }
 
@@ -757,7 +758,9 @@ extension SettingsContentView {
           dailySummaryHour = dailySummary.hour
           notificationsEnabled = notifications.enabled
           notificationFrequency = notifications.frequency
-          // Mirror to UserDefaults so NotificationService can throttle without a backend roundtrip.
+          // Mirror to UserDefaults so NotificationService can gate/throttle without a backend roundtrip.
+          UserDefaults.standard.set(
+            notifications.enabled, forKey: NotificationService.masterEnabledDefaultsKey)
           UserDefaults.standard.set(notifications.frequency, forKey: NotificationService.frequencyDefaultsKey)
           userLanguage = language.language
           recordingPermissionEnabled = recording.enabled

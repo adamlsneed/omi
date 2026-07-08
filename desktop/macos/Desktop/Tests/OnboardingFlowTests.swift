@@ -121,6 +121,8 @@ final class OnboardingFlowTests: XCTestCase {
     XCTAssertEqual(migratedResearch, 15)
     XCTAssertEqual(migratedLegacyGoalAfterExportInsert, 17)
     XCTAssertEqual(migratedGoal, 17)
+    // Tasks moved from index 17 to 18 when BringYourOwnKeys was inserted at 17;
+    // a legacy user on the old Tasks step still lands on Tasks.
     XCTAssertEqual(migratedTasks, 18)
   }
 

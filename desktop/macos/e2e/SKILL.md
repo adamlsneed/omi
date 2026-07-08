@@ -26,6 +26,15 @@ The app runs a local HTTP control bridge (`DesktopAutomationBridge.swift`) that 
 ```
 Disable with `OMI_DISABLE_LOCAL_AUTOMATION=1` to run a dev build "clean".
 
+### 2a. Desktop core E2E harness (tiered)
+Primary entry for the desktop confidence ladder: `scripts/desktop-core-harness.sh` (see `e2e/CORE_E2E.md`).
+```bash
+./scripts/desktop-core-harness.sh --self-check   # Linux-safe T0 (flow lint + gauntlet hooks)
+./scripts/desktop-core-harness.sh --tier 1 --bundle omi-core-e2e
+./scripts/desktop-core-harness.sh --tier 2 --bundle omi-core-e2e   # hermetic: dev-up offline + core matrix
+```
+Typed flows live in `e2e/flows/`; run individually with `scripts/omi-harness run <flow.yaml> --lane bridge`.
+
 ### 2b. Run semantic actions (cursor-free, in-process)
 Beyond navigation, the bridge exposes named **actions** that invoke the app's real
 code paths directly — no synthetic mouse events, so they never grab the cursor (the
@@ -36,10 +45,80 @@ deterministic equivalent of the Flutter app's Marionette driver). Prefer these o
 ./scripts/omi-ctl action refresh_all_data          # same as Cmd+R
 ./scripts/omi-ctl action toggle_transcription enabled=false
 ```
+`omi-ctl actions` returns descriptors with `category`, `surfaces`, `safety`,
+`sideEffects`, `examples`, and `preferSemantic`. Scan those fields before using
+`agent-swift`: prefer actions whose `surfaces` match the screen and whose
+`safety` is `read_only`, `local_artifact`, or `local_ui_state` for routine checks.
 Add new actions in `DesktopAutomationActionRegistry` (`registerBuiltins()` for global
 ones, or `register(name:summary:params:handler:)` from a view model for screen-scoped
 ones). `GET /actions` lists them; `POST /action {name, params}` runs one and returns
 the resulting state snapshot.
+
+### 2c. Verify SD-card WAL cloud upload (WiFi / BLE)
+After a device SD-card download (WiFi or BLE), confirm the WAL uploaded — not just
+saved locally. Both `StorageSyncService` and `WifiSyncService` call `syncToCloud()`
+after `updateWalWithDownloadedData`; the WiFi path tears down the device SoftAP
+first so the Mac can regain internet before upload.
+```bash
+# Structured WAL state via automation bridge (named test bundle must be running)
+cd desktop/macos && ./scripts/omi-ctl action wal_snapshot
+# Expect pending_count=0 and status synced|uploaded after SD-card sync completes
+
+# After triggering SD sync in a named test bundle:
+rg 'Uploaded WAL|WiFi sync completed|syncToCloud' /private/tmp/omi-dev.log | tail -20
+```
+Expect log lines like `Uploaded WAL <id>: status=synced` (or `status=uploaded` for
+202-queued jobs). Hermetic regression:
+`cd desktop/macos && xcrun swift test --filter 'WifiSync|SdCardSyncParity'`.
+
+### 2d. Inject backend faults (failure-path testing)
+The hermetic E2E harness is backend-only, so desktop failure paths (backend 5xx →
+structured `ChatErrorState`, task sortOrder sync failure surfaced/retried not silent,
+transcription transport truthfulness) can't be driven end-to-end. `scripts/omi-fault-inject.sh`
+stands up a local endpoint that fails on purpose; point a **named test bundle** (never
+prod) at it via the documented backend overrides — `OMI_PYTHON_API_URL` (chat / action-item
+sync / transcription relay), `OMI_DESKTOP_API_URL` (Rust backend), `OMI_AUTH_API_URL` (auth):
+```bash
+cd desktop/macos
+eval "$(./scripts/omi-fault-inject.sh start error)"      # modes: error | status:CODE | latency | reset | refuse
+OMI_SKIP_BACKEND=1 OMI_SKIP_TUNNEL=1 \
+  OMI_PYTHON_API_URL="$OMI_FAULT_URL" OMI_DESKTOP_API_URL="$OMI_FAULT_URL" \
+  OMI_APP_NAME="omi-fault" ./run.sh &
+./scripts/omi-ctl wait-ready
+./scripts/omi-ctl action ask query="hi"                  # exercise the path; assert a surfaced error, not a crash/silent no-op
+./scripts/omi-fault-inject.sh stop
+```
+`status:CODE` returns an HTTP status code in 100-599 (e.g. `status:503`, `status:429`, `status:401`);
+`latency` sleeps `--latency-ms` (default 30 000) before replying (watchdog/timeout paths);
+`reset` RSTs the connection; `refuse` leaves the port closed (connection refused). Verify a
+mode with `curl` before launching the app: `curl -s -o /dev/null -w '%{http_code}\n' "$(./scripts/omi-fault-inject.sh url)"`.
+
+### 2e. Hardening smoke (runtime regression tripwire)
+`scripts/omi-hardening-smoke.sh` re-runs the proven runtime probes behind hardened
+acceptance rows so a behavior that regresses upstream is caught on the next run, not the
+next manual audit. One-time setup — build and seed a dedicated named bundle:
+```bash
+cd desktop/macos
+OMI_APP_NAME="omi-smoke" ./run.sh          # build + install /Applications/omi-smoke.app, then quit it
+./scripts/omi-auth-dump.sh                 # capture the signed-in Omi Dev session
+./scripts/omi-auth-seed.sh com.omi.omi-smoke
+```
+Then re-run any time (launches the installed bundle on an isolated port, ends with it stopped):
+```bash
+./scripts/omi-hardening-smoke.sh run                          # all probes, defaults: com.omi.omi-smoke, port 47797
+./scripts/omi-hardening-smoke.sh run --only set-01,set-04     # subset
+./scripts/omi-hardening-smoke.sh run --attach --port 47795    # against an already-running bundle (skips lifecycle probes)
+./scripts/omi-hardening-smoke.sh scan <dir>                   # credential-pattern sweep of any evidence dir
+```
+Probes in canonical order (destructive last): `auth-06` prod tokens-at-rest (passive read) ·
+`set-04` log credential hygiene · `set-01` settings navigation · `mic-06` rapid-PTT orphan
+guard · `chat-03` agent-kill recovery · `auth-03` expired-token refresh (**relaunches** the
+app) · `lnch-07` shutdown flush (**stops** the app) · `self-hygiene` report-dir scan.
+Exit codes: `0` all PASS · `1` any FAIL (a regression — investigate) · `2` usage/prod-refusal ·
+`3` BLOCKED only (harness couldn't run: port busy, stale auth seed, app missing). Reports +
+`smoke-summary.json` land under `${TMPDIR}/omi-hardening-smoke/<ts>/` unless `--report-dir` is
+given. Safety: only `com.omi.omi-*` bundles are accepted; the sole production interaction is
+the read-only `defaults read` in `auth-06`.
 
 ### The full loop
 ```bash

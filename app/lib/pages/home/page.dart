@@ -482,10 +482,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
     if (device.type != DeviceType.omi) return;
     if (!mounted) return;
 
-    // Onboarding targets the consumer pendant; DevKit boards also enumerate as
-    // DeviceType.omi, so skip them. pairedDevice has the GATT model by now.
+    // Onboarding is the CV1 consumer-pendant button tutorial. DevKit/Glass/Neo/
+    // Friend all also enumerate as DeviceType.omi, so only proceed for a positively
+    // identified CV1. pairedDevice has the GATT model by now.
     final pairedModel = Provider.of<DeviceProvider>(context, listen: false).pairedDevice?.modelNumber;
-    if (DeviceUtils.isOmiDevKit(modelNumber: pairedModel, deviceName: device.name)) return;
+    if (!DeviceUtils.isOmiCv1(modelNumber: pairedModel, deviceName: device.name)) return;
 
     if (_deviceOnboardingShown) return;
     if (SharedPreferencesUtil().deviceOnboardingCompleted) return;
@@ -806,8 +807,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                 width: 42,
                 height: 42,
                 margin: const EdgeInsets.only(right: 6),
+                alignment: Alignment.center,
                 decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: const Icon(FontAwesomeIcons.microphone, size: 15, color: Colors.black),
+                child: const FaIcon(FontAwesomeIcons.microphone, size: 15, color: Colors.black),
               ),
             ),
           ],
@@ -945,7 +947,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                           ),
                           child: IconButton(
                             padding: EdgeInsets.zero,
-                            icon: const Icon(FontAwesomeIcons.calendarDay, size: 16, color: Colors.white),
+                            icon: FaIcon(FontAwesomeIcons.calendarDay, size: 16, color: Colors.white),
                             onPressed: () async {
                               HapticFeedback.mediumImpact();
                               // Open date picker to change date, cancel clears filter
@@ -1063,7 +1065,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                         decoration: const BoxDecoration(color: Color(0xFF1F1F25), shape: BoxShape.circle),
                         child: IconButton(
                           padding: EdgeInsets.zero,
-                          icon: const Icon(FontAwesomeIcons.arrowUpFromBracket, size: 16, color: Colors.white70),
+                          icon: FaIcon(FontAwesomeIcons.arrowUpFromBracket, size: 16, color: Colors.white70),
                           onPressed: () {
                             HapticFeedback.mediumImpact();
                             PlatformManager.instance.analytics.exportTasksBannerClicked();
@@ -1084,7 +1086,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                         ),
                         child: IconButton(
                           padding: EdgeInsets.zero,
-                          icon: Icon(
+                          icon: FaIcon(
                             FontAwesomeIcons.solidCircleCheck,
                             size: 16,
                             color: showCompleted ? Colors.white : Colors.white70,
@@ -1165,7 +1167,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                 decoration: const BoxDecoration(color: Color(0xFF1F1F25), shape: BoxShape.circle),
                 child: IconButton(
                   padding: EdgeInsets.zero,
-                  icon: const Icon(FontAwesomeIcons.gear, size: 16, color: Colors.white70),
+                  icon: FaIcon(FontAwesomeIcons.gear, size: 16, color: Colors.white70),
                   onPressed: () {
                     HapticFeedback.mediumImpact();
                     PlatformManager.instance.analytics.pageOpened('Settings');

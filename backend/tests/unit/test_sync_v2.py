@@ -19,6 +19,7 @@ from io import BytesIO
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
 # 1. Structural tests — verify v2 code exists with correct patterns
@@ -857,6 +858,13 @@ class TestAsyncCoordinatorStructure:
         finally_idx = body.rindex('finally:')
         after_finally = body[finally_idx:]
         assert 'set_byok_keys({})' in after_finally
+        assert 'set_byok_uid(None)' in after_finally
+
+    def test_async_coordinator_sets_byok_uid_from_context(self):
+        """Async coordinator must attach uid when inherited BYOK keys are present."""
+        body = self._get_bg_func_body()
+        setup_section = body[body.index('concurrency_gate =') : body.index('segmented_paths = set()')]
+        assert 'set_byok_uid(uid if get_byok_keys() else None)' in setup_section
 
     def test_async_coordinator_handles_empty_decode(self):
         """Async coordinator must handle empty wav_paths (complete with 0 segments)."""
@@ -1270,6 +1278,7 @@ class TestAsyncCoordinatorBehavioral:
             'models',
             'models.conversation',
             'models.conversation_enums',
+            'models.sync_audio',
             'models.transcript_segment',
             'utils',
             'utils.analytics',
@@ -1346,6 +1355,7 @@ class TestAsyncCoordinatorBehavioral:
         sys.modules['utils.fair_use'].trigger_classifier_if_needed = MagicMock()
         sys.modules['utils.fair_use'].record_dg_usage_ms = MagicMock()
         sys.modules['utils.byok'].set_byok_keys = MagicMock()
+        sys.modules['utils.byok'].set_byok_uid = MagicMock()
         sys.modules['utils.byok'].get_byok_keys = MagicMock(return_value={})
         sys.modules['utils.analytics'].record_usage = MagicMock()
         sys.modules['utils.request_validation'].parse_sync_filename_timestamp = MagicMock(return_value=1700000000)
@@ -1354,6 +1364,15 @@ class TestAsyncCoordinatorBehavioral:
         sys.modules['utils.sync.playback'].build_playback_artifact = MagicMock(return_value=b'')
         sys.modules['utils.sync.playback'].PlaybackBuildError = type('PlaybackBuildError', (Exception,), {})
         sys.modules['models.conversation_enums'].ConversationSource = MagicMock()
+
+        class _AudioPrecacheResponse(BaseModel):
+            pass
+
+        class _AudioUrlsResponse(BaseModel):
+            pass
+
+        sys.modules['models.sync_audio'].AudioPrecacheResponse = _AudioPrecacheResponse
+        sys.modules['models.sync_audio'].AudioUrlsResponse = _AudioUrlsResponse
         sys.modules['utils.other.endpoints'].get_current_user_uid = MagicMock(return_value='test-uid')
         sys.modules['utils.subscription'].has_transcription_credits = MagicMock(return_value=True)
 
@@ -1802,6 +1821,7 @@ class TestV2EndpointExecution:
             'models',
             'models.conversation',
             'models.conversation_enums',
+            'models.sync_audio',
             'models.transcript_segment',
             'utils',
             'utils.analytics',
@@ -1873,6 +1893,15 @@ class TestV2EndpointExecution:
         sys.modules['utils.sync'].playback = sys.modules['utils.sync.playback']
         sys.modules['utils.sync.playback'].build_playback_artifact = MagicMock(return_value=b'')
         sys.modules['utils.sync.playback'].PlaybackBuildError = type('PlaybackBuildError', (Exception,), {})
+
+        class _AudioPrecacheResponse(BaseModel):
+            pass
+
+        class _AudioUrlsResponse(BaseModel):
+            pass
+
+        sys.modules['models.sync_audio'].AudioPrecacheResponse = _AudioPrecacheResponse
+        sys.modules['models.sync_audio'].AudioUrlsResponse = _AudioUrlsResponse
 
         # Mock auth to return test uid
         sys.modules['utils.other.endpoints'].get_current_user_uid = MagicMock(return_value='test-uid')
@@ -2321,6 +2350,18 @@ class TestBYOKContextPropagation:
         func_body = source[start:next_boundary]
 
         assert 'set_byok_keys({})' in func_body, "Async coordinator must clear BYOK keys in finally"
+        assert 'set_byok_uid(None)' in func_body, "Async coordinator must clear BYOK uid in finally"
+
+    def test_async_coordinator_sets_byok_uid_before_work(self):
+        """Async coordinator must attach the uid to inherited BYOK key context."""
+        source = self._read_sync_source()
+        start = source.index('async def _run_full_pipeline_background_async')
+        next_boundary = source.find('\n@router.', start + 1)
+        if next_boundary == -1:
+            next_boundary = len(source)
+        func_body = source[start:next_boundary]
+
+        assert 'set_byok_uid(uid if get_byok_keys() else None)' in func_body
 
     def test_no_plain_submit_in_sync(self):
         """All executor .submit() calls in sync.py must use submit_with_context."""
@@ -2375,6 +2416,12 @@ class TestTimeoutConfiguration:
         with open(path, encoding='utf-8') as f:
             return f.read()
 
+    @staticmethod
+    def _read_llm_providers_source():
+        path = os.path.join(os.path.dirname(__file__), '..', '..', 'utils', 'llm', 'providers.py')
+        with open(path, encoding='utf-8') as f:
+            return f.read()
+
     def test_llm_mini_has_timeout(self):
         source = self._read_clients_source()
         llm_mini_line = [l for l in source.split('\n') if 'llm_mini' in l and 'ChatOpenAI' in l][0]
@@ -2404,12 +2451,12 @@ class TestTimeoutConfiguration:
         assert "'max_retries': 1" in func_body
 
     def test_classifier_llm_has_timeout(self):
-        source = self._read_classifier_source()
-        start = source.index('_classifier_llm')
-        end = source.index('\n', source.index(')', start))
-        constructor_call = source[start:end]
-        assert 'request_timeout=120' in constructor_call
-        assert 'max_retries=1' in constructor_call
+        classifier_source = self._read_classifier_source()
+        providers_source = self._read_llm_providers_source()
+
+        assert "get_llm('fair_use')" in classifier_source
+        assert "'request_timeout': options.get('request_timeout', 120)" in providers_source
+        assert "'max_retries': options.get('max_retries', 1)" in providers_source
 
     def test_dg_timeout_read_within_budget(self):
         """DG read timeout must be <= 150s so 2 attempts fit within 300s segment budget."""
