@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OmiTheme
 
 /// Row view for a conversation in the list
 struct ConversationRowView: View {
@@ -588,6 +589,7 @@ struct ConversationRowView: View {
   }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
   VStack(spacing: 12) {
     // Preview would require mock ServerConversation
@@ -597,3 +599,4 @@ struct ConversationRowView: View {
   .padding()
   .background(OmiColors.backgroundPrimary)
 }
+#endif

@@ -14,7 +14,7 @@ final class AppProviderStateTests: XCTestCase {
 
     func testIsAppEnabledReadsCategoryFilteredState() {
         let provider = AppProvider()
-        provider.categoryFilteredApps = [makeApp(id: "notes", enabled: true)]
+        provider.filteredApps = [makeApp(id: "notes", enabled: true)]
         let staleApp = makeApp(id: "notes", enabled: false)
 
         XCTAssertTrue(provider.isAppEnabled(staleApp))

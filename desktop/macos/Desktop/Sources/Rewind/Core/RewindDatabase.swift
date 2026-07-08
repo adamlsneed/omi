@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import OmiSupport
 
 /// Actor-based database manager for Rewind screenshots
 actor RewindDatabase {
@@ -2389,6 +2390,10 @@ actor RewindDatabase {
                 t.add(column: "primaryCaptureDevice", .text)
                 t.add(column: "captureDeviceIdsJson", .text)
             }
+        }
+
+        migrator.registerMigration("addTaskChatMessageResources") { db in
+            try db.execute(sql: "ALTER TABLE task_chat_messages ADD COLUMN resourcesJson TEXT")
         }
 
         try migrator.migrate(queue)
