@@ -37,7 +37,15 @@ class PrivacyApi {
 
       if (response != null && response.statusCode == 200) {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-        wire.GeneratedUserProfileResponse.fromJson(decoded);
+        // Validation only (result is discarded; callers use the raw map). The
+        // hosted backend can omit fields the generated schema marks required
+        // (e.g. uid), so a schema mismatch must not abort profile loading and
+        // the rest of UserProvider.initialize.
+        try {
+          wire.GeneratedUserProfileResponse.fromJson(decoded);
+        } catch (e) {
+          Logger.error('User profile schema mismatch (continuing with raw response): $e');
+        }
         return decoded;
       } else {
         if (response?.statusCode == 410) {
