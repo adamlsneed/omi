@@ -901,7 +901,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                             ),
                             child: IconButton(
                               padding: EdgeInsets.zero,
-                              icon: Icon(
+                              icon: FaIcon(
                                 FontAwesomeIcons.lightbulb,
                                 size: 16,
                                 color: capturing ? Colors.white : Colors.white70,
