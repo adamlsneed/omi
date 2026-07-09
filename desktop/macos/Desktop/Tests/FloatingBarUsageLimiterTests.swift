@@ -182,9 +182,20 @@ final class FloatingBarUsageLimiterTests: XCTestCase {
     XCTAssertFalse(limiter.hasPaidPlan)
   }
 
-  func testApplyPlanUnknownIsNotPaid() {
+  // An active plan this build cannot decode is a newer plan id, not a free account (the
+  // free plan is the known id "basic"). Treat it as paid so a hosted-backend plan rename
+  // never snaps a paying user to free-tier limits; the server still enforces real quotas.
+  // Matches hasPaidSubscription in SettingsContentView+BillingHelpers and the limiter's
+  // own cached-plan restore in init.
+  func testApplyPlanUnknownActiveIsPaid() {
     let limiter = FloatingBarUsageLimiter()
     limiter.applyPlan(plan: .unknown, status: .active)
+    XCTAssertTrue(limiter.hasPaidPlan)
+  }
+
+  func testApplyPlanUnknownInactiveIsNotPaid() {
+    let limiter = FloatingBarUsageLimiter()
+    limiter.applyPlan(plan: .unknown, status: .inactive)
     XCTAssertFalse(limiter.hasPaidPlan)
   }
 }

@@ -50,7 +50,7 @@ final class FloatingBarUsageLimiter: ObservableObject {
 
     /// Update cached plan directly from an already-fetched subscription (no extra API call).
     func applyPlan(plan: SubscriptionPlanType, status: SubscriptionStatusType) {
-        hasPaidPlan = status == .active && plan != .basic && plan != .unknown
+        hasPaidPlan = plan != .basic && status == .active
         if hasPaidPlan, serverQuota?.planType == SubscriptionPlanType.basic.rawValue {
             serverQuota = nil
             optimisticDelta = 0
