@@ -30,6 +30,18 @@ final class IdeaCaptureToast {
   /// triggers a constraint feedback loop that recurses until the stack overflows.
   private static let toastSize = NSSize(width: 384, height: 104)
 
+  /// Transparent inset baked into the toast content (see ToastView) so the drop shadow has
+  /// room inside the borderless window. The visible card is the panel bounds inset by this
+  /// on every side.
+  nonisolated static let shadowPadding: CGFloat = 14
+
+  /// Region that counts as a tap on the visible card: the panel frame minus the transparent
+  /// shadow margin. Using the raw panel frame would treat clicks in the invisible margin
+  /// around the card as taps.
+  nonisolated static func tapHitRect(panelFrame: NSRect) -> NSRect {
+    panelFrame.insetBy(dx: shadowPadding, dy: shadowPadding)
+  }
+
   /// Show a toast. `autoDismiss == false` keeps it up until the next `show`/`dismiss`
   /// (used for the "Capturing…" progress state while the network call is in flight).
   func show(
@@ -101,7 +113,7 @@ final class IdeaCaptureToast {
 
   private func handleMonitorClick() {
     guard onTap != nil, let panel = panel, panel.isVisible else { return }
-    if panel.frame.contains(NSEvent.mouseLocation) { handleTap() }
+    if Self.tapHitRect(panelFrame: panel.frame).contains(NSEvent.mouseLocation) { handleTap() }
   }
 
   private func handleTap() {
@@ -189,7 +201,7 @@ private struct ToastView: View {
       .padding(.horizontal, 16)
       .padding(.vertical, 12)
     }
-    .padding(14)  // room inside the transparent window for the shadow
+    .padding(IdeaCaptureToast.shadowPadding)  // room inside the transparent window for the shadow
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
