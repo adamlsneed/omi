@@ -1115,15 +1115,25 @@ struct ServerConversation: Codable, Identifiable, Equatable {
     return Int(lastSegment.end)
   }
 
-  /// Formatted duration string (e.g., "5m 30s")
+  /// Formatted duration string (e.g., "1h 16m", "5m 30s", "45s")
   var formattedDuration: String {
-    let duration = durationInSeconds
-    let minutes = duration / 60
-    let seconds = duration % 60
-    if minutes > 0 {
-      return "\(minutes)m \(seconds)s"
+    Self.formatDuration(seconds: durationInSeconds)
+  }
+
+  /// Human-readable duration that rolls up to hours, so a long conversation reads
+  /// "1h 16m" instead of "76m 45s". Seconds are shown only below one hour.
+  static func formatDuration(seconds: Int) -> String {
+    let total = max(0, seconds)
+    let hours = total / 3600
+    let minutes = (total % 3600) / 60
+    let secs = total % 60
+    if hours > 0 {
+      return "\(hours)h \(minutes)m"
     }
-    return "\(seconds)s"
+    if minutes > 0 {
+      return "\(minutes)m \(secs)s"
+    }
+    return "\(secs)s"
   }
 
   /// Full transcript as a single string
