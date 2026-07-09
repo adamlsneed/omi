@@ -458,6 +458,13 @@ static void write_to_gatt(struct bt_conn *conn)
 
         current_read_seq += packets_read;
         remaining_packets -= packets_read;
+
+        // Yield the shared BLE TX pool between chunks so live audio (the
+        // higher-priority pusher) can interleave. Without this the drain-on-
+        // connect can monopolize all TX buffers and starve live audio for the
+        // whole transfer, which recurs on every reconnect. ~1 ms per 36-packet
+        // chunk (~360 ms of audio) is a negligible throughput cost.
+        k_sleep(K_MSEC(1));
     }
 
     done_pending = true;
@@ -637,7 +644,11 @@ int storage_init()
                     NULL,
                     NULL,
                     NULL,
-                    K_PRIO_PREEMPT(7),
+                    // One priority level below the audio pusher (PREEMPT(7)) so
+                    // live audio wins the shared BLE TX buffer pool: the pusher
+                    // preempts this stored-recording drain whenever it has a
+                    // frame to send, instead of both threads competing equally.
+                    K_PRIO_PREEMPT(8),
                     0,
                     K_NO_WAIT);
     return 0;
