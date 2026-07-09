@@ -20,6 +20,7 @@ class ProcessingConversationPage extends StatefulWidget {
 class _ProcessingConversationPageState extends State<ProcessingConversationPage> with TickerProviderStateMixin {
   final scaffoldKey = GlobalKey<ScaffoldState>();
   TabController? _controller;
+  bool _pushedToDetail = false;
 
   @override
   void initState() {
@@ -46,6 +47,16 @@ class _ProcessingConversationPageState extends State<ProcessingConversationPage>
   Widget build(BuildContext context) {
     return Consumer<ConversationProvider>(
       builder: (context, provider, child) {
+        // Once the conversation finishes processing, swap this page for the real
+        // detail page instead of leaving a stale "In Progress" view.
+        if (!_pushedToDetail && !provider.processingConversations.any((c) => c.id == widget.conversation.id)) {
+          final idx = provider.conversations.indexWhere((c) => c.id == widget.conversation.id);
+          if (idx != -1) {
+            _pushedToDetail = true;
+            _pushNewConversation(context, provider.conversations[idx]);
+          }
+        }
+
         // Conversation source
         var convoSource = widget.conversation.source;
         bool hasPhotos = (widget.conversation.photos ?? []).isNotEmpty;

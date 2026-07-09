@@ -33,6 +33,15 @@ class ConversationProvider extends ChangeNotifier {
   int currentSearchPage = 1;
 
   Timer? _processingConversationWatchTimer;
+  static const Duration _processingWatchInterval = Duration(seconds: 10);
+  // ~5 minutes of polling before giving up; a manual refresh re-arms the watch.
+  static const int _maxProcessingWatchTicks = 30;
+  int _processingWatchTicks = 0;
+  bool _processingWatchTickInFlight = false;
+
+  // Seam for tests: the watch fetches through this instead of the top-level API function.
+  @visibleForTesting
+  Future<ServerConversation?> Function(String conversationId) conversationByIdFetcher = getConversationById;
 
   // Add debounce mechanism for refresh
   Timer? _refreshDebounceTimer;
@@ -213,12 +222,82 @@ class ConversationProvider extends ChangeNotifier {
 
   void addProcessingConversation(ServerConversation conversation) {
     processingConversations.add(conversation);
+    _startProcessingConversationsWatch();
     notifyListeners();
   }
 
   void removeProcessingConversation(String conversationId) {
     processingConversations.removeWhere((m) => m.id == conversationId);
+    if (!_hasWatchableProcessingConversations) {
+      _stopProcessingConversationsWatch();
+    }
     notifyListeners();
+  }
+
+  // The local phone-capture placeholder (id '0') is resolved by the capture flow
+  // itself and doesn't exist server-side, so it is never worth polling.
+  bool get _hasWatchableProcessingConversations => processingConversations.any((c) => c.id != '0');
+
+  // Server-side processing conversations don't always complete on their own: desktop
+  // conversations on non-desktop-entitled plans are stored deferred, and the backend only
+  // runs their enrichment when a client fetches the conversation by id (see backend
+  // _enrich_deferred_conversation). Without this watch they stay "Processing" in the tab
+  // forever. The GET both triggers that deferred enrichment and observes normal pipeline
+  // completions.
+  void _startProcessingConversationsWatch() {
+    if (!_hasWatchableProcessingConversations) return;
+    if (_processingConversationWatchTimer?.isActive ?? false) return;
+    _processingWatchTicks = 0;
+    _processingConversationWatchTimer = Timer.periodic(_processingWatchInterval, (_) {
+      _pollProcessingConversations();
+    });
+    _pollProcessingConversations();
+  }
+
+  void _stopProcessingConversationsWatch() {
+    _processingConversationWatchTimer?.cancel();
+    _processingConversationWatchTimer = null;
+  }
+
+  Future<void> _pollProcessingConversations() async {
+    if (_processingWatchTickInFlight) return;
+    if (!_hasWatchableProcessingConversations || _processingWatchTicks >= _maxProcessingWatchTicks) {
+      _stopProcessingConversationsWatch();
+      return;
+    }
+    _processingWatchTicks++;
+    _processingWatchTickInFlight = true;
+    try {
+      final ids = processingConversations.where((c) => c.id != '0').map((c) => c.id).toList();
+      var changed = false;
+      for (final id in ids) {
+        ServerConversation? convo;
+        try {
+          convo = await conversationByIdFetcher(id);
+        } catch (e) {
+          Logger.debug('processing watch: fetch failed for $id: $e');
+          continue;
+        }
+        if (convo == null || convo.status == ConversationStatus.processing) continue;
+        processingConversations.removeWhere((c) => c.id == id);
+        if (convo.status == ConversationStatus.completed &&
+            (!convo.discarded || showDiscardedConversations) &&
+            !conversations.any((c) => c.id == convo!.id)) {
+          conversations.add(convo);
+          conversations.sort((a, b) => (b.startedAt ?? b.createdAt).compareTo(a.startedAt ?? a.createdAt));
+        }
+        changed = true;
+      }
+      if (changed) {
+        _groupConversationsByDateWithoutNotify();
+        notifyListeners();
+      }
+      if (!_hasWatchableProcessingConversations) {
+        _stopProcessingConversationsWatch();
+      }
+    } finally {
+      _processingWatchTickInFlight = false;
+    }
   }
 
   void onConversationTap(String conversationId) {
@@ -384,6 +463,7 @@ class ConversationProvider extends ChangeNotifier {
     if (upsertConvos.isNotEmpty) {
       processingConversations.insertAll(0, upsertConvos);
     }
+    _startProcessingConversationsWatch();
 
     // completed convos
     upsertConvos = newConversations
@@ -441,6 +521,7 @@ class ConversationProvider extends ChangeNotifier {
 
     // processing convos
     processingConversations = conversations.where((m) => m.status == ConversationStatus.processing).toList();
+    _startProcessingConversationsWatch();
 
     // completed convos
     conversations = conversations.where((m) => m.status == ConversationStatus.completed).toList();
