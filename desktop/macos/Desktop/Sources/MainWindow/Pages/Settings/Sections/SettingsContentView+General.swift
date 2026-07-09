@@ -83,7 +83,7 @@ extension SettingsContentView {
               transcriptionError
                 ?? (isTranscribing
                   ? (appState.isAwaitingMeeting
-                    ? "Waiting for a meeting..." : "Recording and transcribing microphone audio")
+                    ? "Waiting for a meeting…" : "Recording and transcribing microphone audio")
                   : "Microphone recording is paused")
             )
             .scaledFont(size: 13)
