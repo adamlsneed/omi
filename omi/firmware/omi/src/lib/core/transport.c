@@ -685,11 +685,17 @@ static void _transport_disconnected(struct bt_conn *conn, uint8_t err)
     current_mtu = 0;
     charging_status_last_notified = -1;
 
-    // Reset the audio TX throttle semaphore so the pusher thread is not
-    // left blocked forever if it was waiting for a slot when the connection dropped.
-    k_sem_init(&audio_tx_sem,
-               CONFIG_BT_CONN_TX_MAX - AUDIO_TX_RESERVED_SLOTS,
-               CONFIG_BT_CONN_TX_MAX - AUDIO_TX_RESERVED_SLOTS);
+    // Restore full audio-TX credit for the next connection. Must NOT use
+    // k_sem_init here: k_sem_init re-inits the wait queue WITHOUT waking a
+    // pended waiter, so a pusher blocked on this semaphore when the link dropped
+    // would be orphaned forever (live audio dead until reboot). Drain then
+    // refill via k_sem_give, which does wake a waiter; push_to_gatt re-checks
+    // is_connected after acquiring, so a woken pusher drops its frame safely.
+    while (k_sem_take(&audio_tx_sem, K_NO_WAIT) == 0) {
+    }
+    for (int i = 0; i < CONFIG_BT_CONN_TX_MAX - AUDIO_TX_RESERVED_SLOTS; i++) {
+        k_sem_give(&audio_tx_sem);
+    }
 }
 
 static bool _le_param_req(struct bt_conn *conn, struct bt_le_conn_param *param)
@@ -1052,10 +1058,23 @@ static bool push_to_gatt(struct bt_conn *conn)
     while (offset < tx_buffer_size) {
         uint32_t packet_size = MIN(current_mtu - NET_BUFFER_HEADER_SIZE, tx_buffer_size - offset);
 
-        // Block until a throttle slot is available. This preserves every audio
-        // packet while still guaranteeing AUDIO_TX_RESERVED_SLOTS remain free
-        // for battery/diagnostic/status notifications at all times.
-        k_sem_take(&audio_tx_sem, K_FOREVER);
+        // Bounded wait for a throttle slot. A K_FOREVER wait here could orphan
+        // this thread if the link drops while it is pending (the disconnect
+        // handler cannot wake a K_FOREVER waiter safely), permanently killing
+        // live audio until reboot. Drop the frame instead if no slot frees in
+        // time or the link is already gone. Re-check is_connected after
+        // acquiring so a slot handed back by the disconnect handler does not get
+        // used against a torn-down connection.
+        if (!is_connected) {
+            return false;
+        }
+        if (k_sem_take(&audio_tx_sem, K_MSEC(100)) != 0) {
+            return false;
+        }
+        if (!is_connected) {
+            k_sem_give(&audio_tx_sem);
+            return false;
+        }
 
         uint32_t id = packet_next_index++;
         pusher_temp_data[0] = id & 0xFF;
