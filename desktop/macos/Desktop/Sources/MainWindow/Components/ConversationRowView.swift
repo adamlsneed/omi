@@ -137,7 +137,7 @@ struct ConversationRowView: View {
   }
 
   private var conversationShareLink: String {
-    "https://h.omi.me/conversations/\(conversation.id)"
+    APIClient.conversationShareURL(id: conversation.id)
   }
 
   private func copyLink() {

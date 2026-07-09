@@ -677,6 +677,12 @@ extension APIClient {
     }
   }
 
+  /// Public web URL for a shared conversation. Single source of truth for the share link,
+  /// shared with the conversation row's copy-link action.
+  static func conversationShareURL(id: String) -> String {
+    "https://h.omi.me/conversations/\(id)"
+  }
+
   /// Gets a shareable link for a conversation by setting it to shared visibility
   /// - Parameter id: The conversation ID
   /// - Returns: The shareable URL for the conversation
@@ -684,7 +690,7 @@ extension APIClient {
     // Set visibility to shared
     try await setConversationVisibility(id: id, visibility: "shared")
     // Return the web URL for the shared conversation
-    return "https://h.omi.me/conversations/\(id)"
+    return Self.conversationShareURL(id: id)
   }
 
   /// Updates the title of a conversation
