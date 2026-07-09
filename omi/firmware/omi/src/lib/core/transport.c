@@ -794,11 +794,16 @@ static void update_conn_params(struct bt_conn *conn)
 static void update_phy(struct bt_conn *conn)
 {
     int err = 0;
-    // Prefer 2M PHY for higher throughput
+    // Prefer the robust 1M PHY, not 2M. 2M PHY has ~3 dB worse receiver
+    // sensitivity; on a body-worn link that is already weak (RSSI -79..-85 dBm)
+    // forcing 2M strips the remaining fade margin and makes consecutive missed
+    // connection events expire the 6 s supervision timeout, dropping the link.
+    // Audio is low-bitrate Opus (~40 kbps), far below 1M PHY capacity, so 1M
+    // costs no throughput while keeping the connection resilient.
     const struct bt_conn_le_phy_param preferred_phy = {
         .options = BT_CONN_LE_PHY_OPT_NONE,
-        .pref_rx_phy = BT_GAP_LE_PHY_2M,
-        .pref_tx_phy = BT_GAP_LE_PHY_2M,
+        .pref_rx_phy = BT_GAP_LE_PHY_1M,
+        .pref_tx_phy = BT_GAP_LE_PHY_1M,
     };
 
     LOG_INF("Requesting PHY update...");
