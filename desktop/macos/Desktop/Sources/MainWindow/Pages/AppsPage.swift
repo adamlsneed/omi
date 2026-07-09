@@ -3211,7 +3211,7 @@ struct AppDetailSheet: View {
                                 .scaledFont(size: 13, weight: .semibold)
                         }
 
-                        Text(isSettingDefaultSummaryApp ? "Saving..." : action.label)
+                        Text(isSettingDefaultSummaryApp ? "Saving…" : action.label)
                             .scaledFont(size: 13, weight: .semibold)
                     }
                     .foregroundColor(action.isInteractive ? .black : OmiColors.textSecondary)
@@ -3530,7 +3530,7 @@ struct AppManagementSheet: View {
 
                     editableTextEditor(
                         "Description",
-                        placeholder: "Describe what this app does...",
+                        placeholder: "Describe what this app does…",
                         text: $description,
                         minHeight: 100
                     )
@@ -3550,7 +3550,7 @@ struct AppManagementSheet: View {
                     if hasChatPrompt {
                         editableTextEditor(
                             "Chat Prompt",
-                            placeholder: "Instructions for chat behavior...",
+                            placeholder: "Instructions for chat behavior…",
                             text: $chatPrompt
                         )
                     }
@@ -3558,7 +3558,7 @@ struct AppManagementSheet: View {
                     if hasMemoryPrompt {
                         editableTextEditor(
                             "Memory Prompt",
-                            placeholder: "Instructions for memory processing...",
+                            placeholder: "Instructions for memory processing…",
                             text: $memoryPrompt
                         )
                     }
@@ -3566,7 +3566,7 @@ struct AppManagementSheet: View {
                     if hasPersonaPrompt {
                         editableTextEditor(
                             "Persona Prompt",
-                            placeholder: "Instructions for persona behavior...",
+                            placeholder: "Instructions for persona behavior…",
                             text: $personaPrompt
                         )
                     }
