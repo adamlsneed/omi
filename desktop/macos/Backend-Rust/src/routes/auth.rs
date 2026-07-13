@@ -845,38 +845,7 @@ fn render_auth_callback(
         )
 }
 
-/// True when redirect_uri uses a scheme that executes script when navigated to
-/// (the callback page assigns it to window.location). Deny-list only; custom app
-/// schemes like omi:// must keep working. Browsers strip ASCII control chars when
-/// parsing URLs, so filter them out first to block "java\tscript:" smuggling.
-fn has_executable_scheme(redirect_uri: &str) -> bool {
-    let cleaned: String = redirect_uri
-        .trim_start()
-        .chars()
-        .filter(|c| !c.is_control())
-        .collect();
-    match cleaned.split_once(':') {
-        Some((scheme, _)) => matches!(
-            scheme.to_ascii_lowercase().as_str(),
-            "javascript" | "data" | "vbscript"
-        ),
-        None => false,
-    }
-}
-
-/// Encode a value as a JS string literal safe to splice into an inline <script>.
-fn js_string_literal(value: &str) -> String {
-    serde_json::to_string(value)
-        .unwrap_or_else(|_| "\"\"".to_string())
-        // JSON does not escape angle brackets; foil </script> breakout.
-        .replace('<', "\\u003c")
-        .replace('>', "\\u003e")
-        // Foil second-order injection: a substituted value must not be able to
-        // form a {{ ... }} placeholder that a later replace would expand.
-        .replace('{', "\\u007b")
-}
-
-/// Create auth routes
+//// Create auth routes
 pub fn auth_routes(config: Arc<Config>) -> Router {
     let auth_state = AuthState {
         config,
@@ -899,49 +868,6 @@ pub fn auth_routes(config: Arc<Config>) -> Router {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn render_auth_callback_escapes_hostile_values() {
-        let html = render_auth_callback(
-            "code-123",
-            "\";</script><script>alert(1)//",
-            "javascript:alert(1)",
-            None,
-        );
-        // Values land as complete JSON-encoded literals on the unquoted placeholders,
-        // with quotes and angle brackets neutralized.
-        assert!(html.contains(r#"const code = "code-123";"#));
-        assert!(
-            html.contains(r#"const state = "\";\u003c/script\u003e\u003cscript\u003ealert(1)//";"#)
-        );
-        assert!(html.contains(r#"const redirectUri = "javascript:alert(1)";"#));
-        assert!(html.contains(r#"const error = "";"#));
-        // No script-tag breakout: the payload never appears unescaped.
-        assert!(!html.contains("<script>alert"));
-        assert!(!html.contains("\";</script>"));
-    }
-
-    #[test]
-    fn render_auth_callback_blocks_second_order_placeholder_injection() {
-        // A value forming "{{ redirect_uri }}" must not get expanded by a later replace.
-        let html = render_auth_callback("{{ redirect_uri }}", "", "omi://callback", None);
-        assert!(html.contains(r#"const code = "\u007b\u007b redirect_uri }}";"#));
-        assert!(!html.contains(r#"const code = "omi://callback""#));
-    }
-
-    #[test]
-    fn executable_redirect_schemes_detected() {
-        assert!(has_executable_scheme("javascript:alert(1)"));
-        assert!(has_executable_scheme("JaVaScRiPt:alert(1)"));
-        assert!(has_executable_scheme("  \t javascript:alert(1)"));
-        assert!(has_executable_scheme("java\tscript:alert(1)"));
-        assert!(has_executable_scheme("data:text/html,<script>x</script>"));
-        assert!(has_executable_scheme("vbscript:msgbox(1)"));
-        assert!(!has_executable_scheme("https://example.com/callback"));
-        assert!(!has_executable_scheme("omi://auth/callback"));
-        assert!(!has_executable_scheme("omicomputer://oauth"));
-        assert!(!has_executable_scheme("/relative/path"));
-    }
 
     #[test]
     fn auth_base_url_rejects_blank_values() {

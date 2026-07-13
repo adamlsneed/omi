@@ -264,13 +264,15 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'todoist');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('Todoist')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('Todoist')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;
@@ -298,13 +300,15 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'asana');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('Asana')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('Asana')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;
@@ -332,13 +336,15 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'google_tasks');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('Google Tasks')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('Google Tasks')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;
@@ -366,13 +372,15 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'clickup');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('ClickUp')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('ClickUp')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;

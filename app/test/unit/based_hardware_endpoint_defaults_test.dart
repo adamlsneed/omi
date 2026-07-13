@@ -13,7 +13,7 @@ void main() {
       final files = <String>[
         'lib/env/env.dart',
         'lib/providers/capture_provider.dart',
-        'android/app/src/main/kotlin/com/friend/ios/OmiBackgroundAudioStreamer.kt',
+        'android/app/src/main/kotlin/com/friend/ios/batch/OmiBackgroundAudioStreamer.kt',
         'setup.sh',
         'setup/scripts/setup.ps1',
       ];

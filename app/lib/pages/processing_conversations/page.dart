@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/pages/capture/widgets/widgets.dart';
+import 'package:omi/pages/conversation_detail/page.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 

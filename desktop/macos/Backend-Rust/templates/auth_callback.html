@@ -92,13 +92,11 @@
     </div>
 
     <script>
-        // Get values from template variables (passed from backend).
-        // Placeholders are unquoted: the backend substitutes a complete
-        // JSON-encoded JS string literal for each one.
-        const code = {{ code }};
-        const state = {{ state }};
-        const redirectUri = {{ redirect_uri }};
-        const error = {{ error if error is defined else '' }};
+        // Get values from template variables (passed from backend)
+        const code = "{{ code }}";
+        const state = "{{ state }}";
+        const redirectUri = "{{ redirect_uri }}";
+        const error = "{{ error if error is defined else '' }}";
 
         const errorElement = document.getElementById('error');
         const messageElement = document.getElementById('message');

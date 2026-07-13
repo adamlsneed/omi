@@ -642,7 +642,6 @@ async fn gemini_proxy_server_key(
                     state
                         .gemini_client
                         .post(&url)
-                        .timeout(GEMINI_UPSTREAM_TIMEOUT)
                         .header("content-type", "application/json")
                         .header("authorization", format!("Bearer {}", token))
                         .body(request_body)
@@ -663,8 +662,7 @@ async fn gemini_proxy_server_key(
                         state
                             .gemini_client
                             .post(&url)
-                            .timeout(GEMINI_UPSTREAM_TIMEOUT)
-                            .header("content-type", "application/json")
+                                .header("content-type", "application/json")
                             .body(sanitized_body.to_vec())
                             .send()
                             .await
@@ -691,7 +689,6 @@ async fn gemini_proxy_server_key(
             state
                 .gemini_client
                 .post(&url)
-                .timeout(GEMINI_UPSTREAM_TIMEOUT)
                 .header("content-type", "application/json")
                 .body(sanitized_body.to_vec())
                 .send()
@@ -709,7 +706,6 @@ async fn gemini_proxy_server_key(
         state
             .gemini_client
             .post(&url)
-            .timeout(GEMINI_UPSTREAM_TIMEOUT)
             .header("content-type", "application/json")
             .body(sanitized_body.to_vec())
             .send()

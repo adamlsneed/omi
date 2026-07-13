@@ -1121,8 +1121,10 @@ class CaptureController extends ChangeNotifier
     try {
       final ctx = globalNavigatorKey.currentContext;
       if (ctx != null && ctx.mounted) {
-        await Provider.of<ConversationProvider>(ctx, listen: false).refreshConversations();
-        await Provider.of<FolderProvider>(ctx, listen: false).loadFolders();
+        final conversationProvider = Provider.of<ConversationProvider>(ctx, listen: false);
+        final folderProvider = Provider.of<FolderProvider>(ctx, listen: false);
+        await conversationProvider.refreshConversations();
+        await folderProvider.loadFolders();
       }
     } catch (e) {
       Logger.debug('idea-capture: refresh destination failed: $e');

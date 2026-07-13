@@ -119,11 +119,11 @@ struct ConversationsPage: View {
             var updated = selected
             updated.structured.title = title
             selectedConversation = updated
-            appState.updateConversationTitle(selected.id, title: title)
+            Task {
+              await appState.updateConversationTitle(selected.id, title: title)
 
-            // Refresh to get updated data if conversation still exists
-            if appState.conversations.contains(where: { $0.id == selected.id }) {
-              Task {
+              // Refresh to get updated data if conversation still exists
+              if appState.conversations.contains(where: { $0.id == selected.id }) {
                 await appState.refreshConversations()
               }
             }

@@ -1489,10 +1489,6 @@ private var activeBridgeSendGeneration: Int?
             log("ChatProvider: Skipping Playwright bridge restart after \(reason) - query in progress")
             return
         }
-        guard !modeSwitchInProgress else {
-            log("ChatProvider: Playwright \(reason) but mode switch in progress - skipping bridge restart")
-            return
-        }
         guard agentBridgeStarted else { return }
 
         log("ChatProvider: Playwright \(reason), restarting agent bridge")
@@ -3054,10 +3050,6 @@ private var activeBridgeSendGeneration: Int?
         guard agentBridgeStarted else { return }
         guard !isSending else {
             log("ChatProvider: \(reason): new query already in progress, skipping bridge restart")
-            return
-        }
-        guard !modeSwitchInProgress else {
-            log("ChatProvider: \(reason): mode switch in progress, skipping bridge restart")
             return
         }
         log("ChatProvider: \(reason): restarting agent bridge to terminate the stale query loop")

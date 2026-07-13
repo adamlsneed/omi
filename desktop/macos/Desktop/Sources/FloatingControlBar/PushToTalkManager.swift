@@ -616,7 +616,10 @@ class PushToTalkManager: ObservableObject {
   /// for users who keep it hidden. Mirrors the re-hide in closeAIConversation's
   /// collapse path, which covers sessions that did open a conversation.
   private func hideBarIfDisabledAfterSession() {
-    guard state == .idle, !FloatingControlBarManager.shared.isEnabled else { return }
+    let sessionPhase = phase ?? .idle
+    guard sessionPhase == .idle || sessionPhase.isTerminal,
+      !FloatingControlBarManager.shared.isEnabled
+    else { return }
     guard let barState, !barState.showingAIConversation, barState.currentNotification == nil else { return }
     FloatingControlBarManager.shared.hideTemporarily()
   }

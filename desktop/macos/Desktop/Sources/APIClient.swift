@@ -6280,7 +6280,7 @@ extension APIClient {
     // Only remap to providerAuth when the body is OpenAI-shaped — a bare/Firebase
     // 401 after refresh is a real login failure and must require re-auth.
     let (data, httpResponse) = try await performAuthenticatedData(
-      for: request,
+      for: urlRequest,
       authPolicy: .providerCredentialBoundary
     )
 
@@ -6297,7 +6297,7 @@ extension APIClient {
         )
       }
       await invalidateSessionAfterUnauthorized(
-        endpoint: endpointLabel(for: request),
+        endpoint: endpointLabel(for: urlRequest),
         signOutOn401: true
       )
       throw APIError.unauthorized
