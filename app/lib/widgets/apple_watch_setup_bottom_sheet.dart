@@ -198,14 +198,16 @@ class _AppleWatchSetupBottomSheetState extends State<AppleWatchSetupBottomSheet>
       if (await canLaunchUrl(url)) {
         await launchUrl(url);
 
-        if (!mounted) return;
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.showSnackbar(context.l10n.unableToOpenWatchApp, duration: const Duration(seconds: 6));
+      if (mounted) {
+        AppSnackbar.showSnackbar(context.l10n.unableToOpenWatchApp, duration: const Duration(seconds: 6));
 
-      Navigator.of(context).pop();
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -220,20 +222,25 @@ class _AppleWatchSetupBottomSheetState extends State<AppleWatchSetupBottomSheet>
       if (!mounted) return;
 
       if (isReachable) {
-        AppSnackbar.showSnackbar(context.l10n.appleWatchConnectedSuccessfully, duration: const Duration(seconds: 2));
+        if (mounted) {
+          AppSnackbar.showSnackbar(context.l10n.appleWatchConnectedSuccessfully, duration: const Duration(seconds: 2));
 
-        // Close the bottom sheet and notify parent
-        Navigator.of(context).pop();
+          // Close the bottom sheet and notify parent
+          Navigator.of(context).pop();
+        }
         widget.onConnected?.call();
       } else {
-        AppSnackbar.showSnackbar(context.l10n.appleWatchNotReachable, duration: const Duration(seconds: 4));
+        if (mounted) {
+          AppSnackbar.showSnackbar(context.l10n.appleWatchNotReachable, duration: const Duration(seconds: 4));
+        }
       }
     } catch (e) {
-      if (!mounted) return;
-      AppSnackbar.showSnackbar(
-        context.l10n.errorCheckingConnection(e.toString()),
-        duration: const Duration(seconds: 3),
-      );
+      if (mounted) {
+        AppSnackbar.showSnackbar(
+          context.l10n.errorCheckingConnection(e.toString()),
+          duration: const Duration(seconds: 3),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

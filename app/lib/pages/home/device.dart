@@ -37,15 +37,6 @@ class ConnectedDevice extends StatefulWidget {
 class _ConnectedDeviceState extends State<ConnectedDevice> {
   CaptureProvider? _captureProvider;
 
-  // TODO: thinh, use connection directly
-  Future _bleDisconnectDevice(BtDevice btDevice) async {
-    var connection = await ServiceManager.instance().device.ensureConnection(btDevice.id);
-    if (connection == null) {
-      return Future.value(null);
-    }
-    return await connection.disconnect();
-  }
-
   Future _bleUnpairDevice(BtDevice btDevice) async {
     var connection = await ServiceManager.instance().device.ensureConnection(btDevice.id);
     if (connection == null) {
@@ -240,8 +231,9 @@ class _ConnectedDeviceState extends State<ConnectedDevice> {
       final cameraStatus = await connection.getCameraPermissionStatus();
       if (cameraStatus != 'granted') {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.l10n.raybanMetaImageCaptureUnavailable)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.raybanMetaImageCaptureUnavailable)));
         return;
       }
       await connection.capturePhoto();
@@ -250,7 +242,8 @@ class _ConnectedDeviceState extends State<ConnectedDevice> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.errorConnectingRayBanMeta(e.toString())), backgroundColor: Colors.red));
+        SnackBar(content: Text(context.l10n.errorConnectingRayBanMeta(e.toString())), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -449,6 +442,8 @@ class _ConnectedDeviceState extends State<ConnectedDevice> {
               if (mounted) {
                 context.read<DeviceProvider>().setIsConnected(false);
                 await context.read<DeviceProvider>().setConnectedDevice(null);
+              }
+              if (mounted) {
                 context.read<DeviceProvider>().updateConnectingStatus(false);
               }
 
@@ -497,7 +492,7 @@ class _ConnectedDeviceState extends State<ConnectedDevice> {
                       if (provider.connectedDevice != null) {
                         await _bleUnpairDevice(provider.connectedDevice!);
                       }
-                      if (context.mounted) {
+                      if (mounted) {
                         context.read<DeviceProvider>().setIsConnected(false);
                         context.read<DeviceProvider>().setConnectedDevice(null);
                         context.read<DeviceProvider>().updateConnectingStatus(false);

@@ -113,8 +113,9 @@ class _ApiKeysWidgetState extends State<ApiKeysWidget> {
 
     try {
       await Provider.of<AddAppProvider>(context, listen: false).deleteApiKey(widget.appId, keyId);
-      if (!mounted) return;
-      AppSnackbar.showSnackbarSuccess(context.l10n.apiKeyRevokedSuccessfully);
+      if (mounted) {
+        AppSnackbar.showSnackbarSuccess(context.l10n.apiKeyRevokedSuccessfully);
+      }
     } catch (e) {
       if (mounted) {
         AppSnackbar.showSnackbarError(context.l10n.failedToRevokeApiKey(e.toString()));

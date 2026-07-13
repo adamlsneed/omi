@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
@@ -19,7 +18,6 @@ import 'package:omi/pages/settings/device_diagnostics.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/services.dart';
-import 'package:omi/utils/analytics/intercom.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/other/temp.dart';
 import 'package:omi/widgets/dialog.dart';
@@ -44,15 +42,6 @@ class _DeviceSettingsState extends State<DeviceSettings> {
   Timer? _micGainDebounce;
 
   bool _autoSyncOfflineRecordings = SharedPreferencesUtil().autoSyncOfflineRecordings;
-
-  // TODO: thinh, use connection directly
-  Future _bleDisconnectDevice(BtDevice btDevice) async {
-    var connection = await ServiceManager.instance().device.ensureConnection(btDevice.id);
-    if (connection == null) {
-      return Future.value(null);
-    }
-    return await connection.disconnect();
-  }
 
   Future _bleUnpairDevice(BtDevice btDevice) async {
     var connection = await ServiceManager.instance().device.ensureConnection(btDevice.id);
@@ -794,7 +783,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
                 await provider.setConnectedDevice(null);
                 provider.updateConnectingStatus(false);
                 PlatformManager.instance.analytics.disconnectFriendClicked();
-                if (context.mounted) {
+                if (mounted) {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(
                     context,
@@ -842,7 +831,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
                       provider.setIsConnected(false);
                       provider.setConnectedDevice(null);
                       provider.updateConnectingStatus(false);
-                      if (context.mounted) {
+                      if (mounted) {
                         Navigator.of(context).pop();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

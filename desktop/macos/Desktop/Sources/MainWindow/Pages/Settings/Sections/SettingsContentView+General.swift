@@ -6,29 +6,24 @@ import OmiTheme
 
 extension SettingsContentView {
   var generalSection: some View {
-    VStack(spacing: 20) {
+    VStack(spacing: OmiSpacing.xl) {
       // Screen Recording toggle
       settingsCard(settingId: "general.screencapture") {
-        HStack(spacing: 16) {
-          Circle()
-            .fill(isMonitoring ? OmiColors.success : OmiColors.textTertiary.opacity(0.3))
-            .frame(width: 12, height: 12)
-            .shadow(color: isMonitoring ? OmiColors.success.opacity(0.5) : .clear, radius: 6)
-
+        HStack(spacing: OmiSpacing.lg) {
           Image(systemName: "rectangle.dashed.badge.record")
-            .scaledFont(size: 16)
+            .scaledFont(size: OmiType.subheading)
             .foregroundColor(OmiColors.info)
 
-          VStack(alignment: .leading, spacing: 4) {
+          VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
             Text(DesktopRecordingControlCopy.screenRecordingTitle)
-              .scaledFont(size: 16, weight: .semibold)
+              .scaledFont(size: OmiType.subheading, weight: .semibold)
               .foregroundColor(OmiColors.textPrimary)
 
             Text(
               permissionError
                 ?? (isMonitoring ? "Recording screen content" : "Screen recording is paused")
             )
-            .scaledFont(size: 13)
+            .scaledFont(size: OmiType.body)
             .foregroundColor(permissionError != nil ? OmiColors.warning : OmiColors.textTertiary)
           }
 
@@ -48,7 +43,7 @@ extension SettingsContentView {
                 }
               )
             )
-            .toggleStyle(.switch)
+            .toggleStyle(OmiToggleStyle())
             .labelsHidden()
             .accessibilityLabel(DesktopRecordingControlCopy.screenRecordingTitle)
           }
@@ -57,26 +52,14 @@ extension SettingsContentView {
 
       // Microphone toggle
       settingsCard(settingId: "general.audiorecording") {
-        HStack(spacing: 16) {
-          Circle()
-            .fill(
-              isTranscribing
-                ? (appState.isAwaitingMeeting ? OmiColors.warning : OmiColors.success)
-                : OmiColors.textTertiary.opacity(0.3)
-            )
-            .frame(width: 12, height: 12)
-            .shadow(
-              color: isTranscribing
-                ? (appState.isAwaitingMeeting ? OmiColors.warning : OmiColors.success).opacity(0.5)
-                : .clear, radius: 6)
-
+        HStack(spacing: OmiSpacing.lg) {
           Image(systemName: "mic.fill")
-            .scaledFont(size: 16)
+            .scaledFont(size: OmiType.subheading)
             .foregroundColor(OmiColors.info)
 
-          VStack(alignment: .leading, spacing: 4) {
+          VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
             Text(DesktopRecordingControlCopy.microphoneTitle)
-              .scaledFont(size: 16, weight: .semibold)
+              .scaledFont(size: OmiType.subheading, weight: .semibold)
               .foregroundColor(OmiColors.textPrimary)
 
             Text(
@@ -86,7 +69,7 @@ extension SettingsContentView {
                     ? "Waiting for a meeting…" : "Recording and transcribing microphone audio")
                   : "Microphone recording is paused")
             )
-            .scaledFont(size: 13)
+            .scaledFont(size: OmiType.body)
             .foregroundColor(transcriptionError != nil ? OmiColors.warning : OmiColors.textTertiary)
           }
 
@@ -106,9 +89,89 @@ extension SettingsContentView {
                 }
               )
             )
-            .toggleStyle(.switch)
+            .toggleStyle(OmiToggleStyle())
             .labelsHidden()
             .accessibilityLabel(DesktopRecordingControlCopy.microphoneTitle)
+          }
+        }
+      }
+
+      // Notifications toggle
+      settingsCard(settingId: "general.notifications") {
+        VStack(spacing: OmiSpacing.md) {
+          HStack(spacing: OmiSpacing.lg) {
+            Image(systemName: "bell.fill")
+              .scaledFont(size: OmiType.subheading)
+              .foregroundColor(OmiColors.info)
+
+            VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
+              Text("Notifications")
+                .scaledFont(size: OmiType.subheading, weight: .semibold)
+                .foregroundColor(OmiColors.textPrimary)
+
+              Text(notificationStatusText)
+                .scaledFont(size: OmiType.body)
+                .foregroundColor(
+                  appState.isNotificationBannerDisabled ? OmiColors.warning : OmiColors.textTertiary
+                )
+            }
+
+            Spacer()
+
+            // Toggle mirrors the effective notification state. macOS ownership
+            // caveat: the app can request/repair permission but cannot revoke
+            // it, so flipping OFF (or fixing disabled banners) deep-links to
+            // System Settings; the toggle re-syncs from the real permission.
+            Toggle(
+              "",
+              isOn: Binding(
+                get: {
+                  appState.hasNotificationPermission && !appState.isNotificationBannerDisabled
+                },
+                set: { newValue in
+                  if newValue {
+                    if appState.isNotificationBannerDisabled {
+                      // Banners off — user needs to change style in System Settings
+                      appState.openNotificationPreferences()
+                    } else {
+                      // Auth not granted — try lsregister repair first
+                      AnalyticsManager.shared.notificationRepairTriggered(
+                        reason: "settings_fix_button",
+                        previousStatus: "not_authorized",
+                        currentStatus: "not_authorized"
+                      )
+                      appState.repairNotificationAndFallback()
+                    }
+                  } else {
+                    appState.openNotificationPreferences()
+                  }
+                }
+              )
+            )
+            .toggleStyle(OmiToggleStyle())
+            .labelsHidden()
+          }
+
+          // Warning when banners are disabled
+          if appState.isNotificationBannerDisabled {
+            HStack(spacing: OmiSpacing.sm) {
+              Image(systemName: "exclamationmark.triangle.fill")
+                .scaledFont(size: OmiType.caption)
+                .foregroundColor(OmiColors.warning)
+
+              Text(
+                "Banners disabled - you won't see visual alerts. Set style to \"Banners\" in System Settings."
+              )
+              .scaledFont(size: OmiType.caption)
+              .foregroundColor(OmiColors.warning)
+
+              Spacer()
+            }
+            .padding(OmiSpacing.sm)
+            .background(
+              RoundedRectangle(cornerRadius: OmiChrome.elementRadius)
+                .fill(OmiColors.warning.opacity(0.1))
+            )
           }
         }
       }
@@ -116,19 +179,19 @@ extension SettingsContentView {
       // System Audio capture mode (macOS 14.4+ — system audio capture requires Core Audio taps)
       if #available(macOS 14.4, *) {
         settingsCard(settingId: "general.systemaudio") {
-          VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 16) {
+          VStack(alignment: .leading, spacing: OmiSpacing.md) {
+            HStack(spacing: OmiSpacing.lg) {
               Image(systemName: "speaker.wave.2.fill")
-                .scaledFont(size: 16)
+                .scaledFont(size: OmiType.subheading)
                 .foregroundColor(OmiColors.info)
 
-              VStack(alignment: .leading, spacing: 4) {
+              VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
                 Text("System Audio")
-                  .scaledFont(size: 16, weight: .semibold)
+                  .scaledFont(size: OmiType.subheading, weight: .semibold)
                   .foregroundColor(OmiColors.textPrimary)
 
                 Text("Choose when Omi records audio from other apps (calls, videos, music).")
-                  .scaledFont(size: 13)
+                  .scaledFont(size: OmiType.body)
                   .foregroundColor(OmiColors.textTertiary)
               }
 
@@ -158,7 +221,7 @@ extension SettingsContentView {
               Text(
                 "Omi captures other apps' audio only while you're in a call (e.g. Zoom, Teams, FaceTime). Detecting browser-based calls like Google Meet requires Screen Recording permission."
               )
-              .scaledFont(size: 12)
+              .scaledFont(size: OmiType.caption)
               .foregroundColor(OmiColors.textTertiary)
               .fixedSize(horizontal: false, vertical: true)
             }
@@ -308,20 +371,20 @@ extension SettingsContentView {
 
       // Font Size
       settingsCard(settingId: "general.fontsize") {
-        VStack(spacing: 12) {
-          HStack(spacing: 16) {
+        VStack(spacing: OmiSpacing.md) {
+          HStack(spacing: OmiSpacing.lg) {
             Image(systemName: "textformat.size")
               .scaledFont(size: 16, weight: .medium)
               .foregroundColor(OmiColors.info)
               .frame(width: 12)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
               Text("Font Size")
                 .scaledFont(size: 16, weight: .semibold)
                 .foregroundColor(OmiColors.textPrimary)
 
               Text("Scale: \(Int(fontScaleSettings.scale * 100))%")
-                .scaledFont(size: 13)
+                .scaledFont(size: OmiType.body)
                 .foregroundColor(OmiColors.textTertiary)
             }
 
@@ -331,13 +394,13 @@ extension SettingsContentView {
               Button("Reset") {
                 fontScaleSettings.resetToDefault()
               }
-              .scaledFont(size: 12, weight: .medium)
-              .foregroundColor(OmiColors.info)
-              .buttonStyle(.plain)
+              .buttonStyle(OmiButtonStyle(.primary, size: .compact))
             }
           }
 
-          HStack(spacing: 12) {
+          HStack(spacing: OmiSpacing.md) {
+            // The small/large "A" pair illustrates the scale range — keep the
+            // original 12/18 ratio rather than the type registers.
             Text("A")
               .scaledFont(size: 12, weight: .medium)
               .foregroundColor(OmiColors.textTertiary)
@@ -354,36 +417,19 @@ extension SettingsContentView {
             .scaledFont(size: 14)
             .foregroundColor(OmiColors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 4)
-
-          // Keyboard shortcuts for font size
-          VStack(spacing: 6) {
-            fontShortcutRow(label: "Increase font size", keys: "\u{2318}+")
-            fontShortcutRow(label: "Decrease font size", keys: "\u{2318}\u{2212}")
-            fontShortcutRow(label: "Reset font size", keys: "\u{2318}0")
-          }
-          .padding(.top, 4)
+            .padding(.top, OmiSpacing.xxs)
 
           HStack {
             Spacer()
             Button(action: {
               resetWindowToDefaultSize()
             }) {
-              HStack(spacing: 6) {
+              HStack(spacing: OmiSpacing.xs) {
                 Image(systemName: "arrow.uturn.backward")
-                  .scaledFont(size: 11)
                 Text("Reset Window Size")
-                  .scaledFont(size: 12, weight: .medium)
               }
-              .foregroundColor(OmiColors.textSecondary)
-              .padding(.horizontal, 10)
-              .padding(.vertical, 5)
-              .background(
-                RoundedRectangle(cornerRadius: 6)
-                  .fill(OmiColors.backgroundTertiary)
-              )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(OmiButtonStyle(.primary, size: .compact))
           }
         }
       }

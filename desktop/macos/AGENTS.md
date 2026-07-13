@@ -21,6 +21,27 @@ See `.claude/skills/sentry-release/SKILL.md` for full documentation.
 ### User Issue Investigation
 When debugging issues for a specific user, check Sentry dashboard for crashes and PostHog for events.
 
+### Product analytics integrity
+
+- A desktop chat query starts after local concurrency/quota preflight and must
+  emit exactly one terminal outcome: `completed`, `failed`, or `cancelled`.
+  Intentional Stop and supersession are cancellations, never errors.
+- Query latency ends when the final answer is visible. Persistence, title
+  generation, and other post-answer work have their own reliability signals and
+  must not inflate user-visible query duration.
+- Product authority is independent from telemetry. Revoked or timed-out turns
+  cannot apply late callbacks/results or persist a late response even if
+  analytics is disabled or refactored.
+- PostHog receives bounded dimensions and shape metadata only. Never send raw
+  prompts, responses, notification/window titles, filesystem paths, or exception
+  messages. Keep diagnostic detail in the private local log and Sentry.
+- Production `QueryTracer` output is shape-only and stored under a `0700`
+  directory in `0600` files. Full prompt/response/tool content is a deliberate
+  non-production debugging capability only.
+
+### Fallback / resilience telemetry
+Provider/mode switches and fail-open paths must call `DesktopDiagnosticsManager.recordFallback(area:from:to:reason:outcome:)` (PostHog `desktop_health_event` / `fallback_triggered`) or Rust `fallback::record_fallback`. Same field contract as root `AGENTS.md` → Fallback / resilience telemetry. Do not invent new health-event enum cases or product “Recording Error” events for successful heals (`outcome=recovered`).
+
 ## Repository
 - This is the `desktop/macos/` subfolder of the **OMI monorepo** (`BasedHardware/omi`)
 - macOS Swift app + Rust backend live here
@@ -65,7 +86,8 @@ library targets with enforced dependency edges:
 
 - `OmiTheme` — shared colors, typography, chrome (`Sources/Theme/`)
 - `OmiWAL` — write-ahead log model + coordinator (`Sources/OmiWAL/`)
-- `OmiSupport` — shared desktop runtime helpers (`Sources/OmiSupport/`, e.g. `DesktopLocalProfile`)
+- `OmiSupport` — shared desktop runtime helpers (`Sources/OmiSupport/`, e.g.
+  `DesktopLocalProfile` and `Dictionary(lastWriteWins:)`)
 
 `Rewind/Core/` remains in the executable target for now — it still references main-app
 types (`TaskActionItem`, `PowerMonitor`, etc.) and needs a shared-models carve-out first.
@@ -77,6 +99,51 @@ enforces this via `scripts/check-sources-root-layout.py`.
 When carving out additional leaf modules, prefer bottom-up order (models and
 storage before UI) and wire `import` + `public` on the extracted target's API.
 
+### Synchronous state-machine callbacks
+
+- A reducer transition is atomic through model assignment, effect delivery, UI
+  projection, and snapshot publication. A callback may request another event,
+  but it must not recursively reduce against a half-published transition.
+- Coordinators with synchronous effect/snapshot callbacks drain nested events
+  through a FIFO, non-reentrant queue. Do not fix recursion with one-off boolean
+  suppression or by dispatching after an arbitrary delay.
+- Tests for callback-driven machines must synchronously enqueue from both an
+  effect callback and an observer/snapshot callback, assert callback depth stays
+  one, and assert the resulting event order.
+
+### Collection safety
+
+- Never use `Dictionary(uniqueKeysWithValues:)` for API responses, decoded
+  persistence, runtime projections, or any other data whose key uniqueness is
+  not enforced by the Swift type system. A duplicate key traps and terminates
+  the process.
+- Use `Dictionary(lastWriteWins:)` from `OmiSupport` when the newest record in
+  input order is authoritative. Use another explicit non-trapping merge policy
+  when the domain requires different semantics.
+- A raw trapping initializer is allowed only for a statically proven uniqueness
+  contract, with a local reason:
+  `// omi-collection-safety: static-unique-keys -- <why the type guarantees uniqueness>`.
+  Runtime validation, backend expectations, and “should be unique” are not
+  static contracts.
+- Run `python3 scripts/check_desktop_test_quality.py` after changing Swift
+  collection construction.
+
+### Swift test quality
+
+- Behavior fixes require tests that call the production API and assert outcomes.
+  Reading a production `.swift` file and asserting that it contains a function
+  name or implementation string is not behavioral coverage.
+- Source inspection is reserved for narrow forbidden-pattern or static wiring
+  tripwires. New tripwires must carry a local reason:
+  `// omi-test-quality: source-inspection -- static contract: <what cannot be expressed behaviorally>`.
+  The tripwire supplements rather than replaces behavioral coverage.
+- Do not add wall-clock sleeps to unit tests. Inject a `Clock`/sleeper, drive a
+  callback/continuation, or await a deterministic state signal. An unavoidable
+  real-scheduler integration wait needs
+  `// omi-test-quality: wall-clock-wait -- <why injection cannot test this boundary>`.
+- `python3 scripts/check_desktop_test_quality.py` ratchets both legacy
+  source-inspection sites and wall-clock waits; its baselines may only decrease.
+
 ## Key Architecture Notes
 
 ### Authentication
@@ -84,6 +151,17 @@ storage before UI) and wire `import` + `public` on the extracted target's API.
 - Desktop apps should use backend OAuth flow: `/v1/auth/authorize`
 - Apple Services ID: `me.omi.web` (shared across all apps)
 - iOS apps use native Sign-In, Desktop uses backend OAuth + custom token
+- Session death is owned by `AuthSessionCoordinator` (`INV-AUTH-1`); use `invalidateSession` for expired/revoked Firebase creds, not nuclear `signOut()`.
+
+#### Session 401 vs BYOK/provider 401
+
+| Failure class | Owner | Action on 401 after forced refresh |
+|---------------|-------|-----------------------------------|
+| Firebase session token (default API `Authorization`) | `AuthSessionCoordinator` | `invalidateSession` → Sign-in CTA |
+| BYOK provider key on request | `CredentialHealthManager` | Suppress/mark provider unhealthy; **do not** invalidate Firebase session |
+| Realtime/voice managed lane | `CredentialHealthManager` + hub UX | `requiresLogin` only when session mint fails after refresh |
+| Background poll with `RequestAuthPolicy.sessionPreserving` | Caller | Throw `.unauthorized`; no session invalidation |
+| `DesktopLocalProfile` harness | Auth emulator bootstrap | Re-bootstrap emulator session; no prod invalidation side effects |
 
 ### Database Structure
 - **Firestore** (`based-hardware`): User data, conversations, action items
@@ -139,6 +217,8 @@ When testing a feature or bug fix, **always deploy as "Omi Dev" on top of the ex
 ```
 This rebuilds and replaces `/Applications/Omi Dev.app` (bundle ID: `com.omi.desktop-dev`). Permissions, database, and auth state persist across deploys, so once signed in it boots already-signed-in.
 
+**Build-lock invariant:** `./run.sh` locks per worktree (repo-root `.dev/run-sh-build.lock.d`), through build→install→seed→`open`, then releases before the long-running wait. Parallel worktrees must not block each other. Two named-bundle builds in the *same* worktree still serialize (shared `Desktop/.build/`). Do not reuse the same explicit `OMI_APP_NAME` across worktrees — `/Applications/$APP_NAME.app` is machine-global and not cross-locked.
+
 **Rules:**
 - **NEVER use `OMI_APP_NAME` for local deploys** — do not create named bundles (`omi-<feature>` etc.); always deploy as "Omi Dev" over the existing install
 - To connect agent-swift: `agent-swift connect --bundle-id com.omi.desktop-dev`
@@ -149,12 +229,148 @@ This rebuilds and replaces `/Applications/Omi Dev.app` (bundle ID: `com.omi.desk
 - To actually test, ALWAYS use `./run.sh` (deploys as "Omi Dev") — it starts Rust backend + Cloudflare tunnel + Swift app together
 - **When the user says "test it"**, use the `test-local` skill to build, run, and verify via macOS automation
 
+### macOS Version Compatibility
+- The deployment floor is `.macOS("14.0")` in `Desktop/Package.swift`. Every change must work on every supported macOS version from that floor up.
+- Never call an API newer than the floor unguarded: wrap it in `if #available(macOS XX, *)` **and give the `else` branch a working fallback** (degrade the feature, don't blank it). Example: System Audio capture gates on `#available(macOS 14.4, *)` and hides cleanly below it.
+- Version-dependent system facts (renamed apps, moved paths, changed defaults) get an explicit mapping with the old value still handled — stored user data may predate the change (example: `AppIconCache.renamedApps` maps "System Preferences" → "System Settings").
+- Raising the deployment floor or dropping a fallback is a product decision — never do it as a side effect of another change.
+
+### Open-Source Merge Hygiene
+- Before starting and before committing, `git fetch origin && git rebase origin/main` (or merge) — other contributors land changes continuously; never review your diff against a stale base.
+- Keep diffs surgical: touch only lines your change needs. No drive-by reformatting, renames, or import reshuffles in files others may have in-flight PRs against.
+- After rebasing onto new upstream work, re-run the test suites for every file you touched **and** every file the rebase brought in that overlaps your change; a clean build alone is not revision.
+- If your change modifies shared surfaces (Theme tokens, `SettingsSection`, bridge actions, INV-* contract files), grep for all usages — including tests and e2e flows — and update them in the same commit so concurrent contributors inherit a consistent tree.
+
 ### Agent Logic Harness
 When touching desktop agent runtime, floating agent pills, realtime hub, PTT, or `pi-mono-extension`, run the focused harness before broader checks:
 ```bash
 cd desktop/macos && ./scripts/agent-logic-harness.sh
 ```
 It is self-driving for agents: it runs the risky Swift lifecycle/state tests, focused agent runtime tests, exact `pi-mono-extension` package tests, and prints per-step runtime. Use `--swift-only`, `--node-only`, or `--skip-install` only when narrowing a failure.
+
+### Chat Continuity Write-Path Contract (INV-6)
+
+Invariant: Main Chat, Home chat, and floating/notch chat are one timeline over one
+`ChatProvider` (`historyChatProvider`). Kernel `main_chat` turns are the durable
+source of truth; journal acceptance publishes the immediate pending projection,
+and UI must never append a pre-journal turn.
+
+Rules (fail the PR if any break):
+1. **Single provider + floating viewport** — floating presentation is chrome + a
+   viewport cursor (`FloatingChatViewport` message ids / `clientTurnId`) over
+   `ChatProvider.messages`. It must not own a second durable transcript array
+   (`chatHistory` of `ChatMessage` copies is forbidden).
+2. **Single `turn_recorded` UI apply gate** — only `KernelTurnProjection` on
+   `ChatProvider.mainInstance` (`historyChatProvider`) may attach the runtime
+   turn handler (one replaceable slot). Speculative warm and other surfaces must
+   reuse `mainInstance`; never construct a second `ChatProvider()` that calls
+   `attachClient` / `setTurnRecordedHandler` on the shared runtime.
+3. **One idempotency key per logical turn** — call `recordJournalExchange` (or
+   the corresponding kernel control RPC) with one opaque continuity key and
+   await acceptance before binding a visible row. Direct-control spawn receipts
+   already materialize their exchange; refresh that journal instead of issuing a
+   second write. Never dedupe by assistant/user text.
+4. **Kernel apply is idempotent** — `KernelTurnProjection` upserts only by the
+   canonical turn ID published by ordered journal replay. Rejection must leave no
+   visible row, and replay/acknowledgement must replace rather than append.
+5. **Cross-surface agent identity is structured** — `agentSpawn` / `agentCompletion`
+   content blocks (plus tool-block `spawnedAgentID` / sessionId / runId lines) are
+   authoritative. Persist structured blocks through the kernel journal/outbox so
+   they survive reload; kernel apply still materializes `agentCompletion` from
+   bracket text for legacy rows. Legacy `[Background agent id=…]` bracket
+   text remains dual-read only. Do not invent new free-text formats; extend the
+   schema + tests together.
+   Proactive notifications use continuity key `notification:<uuid>` (origin
+   `proactive_notification`) and enter the notification-to-chat cache only after
+   journal acceptance; do not reintroduce local timeline append paths.
+6. **Pill cache is derived** — open-by-id hydrates from kernel (`listFloatingAgentPills`
+   / `listAgentSessions` / `inspectAgentRun`) when the in-memory pill is missing;
+   refresh-on-miss is a fast path only. Success = resolvable agent after hydrate.
+   Do not keep a second durable pill store.
+7. **Snapshots are aliases** — `automationFloatingChatSnapshot` ==
+   `automationChatSnapshot` / `automationMainChatSnapshot` over the same messages;
+   no surface-specific transcript filter.
+8. **Resources live on the producing message** — artifacts attach to the
+   `ChatMessage` that produced them (stage/promote keeps `resources` on that id).
+   UI must not invent a standalone artifact-only turn. Floating/notch resource
+   strips bind `message.displayResources` on viewport-derived messages only
+   (never flatMap the whole provider timeline). Aggregate strips must filter
+   with `ChatContinuityInvariants.resourcesBelongingToMessages` /
+   `FloatingControlBarState.viewportDisplayResources`.
+9. **Agent card/list preview = prompt/objective** — collapsed header / list
+   subtitle uses `ChatContinuityInvariants.agentPreviewText(prompt:output:)`
+   (prompt wins; output is expanded-body only). Do not put raw completion output
+   in the one-line preview.
+10. **Forbidden dual-write patterns** — never: construct `ChatProvider()` for
+    speculative warm (use `ChatProvider.mainInstance`); add
+    `addTurnRecordedHandler` / multi-handler append APIs; introduce
+    `suppressNextRecordedTurn`; store `@Published var chatHistory` of
+    `ChatMessage` copies on `FloatingControlBarState`.
+11. **Tests** — continuity behavior changes require a hermetic behavioral test (call
+   projection/provider APIs, assert message counts/IDs). Source-string greps for
+   function names are not continuity coverage (forbidden-pattern tripwires are the
+   exception). Live gauntlet/stress are gates, not substitutes for hermetic tests.
+
+### Continuity PR Definition of Done (INV-6)
+
+A PR that touches chat write-path, kernel projection, floating viewport, agent
+timeline identity/open, or pill projection is incomplete until:
+
+1. **Contract still true** — INV-6 rules above hold after the change (or are
+   updated in the same PR with a matching behavioral test).
+2. **Hermetic behavioral test** for the invariant touched (stage/promote,
+   snapshot alias, structured identity, open-by-id hydrate, viewport derive /
+   restore, resources-on-message, agent preview text). Not a source grep
+   (except forbidden-pattern tripwires).
+3. **`./scripts/agent-logic-harness.sh` green** (includes
+   `KernelTurnRecordedProjectionTests`, `ChatTimelineContinuityTests`,
+   `FloatingControlBarStateTests`, `RuntimeOwnerIdentityTests` in the Swift
+   focus filter).
+4. **Write-path / cross-surface changes:** run a named-bundle continuity
+   gauntlet and note evidence in the PR:
+   ```bash
+   cd desktop/macos && OMI_APP_NAME=omi-gauntlet OMI_SKIP_TUNNEL=1 ./run.sh
+   # run.sh seeds auth after install (UD tokens → app Keychain migrate). Manual reseed:
+   # ./scripts/omi-auth-seed.sh com.omi.omi-gauntlet tmp/desktop-auth.json "/Applications/omi-gauntlet.app"
+   ./scripts/agent-continuity-gauntlet.sh --suite continuity --bundle-id com.omi.omi-gauntlet
+   ./scripts/check-gauntlet-evidence-at-head.sh
+   ```
+   CI only runs gauntlet `--self-check` (wiring). Live suite is a PR/RC gate,
+   not PR CI. Do not assert exact assistant wording.
+5. **Hermetic e2e** only if a bridge action/surface contract changed. Do not
+   expand flow `covers:` lists as fake continuity coverage.
+6. **No second message store** / no new free-text identity format / no
+   `suppressNextRecordedTurn`-style dual-write bandage.
+7. Changelog fragment only if user-visible.
+
+### Gauntlet / stress gate policy
+
+- **CI:** `agent-continuity-gauntlet.sh --self-check` only (via desktop-core /
+  agent-logic harness). Never require live LLM in PR CI.
+- **Continuity PRs / RC:** `--suite continuity` (typed + PTT + blind recall) on
+  a named `omi-*` bundle after auth seed; `--suite all` for RC. Evidence under
+  `.harness/agent-continuity-gauntlet/*/manifest.json` with matching git SHA.
+- **Anti-flake:** clear owner/kernel surface before probes; per-run nonces;
+  hard-fail on blind-recall / structural snapshot only; zero automatic retries
+  on model wrongness.
+- **Stress:** offline JSONL + forbidden terminal reasons remain the default
+  gate; live bridge probes stay optional until continuity `terminal_reason`s
+  exist in the taxonomy.
+
+### Live gauntlet vs hermetic INV-6 coverage
+
+Do not confuse these gates — a green live suite does **not** prove write-path
+contract rules, and hermetic unit tests do **not** prove bridge/LLM continuity.
+
+| Gate | What it covers | What it does **not** cover |
+| --- | --- | --- |
+| **Hermetic** (`agent-logic-harness.sh` Swift filter: `KernelTurnRecordedProjectionTests`, `ChatTimelineContinuityTests`, `FloatingControlBarStateTests`, `RuntimeOwnerIdentityTests`) | stage/promote same key → one message pair; floating snapshot aliases main; structured agent identity; open-by-id hydrate preference; floating viewport derive / SoT; resources on producing message; agent preview = prompt; owner-swap preserves Firebase tokens; forbidden dual-write tripwires | Live bridge auth, LLM tool use, PTT hub, race/busy policy under a real runtime |
+| **Gauntlet `--self-check`** | Bridge action registration (incl. R3 `ask_main_chat_no_wait` / `main_chat_busy_state`), resilience suite wiring, hermetic contract test presence in harness filter | Any live turn |
+| **Live `--suite continuity` / `agents` / `owner` / `prompts`** | Typed + PTT + blind recall, spawn/status, owner swap probe, prompt regressions on a named bundle | stage/promote single-writer, snapshot alias, hydrate preference, viewport SoT (those stay hermetic) |
+| **Live `--suite resilience` (R1–R4)** | Cold bridge launch, warm reuse, bridge busy/race rejection (R3; requires real `is_sending`/`is_streaming` once, latch only extends the race window), subagent launch+status (R4) | INV-6 write-path unit invariants above |
+
+`--self-check` fails if R3 race actions or the hermetic INV-6 test methods /
+harness filter classes drift away.
 
 ### Verifying UI Changes (agent-swift)
 

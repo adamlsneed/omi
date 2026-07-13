@@ -16,7 +16,6 @@ venv/
 .memory_pipeline_runs/
 .local/
 dump/
-/scripts/
 *.zip
 *.wav
 node_modules
@@ -244,10 +243,13 @@ omi/firmware/omi/prj.conf
 .dev/
 
 # Agent planning artifacts (ephemeral; do not commit)
-.cursor/plans/
+.cursor/plans/*
+!.cursor/plans/.gitkeep
+
 .hermes/
 
 # Merge artifacts
 *.orig
 
 backend/.venv
+backend/.harness/
