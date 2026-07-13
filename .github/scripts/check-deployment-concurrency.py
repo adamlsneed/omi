@@ -281,7 +281,14 @@ def check_repository() -> list[str]:
     detected = {
         name for name, text in workflow_text.items() if is_persistent_writer(text)
     }
-    expected = set(LOCK_CONTRACTS) | set(RUN_SCOPED_EXEMPTIONS)
+    # Fork policy: auto-deploy workflows are deliberately removed (this fork
+    # never deploys backends; see AGENTS.md Safety Rules). Audit only the
+    # contracts whose workflow files exist.
+    expected = {
+        name
+        for name in set(LOCK_CONTRACTS) | set(RUN_SCOPED_EXEMPTIONS)
+        if name in workflow_text
+    }
     for name in sorted(detected - expected):
         errors.append(
             f"{name}: persistent Cloud Run/GKE writer is missing from the lock policy"
@@ -295,7 +302,9 @@ def check_repository() -> list[str]:
     for name, contract in LOCK_CONTRACTS.items():
         text = workflow_text.get(name)
         if text is None:
-            errors.append(f"{name}: audited deploy workflow is missing")
+            # Fork policy: auto-deploy workflows are deliberately removed
+            # (this fork never deploys backends; see AGENTS.md Safety Rules).
+            # A deleted workflow has no writer to lock, so skip its contract.
             continue
         errors.extend(validate_lock(name, text, contract))
         concurrency = parse_top_level_concurrency(text)
@@ -306,7 +315,9 @@ def check_repository() -> list[str]:
         errors.extend(validate_shared_families(groups))
 
     for name, marker in RUN_SCOPED_EXEMPTIONS.items():
-        text = workflow_text.get(name, "")
+        if name not in workflow_text:
+            continue
+        text = workflow_text[name]
         if marker not in text:
             errors.append(
                 f"{name}: run-scoped deploy-lock exemption lost required marker {marker!r}"
@@ -317,15 +328,18 @@ def check_repository() -> list[str]:
         "revision_suffix=${SHORT_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}",
     )
     for name in ("gcp_backend.yml", "gcp_backend_auto_dev.yml"):
-        text = workflow_text.get(name, "")
+        if name not in workflow_text:
+            continue
+        text = workflow_text[name]
         for marker in identity_markers:
             if marker not in text:
                 errors.append(
                     f"{name}: backend revision identity must include {marker!r}"
                 )
 
-    auto_deploy = workflow_text.get("gcp_backend_auto_dev.yml", "")
-    errors.extend(validate_auto_deploy_acceptance(auto_deploy))
+    auto_deploy = workflow_text.get("gcp_backend_auto_dev.yml")
+    if auto_deploy is not None:
+        errors.extend(validate_auto_deploy_acceptance(auto_deploy))
     separate_acceptance_workflows = sorted(
         name
         for name, text in workflow_text.items()
