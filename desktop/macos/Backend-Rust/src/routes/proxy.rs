@@ -662,7 +662,7 @@ async fn gemini_proxy_server_key(
                         state
                             .gemini_client
                             .post(&url)
-                                .header("content-type", "application/json")
+                            .header("content-type", "application/json")
                             .body(sanitized_body.to_vec())
                             .send()
                             .await
