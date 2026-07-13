@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcrun swift *)",
+      "Bash(./scripts/omi-auth-dump.sh)",
+      "Bash(./scripts/omi-auth-seed.sh com.omi.omi-togglefix)",
+      "Bash(defaults write *)",
+      "Bash(OMI_APP_NAME=\"omi-togglefix\" ./run.sh --yolo)",
+      "Bash(tee /tmp/omi-togglefix-run.log)",
+      "Bash(system_profiler SPDisplaysDataType)",
+      "Bash(screencapture -x -R0,0,4000,40 /tmp/menubar-full.png)",
+      "Bash(screencapture -x -R2300,0,708,40 /tmp/menubar-icons.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight /tmp/menubar-icons.png)",
+      "Bash(brew install *)",
+      "Bash(cliclick c:2315,12)",
+      "Bash(cliclick w:400)",
+      "Bash(screencapture -x -R2280,0,420,360 /tmp/menu-open.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight /tmp/menu-open.png)",
+      "Bash(OMI_AUTOMATION_PORT=47780 ./scripts/omi-ctl --bundle com.omi.omi-togglefix actions)",
+      "Bash(./scripts/omi-ctl actions *)",
+      "Bash(./scripts/omi-ctl wait-ready *)",
+      "Bash(awk '{print $2, $11, $12, $13}')",
+      "Bash(lsof -nP -iTCP -sTCP:LISTEN -a -p 72849)",
+      "Bash(lsof -nP -iTCP -sTCP:LISTEN -a -p 75647)"
+    ]
+  }
+}

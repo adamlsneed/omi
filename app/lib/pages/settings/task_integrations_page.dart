@@ -246,16 +246,16 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
       final todoistService = TodoistService();
       if (!todoistService.isAuthenticated) {
         final provider = context.read<TaskIntegrationProvider>();
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        final l10n = context.l10n;
         final shouldAuth = await _showAuthDialog(app);
         if (shouldAuth == true) {
           final success = await todoistService.authenticate();
           if (!mounted) return;
           if (success) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(content: Text(l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(context.l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
+              );
+            }
             await provider.setSelectedApp(app);
             // Note: OAuth callback will save connection to Firebase
             // Provider will refresh when user returns to this page
@@ -264,13 +264,15 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'todoist');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('Todoist')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('Todoist')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;
@@ -282,29 +284,31 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
       final asanaService = AsanaService();
       if (!asanaService.isAuthenticated) {
         final provider = context.read<TaskIntegrationProvider>();
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        final l10n = context.l10n;
         final shouldAuth = await _showAuthDialog(app);
         if (shouldAuth == true) {
           final success = await asanaService.authenticate();
           if (!mounted) return;
           if (success) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(content: Text(l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(context.l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
+              );
+            }
             await provider.setSelectedApp(app);
             Logger.debug('✓ Task integration enabled: ${app.displayName} (${app.key}) - authentication in progress');
           } else {
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'asana');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('Asana')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('Asana')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;
@@ -316,29 +320,31 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
       final googleTasksService = GoogleTasksService();
       if (!googleTasksService.isAuthenticated) {
         final provider = context.read<TaskIntegrationProvider>();
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        final l10n = context.l10n;
         final shouldAuth = await _showAuthDialog(app);
         if (shouldAuth == true) {
           final success = await googleTasksService.authenticate();
           if (!mounted) return;
           if (success) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(content: Text(l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(context.l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
+              );
+            }
             await provider.setSelectedApp(app);
             Logger.debug('✓ Task integration enabled: ${app.displayName} (${app.key}) - authentication in progress');
           } else {
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'google_tasks');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('Google Tasks')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('Google Tasks')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;
@@ -350,29 +356,31 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
       final clickupService = ClickUpService();
       if (!clickupService.isAuthenticated) {
         final provider = context.read<TaskIntegrationProvider>();
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        final l10n = context.l10n;
         final shouldAuth = await _showAuthDialog(app);
         if (shouldAuth == true) {
           final success = await clickupService.authenticate();
           if (!mounted) return;
           if (success) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(content: Text(l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(context.l10n.completeAuthBrowser), duration: const Duration(seconds: 5)),
+              );
+            }
             await provider.setSelectedApp(app);
             Logger.debug('✓ Task integration enabled: ${app.displayName} (${app.key}) - authentication in progress');
           } else {
             // Track authentication failure
             PlatformManager.instance.analytics.taskIntegrationAuthFailed(appName: 'clickup');
 
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(l10n.failedToStartAppAuth('ClickUp')),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.l10n.failedToStartAppAuth('ClickUp')),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           }
         }
         return;

@@ -9,6 +9,7 @@ class CaptureProvider extends CaptureController {
     @visibleForTesting Future<void> Function(bool paused)? recordingPauseRequesterForTesting,
   }) : super(
           externalActions: externalActions,
+          // ignore: invalid_use_of_visible_for_testing_member
           recordingPauseRequesterForTesting: recordingPauseRequesterForTesting,
         );
 }

@@ -68,7 +68,8 @@ class _FoundDevicesState extends State<FoundDevices> {
         // setup placeholder, then connect to them.
         await ServiceManager.instance().device.discover(timeout: 5);
         final real = provider.deviceList.firstWhereOrNull(
-            (d) => d.type == DeviceType.raybanMeta && d.id != RayBanMetaDiscoverer.setupPlaceholderId);
+          (d) => d.type == DeviceType.raybanMeta && d.id != RayBanMetaDiscoverer.setupPlaceholderId,
+        );
         if (real == null) return;
         target = real;
       }
@@ -205,7 +206,7 @@ class _FoundDevicesState extends State<FoundDevices> {
 
     if (!isCritical) {
       final prefKey = 'firmware_warning_acknowledged_${device.type.toString()}';
-      final alreadyAcknowledged = SharedPreferencesUtil().getBool(prefKey) ?? false;
+      final alreadyAcknowledged = SharedPreferencesUtil().getBool(prefKey);
       if (alreadyAcknowledged) {
         return; // User already acknowledged this warning
       }

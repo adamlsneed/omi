@@ -19,6 +19,7 @@ class TaskIntegrationProvider extends ChangeNotifier {
   bool _appleRemindersPermission = false;
   bool _appleRemindersPermissionManuallySet = false;
   bool _appleRemindersAutoExportEnabled = SharedPreferencesUtil().appleRemindersAutoExportEnabled;
+  int _sessionGeneration = 0;
 
   TaskIntegrationProvider()
       : _selectedApp = PlatformService.isApple ? TaskIntegrationApp.appleReminders : TaskIntegrationApp.googleTasks;
@@ -31,11 +32,13 @@ class TaskIntegrationProvider extends ChangeNotifier {
 
   /// Load default app and connection details from backend
   Future<void> loadFromBackend() async {
+    final generation = _sessionGeneration;
     _isLoading = true;
     // Don't notify listeners immediately to avoid setState during build
 
     try {
       final response = await getTaskIntegrations();
+      if (generation != _sessionGeneration) return;
       if (response != null) {
         _connectionDetails = response.integrations;
 
@@ -68,6 +71,7 @@ class TaskIntegrationProvider extends ChangeNotifier {
           await AppleRemindersService().setAutoExportEnabled(_appleRemindersAutoExportEnabled);
 
           _appleRemindersPermission = await AppleRemindersService().hasPermission();
+          if (generation != _sessionGeneration) return;
           // Ensure backend has connected status for Apple Reminders if permission is granted
           if (_appleRemindersPermission && _connectionDetails['apple_reminders']?['connected'] != true) {
             await saveConnectionDetails('apple_reminders', {
@@ -86,11 +90,14 @@ class TaskIntegrationProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
+      if (generation != _sessionGeneration) return;
       Logger.debug('Error loading task integrations from backend: $e');
     } finally {
-      _isLoading = false;
-      _hasLoaded = true;
-      notifyListeners();
+      if (generation == _sessionGeneration) {
+        _isLoading = false;
+        _hasLoaded = true;
+        notifyListeners();
+      }
     }
   }
 
@@ -108,8 +115,10 @@ class TaskIntegrationProvider extends ChangeNotifier {
 
   /// Save connection details to backend
   Future<bool> saveConnectionDetails(String appKey, Map<String, dynamic> details) async {
+    final generation = _sessionGeneration;
     try {
       final success = await saveTaskIntegration(appKey, details);
+      if (generation != _sessionGeneration) return false;
       if (success) {
         final existing = _connectionDetails[appKey];
         final merged = existing is Map ? Map<String, dynamic>.from(existing) : <String, dynamic>{};
@@ -127,8 +136,10 @@ class TaskIntegrationProvider extends ChangeNotifier {
 
   /// Delete connection details from backend
   Future<bool> deleteConnection(String appKey) async {
+    final generation = _sessionGeneration;
     try {
       final success = await deleteTaskIntegration(appKey);
+      if (generation != _sessionGeneration) return false;
       if (success) {
         _connectionDetails.remove(appKey);
         notifyListeners();
@@ -160,13 +171,16 @@ class TaskIntegrationProvider extends ChangeNotifier {
   }
 
   Future<void> updateAppleRemindersPermission({bool? granted}) async {
+    final generation = _sessionGeneration;
     if (PlatformService.isApple) {
       if (granted != null) {
         _appleRemindersPermission = granted;
         _appleRemindersPermissionManuallySet = true;
       } else {
         _appleRemindersPermission = await AppleRemindersService().hasPermission();
+        if (generation != _sessionGeneration) return;
       }
+      if (generation != _sessionGeneration) return;
       notifyListeners();
     }
   }
@@ -199,5 +213,20 @@ class TaskIntegrationProvider extends ChangeNotifier {
   /// Trigger a refresh (called after OAuth completes)
   void refresh() {
     loadFromBackend();
+  }
+
+  void clearUserData() {
+    _sessionGeneration++;
+    _selectedApp = PlatformService.isApple ? TaskIntegrationApp.appleReminders : TaskIntegrationApp.googleTasks;
+    _connectionDetails = {};
+    _isLoading = false;
+    _hasLoaded = false;
+    _appleRemindersPermission = false;
+    _appleRemindersPermissionManuallySet = false;
+    TodoistService().setAuthenticated(false);
+    AsanaService().setAuthenticated(false);
+    GoogleTasksService().setAuthenticated(false);
+    ClickUpService().setAuthenticated(false);
+    notifyListeners();
   }
 }
