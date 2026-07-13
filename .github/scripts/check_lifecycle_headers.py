@@ -134,6 +134,11 @@ def validate(root: Path, changed_paths: list[str], baseline_path: Path) -> list[
         normalized = relative_path.replace("\\", "/")
         if not is_designated_path(normalized):
             continue
+        # Baseline entries are frozen legacy debt. This fork mirrors backend/
+        # byte-exact from upstream, so upstream edits to a baselined file flow
+        # in through syncs and cannot add headers here.
+        if normalized in baseline:
+            continue
         path = root / normalized
         if not path.is_file():
             continue
