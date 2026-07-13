@@ -18,11 +18,11 @@ fi
 
   test "$OMI_SKIP_BACKEND" = "1"
   test "$OMI_SKIP_TUNNEL" = "1"
-  test "$OMI_DESKTOP_API_URL" = "https://desktop-backend-dt5lrfkkoa-uc.a.run.app"
-  test "$OMI_PYTHON_API_URL" = "https://api.omiapi.com"
+  test "$OMI_DESKTOP_API_URL" = "https://desktop-backend-hhibjajaja-uc.a.run.app"
+  test "$OMI_PYTHON_API_URL" = "https://api.omi.me"
   test -n "$FIREBASE_API_KEY"
 )
 
-bash "$RUN" --help | grep -q 'Quick start: use dev backend, no local services'
+bash "$RUN" --help | grep -q 'Local app + Omi hosted backends, no local services'
 
-echo "PASS: --yolo targets the development backends"
+echo "PASS: --yolo targets the Omi hosted backends (fork policy)"
