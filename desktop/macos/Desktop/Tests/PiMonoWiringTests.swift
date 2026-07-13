@@ -318,6 +318,7 @@ final class PiMonoWiringTests: XCTestCase {
       .deletingLastPathComponent()  // Desktop/
       .appendingPathComponent("Sources/Chat/AgentBridge.swift")
 
+    // omi-test-quality: source-inspection -- static contract: forbidden-pattern tripwire that the whole app environment is never copied into the Node subprocess
     let src = try String(contentsOf: agentBridgePath, encoding: .utf8)
     XCTAssertFalse(src.contains("ProcessInfo.processInfo.environment"),
       "AgentBridge must not copy the whole app environment into Node; shell secrets can leak into child process listings")
@@ -331,6 +332,7 @@ final class PiMonoWiringTests: XCTestCase {
       .deletingLastPathComponent()  // Desktop/
       .appendingPathComponent("Sources/Chat/AgentBridge.swift")
 
+    // omi-test-quality: source-inspection -- static contract: forbidden-pattern tripwire that Firebase auth tokens are never placed directly in the Node subprocess environment
     let src = try String(contentsOf: agentBridgePath, encoding: .utf8)
     XCTAssertFalse(src.contains("env[\"OMI_AUTH_TOKEN\"] = token"),
       "AgentBridge must not put Firebase tokens directly in Node env; process listings expose env values")
