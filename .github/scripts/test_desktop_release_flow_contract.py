@@ -18,7 +18,11 @@ POSTCLEAN_NAME = "Remove regenerated uninitialized PlatformIO gitlink before che
 
 
 def workflow(name: str) -> str:
-    return (ROOT / ".github" / "workflows" / name).read_text(encoding="utf-8")
+    path = ROOT / ".github" / "workflows" / name
+    if not path.exists():
+        # Fork policy: auto-release workflows are deliberately removed.
+        raise unittest.SkipTest(f"fork removes {name}")
+    return path.read_text(encoding="utf-8")
 
 
 def codemagic() -> str:
