@@ -38,11 +38,16 @@ class DirectBackendProductionAdmissionTests(unittest.TestCase):
             ),
         }
         for relative in CHECKER.WORKFLOWS:
+            if not (ROOT / relative).exists():
+                # Fork policy: backend deploy workflows are deliberately removed.
+                continue
             for name, (expected, replacement) in mutations.items():
                 with self.subTest(workflow=relative, mutation=name), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
                     for fixture_relative in CHECKER.WORKFLOWS:
                         source = ROOT / fixture_relative
+                        if not source.exists():
+                            continue
                         target = root / fixture_relative
                         target.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(source, target)
@@ -58,11 +63,16 @@ class DirectBackendProductionAdmissionTests(unittest.TestCase):
             "      - uses: actions/checkout@v7\n        with:\n          ref: main\n",
         )
         for relative in CHECKER.WORKFLOWS:
+            if not (ROOT / relative).exists():
+                # Fork policy: backend deploy workflows are deliberately removed.
+                continue
             for mutation in mutations:
                 with self.subTest(workflow=relative, mutation=mutation), tempfile.TemporaryDirectory() as directory:
                     root = Path(directory)
                     for fixture_relative in CHECKER.WORKFLOWS:
                         source = ROOT / fixture_relative
+                        if not source.exists():
+                            continue
                         target = root / fixture_relative
                         target.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(source, target)

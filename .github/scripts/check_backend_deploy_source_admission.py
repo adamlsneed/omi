@@ -518,12 +518,21 @@ def validate_manual_workflow(text: str) -> list[str]:
 
 
 def validate(root: Path = ROOT) -> list[str]:
-    paths = (AUTO_WORKFLOW_PATH, MANUAL_WORKFLOW_PATH, ADMISSION_VERIFIER_PATH, AUTO_ADMISSION_VERIFIER_PATH)
-    missing = [str(path) for path in paths if not (root / path).is_file()]
-    if missing:
-        return [f"backend source-admission contract is missing: {path}" for path in missing]
-    errors = validate_auto_workflow((root / AUTO_WORKFLOW_PATH).read_text(encoding="utf-8"))
-    errors.extend(validate_manual_workflow((root / MANUAL_WORKFLOW_PATH).read_text(encoding="utf-8")))
+    # Fork policy: auto-deploy workflows are deliberately removed (this fork
+    # never deploys backends; see AGENTS.md Safety Rules). Audit only the
+    # workflows that exist.
+    errors: list[str] = []
+    if (root / AUTO_WORKFLOW_PATH).is_file():
+        missing = [
+            str(path)
+            for path in (ADMISSION_VERIFIER_PATH, AUTO_ADMISSION_VERIFIER_PATH)
+            if not (root / path).is_file()
+        ]
+        if missing:
+            return [f"backend source-admission contract is missing: {path}" for path in missing]
+        errors.extend(validate_auto_workflow((root / AUTO_WORKFLOW_PATH).read_text(encoding="utf-8")))
+    if (root / MANUAL_WORKFLOW_PATH).is_file():
+        errors.extend(validate_manual_workflow((root / MANUAL_WORKFLOW_PATH).read_text(encoding="utf-8")))
     return errors
 
 

@@ -25,7 +25,11 @@ def validate(root: Path) -> list[str]:
     errors: list[str] = []
     for relative in WORKFLOWS:
         path = root / relative
-        text = path.read_text(encoding="utf-8") if path.exists() else ""
+        if not path.exists():
+            # Fork policy: backend deploy workflows are deliberately removed
+            # (this fork never deploys backends; see AGENTS.md Safety Rules).
+            continue
+        text = path.read_text(encoding="utf-8")
         if CHECKOUT not in text:
             errors.append(f"{relative} must reject caller refs for production checkout")
         if ORIGIN_MAIN_FETCH not in text or ANCESTRY_GUARD not in text:

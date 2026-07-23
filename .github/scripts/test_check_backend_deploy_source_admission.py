@@ -134,6 +134,9 @@ class WorkflowContractTests(unittest.TestCase):
             CHECKER.AUTO_ADMISSION_VERIFIER_PATH,
         ):
             source = ROOT / relative
+            if not source.exists():
+                # Fork policy: backend deploy workflows are deliberately removed.
+                continue
             destination = temp / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
@@ -142,12 +145,16 @@ class WorkflowContractTests(unittest.TestCase):
 
     def mutate(self, root: Path, relative: Path, old: str, new: str) -> None:
         path = root / relative
+        if not path.exists():
+            self.skipTest(f"fork removes {relative}")
         text = path.read_text(encoding="utf-8")
         self.assertIn(old, text)
         path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
     def move_step_before(self, root: Path, relative: Path, name: str, before_name: str) -> None:
         path = root / relative
+        if not path.exists():
+            self.skipTest(f"fork removes {relative}")
         text = path.read_text(encoding="utf-8")
         marker = f"      - name: {name}"
         before_marker = f"      - name: {before_name}"
