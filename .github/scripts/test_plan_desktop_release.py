@@ -156,6 +156,8 @@ class DesktopCandidateSourceCheckTests(unittest.TestCase):
         self.assertIn("should_release=true", outputs)
 
     def test_workflow_has_no_input_manual_trigger_and_tags_the_changelog_commit(self) -> None:
+        if not WORKFLOW.exists():
+            self.skipTest("fork removes desktop_auto_release.yml (no auto-release)")
         workflow = WORKFLOW.read_text(encoding="utf-8")
         # workflow_dispatch stays bare (no manual inputs). Continuous deployment:
         # auto-release fires on macOS-affecting merges to main (push); the schedule
@@ -176,6 +178,8 @@ class DesktopCandidateSourceCheckTests(unittest.TestCase):
         # of failure (a down runner blocked ALL releases) and contradicted "create
         # on every change, then qualify". Heavy validation belongs to
         # desktop_qualify_beta.yml, which runs AFTER the candidate exists.
+        if not WORKFLOW.exists():
+            self.skipTest("fork removes desktop_auto_release.yml (no auto-release)")
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertNotIn("pre-tag-readiness:", workflow)
         self.assertNotIn("desktop-pre-tag-readiness-evidence", workflow)
@@ -192,6 +196,8 @@ class DesktopCandidateSourceCheckTests(unittest.TestCase):
         #
         # Parse the push filter without PyYAML: this check runs in the `local` and
         # `ci` lanes across environments that do not all ship PyYAML.
+        if not WORKFLOW.exists():
+            self.skipTest("fork removes desktop_auto_release.yml (no auto-release)")
         branches, push_paths = _parse_push_filter(WORKFLOW.read_text(encoding="utf-8"))
         self.assertEqual(branches, ["main"])
         for path in planner.DESKTOP_RELEASE_PATHS:
