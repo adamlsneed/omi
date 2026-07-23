@@ -23,6 +23,18 @@ typedef ConversationSearchFetcher = Future<(List<ServerConversation>, int, int)>
   String? speakerId,
 });
 
+/// Day-bucket key for a conversation timestamp, in the viewer's **local** timezone.
+///
+/// `started_at`/`created_at` arrive as UTC (ISO-8601 `Z`), so bucketing by their raw
+/// UTC `year/month/day` filed an early-morning-local conversation under the previous
+/// day for any UTC+ viewer — it vanished from the "Today" group even though the
+/// local-day date filter still found it (#10198). Truncating the *local* calendar day
+/// keeps grouping consistent with the local-day filter and the Today/Yesterday labels.
+DateTime conversationLocalDayKey(DateTime timestamp) {
+  final local = timestamp.toLocal();
+  return DateTime(local.year, local.month, local.day);
+}
+
 class ConversationProvider extends ChangeNotifier {
   List<ServerConversation> conversations = [];
   List<ServerConversation> searchedConversations = [];
@@ -152,8 +164,6 @@ class ConversationProvider extends ChangeNotifier {
     _initialFetchRetryCount = 0;
     memoriesToDelete = {};
     deleteTimestamps = {};
-    _processingConversationWatchTimer?.cancel();
-    _processingConversationWatchTimer = null;
     _refreshDebounceTimer?.cancel();
     _refreshDebounceTimer = null;
     _lastRefreshTime = null;
@@ -245,7 +255,7 @@ class ConversationProvider extends ChangeNotifier {
 
   int groupedSearchConvoIndex(ServerConversation convo) {
     var convoDate = convo.startedAt ?? convo.createdAt;
-    var date = DateTime(convoDate.year, convoDate.month, convoDate.day);
+    var date = conversationLocalDayKey(convoDate);
     if (groupedConversations.containsKey(date)) {
       return groupedConversations[date]!.indexWhere((element) => element.id == convo.id);
     }
@@ -494,6 +504,17 @@ class ConversationProvider extends ChangeNotifier {
 
     List<ServerConversation> newConversations = result.items;
 
+    // A conversation the server no longer reports as processing must drop its
+    // "Processing" card. The websocket ConversationEvent that normally clears it
+    // can be missed (socket drop, app backgrounded on Android), and unlike
+    // fetchConversations this path never rebuilt processingConversations — so a
+    // stale card stayed pinned at the top of the list indefinitely.
+    final resolvedIds =
+        newConversations.where((c) => c.status != ConversationStatus.processing).map((c) => c.id).toSet();
+    if (resolvedIds.isNotEmpty) {
+      processingConversations.removeWhere((c) => resolvedIds.contains(c.id));
+    }
+
     List<ServerConversation> upsertConvos = [];
 
     // processing convos
@@ -665,7 +686,7 @@ class ConversationProvider extends ChangeNotifier {
       // Apply date filter if selected
       if (selectedDate != null) {
         var effectiveDate = convo.startedAt ?? convo.createdAt;
-        var convoDate = DateTime(effectiveDate.year, effectiveDate.month, effectiveDate.day);
+        var convoDate = conversationLocalDayKey(effectiveDate);
         var filterDate = DateTime(selectedDate!.year, selectedDate!.month, selectedDate!.day);
         if (convoDate != filterDate) {
           return false;
@@ -742,7 +763,7 @@ class ConversationProvider extends ChangeNotifier {
     final grouped = <DateTime, List<ServerConversation>>{};
     for (final conversation in source) {
       final effectiveDate = conversation.startedAt ?? conversation.createdAt;
-      final date = DateTime(effectiveDate.year, effectiveDate.month, effectiveDate.day);
+      final date = conversationLocalDayKey(effectiveDate);
       grouped.putIfAbsent(date, () => []).add(conversation);
     }
 
@@ -850,7 +871,7 @@ class ConversationProvider extends ChangeNotifier {
 
   void updateConversationInSortedList(ServerConversation conversation) {
     var effectiveDate = conversation.startedAt ?? conversation.createdAt;
-    var date = DateTime(effectiveDate.year, effectiveDate.month, effectiveDate.day);
+    var date = conversationLocalDayKey(effectiveDate);
     if (groupedConversations.containsKey(date)) {
       int idx = groupedConversations[date]!.indexWhere((element) => element.id == conversation.id);
       if (idx != -1) {
@@ -865,7 +886,7 @@ class ConversationProvider extends ChangeNotifier {
     conversations.sort((a, b) => (b.startedAt ?? b.createdAt).compareTo(a.startedAt ?? a.createdAt));
     int idx;
     var effectiveDate = conversation.startedAt ?? conversation.createdAt;
-    var memDate = DateTime(effectiveDate.year, effectiveDate.month, effectiveDate.day);
+    var memDate = conversationLocalDayKey(effectiveDate);
     if (groupedConversations.containsKey(memDate)) {
       var convoEffectiveDate = conversation.startedAt ?? conversation.createdAt;
       idx = groupedConversations[memDate]!.indexWhere(
@@ -1005,7 +1026,6 @@ class ConversationProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _processingConversationWatchTimer?.cancel();
     _refreshDebounceTimer?.cancel();
     _initialFetchRetryTimer?.cancel();
     _mergeCompletedSubscription?.cancel();
@@ -1053,7 +1073,7 @@ class ConversationProvider extends ChangeNotifier {
     }
 
     var effectiveDate = conversation.startedAt ?? conversation.createdAt;
-    var dateKey = DateTime(effectiveDate.year, effectiveDate.month, effectiveDate.day);
+    var dateKey = conversationLocalDayKey(effectiveDate);
     if (groupedConversations.containsKey(dateKey)) {
       final groupIndex = groupedConversations[dateKey]!.indexWhere((c) => c.id == convoId);
       if (groupIndex != -1) {
@@ -1124,7 +1144,7 @@ class ConversationProvider extends ChangeNotifier {
 
   (DateTime, int)? getConversationDateAndIndex(ServerConversation conversation) {
     final effectiveDate = conversation.startedAt ?? conversation.createdAt;
-    final date = DateTime(effectiveDate.year, effectiveDate.month, effectiveDate.day);
+    final date = conversationLocalDayKey(effectiveDate);
 
     final list = groupedConversations[date];
     if (list == null) return null;

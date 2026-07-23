@@ -1,8 +1,8 @@
+import OmiTheme
 import Sparkle
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
-import OmiTheme
 
 extension SettingsContentView {
   var hasPaidSubscription: Bool {
@@ -20,7 +20,8 @@ extension SettingsContentView {
     // on the right. Hide the user's current plan — they already see it above.
     // Neo ($20) | Operator ($49) | Architect ($200) — cheapest to premium
     let order = ["unlimited": 0, "operator": 1, "architect": 2]
-    return mergedPlanCatalog
+    return
+      mergedPlanCatalog
       .filter { !isCurrentSubscriptionPlan($0) }
       .sorted { lhs, rhs in
         let lhsOrder = order[lhs.id, default: Int.max]
@@ -68,7 +69,7 @@ extension SettingsContentView {
   /// Operator→Unlimited remapping in `/v1/users/me/subscription`.
   func isCurrentSubscriptionOperator() -> Bool {
     guard let subscription = userSubscription?.subscription,
-          let currentPriceId = subscription.currentPriceId
+      let currentPriceId = subscription.currentPriceId
     else { return false }
     for plan in mergedPlanCatalog {
       guard plan.title == "Operator" else { continue }
@@ -143,8 +144,7 @@ extension SettingsContentView {
     preferredStartingPrice(for: plan)?.priceString ?? ""
   }
 
-  func preferredStartingPrice(for plan: SubscriptionPlanOption) -> SubscriptionPriceOption?
-  {
+  func preferredStartingPrice(for plan: SubscriptionPlanOption) -> SubscriptionPriceOption? {
     let prices = sortedPrices(for: plan)
     if let monthly = prices.first(where: { price in
       let title = price.title.lowercased()
@@ -393,8 +393,7 @@ extension SettingsContentView {
             if isPromoCodeExpanded {
               VStack(alignment: .leading, spacing: OmiSpacing.xs) {
                 TextField("Enter promo code", text: $upgradePromotionCode)
-                  .textFieldStyle(.roundedBorder)
-                  .scaledFont(size: OmiType.body)
+                  .settingsTextInputStyle()
                   .disabled(activeCheckoutPriceId != nil)
                   .onChange(of: upgradePromotionCode) {
                     subscriptionError = nil
@@ -745,20 +744,21 @@ extension SettingsContentView {
         // Sync assistant settings from server in parallel
         async let assistantSyncTask: () = SettingsSyncManager.shared.syncFromServer()
 
-        let (dailySummary, notifications, language, recording, cloudSync, transcription, _) = try
-          await (
-            dailySummaryTask,
-            notificationsTask,
-            languageTask,
-            recordingTask,
-            cloudSyncTask,
-            transcriptionTask,
-            assistantSyncTask
-          )
+        let (dailySummary, notifications, language, recording, cloudSync, transcription, _) = try await (
+          dailySummaryTask,
+          notificationsTask,
+          languageTask,
+          recordingTask,
+          cloudSyncTask,
+          transcriptionTask,
+          assistantSyncTask
+        )
 
         await MainActor.run {
           dailySummaryEnabled = dailySummary.enabled
           dailySummaryHour = dailySummary.hour
+          dailySummaryTime = SettingsControlMetrics.dailySummaryDate(
+            forHour: dailySummary.hour, referenceDate: Date())
           notificationsEnabled = notifications.enabled
           notificationFrequency = notifications.frequency
           // Mirror to UserDefaults so NotificationService can gate/throttle without a backend roundtrip.
@@ -834,8 +834,9 @@ extension SettingsContentView {
           // the trial cache) — without this they'd stay paywalled until the
           // next app restart even after their Operator/Architect plan is active.
           if subscription.subscription.plan != .basic,
-             subscription.subscription.status == .active,
-             AppState.current?.isPaywalled == true {
+            subscription.subscription.status == .active,
+            AppState.current?.isPaywalled == true
+          {
             AppState.current?.isPaywalled = false
             log("Paywall: cleared sticky flag — subscription \(subscription.subscription.plan.rawValue) is active")
           }
@@ -910,8 +911,9 @@ extension SettingsContentView {
     )
 
     if subscription.subscription.plan != .basic,
-       subscription.subscription.status == .active,
-       AppState.current?.isPaywalled == true {
+      subscription.subscription.status == .active,
+      AppState.current?.isPaywalled == true
+    {
       AppState.current?.isPaywalled = false
       log("Paywall: cleared sticky flag — subscription \(subscription.subscription.plan.rawValue) is active")
     }
@@ -931,8 +933,8 @@ extension SettingsContentView {
     // If user already has an active paid subscription (not canceled), use upgrade endpoint
     // to schedule the plan change at end of billing period (no double-charging)
     if hasPaidSubscription,
-       let subscription = userSubscription?.subscription,
-       !subscription.cancelAtPeriodEnd
+      let subscription = userSubscription?.subscription,
+      !subscription.cancelAtPeriodEnd
     {
       Task {
         do {

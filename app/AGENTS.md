@@ -5,15 +5,16 @@ Inherits all rules from the root [`../AGENTS.md`](../AGENTS.md). This file adds 
 ## Build Bootstrap
 
 ### Flavors
-- **dev**: `com.friend.ios.dev` — uses `.dev.env`, Firebase project `based-hardware-dev`
-- **prod**: `com.friend.ios` — uses `.prod.env`, Firebase project **`based-hardware`** (bare name — there is no `based-hardware-prod` project; `api.omi.me` hosted auth mints custom tokens for `based-hardware`)
+- **dev**: Android `com.friend.ios.dev`, iOS `com.friend-app-with-wearable.ios12.development` — uses `.dev.env`, Firebase project `based-hardware-dev`
+- **prod**: Android `com.friend.ios`, iOS `com.friend-app-with-wearable.ios12` — uses `.prod.env`, Firebase project **`based-hardware`** (bare name — there is no `based-hardware-prod` project; `api.omi.me` hosted auth mints custom tokens for `based-hardware`)
+- **raybanDat**: camera-capable iOS target with the same iOS development identity; use `scripts/rayban_dat.sh`, which excludes mcumgr only for that transaction and restores the default graph.
 
 ### Generated Files (never edit manually)
 | Generator | Source | Output | Command |
 |-----------|--------|--------|---------|
 | envied | `lib/env/dev_env.dart`, `lib/env/prod_env.dart` | `*.g.dart` (obfuscated secrets) | `flutter pub run build_runner build` |
 | json_serializable | `@JsonSerializable` models | `*.g.dart` (fromJson/toJson) | `flutter pub run build_runner build` |
-| pigeon | `lib/watch_interface.dart` | `lib/gen/flutter_communicator.g.dart` + iOS/Android stubs | `flutter pub run build_runner build` |
+| pigeon | `lib/pigeon_interfaces.dart` | `lib/gen/pigeon_communicator.g.dart` + iOS/Android stubs | `flutter pub run build_runner build` |
 | flutter_gen | `pubspec.yaml` assets/fonts | `lib/gen/assets.gen.dart`, `lib/gen/fonts.gen.dart` | `flutter pub run build_runner build` |
 | flutter_localizations | `lib/l10n/*.arb` | `lib/gen_l10n/app_localizations*.dart` | `flutter gen-l10n` |
 
@@ -24,17 +25,7 @@ bash setup.sh ios    # or: bash setup.sh android
 This handles: pub get, build_runner, gen-l10n, and flavor configuration.
 
 ### Adam Local iPhone Signing
-- The local Apple Development cert is displayed as `Apple Development: coralcaves@gmail.com (M6V8W4X24Z)`, but the usable Xcode team identifier is `66K48S8RD4`.
-- For physical-device installs on Adam's iPhone, copy `ios/Flutter/LocalSigning.example.xcconfig` to ignored `ios/Flutter/LocalSigning.xcconfig` and build with `-xcconfig ios/Flutter/LocalSigning.xcconfig -allowProvisioningUpdates -allowProvisioningDeviceRegistration`.
-- Keep hosted backend auth in `.env` and `.dev.env`: `API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`.
-- **Hosted-backend phone build = dev flavor + `based-hardware` Firebase (NOT the prod flavor).** Build the **dev** flavor (`com.adam.omi.dev` via LocalSigning) because its `.dev.env` has the working hosted config (`API_BASE_URL=https://api.omi.me/`, `USE_WEB_AUTH=true`, `USE_AUTH_CUSTOM_TOKEN=true`), but **repoint the dev flavor's Firebase config at the prod `based-hardware` project** (NOT `based-hardware-dev`). Do NOT build the **prod flavor** locally: `.prod.env` is missing (→ `apiBaseUrl=null`, and `useWebAuth=false` so it takes the native Google Sign-In path that crashes on the re-bundled id), and the prod widget App Group won't sign. If sign-in fails right after the browser redirect with `[firebase_auth/custom-token-mismatch] The custom token corresponds to a different audience.`, the app's Firebase project does not match `based-hardware`. The `based-hardware` client config is in `desktop/macos/Desktop/Sources/GoogleService-Info.plist`. Full writeup + the on-device log-capture recipe: `docs/local-ios-standalone-install.md`.
-- In fresh worktrees, restore ignored local inputs before building: `.dev.env`, `.env`, `lib/firebase_options_dev.dart`, `lib/firebase_options_prod.dart`, `ios/Config/{Dev,Prod}/GoogleService-Info.plist`. For Adam's hosted build, the dev-flavor Firebase inputs (`lib/firebase_options_dev.dart` ios block, `ios/Config/Dev/GoogleService-Info.plist`, `ios/Runner/GoogleService-Info.plist`) must be the **`based-hardware`** project config (source: `desktop/macos/Desktop/Sources/GoogleService-Info.plist`, `BUNDLE_ID=com.adam.omi.dev`) — not `based-hardware-dev`.
-- Always refresh paths in the active checkout before local device builds: `flutter pub get`, then `flutter build ios --profile --flavor dev --config-only --no-codesign`. Do NOT run `build_runner build --delete-conflicting-outputs` unless both `.dev.env` and `.prod.env` are present — regenerating env codegen without them silently defaults secrets (`apiBaseUrl=null`, `useWebAuth=false`), which is exactly what leaves the prod flavor broken. The committed `*_env.g.dart` already hold valid dev values; leave them.
-- For standalone iPhone installs, build `Profile-dev` or `Release-dev` (dev flavor with Firebase repointed at `based-hardware`) for Adam's active hosted-backend app; never install a `Debug-dev` build for normal home-screen use because Flutter debug iOS apps require Flutter tooling or Xcode to be attached and will terminate on launch.
-- Adam's known device IDs: Xcode destination `00008150-001004D93E40401C`; `devicectl` device `0AE733D7-AC04-58AB-B95A-B3D0486506F2`.
-- Local signing installs bundle `com.adam.omi.dev`. Replacing the official Omi bundle requires valid BasedHardware signing assets.
-- Do not commit generated `LocalSigning.xcconfig` files or provisioning profiles. The committed example intentionally documents Adam's default local bundle/app group; override only in the ignored local xcconfig if a future install needs different IDs.
-- Before replacing Adam's installed iPhone app, review `docs/local-ios-standalone-install.md`. It records the `Debug-dev` standalone crash, stale `Runner` process cleanup, entitlement checks, and hosted-backend/local-signing requirements from the May 2026 install issue.
+- Physical-device installs on Adam's iPhone: full recipe in [`docs/adam-local-iphone-signing.md`](docs/adam-local-iphone-signing.md) (LocalSigning.xcconfig, team `66K48S8RD4`, dev flavor + `based-hardware` Firebase, device IDs). Companion: `docs/local-ios-standalone-install.md`.
 
 ### Firebase Config
 Never run `flutterfire configure` — it overwrites prod credentials. Config files:
@@ -44,23 +35,28 @@ Never run `flutterfire configure` — it overwrites prod credentials. Config fil
 ## Native Bridge
 
 ### Pigeon Interface (bidirectional, iOS ↔ Dart)
-- Contract: `lib/watch_interface.dart` — 13 methods (recording, audio, battery, permissions)
-- Dart side: `lib/gen/flutter_communicator.g.dart`
-- iOS side: `ios/Runner/FlutterCommunicator.g.swift`
+- Contract: `lib/pigeon_interfaces.dart` — paired host/Flutter APIs for the watch recorder, BLE, and Ray-Ban Meta
+- Dart side: `lib/gen/pigeon_communicator.g.dart`
+- iOS side: `ios/Runner/PigeonCommunicator.g.swift`
+- Android side: `android/app/src/main/kotlin/com/friend/ios/PigeonCommunicator.g.kt`
 - Implementation: `ios/Runner/RecorderHostApiImpl.swift`
-- After editing `watch_interface.dart`, regenerate: `flutter pub run build_runner build`
+- After editing the contract, regenerate: `flutter pub run build_runner build`
 
 ### MethodChannel (Phone Calls)
 - Channel: `com.omi/phone_calls` + EventChannel `com.omi/phone_calls/events`
 - Dart: `lib/services/phone_call_service.dart`
-- iOS: `ios/Runner/PhoneCallsPlugin.swift`
+- iOS: `ios/Runner/PhoneCalls/OmiPhoneCallsPlugin.swift`
+- Android: `android/app/src/main/kotlin/com/friend/ios/phonecalls/PhoneCallsPlugin.kt`
 - Methods: initialize, makeCall, endCall, toggleMute, toggleSpeaker
 
-### Pigeon (Phone Mic — iOS conversation capture)
-- Contract: `lib/phone_mic_interface.dart` → `lib/gen/phone_mic_pigeon.g.dart` + `ios/Runner/PhoneMic/PhoneMicPigeon.g.swift`
+### Pigeon (Phone Mic — conversation capture)
+- Contract: `lib/phone_mic_interface.dart` → `lib/gen/phone_mic_pigeon.g.dart` + `ios/Runner/PhoneMic/PhoneMicPigeon.g.swift` + `android/app/src/main/kotlin/com/friend/ios/phonemic/PhoneMicPigeon.g.kt`
 - Regenerate: `dart run pigeon --input lib/phone_mic_interface.dart`
 - iOS module: `ios/Runner/PhoneMic/` — self-healing AVAudioEngine capture (interruptions/route changes recover natively; Dart only mirrors state)
-- Dart service: `lib/services/mic/native_mic_recorder_service.dart` behind `ServiceManager.phoneMic`; chat memos/speech profile/Android stay on flutter_sound via `ServiceManager.mic`; `MicArbiter` prevents the two stacks contending
+- Android module: `android/app/src/main/kotlin/com/friend/ios/phonemic/` — AudioRecord capture with a self-healing rebuild loop + silencing detection (calls/assistant recover natively; Dart only mirrors state); `PhoneMicForegroundService` (microphone FGS) keeps background capture alive; batch opus encode via a JNI shim over the plugin-shipped libopus
+- Dart service: `lib/services/mic/native_mic_recorder_service.dart` behind `ServiceManager.phoneMic`; chat memos/speech profile stay on flutter_sound via `ServiceManager.mic`; `MicArbiter` prevents the two stacks contending
+- Events carry a Dart-minted session id (`start(mode, sessionId)`); Dart drops any event whose id is not the current session's, so a late/stale native event can't clobber a fresh session, and a `start()` onto a still-live native session adopts the new id and re-emits the current state so the caller converges. `stop()` always forwards to native (kills an orphaned session) and runs local teardown once
+- Two capture modes, fixed per session at `start(mode)`: `stream` (realtime frames → Dart → socket/WAL) and `batch` (Transcribe Later — native opus encode (OpusKit on iOS, libopus JNI shim on Android) → WAL-compatible `audio_omibatchphone[auto]_…bin`; no frames cross to Dart; liveness = 1Hz `onBatchProgress`). Mode selection lives in `CaptureController.streamRecording` (explicit `batchModeEnabled` or automatic offline fallback; iOS + Android); `omibatchphoneauto` recordings auto-upload on reconnect
 
 ## Permission Matrix
 
@@ -93,6 +89,8 @@ flutter test test/unit/  # specific directory
 ```
 
 `bash test.sh` bootstraps missing local generated files with an empty `API_BASE_URL` so `test/` stays hermetic.
+
+PR CI runs `flutter test` and an analyzer ratchet (`app/scripts/analyze_ratchet.sh`) — analyzer errors always fail; new info/warning lint occurrences above `app/analysis_baseline.json` fail. Run the script locally before committing app Dart changes. Deliberate lint acceptances/improvements update the baseline via `--update-baseline` in the same PR.
 
 ### Test Patterns
 - Mock singletons (SharedPreferencesUtil, AuthService, FirebaseAuth) since they aren't injectable
@@ -142,4 +140,21 @@ All API requests include: X-Request-Start-Time, X-App-Platform, X-Device-Id-Hash
 
 - See `e2e/SKILL.md` for navigation architecture, screen map, widget patterns, and 34 reference flows
 - See `e2e/flows/*.yaml` for individual flow definitions
-- agent-flutter (Marionette) for programmatic UI interaction — see root AGENTS.md for setup
+
+## Verifying UI Changes (agent-flutter)
+
+After any Flutter UI edit, verify programmatically with [agent-flutter](https://github.com/beastoin/agent-flutter) (Marionette is integrated in debug builds). Install once: `npm install -g agent-flutter-cli`.
+
+Edit → Verify → Evidence loop:
+1. Edit code, hot restart: `kill -SIGUSR2 $(pgrep -f "flutter run" | head -1)`
+2. Connect: `AGENT_FLUTTER_LOG=/tmp/flutter-run.log agent-flutter connect`
+3. Verify: `agent-flutter snapshot -i`
+4. Interact: `agent-flutter press @e3` / `press 540 1200` / `find type button press` / `fill @e5 "text"` / `dismiss`
+5. Evidence: `agent-flutter screenshot /tmp/evidence.png`
+
+Key rules:
+- Must reconnect after every hot restart (kills VM Service session).
+- Refs go stale frequently — always re-snapshot before every interaction. Use `press x y` as fallback.
+- `AGENT_FLUTTER_LOG` must point to flutter run stdout (not logcat).
+- Prefer `find type X` / `find key "name"` over hardcoded `@ref`. Add `Key('descriptive_name')` to new interactive widgets.
+- Full command reference: `agent-flutter schema`.

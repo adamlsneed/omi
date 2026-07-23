@@ -1,8 +1,8 @@
+import OmiTheme
 import Sparkle
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
-import OmiTheme
 
 extension SettingsContentView {
   var generalSection: some View {
@@ -21,10 +21,14 @@ extension SettingsContentView {
 
             Text(
               permissionError
-                ?? (isMonitoring ? "Recording screen content" : "Screen recording is paused")
+                ?? screenCaptureHealth.statusText
             )
             .scaledFont(size: OmiType.body)
-            .foregroundColor(permissionError != nil ? OmiColors.warning : OmiColors.textTertiary)
+            .foregroundColor(
+              permissionError != nil || screenCaptureHealth == .temporarilyUnavailable
+                || screenCaptureHealth == .recovering
+                ? OmiColors.warning : OmiColors.textTertiary
+            )
           }
 
           Spacer()
@@ -197,8 +201,7 @@ extension SettingsContentView {
 
               Spacer()
 
-              Picker(
-                "",
+              SettingsMenuPicker(
                 selection: Binding(
                   get: { systemAudioCaptureMode },
                   set: { newValue in
@@ -212,9 +215,6 @@ extension SettingsContentView {
                   AssistantSettings.SystemAudioCaptureMode.onlyDuringMeetings)
                 Text("Never").tag(AssistantSettings.SystemAudioCaptureMode.never)
               }
-              .pickerStyle(.menu)
-              .labelsHidden()
-              .frame(width: 200)
             }
 
             if systemAudioCaptureMode == .onlyDuringMeetings {
@@ -344,8 +344,8 @@ extension SettingsContentView {
                 ? "Hidden from Dock and app switcher"
                 : "Visible in Dock and app switcher"
             )
-              .scaledFont(size: 13)
-              .foregroundColor(OmiColors.textTertiary)
+            .scaledFont(size: 13)
+            .foregroundColor(OmiColors.textTertiary)
           }
 
           Spacer()
@@ -407,6 +407,9 @@ extension SettingsContentView {
 
             Slider(value: $fontScaleSettings.scale, in: 0.5...2.0, step: 0.05)
               .tint(OmiColors.info)
+              .onChange(of: fontScaleSettings.scale) { _, _ in
+                performStepHaptic()
+              }
 
             Text("A")
               .scaledFont(size: 18, weight: .medium)

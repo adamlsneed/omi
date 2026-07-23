@@ -6029,7 +6029,7 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '600 премиум минути/месец. Разделът На устройството предлага неограничена безплатна транскрипция.';
+      '300 премиум минути/месец. Разделът На устройството предлага неограничена безплатна транскрипция.';
 
   @override
   String get viewUsage => 'Преглед на използването';
@@ -6112,7 +6112,7 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '600 премиум минути/месец. Разделът На устройството предлага неограничена безплатна транскрипция. ';
+      '300 премиум минути/месец. Разделът На устройството предлага неограничена безплатна транскрипция. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9031,7 +9031,9 @@ class AppLocalizationsBg extends AppLocalizations {
   String get billingYearly => 'Годишно';
 
   @override
-  String get savePercent => 'Спестете ~17%';
+  String savePercent(int percent) {
+    return 'Спестете ~$percent%';
+  }
 
   @override
   String get popular => 'Популярен';
@@ -9607,7 +9609,7 @@ class AppLocalizationsBg extends AppLocalizations {
 
   @override
   String get transcribeLaterNote =>
-      'Засега работи с устройства Omi и Limitless. Аудиото остава на телефона ви, докато не решите да го качите.';
+      'Работи с микрофона на телефона и с устройства Omi и Limitless. Аудиото остава на телефона ви, докато не решите да го качите.';
 
   @override
   String get transcribeLaterStorageFull =>
@@ -9839,4 +9841,202 @@ class AppLocalizationsBg extends AppLocalizations {
   String errorConnectingRayBanMeta(String error) {
     return 'Грешка при свързване с Ray-Ban Meta: $error';
   }
+
+  @override
+  String get deviceStorageTitle => 'Памет на устройството';
+
+  @override
+  String deviceStoragePercentFull(int percent) {
+    return '$percent% запълнена';
+  }
+
+  @override
+  String deviceStorageUsedOfTotal(String used, String total) {
+    return '$used от $total използвани';
+  }
+
+  @override
+  String deviceStorageFree(String free) {
+    return '$free свободни';
+  }
+
+  @override
+  String get deviceStorageNearlyFull => 'Устройството е почти пълно — синхронизирайте, за да освободите място.';
+
+  @override
+  String get phoneMicOfflineFallbackMessage =>
+      'Няма връзка — записва се локално. Ще бъде транскрибирано, когато отново сте онлайн.';
+
+  @override
+  String get dataEncryptedBanner =>
+      'Вашите данни са защитени по подразбиране със силно криптиране и вие контролирате как се съхраняват и използват.';
+
+  @override
+  String get sttModelAccuracy => 'Точност';
+
+  @override
+  String get whisperModelSizeBase => 'Базов';
+
+  @override
+  String get cloudTranscription => 'Облачна транскрипция';
+
+  @override
+  String get sttProviderDeepgram => 'Deepgram';
+
+  @override
+  String get deleteOnDeviceModel => 'Изтриване на модела';
+
+  @override
+  String get deleteOnDeviceModelConfirm => 'Сигурни ли сте, че искате да изтриете този модел?';
+
+  @override
+  String get onDeviceModelDownloaded => 'Изтеглен';
+
+  @override
+  String get sttModelFaster => 'По-бързо';
+
+  @override
+  String get sttFilterAuto => 'Автоматично';
+
+  @override
+  String get sttModelHigher => 'По-висока';
+
+  @override
+  String get whisperModelSizeLarge => 'Голям';
+
+  @override
+  String get sttModelLower => 'По-ниска';
+
+  @override
+  String get whisperModelSizeMedium => 'Среден';
+
+  @override
+  String get onDeviceModelDeleted => 'Моделът е изтрит';
+
+  @override
+  String get onDeviceModelDownloadFailed => 'Изтеглянето на модела не бе успешно';
+
+  @override
+  String get onDeviceModelDownloadFailedDesc => 'Изтеглянето на модела Whisper не бе успешно. Опитайте отново.';
+
+  @override
+  String get onDeviceModelDownloadSuccess => 'Моделът е изтеглен';
+
+  @override
+  String get onDeviceModelDownloadSuccessDesc => 'Моделът Whisper бе изтеглен успешно';
+
+  @override
+  String get onDeviceModelSize => 'Размер на модела';
+
+  @override
+  String get sttNone => 'Няма';
+
+  @override
+  String get onDeviceTranscription => 'Транскрипция на устройството';
+
+  @override
+  String get onDeviceTranscriptionDesc => 'Транскрипцията се обработва локално на вашето устройство';
+
+  @override
+  String get sttModelSlower => 'По-бавно';
+
+  @override
+  String get whisperModelSizeSmall => 'Малък';
+
+  @override
+  String get sttProviderSoniox => 'Soniox';
+
+  @override
+  String get speechToTextProvider => 'Доставчик за реч към текст';
+
+  @override
+  String get speechToTextProviderDesc => 'Изберете услугата, използвана за транскрипция';
+
+  @override
+  String get sttProviderSpeechmatics => 'Speechmatics';
+
+  @override
+  String get sttModelSpeed => 'Скорост';
+
+  @override
+  String get whisperModelSizeTiny => 'Много малък';
+
+  @override
+  String get transcriptionLanguage => 'Език на транскрипцията';
+
+  @override
+  String get transcriptionLanguageDesc => 'Изберете езика за транскрипция на речта';
+
+  @override
+  String get whisperModel => 'Модел Whisper';
+
+  @override
+  String get whisperModelDesc => 'Изберете модела за транскрипция на устройството';
+
+  @override
+  String get downgradeToFreemiumTitle => 'Преминаване към безплатния план?';
+
+  @override
+  String get downgradeLimitationsHeading => 'Ще срещнете следните ограничения:';
+
+  @override
+  String get downgradeLimitBattery => '7 пъти по-голям разход на батерия';
+
+  @override
+  String get downgradeLimitQuality => '30% по-ниско качество на транскрипцията';
+
+  @override
+  String get downgradeLimitDelay => 'Забавяне от 5–7 секунди';
+
+  @override
+  String get downgradeLimitSpeakers => 'Няма разпознаване на говорители';
+
+  @override
+  String get downgradeAnyway => 'Понижи въпреки това';
+
+  @override
+  String get googleCalendarNotConnected => 'Google Календар не е свързан';
+
+  @override
+  String get googleCalendarConnectPrompt =>
+      'Свържете Google Календар, за да свързвате разговори със събития в календара.';
+
+  @override
+  String linkedToEvent(String title) {
+    return 'Свързано с „$title“';
+  }
+
+  @override
+  String get failedToLinkCalendarEvent => 'Свързването със събитие от календара не бе успешно';
+
+  @override
+  String get thanksForYourFeedback => 'Благодарим за обратната връзка!';
+
+  @override
+  String get copyMessage => 'Копиране на съобщението';
+
+  @override
+  String get searchSettings => 'Търсене в настройките…';
+
+  @override
+  String get errorLoadingAudio => 'Грешка при зареждане на аудиото';
+
+  @override
+  String get rayBanMetaMicPickerTitle => 'Изберете микрофона на Ray-Ban Meta';
+
+  @override
+  String get rayBanMetaMicPickerDescription =>
+      'Изберете Bluetooth микрофона на очилата. Музиката спира, докато Omi го използва.';
+
+  @override
+  String get rayBanMetaMicPickerEmpty =>
+      'Не са намерени Bluetooth микрофони. Свържете очилата в настройките на iPhone и опитайте отново.';
+
+  @override
+  String get rayBanMetaMicPickerLoadError =>
+      'Bluetooth микрофоните не можаха да се заредят. Проверете дали Bluetooth е включен и опитайте отново.';
+
+  @override
+  String get rayBanMetaMicPickerConnectError =>
+      'Неуспешно свързване с този микрофон. Уверете се, че е свързан в настройките на iPhone.';
 }
