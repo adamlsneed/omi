@@ -152,7 +152,8 @@ check_optional_formatters() {
         fi
         ;;
       backend/*.py|backend/**/*.py)
-        python_files+=("$file")
+        # Fork policy: backend/ is a byte-exact upstream mirror; do not flag
+        # upstream files upstream itself ships non-black-clean.
         ;;
       *.arb)
         arb_files+=("$file")
