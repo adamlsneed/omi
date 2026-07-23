@@ -119,9 +119,11 @@ extension SettingsContentView {
               Text("Suppress private browser windows")
                 .scaledFont(size: 13, weight: .medium)
                 .foregroundColor(OmiColors.textSecondary)
-              Text("Skip Rewind capture for Chrome Incognito, Safari Private Browsing, Firefox Private Windows, and Edge InPrivate windows.")
-                .scaledFont(size: 12)
-                .foregroundColor(OmiColors.textTertiary)
+              Text(
+                "Skip Rewind capture for Chrome Incognito, Safari Private Browsing, Firefox Private Windows, and Edge InPrivate windows."
+              )
+              .scaledFont(size: 12)
+              .foregroundColor(OmiColors.textTertiary)
             }
 
             Spacer()

@@ -884,5 +884,4 @@ extension SettingsContentView {
     let memoriesTotal: Int
   }
 
-
 }

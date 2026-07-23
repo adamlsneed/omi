@@ -3,20 +3,20 @@ import SwiftUI
 
 /// Thread-safe accumulator for subprocess stdout read via readabilityHandler.
 private final class GitOutputBuffer: @unchecked Sendable {
-    private let lock = NSLock()
-    private var data = Data()
+  private let lock = NSLock()
+  private var data = Data()
 
-    func append(_ chunk: Data) {
-        lock.lock()
-        defer { lock.unlock() }
-        data.append(chunk)
-    }
+  func append(_ chunk: Data) {
+    lock.lock()
+    defer { lock.unlock() }
+    data.append(chunk)
+  }
 
-    func snapshot() -> Data {
-        lock.lock()
-        defer { lock.unlock() }
-        return data
-    }
+  func snapshot() -> Data {
+    lock.lock()
+    defer { lock.unlock() }
+    return data
+  }
 }
 
 // MARK: - Data Models
