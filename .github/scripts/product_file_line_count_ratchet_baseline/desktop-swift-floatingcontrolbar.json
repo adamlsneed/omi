@@ -1,0 +1,19 @@
+{
+  "files": {
+    "desktop/macos/Desktop/Sources/FloatingControlBar/AgentPill.swift": 2375,
+    "desktop/macos/Desktop/Sources/FloatingControlBar/FloatingControlBarView.swift": 2639,
+    "desktop/macos/Desktop/Sources/FloatingControlBar/FloatingControlBarWindow.swift": 4870,
+    "desktop/macos/Desktop/Sources/FloatingControlBar/PushToTalkManager.swift": 2604,
+    "desktop/macos/Desktop/Sources/FloatingControlBar/RealtimeHubController.swift": 1500,
+    "desktop/macos/Desktop/Sources/FloatingControlBar/RealtimeHubSession.swift": 1584
+  },
+  "raise_justifications": {
+    "desktop/macos/Desktop/Sources/FloatingControlBar/AgentPill.swift": "Agent completion presentation now follows the canonical terminal lifecycle used by PTT and chat.",
+    "desktop/macos/Desktop/Sources/FloatingControlBar/FloatingControlBarView.swift": "The Second Brain onboarding, reach-error, and notch-moment UI keeps the hover menu agent-only and routes idle notch taps through main chat.",
+    "desktop/macos/Desktop/Sources/FloatingControlBar/FloatingControlBarWindow.swift": "upstream sync 2026-07-23: upstream onboarding glow/reach-error merged with fork hideTemporarily/showForVoiceSession",
+    "desktop/macos/Desktop/Sources/FloatingControlBar/PushToTalkManager.swift": "upstream sync 2026-07-23: upstream PTT phases merged with fork warmupCoreAudio and bar session helpers",
+    "desktop/macos/Desktop/Sources/FloatingControlBar/RealtimeHubController.swift": "Adds an owner-scope guard so the persistence-fence retry loop stops instead of busy-looping agent-bridge startup when signed out; the decision logic lives in RealtimeHubSessionPolicies.",
+    "desktop/macos/Desktop/Sources/FloatingControlBar/RealtimeHubSession.swift": "Strict concurrency annotations (Ticket 14) add Sendable conformances and isolation qualifiers without changing runtime behavior."
+  },
+  "threshold": 1500
+}

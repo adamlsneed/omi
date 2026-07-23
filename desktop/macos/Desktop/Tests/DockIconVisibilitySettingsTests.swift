@@ -1,5 +1,6 @@
 import AppKit
 import XCTest
+
 @testable import Omi_Computer
 
 final class DockIconVisibilitySettingsTests: XCTestCase {

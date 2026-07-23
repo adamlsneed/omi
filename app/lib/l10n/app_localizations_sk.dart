@@ -8986,7 +8986,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get billingYearly => 'Ročne';
 
   @override
-  String get savePercent => 'Ušetrite ~17%';
+  String savePercent(int percent) {
+    return 'Ušetrite ~$percent%';
+  }
 
   @override
   String get popular => 'Obľúbené';
@@ -9562,7 +9564,7 @@ class AppLocalizationsSk extends AppLocalizations {
 
   @override
   String get transcribeLaterNote =>
-      'Zatiaľ funguje so zariadeniami Omi a Limitless. Zvuk zostáva v telefóne, kým sa ho nerozhodnete odoslať.';
+      'Funguje s mikrofónom telefónu a so zariadeniami Omi a Limitless. Zvuk zostáva v telefóne, kým sa ho nerozhodnete odoslať.';
 
   @override
   String get transcribeLaterStorageFull =>
@@ -9792,4 +9794,202 @@ class AppLocalizationsSk extends AppLocalizations {
   String errorConnectingRayBanMeta(String error) {
     return 'Chyba pri pripájaní k Ray-Ban Meta: $error';
   }
+
+  @override
+  String get deviceStorageTitle => 'Úložisko zariadenia';
+
+  @override
+  String deviceStoragePercentFull(int percent) {
+    return '$percent% zaplnené';
+  }
+
+  @override
+  String deviceStorageUsedOfTotal(String used, String total) {
+    return '$used z $total využité';
+  }
+
+  @override
+  String deviceStorageFree(String free) {
+    return '$free voľných';
+  }
+
+  @override
+  String get deviceStorageNearlyFull => 'Zariadenie je takmer plné — synchronizujte, aby ste uvoľnili miesto.';
+
+  @override
+  String get phoneMicOfflineFallbackMessage =>
+      'Bez pripojenia – nahráva sa lokálne. Prepíše sa, keď budete znova online.';
+
+  @override
+  String get dataEncryptedBanner =>
+      'Vaše údaje sú predvolene zabezpečené silným šifrovaním a vy máte kontrolu nad tým, ako sa ukladajú a používajú.';
+
+  @override
+  String get sttModelAccuracy => 'Presnosť';
+
+  @override
+  String get whisperModelSizeBase => 'Základný';
+
+  @override
+  String get cloudTranscription => 'Cloudový prepis';
+
+  @override
+  String get sttProviderDeepgram => 'Deepgram';
+
+  @override
+  String get deleteOnDeviceModel => 'Zmazať model';
+
+  @override
+  String get deleteOnDeviceModelConfirm => 'Naozaj chcete zmazať tento model?';
+
+  @override
+  String get onDeviceModelDownloaded => 'Stiahnuté';
+
+  @override
+  String get sttModelFaster => 'Rýchlejšie';
+
+  @override
+  String get sttFilterAuto => 'Automaticky';
+
+  @override
+  String get sttModelHigher => 'Vyššia';
+
+  @override
+  String get whisperModelSizeLarge => 'Veľký';
+
+  @override
+  String get sttModelLower => 'Nižšia';
+
+  @override
+  String get whisperModelSizeMedium => 'Stredný';
+
+  @override
+  String get onDeviceModelDeleted => 'Model bol zmazaný';
+
+  @override
+  String get onDeviceModelDownloadFailed => 'Sťahovanie modelu zlyhalo';
+
+  @override
+  String get onDeviceModelDownloadFailedDesc => 'Model Whisper sa nepodarilo stiahnuť. Skúste to znova.';
+
+  @override
+  String get onDeviceModelDownloadSuccess => 'Model bol stiahnutý';
+
+  @override
+  String get onDeviceModelDownloadSuccessDesc => 'Model Whisper bol úspešne stiahnutý';
+
+  @override
+  String get onDeviceModelSize => 'Veľkosť modelu';
+
+  @override
+  String get sttNone => 'Žiadny';
+
+  @override
+  String get onDeviceTranscription => 'Prepis na zariadení';
+
+  @override
+  String get onDeviceTranscriptionDesc => 'Prepis sa spracováva lokálne na vašom zariadení';
+
+  @override
+  String get sttModelSlower => 'Pomalšie';
+
+  @override
+  String get whisperModelSizeSmall => 'Malý';
+
+  @override
+  String get sttProviderSoniox => 'Soniox';
+
+  @override
+  String get speechToTextProvider => 'Poskytovateľ reči na text';
+
+  @override
+  String get speechToTextProviderDesc => 'Vyberte službu používanú na prepis';
+
+  @override
+  String get sttProviderSpeechmatics => 'Speechmatics';
+
+  @override
+  String get sttModelSpeed => 'Rýchlosť';
+
+  @override
+  String get whisperModelSizeTiny => 'Veľmi malý';
+
+  @override
+  String get transcriptionLanguage => 'Jazyk prepisu';
+
+  @override
+  String get transcriptionLanguageDesc => 'Vyberte jazyk pre prepis reči';
+
+  @override
+  String get whisperModel => 'Model Whisper';
+
+  @override
+  String get whisperModelDesc => 'Vyberte model pre prepis na zariadení';
+
+  @override
+  String get downgradeToFreemiumTitle => 'Prejsť na bezplatný plán?';
+
+  @override
+  String get downgradeLimitationsHeading => 'Narazíte na tieto obmedzenia:';
+
+  @override
+  String get downgradeLimitBattery => '7× vyššia spotreba batérie';
+
+  @override
+  String get downgradeLimitQuality => 'O 30 % nižšia kvalita prepisu';
+
+  @override
+  String get downgradeLimitDelay => 'Oneskorenie 5 – 7 sekúnd';
+
+  @override
+  String get downgradeLimitSpeakers => 'Rečníkov nie je možné rozpoznať';
+
+  @override
+  String get downgradeAnyway => 'Napriek tomu prejsť nižšie';
+
+  @override
+  String get googleCalendarNotConnected => 'Google kalendár nie je pripojený';
+
+  @override
+  String get googleCalendarConnectPrompt =>
+      'Pripojte Google kalendár, aby ste mohli konverzácie prepájať s udalosťami v kalendári.';
+
+  @override
+  String linkedToEvent(String title) {
+    return 'Prepojené s „$title“';
+  }
+
+  @override
+  String get failedToLinkCalendarEvent => 'Prepojenie udalosti kalendára zlyhalo';
+
+  @override
+  String get thanksForYourFeedback => 'Ďakujeme za spätnú väzbu!';
+
+  @override
+  String get copyMessage => 'Kopírovať správu';
+
+  @override
+  String get searchSettings => 'Hľadať v nastaveniach…';
+
+  @override
+  String get errorLoadingAudio => 'Chyba pri načítaní zvuku';
+
+  @override
+  String get rayBanMetaMicPickerTitle => 'Vyberte mikrofón Ray-Ban Meta';
+
+  @override
+  String get rayBanMetaMicPickerDescription =>
+      'Vyberte Bluetooth mikrofón okuliarov. Počas jeho používania aplikáciou Omi sa hudba pozastaví.';
+
+  @override
+  String get rayBanMetaMicPickerEmpty =>
+      'Nenašli sa žiadne Bluetooth mikrofóny. Pripojte okuliare v nastaveniach iPhonu a skúste to znova.';
+
+  @override
+  String get rayBanMetaMicPickerLoadError =>
+      'Bluetooth mikrofóny sa nepodarilo načítať. Skontrolujte, či je Bluetooth zapnutý, a skúste to znova.';
+
+  @override
+  String get rayBanMetaMicPickerConnectError =>
+      'K tomuto mikrofónu sa nepodarilo pripojiť. Uistite sa, že je pripojený v nastaveniach iPhonu.';
 }

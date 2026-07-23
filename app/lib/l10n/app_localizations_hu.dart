@@ -1487,7 +1487,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get payYourSttProvider => 'Szabadon használd az omi-t. Csak az STT szolgáltatódnak fizetsz közvetlenül.';
 
   @override
-  String get freeMinutesMonth => '600 ingyenes perc/hónap tartalmazza. Korlátlan a következővel: ';
+  String get freeMinutesMonth => '300 ingyenes perc/hónap tartalmazza. Korlátlan a következővel: ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -4740,7 +4740,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Nincs beállítva specifikus adathozzáférés.';
 
   @override
-  String get basicPlanDescription => '600 prémium perc + korlátlan eszközön';
+  String get basicPlanDescription => '300 prémium perc + korlátlan eszközön';
 
   @override
   String get minutes => 'perc';
@@ -6038,7 +6038,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get cloudProvider => 'Felhő szolgáltató';
 
   @override
-  String get premiumMinutesInfo => '600 prémium perc/hónap. Az Eszközön fül korlátlan ingyenes átírást kínál.';
+  String get premiumMinutesInfo => '300 prémium perc/hónap. Az Eszközön fül korlátlan ingyenes átírást kínál.';
 
   @override
   String get viewUsage => 'Használat megtekintése';
@@ -6119,7 +6119,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get batteryDrainSignificantly => 'Az akkumulátor-lemerülés jelentősen növekedni fog.';
 
   @override
-  String get premiumMinutesMonth => '600 prémium perc/hónap. Az Eszközön fül korlátlan ingyenes átírást kínál. ';
+  String get premiumMinutesMonth => '300 prémium perc/hónap. Az Eszközön fül korlátlan ingyenes átírást kínál. ';
 
   @override
   String get audioProcessedLocally =>
@@ -9035,7 +9035,9 @@ class AppLocalizationsHu extends AppLocalizations {
   String get billingYearly => 'Éves';
 
   @override
-  String get savePercent => '~17% megtakarítás';
+  String savePercent(int percent) {
+    return '~$percent% megtakarítás';
+  }
 
   @override
   String get popular => 'Népszerű';
@@ -9612,7 +9614,7 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get transcribeLaterNote =>
-      'Egyelőre Omi és Limitless eszközökkel működik. A hang a telefonodon marad, amíg el nem döntöd, hogy feltöltöd.';
+      'A telefon mikrofonjával, valamint Omi és Limitless eszközökkel működik. A hang a telefonodon marad, amíg el nem döntöd, hogy feltöltöd.';
 
   @override
   String get transcribeLaterStorageFull =>
@@ -9843,4 +9845,201 @@ class AppLocalizationsHu extends AppLocalizations {
   String errorConnectingRayBanMeta(String error) {
     return 'Hiba a Ray-Ban Meta csatlakoztatásakor: $error';
   }
+
+  @override
+  String get deviceStorageTitle => 'Eszköz tárhelye';
+
+  @override
+  String deviceStoragePercentFull(int percent) {
+    return '$percent% megtelt';
+  }
+
+  @override
+  String deviceStorageUsedOfTotal(String used, String total) {
+    return '$used / $total felhasználva';
+  }
+
+  @override
+  String deviceStorageFree(String free) {
+    return '$free szabad';
+  }
+
+  @override
+  String get deviceStorageNearlyFull => 'Az eszköz majdnem tele van — szinkronizáljon a hely felszabadításához.';
+
+  @override
+  String get phoneMicOfflineFallbackMessage => 'Nincs kapcsolat – helyben rögzítjük. Átírjuk, amint újra online vagy.';
+
+  @override
+  String get dataEncryptedBanner =>
+      'Az adataid alapértelmezés szerint erős titkosítással védettek, és te döntöd el, hogyan tárolják és használják őket.';
+
+  @override
+  String get sttModelAccuracy => 'Pontosság';
+
+  @override
+  String get whisperModelSizeBase => 'Alap';
+
+  @override
+  String get cloudTranscription => 'Felhő átírás';
+
+  @override
+  String get sttProviderDeepgram => 'Deepgram';
+
+  @override
+  String get deleteOnDeviceModel => 'Modell törlése';
+
+  @override
+  String get deleteOnDeviceModelConfirm => 'Biztosan törölni szeretnéd ezt a modellt?';
+
+  @override
+  String get onDeviceModelDownloaded => 'Letöltve';
+
+  @override
+  String get sttModelFaster => 'Gyorsabb';
+
+  @override
+  String get sttFilterAuto => 'Automatikus';
+
+  @override
+  String get sttModelHigher => 'Magasabb';
+
+  @override
+  String get whisperModelSizeLarge => 'Nagy';
+
+  @override
+  String get sttModelLower => 'Alacsonyabb';
+
+  @override
+  String get whisperModelSizeMedium => 'Közepes';
+
+  @override
+  String get onDeviceModelDeleted => 'Modell törölve';
+
+  @override
+  String get onDeviceModelDownloadFailed => 'A modell letöltése nem sikerült';
+
+  @override
+  String get onDeviceModelDownloadFailedDesc => 'A Whisper modell letöltése nem sikerült. Próbáld újra.';
+
+  @override
+  String get onDeviceModelDownloadSuccess => 'Modell letöltve';
+
+  @override
+  String get onDeviceModelDownloadSuccessDesc => 'A Whisper modell letöltése sikerült';
+
+  @override
+  String get onDeviceModelSize => 'Modell mérete';
+
+  @override
+  String get sttNone => 'Nincs';
+
+  @override
+  String get onDeviceTranscription => 'Eszközön történő átírás';
+
+  @override
+  String get onDeviceTranscriptionDesc => 'Az átírás helyileg történik az eszközödön';
+
+  @override
+  String get sttModelSlower => 'Lassabb';
+
+  @override
+  String get whisperModelSizeSmall => 'Kicsi';
+
+  @override
+  String get sttProviderSoniox => 'Soniox';
+
+  @override
+  String get speechToTextProvider => 'Beszéd-szöveg szolgáltató';
+
+  @override
+  String get speechToTextProviderDesc => 'Válaszd ki az átíráshoz használt szolgáltatást';
+
+  @override
+  String get sttProviderSpeechmatics => 'Speechmatics';
+
+  @override
+  String get sttModelSpeed => 'Sebesség';
+
+  @override
+  String get whisperModelSizeTiny => 'Apró';
+
+  @override
+  String get transcriptionLanguage => 'Átírás nyelve';
+
+  @override
+  String get transcriptionLanguageDesc => 'Válaszd ki a beszédátírás nyelvét';
+
+  @override
+  String get whisperModel => 'Whisper modell';
+
+  @override
+  String get whisperModelDesc => 'Válaszd ki a modellt az eszközön történő átíráshoz';
+
+  @override
+  String get downgradeToFreemiumTitle => 'Visszaváltasz az ingyenes csomagra?';
+
+  @override
+  String get downgradeLimitationsHeading => 'A következő korlátozásokkal kell számolnod:';
+
+  @override
+  String get downgradeLimitBattery => '7-szeres akkumulátorfogyasztás';
+
+  @override
+  String get downgradeLimitQuality => '30%-kal gyengébb átírási minőség';
+
+  @override
+  String get downgradeLimitDelay => '5-7 másodperces késleltetés';
+
+  @override
+  String get downgradeLimitSpeakers => 'A beszélők nem azonosíthatók';
+
+  @override
+  String get downgradeAnyway => 'Váltás mindenképp';
+
+  @override
+  String get googleCalendarNotConnected => 'A Google naptár nincs csatlakoztatva';
+
+  @override
+  String get googleCalendarConnectPrompt =>
+      'Csatlakoztasd a Google naptáradat, hogy a beszélgetéseket naptáreseményekhez kapcsolhasd.';
+
+  @override
+  String linkedToEvent(String title) {
+    return 'Összekapcsolva ezzel: „$title”';
+  }
+
+  @override
+  String get failedToLinkCalendarEvent => 'A naptáresemény összekapcsolása nem sikerült';
+
+  @override
+  String get thanksForYourFeedback => 'Köszönjük a visszajelzést!';
+
+  @override
+  String get copyMessage => 'Üzenet másolása';
+
+  @override
+  String get searchSettings => 'Beállítások keresése…';
+
+  @override
+  String get errorLoadingAudio => 'Hiba a hang betöltésekor';
+
+  @override
+  String get rayBanMetaMicPickerTitle => 'Válaszd ki a Ray-Ban Meta mikrofonját';
+
+  @override
+  String get rayBanMetaMicPickerDescription =>
+      'Válaszd ki a szemüveg Bluetooth-mikrofonját. A zene szünetel, amíg az Omi használja.';
+
+  @override
+  String get rayBanMetaMicPickerEmpty =>
+      'Nem található Bluetooth-mikrofon. Csatlakoztasd a szemüveget az iPhone Beállításokban, majd próbáld újra.';
+
+  @override
+  String get rayBanMetaMicPickerLoadError =>
+      'A Bluetooth-mikrofonokat nem sikerült betölteni. Ellenőrizd, hogy a Bluetooth be van-e kapcsolva, majd próbáld újra.';
+
+  @override
+  String get rayBanMetaMicPickerConnectError =>
+      'Nem sikerült csatlakozni ehhez a mikrofonhoz. Ellenőrizd, hogy csatlakoztatva van-e az iPhone Beállításokban.';
 }

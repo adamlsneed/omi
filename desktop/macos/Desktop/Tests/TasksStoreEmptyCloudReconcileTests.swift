@@ -58,6 +58,11 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
     XCTAssertEqual(store.incompleteTasks, [], "stale local tasks must converge to the empty cloud state")
     XCTAssertEqual(probe.dashboardRefreshes, 1, "dashboard slices must refresh after the wipe")
     XCTAssertNil(store.error)
+
+    let fallback = try? latestFallbackSnapshot()
+    XCTAssertEqual(fallback?["area"] as? String, "task_reconcile", "census heal must emit fallback telemetry")
+    XCTAssertEqual(fallback?["outcome"] as? String, "recovered")
+    XCTAssertEqual(fallback?["to"] as? String, "id_census")
   }
 
   @MainActor
@@ -192,6 +197,11 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
     XCTAssertEqual(probe.hardDeleteCalls, [], "a failed census fetch must never wipe local rows")
     XCTAssertEqual(store.incompleteTasks.map(\.id), [staleTask.id], "stale rows stay until the census confirms")
     XCTAssertNil(store.error)
+
+    let fallback = try? latestFallbackSnapshot()
+    XCTAssertEqual(fallback?["area"] as? String, "task_reconcile", "fail-open skip must emit degraded telemetry")
+    XCTAssertEqual(fallback?["outcome"] as? String, "degraded")
+    XCTAssertEqual(fallback?["to"] as? String, "none")
   }
 
   @MainActor
@@ -321,7 +331,7 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
       "locally-created unsynced rows must survive a confirmed-empty wipe")
   }
 
-  func testVisibilityReconcileDerivesDeletionFromCancelledStatusOnlyWhenOptedIn() async throws {
+  func testVisibilityReconcileDerivesDeletionFromCancelledStatusForEveryCaller() async throws {
     let fixture = try await RewindStorageTestIsolation.setUp(
       userIdPrefix: "cancelled-status-reconcile-test")
     addTeardownBlock {
@@ -347,16 +357,10 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
       createdAt: Date(timeIntervalSince1970: 0),
       taskStatus: "cancelled")
 
-    let withoutOptIn = try await ActionItemStorage.shared.reconcileDashboardVisibilityFields(
+    let reconciled = try await ActionItemStorage.shared.reconcileDashboardVisibilityFields(
       [cancelledWireItem],
       authorization: .unrestricted)
-    XCTAssertEqual(withoutOptIn, 0, "default callers keep the existing no-derivation semantics")
-
-    let withOptIn = try await ActionItemStorage.shared.reconcileDashboardVisibilityFields(
-      [cancelledWireItem],
-      authorization: .unrestricted,
-      deriveDeletedFromCancelledStatus: true)
-    XCTAssertEqual(withOptIn, 1)
+    XCTAssertEqual(reconciled, 1)
 
     let visible = try await ActionItemStorage.shared.getLocalActionItems(
       limit: 10,
@@ -366,6 +370,17 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
   }
 
   // MARK: - Helpers
+
+  /// Latest fallback_triggered snapshot from the shared diagnostics manager
+  /// (same attachment-read pattern as DesktopDiagnosticsManagerTests).
+  private func latestFallbackSnapshot() throws -> [String: Any] {
+    let url = try XCTUnwrap(DesktopDiagnosticsManager.shared.writeDiagnosticsAttachment())
+    defer { try? FileManager.default.removeItem(at: url) }
+    let data = try Data(contentsOf: url)
+    let root = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let snapshots = try XCTUnwrap(root["snapshots"] as? [[String: Any]])
+    return try XCTUnwrap(snapshots.last(where: { ($0["event"] as? String) == "fallback_triggered" }))
+  }
 
   @MainActor
   private func task(id: String, completed: Bool = false) -> TaskActionItem {
@@ -398,7 +413,8 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
     automationOverrideID: String?
   ) async {
     let finalOwner = normalizedOwner(automationOverrideID) ?? normalizedOwner(authOwnerID)
-    let bootstrap = finalOwner == "empty-cloud-bootstrap-a"
+    let bootstrap =
+      finalOwner == "empty-cloud-bootstrap-a"
       ? "empty-cloud-bootstrap-b"
       : "empty-cloud-bootstrap-a"
     if RuntimeOwnerIdentity.currentOwnerId(allowAutomationOverride: true) == bootstrap {
@@ -411,33 +427,39 @@ final class TasksStoreEmptyCloudReconcileTests: XCTestCase {
       automationOverrideID: automationOverrideID)
   }
 
+  @MainActor
   private func transitionEffectiveOwner(
     authOwnerID: String?,
     automationOverrideID: String?
   ) async {
     let plannedOwner = normalizedOwner(automationOverrideID) ?? normalizedOwner(authOwnerID)
-    _ = await RuntimeOwnerIdentity.performEffectiveOwnerTransition(
-      allowAutomationOverride: true,
-      plannedNextOwner: { _, _ in plannedOwner },
-      quiesceVoice: { _, _ in },
-      revokeKernelOwner: { _, _ in },
-      retargetLocalStorage: { _, _ in },
-      ownerDidChange: {
-        await MainActor.run {
-          NotificationCenter.default.post(name: .runtimeOwnerDidChange, object: nil)
+    do {
+      _ = try await RuntimeOwnerIdentity.performEffectiveOwnerTransition(
+        allowAutomationOverride: true,
+        plannedNextOwner: { _, _ in plannedOwner },
+        quiesceVoice: { _, _ in },
+        revokeKernelOwner: { _, _ in },
+        retargetLocalStorage: { _, _ in },
+        ownerDidChange: {
+          await MainActor.run {
+            NotificationCenter.default.post(name: .runtimeOwnerDidChange, object: nil)
+          }
+        },
+        { defaults in
+          if let authOwnerID {
+            defaults.set(authOwnerID, forKey: .authUserId)
+          } else {
+            defaults.removeObject(forKey: .authUserId)
+          }
+          if let automationOverrideID {
+            defaults.set(automationOverrideID, forKey: .automationOwnerOverride)
+          } else {
+            defaults.removeObject(forKey: .automationOwnerOverride)
+          }
         }
-      }
-    ) { defaults in
-      if let authOwnerID {
-        defaults.set(authOwnerID, forKey: .authUserId)
-      } else {
-        defaults.removeObject(forKey: .authUserId)
-      }
-      if let automationOverrideID {
-        defaults.set(automationOverrideID, forKey: .automationOwnerOverride)
-      } else {
-        defaults.removeObject(forKey: .automationOwnerOverride)
-      }
+      )
+    } catch {
+      XCTFail("owner transition failed: \(error)")
     }
   }
 

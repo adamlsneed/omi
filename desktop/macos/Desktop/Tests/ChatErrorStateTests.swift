@@ -46,9 +46,10 @@ final class ChatErrorStateMappingTests: XCTestCase {
     XCTAssertNil(ChatErrorState.from(BridgeError.encodingError))
     XCTAssertNil(ChatErrorState.from(BridgeError.agentError("foo")))
     XCTAssertNil(ChatErrorState.from(BridgeError.requestAlreadyActive))
-    XCTAssertNil(ChatErrorState.from(
-      BridgeError.quotaExceeded(plan: "free", unit: "msg", used: 100, limit: 100, resetAtUnix: nil)
-    ))
+    XCTAssertNil(
+      ChatErrorState.from(
+        BridgeError.quotaExceeded(plan: "free", unit: "msg", used: 100, limit: 100, resetAtUnix: nil)
+      ))
   }
 }
 
@@ -187,6 +188,15 @@ final class ChatErrorStateTests: XCTestCase {
     )
   }
 
+  func testTypedBridgeStartFailureSurfacesARecoverableRetryCard() {
+    let error = BridgeError.failedToStart(.handshakeTimedOut)
+    XCTAssertEqual(
+      ChatErrorState.from(error),
+      .bridgeUnavailable(reason: .failedToStart(.handshakeTimedOut)))
+    XCTAssertEqual(ChatErrorState.from(error)?.primaryRecovery, .retry)
+    XCTAssertEqual(ChatErrorState.from(error)?.userFacingSummary, "AI took too long to start. Try again.")
+  }
+
   func testBridgeUnavailableReasonsCoverUnknown() {
     XCTAssertEqual(
       ChatErrorState.from(.notRunning),
@@ -228,6 +238,26 @@ final class ChatErrorStateTests: XCTestCase {
     XCTAssertFalse(BridgeError.agentError("Anthropic provider unauthorized").isSessionAuthenticationFailure)
   }
 
+  // T4: provider auth_required must not present the Pro upgrade sheet.
+  func testAuthRequiredHandlerDoesNotWireProSheet() throws {
+    let source = try sourceFile("Providers/ChatProvider.swift")
+    guard let range = source.range(of: "func handleClaudeAuthRequired") else {
+      return XCTFail("missing handleClaudeAuthRequired")
+    }
+    let snippet = String(source[range.lowerBound...]).prefix(900)
+    XCTAssertFalse(snippet.contains("isClaudeAuthRequired = true"))
+    XCTAssertFalse(snippet.contains("startClaudeAuth()"))
+  }
+
+  func testStartClaudeAuthKeepsUserClaudeGuard() throws {
+    let source = try sourceFile("Providers/ChatProvider.swift")
+    guard let range = source.range(of: "func startClaudeAuth()") else {
+      return XCTFail("missing startClaudeAuth")
+    }
+    let snippet = String(source[range.lowerBound...]).prefix(300)
+    XCTAssertTrue(snippet.contains("guard isUserClaudeMode else { return }"))
+  }
+
   func testEnsureBridgeStartedMapsAuthMissingToAuthRequired() throws {
     let source = try sourceFile("Providers/ChatProvider.swift")
     XCTAssertTrue(source.contains("ChatErrorState.from(bridgeError)"))
@@ -243,7 +273,7 @@ final class ChatErrorStateTests: XCTestCase {
     XCTAssertTrue(source.contains("onAccepted: (@MainActor () -> Void)? = nil"))
     XCTAssertTrue(source.contains("onAccepted?()"))
     XCTAssertTrue(source.contains("self.draftRevision == submittedRevision"))
-    XCTAssertTrue(source.contains("self.draftText == text else { return }"))
+    XCTAssertTrue(source.contains("self.draftText == text\n        else { return }"))
     XCTAssertFalse(source.contains("draftText = trimmedText"))
   }
 
@@ -282,6 +312,29 @@ final class ChatErrorStateTests: XCTestCase {
     XCTAssertTrue(source.contains("ChatErrorCard("))
   }
 
+  /// Static tripwire for the Home chat layout. The shared ChatErrorCard belongs to
+  /// homePanelStage, below the composer; placing it inside homeChatPanel as well
+  /// visibly duplicates the sign-in recovery CTA for the same ChatProvider state.
+  func testDashboardHomeChatHasOneSharedErrorCardRenderSite() throws {
+    let source = try sourceFile("MainWindow/Pages/DashboardPage.swift")
+    let panelStart = try XCTUnwrap(source.range(of: "private func homePanelStage"))
+    let chatStart = try XCTUnwrap(source.range(of: "private func homeChatPanel"))
+    let connectStart = try XCTUnwrap(source.range(of: "private func homeConnectPanel"))
+
+    let panelSource = String(source[panelStart.lowerBound..<chatStart.lowerBound])
+    let chatSource = String(source[chatStart.lowerBound..<connectStart.lowerBound])
+
+    XCTAssertEqual(
+      panelSource.components(separatedBy: "dashboardChatErrorCard").count - 1,
+      1,
+      "Home must have one canonical error-card owner outside the chat panel."
+    )
+    XCTAssertFalse(
+      chatSource.contains("dashboardChatErrorCard"),
+      "The embedded chat panel must not render a second copy of the shared auth gate."
+    )
+  }
+
   func testFloatingBarReadsCurrentError() throws {
     let source = try sourceFile("Providers/ChatProvider.swift")
     XCTAssertTrue(source.contains("var displayErrorMessage"))
@@ -311,7 +364,8 @@ final class ChatErrorStateTests: XCTestCase {
 
   func testRestoredSessionValidationDoesNotClearPersistedTokensOnTransientFailure() throws {
     let source = try sourceFile("AuthService.swift")
-    let validationBlockRange = source.range(of: "Restored session validation deferred - preserving credentials for retry")
+    let validationBlockRange = source.range(
+      of: "Restored session validation deferred - preserving credentials for retry")
     XCTAssertNotNil(validationBlockRange)
     let snippet = String(source[validationBlockRange!.lowerBound...])
     let catchBlock = String(snippet[..<(snippet.range(of: "} catch {")?.lowerBound ?? snippet.endIndex)])

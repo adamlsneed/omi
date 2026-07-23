@@ -1,0 +1,18 @@
+{
+  "files": {
+    "backend/routers/apps.py": 2335,
+    "backend/routers/chat.py": 1588,
+    "backend/routers/developer.py": 2195,
+    "backend/routers/mcp_sse.py": 1858,
+    "backend/routers/sync.py": 2056,
+    "backend/routers/users.py": 2047
+  },
+  "raise_justifications": {
+    "backend/routers/chat.py": "Merging the Windows-port chat surface with main combined the stream-error fallback (answered guard) with mains journey/attempt observability in the same SSE generators; +11 lines of combined guard flow, no new route.",
+    "backend/routers/developer.py": "GET /v1/dev/user/memories serves the authoritative legacy memories collection for legacy-cohort accounts with no rollout state (#9892), keeping the narrow deny/fallback decision in the route that owns the read contract.",
+    "backend/routers/mcp_sse.py": "MCP SSE memory reads route their legacy-fallback decision through the shared mcp_legacy_read_authorized helper (#9892); one import line.",
+    "backend/routers/sync.py": "Fresh Sync's daily ceiling remains beside the existing fresh-admission gates, before staged audio or durable worker work is created. Lifecycle-fenced workers are terminalized at this Cloud Tasks boundary so released WAL clients do not retry an owner they no longer own.",
+    "backend/routers/users.py": "upstream sync 2026-07-23: backend is an upstream-exact mirror; baseline follows upstream file size"
+  },
+  "threshold": 1500
+}

@@ -135,7 +135,9 @@ final class IdeaCaptureToast {
         ctx.duration = 0.22
         panel.animator().alphaValue = 0
       },
-      completionHandler: { [weak self] in self?.panel?.orderOut(nil) })
+      completionHandler: { [weak self] in
+        MainActor.assumeIsolated { self?.panel?.orderOut(nil) }
+      })
   }
 
   private func makePanel() -> NSPanel {
@@ -174,7 +176,8 @@ private struct ToastView: View {
         .fill(Color.black.opacity(0.86))
         .overlay(
           RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .stroke(Color.white.opacity(0.12), lineWidth: 1))
+            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
         .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
 
       HStack(spacing: 11) {

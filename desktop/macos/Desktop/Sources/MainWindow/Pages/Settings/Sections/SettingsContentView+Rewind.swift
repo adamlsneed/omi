@@ -1,8 +1,8 @@
+import OmiTheme
 import Sparkle
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
-import OmiTheme
 
 extension SettingsContentView {
   var rewindSection: some View {
@@ -119,9 +119,11 @@ extension SettingsContentView {
               Text("Suppress private browser windows")
                 .scaledFont(size: 13, weight: .medium)
                 .foregroundColor(OmiColors.textSecondary)
-              Text("Skip Rewind capture for Chrome Incognito, Safari Private Browsing, Firefox Private Windows, and Edge InPrivate windows.")
-                .scaledFont(size: 12)
-                .foregroundColor(OmiColors.textTertiary)
+              Text(
+                "Skip Rewind capture for Chrome Incognito, Safari Private Browsing, Firefox Private Windows, and Edge InPrivate windows."
+              )
+              .scaledFont(size: 12)
+              .foregroundColor(OmiColors.textTertiary)
             }
 
             Spacer()
@@ -212,14 +214,12 @@ extension SettingsContentView {
 
             Spacer()
 
-            Picker("", selection: $rewindSettings.retentionDays) {
+            SettingsMenuPicker(selection: $rewindSettings.retentionDays) {
               Text("3 days").tag(3)
               Text("7 days").tag(7)
               Text("14 days").tag(14)
               Text("30 days").tag(30)
             }
-            .pickerStyle(.menu)
-            .frame(width: 200)
           }
         }
       }
