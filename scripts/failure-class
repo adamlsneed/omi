@@ -330,7 +330,41 @@ def changed_definition_paths(root: Path, common: str, head: str) -> list[Path]:
         "--",
         str(DEFINITIONS_RELATIVE_PATH),
     )
-    return [Path(line) for line in output.splitlines() if line]
+    paths = [Path(line) for line in output.splitlines() if line]
+    return [path for path in paths if not is_upstream_inherited(root, common, head, path)]
+
+
+def is_upstream_inherited(root: Path, common: str, head: str, path: Path) -> bool:
+    """Fork policy: a definition whose head content is byte-identical to the
+    second parent of a merge commit in the range was authored upstream and
+    only inherited by a sync merge, not edited by this PR."""
+    merges = run_git(root, "rev-list", "--merges", f"{common}..{head}")
+    for merge in merges.splitlines():
+        if not merge:
+            continue
+        try:
+            upstream_tip = run_git(root, "rev-parse", f"{merge}^2")
+        except subprocess.CalledProcessError:
+            continue
+        try:
+            upstream_blob = run_git(root, "rev-parse", f"{upstream_tip}:{path.as_posix()}")
+            head_blob = run_git(root, "rev-parse", f"{head}:{path.as_posix()}")
+        except subprocess.CalledProcessError:
+            # Deleted on both sides counts as inherited only when head also lacks it.
+            head_missing = subprocess.run(
+                ["git", "-C", str(root), "cat-file", "-e", f"{head}:{path.as_posix()}"],
+                capture_output=True,
+            ).returncode
+            upstream_missing = subprocess.run(
+                ["git", "-C", str(root), "cat-file", "-e", f"{upstream_tip}:{path.as_posix()}"],
+                capture_output=True,
+            ).returncode
+            if head_missing and upstream_missing:
+                return True
+            continue
+        if upstream_blob == head_blob:
+            return True
+    return False
 
 
 def public_definition(definition: Definition, root: Path) -> dict[str, Any]:
