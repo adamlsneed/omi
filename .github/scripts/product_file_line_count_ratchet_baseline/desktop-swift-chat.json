@@ -1,11 +1,11 @@
 {
   "files": {
-    "desktop/macos/Desktop/Sources/Chat/AgentBridge.swift": 2216,
-    "desktop/macos/Desktop/Sources/Chat/AgentRuntimeProcess.swift": 4330
+    "desktop/macos/Desktop/Sources/Chat/AgentBridge.swift": 2217,
+    "desktop/macos/Desktop/Sources/Chat/AgentRuntimeProcess.swift": 4384
   },
   "raise_justifications": {
-    "desktop/macos/Desktop/Sources/Chat/AgentBridge.swift": "deleteBackend flag threaded through both clearJournalTurns variants so a reset is local-only",
-    "desktop/macos/Desktop/Sources/Chat/AgentRuntimeProcess.swift": "Keep stdout readabilityHandler while the agent child is alive so a full pipe cannot deadlock mid-turn; deleteBackend remains on journal_clear_turns."
+    "desktop/macos/Desktop/Sources/Chat/AgentBridge.swift": "upstream sync 2026-07-23: merge-adjacent line shift",
+    "desktop/macos/Desktop/Sources/Chat/AgentRuntimeProcess.swift": "upstream sync 2026-07-23: restored fork allowlisted child env and OMI_AUTH_TOKEN_FILE handoff in upstream runtime"
   },
   "threshold": 1500
 }

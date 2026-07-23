@@ -1,10 +1,11 @@
 {
   "files": {
     "backend/database/conversations.py": 1601,
-    "backend/database/users.py": 1943
+    "backend/database/users.py": 1954
   },
   "raise_justifications": {
-    "backend/database/conversations.py": "Public shared-chat uses the existing conversation storage format for bounded, safe transcript decoding; extraction would duplicate crypto/storage invariants. +21 for the #10033 merge-target eligibility predicate and pure closest-match selector beside the query they filter."
+    "backend/database/conversations.py": "Public shared-chat uses the existing conversation storage format for bounded, safe transcript decoding; extraction would duplicate crypto/storage invariants. +21 for the #10033 merge-target eligibility predicate and pure closest-match selector beside the query they filter.",
+    "backend/database/users.py": "upstream sync 2026-07-23: backend is an upstream-exact mirror; baseline follows upstream file size"
   },
   "threshold": 1500
 }

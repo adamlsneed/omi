@@ -13,4 +13,3 @@ Moved from `app/AGENTS.md` to satisfy the AGENTS.md size ratchet. Same authority
 - Local signing installs bundle `com.adam.omi.dev`. Replacing the official Omi bundle requires valid BasedHardware signing assets.
 - Do not commit generated `LocalSigning.xcconfig` files or provisioning profiles. The committed example intentionally documents Adam's default local bundle/app group; override only in the ignored local xcconfig if a future install needs different IDs.
 - Before replacing Adam's installed iPhone app, review `docs/local-ios-standalone-install.md`. It records the `Debug-dev` standalone crash, stale `Runner` process cleanup, entitlement checks, and hosted-backend/local-signing requirements from the May 2026 install issue.
-

@@ -16,9 +16,12 @@ def main() -> int:
     parser.add_argument("--head", default="HEAD")
     args = parser.parse_args()
 
-    diff = subprocess.run(["git", "diff", "--check", args.base, args.head], check=False)
+    # Fork policy: backend/ is a byte-exact upstream mirror, so upstream's own
+    # whitespace flaws are not fixable here without breaking the mirror.
+    hygiene_paths = ["--", ".", ":(exclude)backend/"]
+    diff = subprocess.run(["git", "diff", "--check", args.base, args.head, *hygiene_paths], check=False)
     if args.head == "HEAD":
-        worktree_diff = subprocess.run(["git", "diff", "--check", "HEAD"], check=False)
+        worktree_diff = subprocess.run(["git", "diff", "--check", "HEAD", *hygiene_paths], check=False)
         if worktree_diff.returncode:
             return worktree_diff.returncode
     if diff.returncode:
