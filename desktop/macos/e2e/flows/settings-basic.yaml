@@ -4,6 +4,8 @@ tier: 2
 description: Settings navigation smoke for General, Transcription, Privacy, Rewind, Notifications, About, Shortcuts, and Advanced sections
 app: non-prod
 covers:
+  - desktop/macos/Desktop/Sources/DockIconVisibilitySettings.swift
+  - desktop/macos/Desktop/Sources/LaunchAtLoginManager.swift
   - desktop/macos/Desktop/Sources/DefaultsKey.swift
   - desktop/macos/Desktop/Sources/MainWindow/Pages/SettingsPage.swift
   - desktop/macos/Desktop/Sources/MainWindow/SettingsSidebar.swift

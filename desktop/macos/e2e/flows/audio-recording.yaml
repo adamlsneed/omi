@@ -4,6 +4,7 @@ tier: manual
 description: Audio recording flow — verify Bluetooth or microphone source state, Start Recording, transcription state, and stop recording
 app: com.omi.computer-macos
 covers:
+  - desktop/macos/Desktop/Sources/MainWindow/RecordingControlCopy.swift
   - desktop/Desktop/Sources/MainWindow/Pages/ConversationsPage.swift
   - desktop/Desktop/Sources/AudioCaptureService.swift
   - desktop/Desktop/Sources/Audio/AudioSourceManager.swift

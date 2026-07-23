@@ -18,7 +18,7 @@ final class HubEscalationTests: XCTestCase {
       dynamicContextIdentity: "sha256:dynamic",
       contextPlanID: "sha256:plan",
       toolContext: "User is comparing the M3 and M4 MacBook.")
-    XCTAssertEqual(body["model"] as? String, "claude-sonnet-4-6")
+    XCTAssertEqual(body["model"] as? String, ModelQoS.Claude.defaultSelection)
     let messages = body["messages"] as! [[String: String]]
     XCTAssertEqual(messages[0]["role"], "system")
     XCTAssertTrue(messages[0]["content"]!.contains("Resolve direct references"))

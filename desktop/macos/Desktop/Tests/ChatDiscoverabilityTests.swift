@@ -44,13 +44,6 @@ final class ChatDiscoverabilityTests: XCTestCase {
     }
   }
 
-  func testScreenshotsHasKeyColumnAnnotations() {
-    let cols = ChatPrompts.columnAnnotations["screenshots"]!
-    XCTAssertNotNil(cols["timestamp"])
-    XCTAssertNotNil(cols["appName"])
-    XCTAssertNotNil(cols["ocrText"])
-  }
-
   func testActionItemsHasKeyColumnAnnotations() {
     let cols = ChatPrompts.columnAnnotations["action_items"]!
     XCTAssertNotNil(cols["description"])

@@ -396,7 +396,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
   // capture-confirmation notification's tap handlers) can reach the delegate without
   // an `NSApp.delegate as? AppDelegate` cast, which is unreliable under the SwiftUI
   // NSApplicationDelegateAdaptor. Mirrors the `openMainWindow` static-closure pattern.
-  static var revealIdeaFolderHandler: (@MainActor () -> Void)?
+  nonisolated(unsafe) static var revealIdeaFolderHandler: (@MainActor () -> Void)?
 
   private var sentryHeartbeatTimer: Timer?
   private var globalHotkeyMonitor: Any?
@@ -494,9 +494,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     transcriptionStateObserver = NotificationCenter.default.addObserver(
       forName: .toggleTranscriptionRequested, object: nil, queue: .main
     ) { [weak self] note in
+      let requestedEnabled = note.userInfo?["enabled"] as? Bool
       MainActor.assumeIsolated {
-        let enabled =
-          (note.userInfo?["enabled"] as? Bool) ?? AssistantSettings.shared.transcriptionEnabled
+        let enabled = requestedEnabled ?? AssistantSettings.shared.transcriptionEnabled
         self?.audioRecordingSwitch?.isOn = !AppState.isPaywalledEffective && enabled
       }
     }

@@ -508,7 +508,7 @@ struct BrowserExtensionSetup: View {
   }
 
   /// Strip the "PLAYWRIGHT_MCP_EXTENSION_TOKEN=" prefix if the user copied the full env var line.
-  static func parseToken(_ input: String) -> String {
+  nonisolated static func parseToken(_ input: String) -> String {
     var token = input.trimmingCharacters(in: .whitespacesAndNewlines)
     if let eqIndex = token.firstIndex(of: "="), token.hasPrefix("PLAYWRIGHT") {
       token = String(token[token.index(after: eqIndex)...])
@@ -519,7 +519,7 @@ struct BrowserExtensionSetup: View {
 
   /// Validate that a parsed token looks like a real extension auth token.
   /// Returns an error message if invalid, nil if valid.
-  static func validateToken(_ token: String) -> String? {
+  nonisolated static func validateToken(_ token: String) -> String? {
     if token.isEmpty {
       return "Please paste the token from the extension page."
     }
@@ -534,7 +534,7 @@ struct BrowserExtensionSetup: View {
     return nil
   }
 
-  static func settingsStatus(enabled: Bool, token: String, verified: Bool) -> SettingsStatus {
+  nonisolated static func settingsStatus(enabled: Bool, token: String, verified: Bool) -> SettingsStatus {
     let parsedToken = parseToken(token)
     if !enabled {
       return SettingsStatus(
@@ -571,7 +571,7 @@ struct BrowserExtensionSetup: View {
     )
   }
 
-  static func connectionFailureGuidance(
+  nonisolated static func connectionFailureGuidance(
     chromeInstalled: Bool,
     extensionInstalled: Bool,
     token: String,

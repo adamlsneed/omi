@@ -135,7 +135,9 @@ final class IdeaCaptureToast {
         ctx.duration = 0.22
         panel.animator().alphaValue = 0
       },
-      completionHandler: { [weak self] in self?.panel?.orderOut(nil) })
+      completionHandler: { [weak self] in
+        MainActor.assumeIsolated { self?.panel?.orderOut(nil) }
+      })
   }
 
   private func makePanel() -> NSPanel {

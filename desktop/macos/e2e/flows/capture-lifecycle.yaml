@@ -4,6 +4,8 @@ tier: 2
 description: Hermetic capture lifecycle via capture_test_transcript seam (no mic/STT)
 app: non-prod
 covers:
+  - desktop/macos/Desktop/Sources/ProactiveAssistants/Core/CapturedFrame.swift
+  - desktop/macos/Desktop/Sources/ProactiveAssistants/Services/OverlayService.swift
   - desktop/macos/Desktop/Sources/AppState/AppState+Transcription.swift
   - desktop/macos/Desktop/Sources/AppState/AppState+ListenEvents.swift
   - desktop/macos/Desktop/Sources/AppState/STTSessionState.swift

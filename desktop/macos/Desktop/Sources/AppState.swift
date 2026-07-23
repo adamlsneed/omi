@@ -918,7 +918,7 @@ class AppState: ObservableObject {
       log("idea-capture: conversation \(conversationId) was discarded, reprocessing")
       try? await APIClient.shared.reprocessConversation(conversationId: conversationId)
     }
-    try await APIClient.shared.moveConversationToFolder(
+    _ = try await APIClient.shared.moveConversationToFolder(
       conversationId: conversationId, folderId: folderId)
     log("idea-capture: filed conversation \(conversationId) under Ideas")
   }

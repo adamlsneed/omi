@@ -68,7 +68,7 @@ enum LocalSessionUploader {
         session: session, sessionId: sessionId)
     )
     let response = try await APIClient.shared.createConversationFromSegments(request)
-    try? await TranscriptionStorage.shared.markSessionCompleted(id: sessionId, backendId: response.id)
+    _ = try? await TranscriptionStorage.shared.markSessionCompleted(id: sessionId, backendId: response.id)
     log(
       "LocalSessionUploader: Uploaded session \(sessionId) → backend conversation \(response.id) (\(merged.count) segments)"
     )
