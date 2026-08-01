@@ -338,6 +338,50 @@ def test_mobile_codemagic_trigger_guard_rejects_github_dispatcher(tmp_path, monk
     assert any("must not be dispatched through GitHub Actions" in error for error in errors), errors
 
 
+def _desktop_candidate_trigger_guard_root(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
+    codemagic = tmp_path / "codemagic.yaml"
+    candidate = tmp_path / ".github/workflows/desktop_auto_release.yml"
+    preview = tmp_path / ".github/workflows/desktop_publish_preview.yml"
+    candidate.parent.mkdir(parents=True)
+    shutil.copy2(REPO_ROOT / "codemagic.yaml", codemagic)
+    shutil.copy2(REPO_ROOT / ".github/workflows/desktop_auto_release.yml", candidate)
+    shutil.copy2(REPO_ROOT / ".github/workflows/desktop_publish_preview.yml", preview)
+    monkeypatch.setattr(GUARDS, "ROOT", tmp_path)
+    return codemagic, candidate
+
+
+def test_desktop_candidate_trigger_guard_keeps_native_tag_lane_and_preview_exception(tmp_path, monkeypatch):
+    _desktop_candidate_trigger_guard_root(tmp_path, monkeypatch)
+
+    assert GUARDS.check_desktop_candidate_trigger_authority() == []
+
+
+def test_desktop_candidate_trigger_guard_rejects_non_tag_normal_trigger(tmp_path, monkeypatch):
+    codemagic, _ = _desktop_candidate_trigger_guard_root(tmp_path, monkeypatch)
+    _mutate(
+        codemagic,
+        "    triggering:\n      events:\n        - tag\n      tag_patterns:\n        - pattern: \"v*-macos\"\n          include: true\n",
+        "    triggering:\n      events:\n        - push\n      branch_patterns:\n        - pattern: main\n          include: true\n",
+    )
+
+    errors = GUARDS.check_desktop_candidate_trigger_authority()
+
+    assert any("must natively trigger on v*-macos tags" in error for error in errors), errors
+
+
+def test_desktop_candidate_trigger_guard_rejects_direct_build_api_for_normal_lane(tmp_path, monkeypatch):
+    _, candidate = _desktop_candidate_trigger_guard_root(tmp_path, monkeypatch)
+    candidate.write_text(
+        candidate.read_text(encoding="utf-8")
+        + "\n# forbidden normal-candidate dispatcher\n# https://api.codemagic.io/builds\n",
+        encoding="utf-8",
+    )
+
+    errors = GUARDS.check_desktop_candidate_trigger_authority()
+
+    assert any("must not start Codemagic with a direct builds API POST" in error for error in errors), errors
+
+
 @pytest.mark.parametrize(
     ("old", "new"),
     (
@@ -790,3 +834,50 @@ def test_global_document_lock_rejects_malformed_fixture_json(tmp_path, monkeypat
     errors = GUARDS.check_codemagic_release_publishers()
 
     assert any("invalid JSON" in error for error in errors), errors
+
+
+def test_firmware_release_metadata_uses_resolved_bash_and_converted_output(tmp_path, monkeypatch):
+    script = tmp_path / "omi/firmware/scripts/ci/make-release-body.sh"
+    script.parent.mkdir(parents=True)
+    script.write_text("# fixture\n", encoding="utf-8")
+    commands = []
+
+    def fake_run(command, **kwargs):
+        commands.append(command)
+        Path(kwargs["env"]["OUT"]).write_text(
+            "<!-- KEY_VALUE_START\n"
+            "release_firmware_version:9.8.7\n"
+            "minimum_firmware_required:3.0.6\n"
+            "minimum_app_version:1.0.74\n"
+            "minimum_app_version_code:438\n"
+            "is_legacy_secure_dfu:False\n"
+            "ota_update_steps:battery,internet\n"
+            "KEY_VALUE_END -->\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(GUARDS, "ROOT", tmp_path)
+    monkeypatch.setattr(GUARDS, "bash_executable", lambda: "git-bash.exe")
+    monkeypatch.setattr(GUARDS, "bash_path", lambda value, _bash: str(value))
+    monkeypatch.setattr(GUARDS.subprocess, "run", fake_run)
+
+    assert GUARDS.check_firmware_release_metadata() == []
+    assert commands == [["git-bash.exe", str(script)]]
+
+
+def test_firmware_release_metadata_reports_status_when_shell_has_no_output(tmp_path, monkeypatch):
+    script = tmp_path / "omi/firmware/scripts/ci/make-release-body.sh"
+    script.parent.mkdir(parents=True)
+    script.write_text("# fixture\n", encoding="utf-8")
+
+    monkeypatch.setattr(GUARDS, "ROOT", tmp_path)
+    monkeypatch.setattr(GUARDS, "bash_executable", lambda: "git-bash.exe")
+    monkeypatch.setattr(GUARDS, "bash_path", lambda value, _bash: str(value))
+    monkeypatch.setattr(
+        GUARDS.subprocess,
+        "run",
+        lambda command, **_kwargs: subprocess.CompletedProcess(command, 9, stdout=None, stderr=None),
+    )
+
+    assert GUARDS.check_firmware_release_metadata() == ["firmware release body smoke failed: exit 9"]

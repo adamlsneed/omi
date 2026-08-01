@@ -119,6 +119,15 @@ function makeErrorTurnEndEvent(errorMessage: string) {
   };
 }
 
+type PublicWebRoutingContractFixture = {
+  version: number;
+  cases: Array<{
+    name: string;
+    prompt: string;
+    requiresPublicWeb: boolean;
+  }>;
+};
+
 describe("PiMonoAdapter prompt correlation", () => {
   it("forwards tool execution updates as content-free progress activity", async () => {
     const { adapter, events } = createAdapter();
@@ -183,8 +192,55 @@ describe("PiMonoAdapter prompt correlation", () => {
     for (const message of [
       "search my calendar for weather in NYC",
       "what did I say today about the current weather?",
+      "what did I do today?",
     ]) {
       expect(routePromptForPublicWeb(message)).toBe(message);
+    }
+  });
+
+  it("matches the cross-runtime public-web routing contract", () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        fileURLToPath(
+          new URL("../../../../backend/desktop_fixtures/public-web-routing-contract.fixture.json", import.meta.url)
+        ),
+        "utf8"
+      )
+    ) as PublicWebRoutingContractFixture;
+
+    expect(fixture.version).toBe(1);
+    for (const testCase of fixture.cases) {
+      const routed = routePromptForPublicWeb(testCase.prompt);
+      expect(routed.includes("<omi_retrieval_policy>"), testCase.name).toBe(
+        testCase.requiresPublicWeb
+      );
+    }
+  });
+
+  it("does not force web when the current user explicitly prohibits it", () => {
+    for (const message of [
+      "Do you know why the web search tool times out? Don't call it because it will time out again.",
+      "Do you know why the web search tool times out? Don’t call it because it will time out again.",
+      "Do not call the web search tool; answer from what you already know.",
+      "Do not use web search resulting in external network access.",
+      "Explain web search without web search.",
+      "Do not use web search; answer from what you already know.",
+    ]) {
+      expect(routePromptForPublicWeb(message)).toBe(message);
+    }
+  });
+
+  it("does not invert explicit web intent for unrelated negation", () => {
+    for (const message of [
+      "Search the web for naming ideas, but don't call it Omi.",
+      "Search the web for webpack docs; don't use webpack examples.",
+      "Use web search for the answer, but don't call it authoritative.",
+      "Search the web because I got no web search results.",
+      "Search the web, but do not use the web search results as the only source.",
+      "Search the web and explain why no web search results appeared.",
+      "Search the web for the term no web search.",
+    ]) {
+      expect(routePromptForPublicWeb(message)).toContain("<omi_retrieval_policy>");
     }
   });
 
@@ -230,11 +286,21 @@ describe("PiMonoAdapter prompt correlation", () => {
     );
 
     (adapter as any).handleMessageUpdate({
-      assistantMessageEvent: { type: "text_delta", delta: response },
+      assistantMessageEvent: { type: "text_delta", delta: "I don't have direct internet/" },
     });
+    expect(events.filter((event) => event.type === "text_delta")).toEqual([]);
+    (adapter as any).handleMessageUpdate({
+      assistantMessageEvent: {
+        type: "text_delta",
+        delta: "web access, but I can get you real weather data via the terminal!\n\nCurrent weather: Sunny, 73 F.",
+      },
+    });
+    const expected = "I can get you real weather data via the terminal!\n\nCurrent weather: Sunny, 73 F.";
+    expect(events.filter((event) => event.type === "text_delta")).toEqual([
+      { type: "text_delta", text: expected },
+    ]);
     (adapter as any).handleTurnEnd(makeTurnEndEvent(response));
 
-    const expected = "I can get you real weather data via the terminal!\n\nCurrent weather: Sunny, 73 F.";
     await expect(prompt).resolves.toMatchObject({ text: expected });
     expect(events.filter((event) => event.type === "text_delta")).toEqual([
       { type: "text_delta", text: expected },
@@ -599,6 +665,31 @@ describe("PiMonoAdapter prompt correlation", () => {
     );
   });
 
+  it("normalizes bare provider HTTP status errors before surfacing them", async () => {
+    const { adapter, events } = createAdapter();
+    seedSessions(adapter, "session-1");
+
+    const prompt = adapter.sendPrompt(
+      "session-1",
+      [{ type: "text", text: "fail with backend 5xx" }],
+      [],
+      "act",
+      (event) => events.push(event),
+      async () => ""
+    );
+
+    (adapter as any).handleEvent(JSON.stringify(makeErrorTurnEndEvent('500 "omi-fault-inject"')));
+
+    await expect(prompt).rejects.toThrow('HTTP 500 "omi-fault-inject"');
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "error",
+        message: 'HTTP 500 "omi-fault-inject"',
+        adapterSessionId: "session-1",
+      })
+    );
+  });
+
   it("does not report success after a required agent-control operation fails", async () => {
     const { adapter, events } = createAdapter();
     seedSessions(adapter, "session-1");
@@ -739,6 +830,44 @@ describe("PiMonoAdapter prompt correlation", () => {
     expect(events).toEqual([]);
     expect((adapter as any).pendingRequests.size).toBe(0);
   });
+
+  it("cancels blocking extension_ui_request and ignores fire-and-forget UI events", async () => {
+    const { adapter } = createAdapter();
+    await adapter.start();
+    const stdin = (adapter as any).process.stdin as PassThrough;
+    const chunks: string[] = [];
+    stdin.on("data", (buf: Buffer) => chunks.push(buf.toString("utf8")));
+
+    (adapter as any).handleEvent(
+      JSON.stringify({
+        type: "extension_ui_request",
+        id: "ui-status-1",
+        method: "setStatus",
+        statusKey: "working",
+        statusText: "…",
+      })
+    );
+    (adapter as any).handleEvent(
+      JSON.stringify({
+        type: "extension_ui_request",
+        id: "ui-select-1",
+        method: "select",
+        title: "Pick one",
+        options: ["a", "b"],
+      })
+    );
+
+    await new Promise((r) => setImmediate(r));
+    const written = chunks.join("");
+    expect(written).not.toContain("ui-status-1");
+    expect(written).toContain(
+      JSON.stringify({
+        type: "extension_ui_response",
+        id: "ui-select-1",
+        cancelled: true,
+      })
+    );
+  });
 });
 
 describe("PiMonoAdapter restart lifecycle", () => {
@@ -759,19 +888,18 @@ describe("PiMonoAdapter restart lifecycle", () => {
 });
 
 describe("PiMonoAdapter source-level invariants", () => {
-  // The pi subprocess env (no token in env, no ambient ANTHROPIC_API_KEY) is
-  // verified behaviorally by "PiMonoAdapter spawn args" below. This guards the
-  // token hand-off: the adapter must pass the auth token via a private file
-  // (OMI_API_KEY_FILE), never inline in the child environment.
-  const adapterSrc = readFileSync(
+  const piMonoSrc = readFileSync(
     fileURLToPath(new URL("../src/adapters/pi-mono.ts", import.meta.url)),
     "utf8"
   );
 
-  it("passes the Swift-provided auth token via a private file", () => {
-    expect(adapterSrc).toContain("OMI_API_KEY_FILE");
-    expect(adapterSrc).toContain("writeAuthTokenFile");
-    expect(adapterSrc).not.toMatch(/env\.OMI_API_KEY\s*=/);
+  it("passes the raw authToken as OMI_API_KEY (no `Bearer ` prefix)", () => {
+    expect(piMonoSrc).toMatch(/env\.OMI_API_KEY\s*=\s*this\.config\.authToken\s*;?/);
+    expect(piMonoSrc).not.toMatch(/env\.OMI_API_KEY\s*=\s*`Bearer \$\{/);
+  });
+
+  it("always scrubs ANTHROPIC_API_KEY from the child env", () => {
+    expect(piMonoSrc).toMatch(/delete\s+env\.ANTHROPIC_API_KEY\s*;?/);
   });
 });
 
@@ -782,7 +910,7 @@ describe("PiMonoAdapter spawn args (behavioral)", () => {
     vi.mocked(spawn).mockClear();
   });
 
-  it("does not pass --no-extensions to the subprocess", async () => {
+  it("keeps user extensions enabled while loading the Omi extension", async () => {
     const config: HarnessConfig = {
       authToken: "test-token",
     };
@@ -794,10 +922,9 @@ describe("PiMonoAdapter spawn args (behavioral)", () => {
     expect(cmd).toBe("/fake/pi");
     expect(args).toContain("--mode");
     expect(args).toContain("rpc");
+    expect(args).not.toContain("--no-extensions");
     expect(args).toContain("-e");
     expect(args).toContain("/fake/ext.ts");
-    // Auto-discovery must be enabled: --no-extensions must NOT be present
-    expect(args).not.toContain("--no-extensions");
 
     await adapter.stop();
   });
@@ -820,39 +947,20 @@ describe("PiMonoAdapter spawn args (behavioral)", () => {
     await adapter.stop();
   });
 
-  it("passes authToken through a private file and scrubs ambient secrets", async () => {
-    const previousAmbientSecret = process.env.APPLE_APP_SPECIFIC_PASSWORD;
-    process.env.APPLE_APP_SPECIFIC_PASSWORD = "do-not-forward";
+  it("scrubs OMI_API_KEY into the subprocess env from authToken", async () => {
     const config: HarnessConfig = {
       authToken: "firebase-id-token-xyz",
     };
-    const adapter = new PiMonoAdapter(config, "/fake/pi.js", "/fake/ext.ts");
+    const adapter = new PiMonoAdapter(config, "/fake/pi", "/fake/ext.ts");
+    await adapter.start();
 
-    try {
-      await adapter.start();
+    const [, , options] = vi.mocked(spawn).mock.calls[0] as [string, string[], { env: Record<string, string> }];
+    // Raw token, not "Bearer <token>"
+    expect(options.env.OMI_API_KEY).toBe("firebase-id-token-xyz");
+    // Upstream secret must be scrubbed
+    expect(options.env.ANTHROPIC_API_KEY).toBeUndefined();
 
-      const [cmd, args, options] = vi.mocked(spawn).mock.calls[0] as [
-        string,
-        string[],
-        { env: Record<string, string> },
-      ];
-      expect(cmd).toBe(process.execPath);
-      expect(args[0]).toBe("/fake/pi.js");
-      expect(options.env.OMI_API_KEY).toBeUndefined();
-      expect(options.env.OMI_API_KEY_FILE).toBeTruthy();
-      expect(readFileSync(options.env.OMI_API_KEY_FILE!, "utf8")).toBe("firebase-id-token-xyz");
-      expect(options.env.ANTHROPIC_API_KEY).toBeUndefined();
-      expect(options.env.APPLE_APP_SPECIFIC_PASSWORD).toBeUndefined();
-
-      await adapter.stop();
-      expect(existsSync(options.env.OMI_API_KEY_FILE!)).toBe(false);
-    } finally {
-      if (previousAmbientSecret === undefined) {
-        delete process.env.APPLE_APP_SPECIFIC_PASSWORD;
-      } else {
-        process.env.APPLE_APP_SPECIFIC_PASSWORD = previousAmbientSecret;
-      }
-    }
+    await adapter.stop();
   });
 });
 

@@ -1470,7 +1470,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get payYourSttProvider => 'Use Omi de graça. Você paga apenas seu provedor STT.';
 
   @override
-  String get freeMinutesMonth => '1.200 minutos grátis/mês incluídos.';
+  String get freeMinutesMonth => '300 minutos grátis/mês incluídos.';
 
   @override
   String get omiUnlimited => 'Omi Ilimitado';
@@ -1783,18 +1783,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get lovingOmi => 'Amando o Omi?';
-
-  @override
-  String get leaveReviewIos => 'Ajude-nos a alcançar mais pessoas deixando uma avaliação na App Store.';
-
-  @override
-  String get leaveReviewAndroid => 'Ajude-nos a alcançar mais pessoas deixando uma avaliação na Google Play.';
-
-  @override
-  String get rateOnAppStore => 'Avaliar na App Store';
-
-  @override
-  String get rateOnGooglePlay => 'Avaliar na Google Play';
 
   @override
   String get maybeLater => 'Talvez depois';
@@ -2122,6 +2110,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get editMemory => '✏️ Editar memória';
+
+  @override
+  String get pinAsBaseline => 'Pin as Baseline';
+
+  @override
+  String get unpinAsBaseline => 'Unpin from Baseline';
+
+  @override
+  String get baselineMemory => 'Baseline Memory';
+
+  @override
+  String get alwaysInContext => 'Always in context';
 
   @override
   String get memoryContentHint => 'Eu gosto de sorvete...';
@@ -4703,7 +4703,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Nenhum acesso a dados específico configurado.';
 
   @override
-  String get basicPlanDescription => '1.200 minutos premium + ilimitado no dispositivo';
+  String get basicPlanDescription => '300 minutos premium + ilimitado no dispositivo';
 
   @override
   String get minutes => 'minutos';
@@ -5999,7 +5999,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1.200 minutos premium/mês. A aba No Dispositivo oferece transcrição gratuita ilimitada.';
+      '300 minutos premium/mês. A aba No Dispositivo oferece transcrição gratuita ilimitada.';
 
   @override
   String get viewUsage => 'Ver uso';
@@ -6081,7 +6081,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1.200 minutos premium/mês. A aba No dispositivo oferece transcrição gratuita ilimitada. ';
+      '300 minutos premium/mês. A aba No dispositivo oferece transcrição gratuita ilimitada. ';
 
   @override
   String get audioProcessedLocally =>

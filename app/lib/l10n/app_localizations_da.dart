@@ -1478,7 +1478,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get payYourSttProvider => 'Betal din STT-udbyder';
 
   @override
-  String get freeMinutesMonth => 'Gratis minutter/måned';
+  String get freeMinutesMonth => '300 gratis minutter/måned inkluderet. Ubegrænset med ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -1791,18 +1791,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get lovingOmi => 'Elsker du Omi?';
-
-  @override
-  String get leaveReviewIos => 'Efterlad en anmeldelse på App Store';
-
-  @override
-  String get leaveReviewAndroid => 'Efterlad en anmeldelse på Google Play';
-
-  @override
-  String get rateOnAppStore => 'Bedøm på App Store';
-
-  @override
-  String get rateOnGooglePlay => 'Bedøm på Google Play';
 
   @override
   String get maybeLater => 'Måske senere';
@@ -2129,6 +2117,18 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get editMemory => '✏️ Rediger hukommelse';
+
+  @override
+  String get pinAsBaseline => 'Pin as Baseline';
+
+  @override
+  String get unpinAsBaseline => 'Unpin from Baseline';
+
+  @override
+  String get baselineMemory => 'Baseline Memory';
+
+  @override
+  String get alwaysInContext => 'Always in context';
 
   @override
   String get memoryContentHint => 'Indtast hukommelsesindhold';
@@ -4703,7 +4703,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Ingen specifik dataadgang konfigureret.';
 
   @override
-  String get basicPlanDescription => '1.200 premium minutter + ubegrænset on-device';
+  String get basicPlanDescription => '300 premium minutter + ubegrænset on-device';
 
   @override
   String get minutes => 'minutter';
@@ -5992,8 +5992,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get cloudProvider => 'Cloud-udbyder';
 
   @override
-  String get premiumMinutesInfo =>
-      '1.200 premium minutter/måned. Lokal-fanen tilbyder ubegrænset gratis transskription.';
+  String get premiumMinutesInfo => '300 premium minutter/måned. Lokal-fanen tilbyder ubegrænset gratis transskription.';
 
   @override
   String get viewUsage => 'Se forbrug';
@@ -6074,7 +6073,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1.200 premium minutter/måned. Fanen På enheden tilbyder ubegrænset gratis transskription. ';
+      '300 premium minutter/måned. Fanen På enheden tilbyder ubegrænset gratis transskription. ';
 
   @override
   String get audioProcessedLocally => 'Lyd behandles lokalt. Fungerer offline, mere privat, men bruger mere batteri.';

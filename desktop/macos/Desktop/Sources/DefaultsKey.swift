@@ -34,6 +34,7 @@ enum DefaultsKey: String {
   /// `auth_userId` with a synthetic owner.
   case automationOwnerABackup = "automation_swap_owner_a_backup"
   case chatBridgeMode = "chatBridgeMode"
+  case preferredMicrophoneDeviceUID = "preferredMicrophoneDeviceUID"
   case multiChatEnabled = "multiChatEnabled"
   case aiChatWorkingDirectory = "aiChatWorkingDirectory"
   case hasCompletedOnboarding = "hasCompletedOnboarding"
@@ -45,6 +46,9 @@ enum DefaultsKey: String {
   case onboardingJustCompleted = "onboardingJustCompleted"
   case hasCompletedFileIndexing = "hasCompletedFileIndexing"
   case homeOmiDeviceAccountHistory = "home-omi-device-account-history"
+  case pairedDeviceId = "pairedDeviceId"
+  case pairedDeviceName = "pairedDeviceName"
+  case pairedDeviceType = "pairedDeviceType"
   case chatScreenshotSharingEnabled = "chatScreenshotSharingEnabled"
   /// Test hook: forces TTS playback start to report failure (non-prod gauntlets).
   case forceTTSPlaybackStartFalse = "forceTTSPlaybackStartFalse"

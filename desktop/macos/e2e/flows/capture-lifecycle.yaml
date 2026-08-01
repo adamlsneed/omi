@@ -7,6 +7,7 @@ covers:
   - desktop/macos/Desktop/Sources/ProactiveAssistants/Core/CapturedFrame.swift
   - desktop/macos/Desktop/Sources/ProactiveAssistants/Services/OverlayService.swift
   - desktop/macos/Desktop/Sources/AppState/AppState+Transcription.swift
+  - desktop/macos/Desktop/Sources/AppState/SharedCaptureSilentMicRecoveryPolicy.swift
   - desktop/macos/Desktop/Sources/AppState/AppState+ListenEvents.swift
   - desktop/macos/Desktop/Sources/AppState/STTSessionState.swift
   - desktop/macos/Desktop/Sources/LocalTranscriptionService.swift
@@ -19,6 +20,7 @@ covers:
   - desktop/macos/Desktop/Sources/MainWindow/Conversations/ConversationRepository.swift
   - desktop/macos/Desktop/Sources/MainWindow/Pages/ConversationDetailView.swift
   - desktop/macos/Desktop/Sources/Rewind/Core/RewindDatabase.swift
+  - desktop/macos/Desktop/Sources/Rewind/Core/StorageFailureDiagnostics.swift
   - desktop/macos/Desktop/Sources/Rewind/Core/VideoChunkEncoder.swift
   - desktop/macos/Desktop/Sources/Rewind/Services/OCREmbeddingService.swift
   - desktop/macos/Desktop/Sources/ResourceMonitor.swift

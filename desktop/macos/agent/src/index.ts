@@ -2,8 +2,8 @@
  * ACP Bridge — translates between OMI's JSON-lines protocol and the
  * Agent Client Protocol (ACP) used by claude-code-acp.
  *
- * THIS IS THE DESKTOP APP FLOW. It is unrelated to the VM/agent-cloud flow
- * (agent-cloud/agent.mjs), which runs Claude Code SDK on a remote VM for
+ * THIS IS THE DESKTOP APP FLOW. It is unrelated to the VM agent flow, which
+ * runs the Claude Agent SDK on a remote VM for
  * the Omi Agent feature. This bridge runs locally on the user's Mac.
  *
  * Session lifecycle:
@@ -32,7 +32,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createNetServer, type Socket } from "net";
 import { homedir, tmpdir } from "os";
-import { unlinkSync, appendFileSync, readFileSync } from "fs";
+import { unlinkSync, appendFileSync } from "fs";
 import type {
   InboundMessage,
   ControlToolRequestMessage,
@@ -56,6 +56,7 @@ import type {
   JournalImportRemoteTurnMessage,
   JournalUpdateTurnMessage,
   JournalTerminalizeTurnMessage,
+  JournalRepairTurnsMessage,
   JournalListTurnsMessage,
   JournalClearTurnsMessage,
   EnsureAgentSpawnJournalMessage,
@@ -80,7 +81,12 @@ import {
 import { startOAuthFlow, type OAuthFlowHandle } from "./oauth-flow.js";
 import { isProductionAdapterId, type PromptBlock, type RuntimeAdapter } from "./adapters/interface.js";
 import { detectImageMimeType } from "./mime-detect.js";
-import { AcpError, AcpRuntimeAdapter, isAcpProviderAuthFailure } from "./adapters/acp.js";
+import {
+  AcpError,
+  AcpRuntimeAdapter,
+  beginProviderAuthWithoutBlocking,
+  isAcpProviderAuthFailure,
+} from "./adapters/acp.js";
 import { AdapterRegistry } from "./runtime/adapter-registry.js";
 import { nextJournalPumpDelayMs } from "./runtime/journal-pump-backoff.js";
 import { JsonlTransport, type McpServerBuildContext } from "./runtime/jsonl-transport.js";
@@ -136,6 +142,7 @@ import {
   listJournalTurns,
   recordJournalExchange,
   recordJournalTurn,
+  repairOrphanedJournalTurns,
   settleClearedBackendTurnClaim,
   assertPublicJournalUpdatePolicy,
   terminalizeJournalTurn,
@@ -184,22 +191,6 @@ function logErr(msg: string): void {
     // ignore — parent pipe is gone; we'll exit shortly anyway
   }
 }
-
-// The Swift host passes the Firebase token through a private 0600 file
-// (OMI_AUTH_TOKEN_FILE) so it never appears in spawn-time process listings.
-// Hydrate it into this process's own env once so activation gating, adapter
-// creation, and token refresh all keep their existing OMI_AUTH_TOKEN contract.
-(function hydrateAuthTokenFromFile(): void {
-  if (process.env.OMI_AUTH_TOKEN) return;
-  const tokenFile = process.env.OMI_AUTH_TOKEN_FILE;
-  if (!tokenFile) return;
-  try {
-    const token = readFileSync(tokenFile, "utf8").trim();
-    if (token) process.env.OMI_AUTH_TOKEN = token;
-  } catch (err) {
-    logErr(`Failed to read OMI_AUTH_TOKEN_FILE: ${err}`);
-  }
-})();
 
 // Queue stdout lines so a full parent pipe waits on `drain` instead of
 // blocking the event loop inside kernel subscribers / query completion.
@@ -1070,10 +1061,16 @@ async function initializeAcp(): Promise<void> {
         }));
       }
       logErr(`ACP requires authentication: ${JSON.stringify(authMethods)}`);
-      await startAuthFlow();
-
-      // Retry initialization after auth (ACP subprocess already restarted)
-      await initializeAcp();
+      // Terminalize-first, same contract the active turn already follows: signal
+      // Swift and return instead of awaiting OAuth in-band. `isInitialized` stays
+      // false, so the pending send reaches the ACP request, hits the same -32000,
+      // and terminalizes as `authentication` via the kernel's recoverable-error
+      // path rather than hanging behind this init (#10407).
+      beginProviderAuthWithoutBlocking({
+        signalAuthRequired: signalProviderAuthRequired,
+        startAuthFlow,
+        logErr,
+      });
       return;
     }
     throw err;
@@ -2448,6 +2445,55 @@ async function main(): Promise<void> {
               externalRefId: request.externalRefId,
               turn: journalTurnProjection(turn),
             });
+          }
+          pumpJournalOutbox();
+        } catch (error) {
+          const envelope = runtimeErrorEnvelope(error);
+          send({
+            type: "error",
+            protocolVersion: request.protocolVersion,
+            requestId: request.requestId,
+            clientId: request.clientId,
+            message: envelope.message,
+            failure: envelope.failure,
+          });
+        }
+        break;
+      }
+
+      case "journal_repair_turns": {
+        const request = msg as JournalRepairTurnsMessage;
+        try {
+          const ownerId = resolveActiveOwner(request.ownerId);
+          const turns = repairOrphanedJournalTurns(store, {
+            ownerId,
+            turnIds: Array.isArray(request.turnIds)
+              ? request.turnIds.filter((turnId): turnId is string => typeof turnId === "string")
+              : [],
+          });
+          send({
+            type: "journal_operation_result",
+            protocolVersion: request.protocolVersion,
+            requestId: request.requestId,
+            clientId: request.clientId,
+            operation: "repair",
+            conversationId: turns[0]?.conversationId ?? "",
+            surfaceKind: request.surfaceKind,
+            externalRefKind: request.externalRefKind,
+            externalRefId: request.externalRefId,
+            turns: turns.map(journalTurnProjection),
+            clearedCount: 0,
+            highWaterTurnSeq: 0,
+            generationBaseTurnSeq: 0,
+            conversationGeneration: 1,
+          });
+          for (const turn of turns) {
+            for (const wake of journalTurnChangedWakes(store, ownerId, turn)) {
+              send({
+                type: "journal_turn_changed",
+                ...wake,
+              });
+            }
           }
           pumpJournalOutbox();
         } catch (error) {

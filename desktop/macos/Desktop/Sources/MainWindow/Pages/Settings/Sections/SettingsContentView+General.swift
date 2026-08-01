@@ -7,7 +7,7 @@ import WebKit
 extension SettingsContentView {
   var generalSection: some View {
     VStack(spacing: OmiSpacing.xl) {
-      // Screen Recording toggle
+      // Screen Capture toggle
       settingsCard(settingId: "general.screencapture") {
         HStack(spacing: OmiSpacing.lg) {
           Image(systemName: "rectangle.dashed.badge.record")
@@ -15,7 +15,7 @@ extension SettingsContentView {
             .foregroundColor(OmiColors.info)
 
           VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
-            Text(DesktopRecordingControlCopy.screenRecordingTitle)
+            Text("Screen Capture")
               .scaledFont(size: OmiType.subheading, weight: .semibold)
               .foregroundColor(OmiColors.textPrimary)
 
@@ -36,9 +36,10 @@ extension SettingsContentView {
           if isToggling {
             ProgressView()
               .scaleEffect(0.8)
+              .frame(width: 36, height: 20)
           } else {
             Toggle(
-              DesktopRecordingControlCopy.screenRecordingTitle,
+              "",
               isOn: Binding(
                 get: { isMonitoring },
                 set: { newValue in
@@ -49,12 +50,12 @@ extension SettingsContentView {
             )
             .toggleStyle(OmiToggleStyle())
             .labelsHidden()
-            .accessibilityLabel(DesktopRecordingControlCopy.screenRecordingTitle)
+            .frame(width: 36, height: 20)
           }
         }
       }
 
-      // Microphone toggle
+      // Audio Recording toggle
       settingsCard(settingId: "general.audiorecording") {
         HStack(spacing: OmiSpacing.lg) {
           Image(systemName: "mic.fill")
@@ -62,7 +63,7 @@ extension SettingsContentView {
             .foregroundColor(OmiColors.info)
 
           VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
-            Text(DesktopRecordingControlCopy.microphoneTitle)
+            Text("Audio Recording")
               .scaledFont(size: OmiType.subheading, weight: .semibold)
               .foregroundColor(OmiColors.textPrimary)
 
@@ -70,8 +71,8 @@ extension SettingsContentView {
               transcriptionError
                 ?? (isTranscribing
                   ? (appState.isAwaitingMeeting
-                    ? "Waiting for a meeting…" : "Recording and transcribing microphone audio")
-                  : "Microphone recording is paused")
+                    ? "Waiting for a meeting…" : "Recording and transcribing audio")
+                  : "Audio recording is paused")
             )
             .scaledFont(size: OmiType.body)
             .foregroundColor(transcriptionError != nil ? OmiColors.warning : OmiColors.textTertiary)
@@ -82,9 +83,10 @@ extension SettingsContentView {
           if isTogglingTranscription {
             ProgressView()
               .scaleEffect(0.8)
+              .frame(width: 36, height: 20)
           } else {
             Toggle(
-              DesktopRecordingControlCopy.microphoneTitle,
+              "",
               isOn: Binding(
                 get: { isTranscribing },
                 set: { newValue in
@@ -95,7 +97,7 @@ extension SettingsContentView {
             )
             .toggleStyle(OmiToggleStyle())
             .labelsHidden()
-            .accessibilityLabel(DesktopRecordingControlCopy.microphoneTitle)
+            .frame(width: 36, height: 20)
           }
         }
       }
@@ -226,146 +228,6 @@ extension SettingsContentView {
               .fixedSize(horizontal: false, vertical: true)
             }
           }
-        }
-      }
-
-      // Notifications toggle
-      settingsCard(settingId: "general.notifications") {
-        VStack(spacing: 12) {
-          HStack(spacing: 16) {
-            Circle()
-              .fill(
-                appState.hasNotificationPermission && !appState.isNotificationBannerDisabled
-                  ? OmiColors.success
-                  : (appState.isNotificationBannerDisabled
-                    ? OmiColors.warning : OmiColors.textTertiary.opacity(0.3))
-              )
-              .frame(width: 12, height: 12)
-              .shadow(
-                color: appState.hasNotificationPermission && !appState.isNotificationBannerDisabled
-                  ? OmiColors.success.opacity(0.5) : .clear, radius: 6)
-
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Notifications")
-                .scaledFont(size: 16, weight: .semibold)
-                .foregroundColor(OmiColors.textPrimary)
-
-              Text(notificationStatusText)
-                .scaledFont(size: 13)
-                .foregroundColor(
-                  appState.isNotificationBannerDisabled ? OmiColors.warning : OmiColors.textTertiary
-                )
-            }
-
-            Spacer()
-
-            if appState.hasNotificationPermission && !appState.isNotificationBannerDisabled {
-              // Show enabled badge
-              Text("Enabled")
-                .scaledFont(size: 12, weight: .medium)
-                .foregroundColor(.green)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(
-                  Capsule()
-                    .fill(Color.green.opacity(0.15))
-                )
-            } else {
-              // Show button to enable or fix
-              Button(action: {
-                if appState.isNotificationBannerDisabled {
-                  // Banners off — user needs to change style in System Settings
-                  appState.openNotificationPreferences()
-                } else {
-                  // Auth not granted — try lsregister repair first
-                  AnalyticsManager.shared.notificationRepairTriggered(
-                    reason: "settings_fix_button",
-                    previousStatus: "not_authorized",
-                    currentStatus: "not_authorized"
-                  )
-                  appState.repairNotificationAndFallback()
-                }
-              }) {
-                Text(appState.isNotificationBannerDisabled ? "Fix" : "Enable")
-                  .scaledFont(size: 12, weight: .semibold)
-                  .foregroundColor(.white)
-                  .padding(.horizontal, 12)
-                  .padding(.vertical, 6)
-                  .background(
-                    RoundedRectangle(cornerRadius: 6)
-                      .fill(
-                        appState.isNotificationBannerDisabled
-                          ? OmiColors.warning : OmiColors.info)
-                  )
-              }
-              .buttonStyle(.plain)
-            }
-          }
-
-          // Warning when banners are disabled
-          if appState.isNotificationBannerDisabled {
-            HStack(spacing: 8) {
-              Image(systemName: "exclamationmark.triangle.fill")
-                .scaledFont(size: 12)
-                .foregroundColor(OmiColors.warning)
-
-              Text(
-                "Banners disabled - you won't see visual alerts. Set style to \"Banners\" in System Settings."
-              )
-              .scaledFont(size: 12)
-              .foregroundColor(OmiColors.warning)
-
-              Spacer()
-            }
-            .padding(10)
-            .background(
-              RoundedRectangle(cornerRadius: 8)
-                .fill(OmiColors.warning.opacity(0.1))
-            )
-          }
-        }
-      }
-
-      // Dock Icon toggle
-      settingsCard(settingId: "general.dockicon") {
-        HStack(spacing: 16) {
-          Image(systemName: "dock.rectangle")
-            .scaledFont(size: 16)
-            .foregroundColor(OmiColors.textPrimary)
-            .frame(width: 12)
-
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Dock Icon")
-              .scaledFont(size: 16, weight: .semibold)
-              .foregroundColor(OmiColors.textPrimary)
-
-            Text(
-              hidesDockIcon
-                ? "Hidden from Dock and app switcher"
-                : "Visible in Dock and app switcher"
-            )
-            .scaledFont(size: 13)
-            .foregroundColor(OmiColors.textTertiary)
-          }
-
-          Spacer()
-
-          Toggle(
-            "Dock Icon",
-            // ON = Dock icon visible. Stored as `hideDockIcon` (inverted) so the
-            // underlying preference and its default (visible) stay unchanged.
-            isOn: Binding(
-              get: { !hidesDockIcon },
-              set: { newValue in
-                hidesDockIcon = !newValue
-                NotificationCenter.default.post(
-                  name: .dockIconVisibilityPreferenceDidChange, object: nil)
-              }
-            )
-          )
-          .toggleStyle(.switch)
-          .labelsHidden()
-          .accessibilityLabel("Dock Icon")
         }
       }
 

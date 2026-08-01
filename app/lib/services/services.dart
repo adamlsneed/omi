@@ -35,11 +35,7 @@ class ServiceManager {
     // flutter_sound path via [mic]. The shared arbiter keeps the two stacks from
     // contending for the microphone.
     sm._phoneMic = (Platform.isIOS || Platform.isAndroid)
-        ? ArbitratedMic(
-            inner: NativeMicRecorderService(),
-            arbiter: micArbiter,
-            owner: 'conversation',
-          )
+        ? ArbitratedMic(inner: NativeMicRecorderService(), arbiter: micArbiter, owner: 'conversation')
         : sm._mic;
     sm._device = DeviceService();
     sm._socket = SocketServicePool();
@@ -160,23 +156,15 @@ Future onStart(ServiceInstance service) async {
 class BackgroundService {
   late FlutterBackgroundService _service;
   BackgroundServiceStatus? _status;
-  bool _configured = false;
-  bool _heartbeatRegistered = false;
 
   BackgroundServiceStatus? get status => _status;
 
   Future<void> init() async {
-    if (_configured) return;
-    _configured = true;
     _service = FlutterBackgroundService();
     _status = BackgroundServiceStatus.initiated;
 
     await _service.configure(
-      iosConfiguration: IosConfiguration(
-        autoStart: false,
-        onForeground: onStart,
-        onBackground: onIosBackground,
-      ),
+      iosConfiguration: IosConfiguration(autoStart: false, onForeground: onStart, onBackground: onIosBackground),
       androidConfiguration: AndroidConfiguration(
         autoStart: false,
         onStart: onStart,
@@ -203,12 +191,9 @@ class BackgroundService {
     }
 
     // heartbeat
-    if (!_heartbeatRegistered) {
-      _heartbeatRegistered = true;
-      _service.on('ui.ping').listen((event) {
-        _service.invoke("pong");
-      });
-    }
+    _service.on('ui.ping').listen((event) {
+      _service.invoke("pong");
+    });
   }
 
   void stop() {
@@ -389,9 +374,7 @@ class MicRecorderService implements IMicRecorderService {
     Function(bool began)? onInterruption,
   }) async {
     if (_status == RecorderServiceStatus.recording) {
-      throw Exception(
-        "Recorder is recording, please stop it before start new recording.",
-      );
+      throw Exception("Recorder is recording, please stop it before start new recording.");
     }
     if (_status == RecorderServiceStatus.initialising) {
       throw Exception("Recorder is initialising");

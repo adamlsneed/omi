@@ -251,7 +251,7 @@ struct DashboardPage: View {
   @AppStorage("systemAudioCaptureMode") private var systemAudioCaptureModeRaw =
     AssistantSettings.SystemAudioCaptureMode.onlyDuringMeetings.rawValue
   @AppStorage("useLegacyHomeDesign") private var useLegacyHomeDesign = false
-  @State private var homeMode: HomeStageMode = .chat
+  @State private var homeMode: HomeStageMode = .hub
   @FocusState private var homeAskFieldFocused: Bool
 
   /// Rotation index for the home knows-list; a timer advances it so the hub
@@ -546,6 +546,12 @@ struct DashboardPage: View {
       .onChange(of: chatProvider.messages.count) { _, _ in
         autoOpenChatForExistingHistoryIfNeeded()
       }
+      // The journal projection is installed before the initial-load flag is
+      // cleared. Observe the flag as well so Home reveals the atomic snapshot
+      // only after restoration is complete.
+      .onChange(of: chatProvider.isLoading) { _, _ in
+        autoOpenChatForExistingHistoryIfNeeded()
+      }
       // Clicking into the ask bar reveals the inline chat; the same is true
       // when focus lands there via keyboard (Tab / Full Keyboard Access).
       .onChange(of: homeAskFieldFocused) { _, focused in
@@ -612,9 +618,8 @@ struct DashboardPage: View {
         onOpenAgent: { agentID, completion in
           FloatingControlBarManager.shared.openAgentChatFromTimeline(agentID: agentID, completion: completion)
         },
-        onOpenAgentRef: { ref, completion in
-          FloatingControlBarManager.shared.openAgentChatFromTimeline(ref: ref, completion: completion)
-        },
+        onOpenAgentRef: FloatingControlBarManager.shared.openAgentChatFromTimeline(ref:completion:),
+        contentColumnWidth: 760,
         welcomeContent: { dashboardChatWelcome }
       )
       .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -741,15 +746,15 @@ struct DashboardPage: View {
   /// suggested questions under the bar while the hub is showing.
   private func homeStage(stageWidth: CGFloat, stageHeight: CGFloat) -> some View {
     let askBarWidth = homeAskBarWidth(for: stageWidth)
-
     return Group {
       if homeMode == .hub {
         homeHubStage(stageWidth: stageWidth, askBarWidth: askBarWidth)
+          .transition(.homeHubStage)
       } else {
         homePanelStage(stageWidth: stageWidth, askBarWidth: askBarWidth)
       }
     }
-    .padding(.top, homeMode == .hub ? Self.homeStageTopPadding : OmiSpacing.lg)
+    .padding(.top, homeMode.topPadding(hub: Self.homeStageTopPadding))
     .padding(.bottom, Self.homeStageBottomPadding)
   }
 
@@ -805,7 +810,7 @@ struct DashboardPage: View {
         switch homeMode {
         case .chat:
           homeChatPanel(width: askBarWidth)
-            .transition(.homeDropFromTop)
+            .transition(.homeChatRise)
         case .connect:
           homeConnectPanel(stageWidth: stageWidth)
             .transition(.homeDropFromTop)
@@ -826,7 +831,7 @@ struct DashboardPage: View {
 
       homeAskBar
         .frame(width: askBarWidth)
-        .padding(.top, OmiSpacing.xl)
+        .padding(.top, OmiSpacing.xxs)
 
       dashboardChatErrorCard
         .frame(width: askBarWidth)
@@ -1113,23 +1118,16 @@ struct DashboardPage: View {
           FloatingControlBarManager.shared.openAgentChatFromTimeline(ref: ref, completion: completion)
         },
         horizontalContentPadding: 0,
+        verticalContentPadding: OmiSpacing.sm,
         trailingContentPadding: OmiSpacing.md,
+        contentColumnWidth: 760,
+        timelineTrailingInset: 0,
         welcomeContent: { dashboardChatWelcome }
       )
       .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .mask(
-        LinearGradient(
-          stops: [
-            .init(color: .clear, location: 0.0),
-            .init(color: .black, location: 0.05),
-            .init(color: .black, location: 0.97),
-            .init(color: .clear, location: 1.0),
-          ],
-          startPoint: .top,
-          endPoint: .bottom
-        )
-      )
-      .padding(.vertical, OmiSpacing.xs)
+      // The composer already has its own visual boundary. Masking this viewport
+      // fades the live edge and can cut off the first lines of an incoming reply.
+      .padding(.bottom, OmiSpacing.xs)
 
     }
     // Chat is the Home surface itself — no card chrome, it sits directly on
@@ -1291,10 +1289,20 @@ struct DashboardPage: View {
     }
   }
 
-  /// Home no longer auto-opens the last conversation — it always rests on the
-  /// greeting hero. Retained as a no-op so the page-lifecycle call sites stay
-  /// stable; chats are entered explicitly instead.
-  private func autoOpenChatForExistingHistoryIfNeeded() {}
+  /// Keep the useful insights hub visible while the canonical journal restores.
+  /// Once the atomic snapshot is ready, existing history becomes Home without
+  /// exposing the generic transcript loading spinner.
+  private func autoOpenChatForExistingHistoryIfNeeded() {
+    guard
+      HomeHistoryPresentationPolicy.restingMode(
+        isLoading: chatProvider.isLoading,
+        messageCount: chatProvider.messages.count
+      ) == .chat,
+      homeMode == .hub,
+      chatProvider.onboardingOpener == nil
+    else { return }
+    openHomeChat(focusInput: false)
+  }
 
   /// Floating-bar "Continue in Omi": land directly on the chat panel instead
   /// of whatever surface Home was resting on.
@@ -1303,11 +1311,11 @@ struct DashboardPage: View {
     guard !useLegacyHomeDesign else { return }
     openHomeChat()
   }
-
   private func openHomeChat(focusInput: Bool = true) {
-    guard homeMode != .chat else { return }
-    OmiMotion.withGated(Self.homeStageAnimation) {
-      homeMode = .chat
+    if homeMode != .chat {
+      OmiMotion.withGated(Self.homeStageAnimation) {
+        homeMode = .chat
+      }
     }
     if focusInput {
       focusHomeAskFieldAfterStageTransition()
@@ -1332,7 +1340,10 @@ struct DashboardPage: View {
   /// Home opens directly in the continuous chat (no greeting hero). Rolling
   /// suggestions sit above the ask bar while the chat is empty.
   private var homeRestingMode: HomeStageMode {
-    .chat
+    HomeHistoryPresentationPolicy.restingMode(
+      isLoading: chatProvider.isLoading,
+      messageCount: chatProvider.messages.count
+    )
   }
 
   /// User-facing collapse (click outside, Esc, connect ×) and the automation
@@ -2214,67 +2225,6 @@ private enum HomeDestinationProminence {
   case quiet
 }
 
-enum HomeStageMode: Equatable {
-  case hub
-  case chat
-  case connect
-
-  /// Whether the user-facing collapse catchers (click-outside + Esc) mount.
-  /// Only a panel that can collapse to a *different* resting surface gets a
-  /// catcher. The hub is the base surface, never an overlay: mounting a
-  /// catcher over hub-with-history would invert the gesture and make a stray
-  /// click or Esc *open* the chat.
-  static func collapseCatcherActive(mode: HomeStageMode, resting: HomeStageMode) -> Bool {
-    mode != resting && mode != .hub
-  }
-
-  var automationLabel: String {
-    switch self {
-    case .hub: return "hub"
-    case .chat: return "chat"
-    case .connect: return "connect"
-    }
-  }
-}
-
-/// Shared "drop from the top" motion for stage panels: a short slide with a
-/// slight top-anchored scale and fade — deliberate, not a full-height fly-in.
-private struct HomeStageDropModifier: ViewModifier {
-  let offsetY: CGFloat
-  let scale: CGFloat
-  let opacity: Double
-
-  func body(content: Content) -> some View {
-    content
-      .offset(y: offsetY)
-      .scaleEffect(scale, anchor: .top)
-      .opacity(opacity)
-  }
-}
-
-extension AnyTransition {
-  fileprivate static var homeDropFromTop: AnyTransition {
-    .modifier(
-      active: HomeStageDropModifier(offsetY: -46, scale: 0.97, opacity: 0),
-      identity: HomeStageDropModifier(offsetY: 0, scale: 1, opacity: 1)
-    )
-  }
-
-  fileprivate static var homeHubFade: AnyTransition {
-    .modifier(
-      active: HomeStageDropModifier(offsetY: 14, scale: 1, opacity: 0),
-      identity: HomeStageDropModifier(offsetY: 0, scale: 1, opacity: 1)
-    )
-  }
-
-  fileprivate static var homeSuggestionsFade: AnyTransition {
-    .modifier(
-      active: HomeStageDropModifier(offsetY: 10, scale: 1, opacity: 0),
-      identity: HomeStageDropModifier(offsetY: 0, scale: 1, opacity: 1)
-    )
-  }
-}
-
 /// The persistent home ask bar: a pill-shaped chat input with attachments
 /// (paperclip + drag-drop, same limits as the chat page), a send/stop action,
 /// and the Connect toggle living inside the pill.
@@ -2373,11 +2323,12 @@ struct HomeAskBar: View {
       } else {
         RoundedRectangle(cornerRadius: 29, style: .continuous)
           .stroke(HomePalette.stageGlow.opacity(isFocused ? 0.16 : 0.08), lineWidth: 1)
-          .blur(radius: 1.8)
       }
     }
-    .shadow(color: HomePalette.stageGlow.opacity(isFocused ? 0.11 : 0.045), radius: isFocused ? 22 : 16, y: 8)
-    .shadow(color: .black.opacity(isFocused ? 0.45 : 0.34), radius: 24, y: 10)
+    // Keep the composer visually separate without casting a large, opaque bezel
+    // into the transcript. These are intentionally only 10% of the old shadow.
+    .shadow(color: HomePalette.stageGlow.opacity(isFocused ? 0.011 : 0.0045), radius: isFocused ? 2.2 : 1.6)
+    .shadow(color: .black.opacity(isFocused ? 0.045 : 0.034), radius: 2.4, y: 1)
     .contentShape(.rect(cornerRadius: 29))
     .onTapGesture {
       onActivate()

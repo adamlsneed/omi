@@ -17,6 +17,7 @@ import 'package:omi/providers/local_recordings_provider.dart';
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/devices/connectors/device_connection.dart';
 import 'package:omi/services/devices/connectors/omi_connection.dart';
+import 'package:omi/services/bridges/ble_bridge.dart';
 import 'package:omi/services/notifications.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/battery_widget_service.dart';
@@ -28,6 +29,8 @@ import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/other/debouncer.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:omi/widgets/confirmation_dialog.dart';
+
+typedef BleDiagnosticsLoader = Future<BleDeviceDiagnostics> Function(String deviceId);
 
 class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption {
   CaptureProvider? captureProvider;
@@ -46,6 +49,8 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
 
   BtDevice? connectedDevice;
   BtDevice? pairedDevice;
+  DateTime? _deviceSessionStartedAt;
+  final BleDiagnosticsLoader _bleDiagnosticsLoader;
   StreamSubscription<List<int>>? _bleBatteryLevelListener;
   StreamSubscription? _bleChargingStatusListener;
   int batteryLevel = -1;
@@ -61,6 +66,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   // Track firmware update state to prevent showing dialog during updates
   bool _isCheckingFirmware = false;
   bool _isFirmwareDialogShowing = false;
+  bool _pairingLostDialogShowing = false;
   bool _isFirmwareUpdateInProgress = false;
   bool get isFirmwareUpdateInProgress => _isFirmwareUpdateInProgress;
 
@@ -84,8 +90,29 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   void Function(BtDevice device)? onDeviceConnected;
   void Function(BtDevice device, int fileCount, int totalBytes)? onOfflineDataDetected;
 
-  DeviceProvider() {
+  DeviceProvider({BleDiagnosticsLoader? bleDiagnosticsLoader})
+      : _bleDiagnosticsLoader = bleDiagnosticsLoader ?? BleHostApi().getDeviceDiagnostics {
     ServiceManager.instance().device.subscribe(this, this);
+    BleBridge.instance.pairingLostCallback = _showPairingLostDialog;
+  }
+
+  void _showPairingLostDialog() {
+    if (_pairingLostDialogShowing) return;
+    final context = globalNavigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+
+    _pairingLostDialogShowing = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => ConfirmationDialog(
+        title: dialogContext.l10n.bluetooth,
+        description: dialogContext.l10n.deviceUnpairedMessage,
+        confirmText: dialogContext.l10n.gotIt,
+        onConfirm: () => Navigator.of(dialogContext).pop(),
+        onCancel: () {},
+      ),
+    ).whenComplete(() => _pairingLostDialogShowing = false);
   }
 
   void setProviders(CaptureProvider provider, LocalRecordingsProvider recordingsProvider) {
@@ -95,11 +122,71 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   }
 
   Future<void> setConnectedDevice(BtDevice? device) async {
+    final endedDevice = device == null ? (pairedDevice ?? connectedDevice) : null;
+    final sessionStartedAt = _deviceSessionStartedAt;
+    final now = DateTime.now();
+    final isNewConnection = device != null && connectedDevice?.id != device.id;
     connectedDevice = device;
     pairedDevice = device;
+    if (isNewConnection) {
+      _deviceSessionStartedAt = now;
+    } else if (device == null) {
+      _deviceSessionStartedAt = null;
+    }
     await getDeviceInfo();
+    if (isNewConnection) {
+      PlatformManager.instance.analytics.deviceConnected();
+    }
+    if (device != null) {
+      final firstPairedAt = await _markDevicePaired(device.id);
+      if (firstPairedAt != null) {
+        PlatformManager.instance.analytics.devicePaired(firstPairedAt);
+      }
+    }
+    if (endedDevice != null && sessionStartedAt != null) {
+      BleDisconnectEvent? disconnect;
+      try {
+        final diagnostics = await _bleDiagnosticsLoader(endedDevice.id);
+        final sessionStartMs = sessionStartedAt.millisecondsSinceEpoch;
+        for (final event in diagnostics.disconnectHistory.reversed) {
+          if (event.timestamp >= sessionStartMs) {
+            disconnect = event;
+            break;
+          }
+        }
+      } catch (_) {
+        // Native diagnostics are best-effort; local timing still makes the event useful.
+      }
+      PlatformManager.instance.analytics.deviceSessionEnded(
+        device: endedDevice,
+        duration: disconnect != null && disconnect.connectionDurationMs > 0
+            ? Duration(milliseconds: disconnect.connectionDurationMs)
+            : now.difference(sessionStartedAt),
+        reason: disconnect?.reason,
+        hciReasonCode: disconnect?.reasonCode,
+      );
+    }
     Logger.debug('setConnectedDevice: $device');
     notifyListeners();
+  }
+
+  Future<String?> _markDevicePaired(String deviceId) async {
+    final preferences = SharedPreferencesUtil();
+    final uid = preferences.uid;
+    if (uid.isEmpty || deviceId.isEmpty) return null;
+
+    final pairedDevicesKey = 'pairedDeviceIds:$uid';
+    final pairedDeviceIds = preferences.getStringList(pairedDevicesKey);
+    if (pairedDeviceIds.contains(deviceId)) return null;
+
+    final firstPairedAtKey = 'firstPairedAt:$uid';
+    var firstPairedAt = preferences.getString(firstPairedAtKey);
+    if (firstPairedAt.isEmpty) {
+      firstPairedAt = DateTime.now().toUtc().toIso8601String();
+      await preferences.saveString(firstPairedAtKey, firstPairedAt);
+    }
+    if (!await preferences.saveStringList(pairedDevicesKey, [...pairedDeviceIds, deviceId])) return null;
+    return preferences.uid == uid ? firstPairedAt : null;
   }
 
   Future getDeviceInfo() async {
@@ -342,7 +429,6 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
         await setConnectedDevice(connection.device);
         setisDeviceStorageSupport();
         SharedPreferencesUtil().deviceName = connection.device.name;
-        PlatformManager.instance.analytics.deviceConnected();
         setIsConnected(true);
       }
     } catch (e) {
@@ -368,6 +454,9 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
 
   @override
   void dispose() {
+    if (BleBridge.instance.pairingLostCallback == _showPairingLostDialog) {
+      BleBridge.instance.pairingLostCallback = null;
+    }
     _bleBatteryLevelListener?.cancel();
     _bleChargingStatusListener?.cancel();
     _discoveryTimer?.cancel();

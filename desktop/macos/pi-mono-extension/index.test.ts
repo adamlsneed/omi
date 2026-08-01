@@ -20,11 +20,9 @@ import {
   classifyFileWrite,
   inspectToolCall,
   summarizeInput,
-  readOmiApiKeyForTest,
   appendAudit,
   __resetAuditWarnedForTest,
   OMI_TOOLS,
-  BROWSER_TOOL_SPECS,
   omiToolsForExecutionRole,
   OMI_TOOL_TIMEOUT_MS,
   OMI_LONG_CONTROL_TOOL_TIMEOUT_MS,
@@ -37,6 +35,8 @@ import {
   __resetOmiPipeForTest,
   omiRequestIdFromRelayContext,
   omiReasoningEffortFromRelayContext,
+  applyOmiProviderHeaders,
+  OMI_CHAT_CONTRACT_VERSION,
 } from "./index.ts";
 import type { ToolCallEvent } from "@earendil-works/pi-coding-agent";
 import { agentControlCapabilityManifest } from "../agent/src/runtime/control-tool-manifest.ts";
@@ -46,27 +46,6 @@ import {
   toolNamesForAdapter,
   toolsForAdapter,
 } from "../agent/src/runtime/omi-tool-manifest.ts";
-
-test("readOmiApiKey: prefers private token file and unlinks it", async () => {
-  const previousKey = process.env.OMI_API_KEY;
-  const previousFile = process.env.OMI_API_KEY_FILE;
-  const tokenPath = pathJoin(tmpdir(), `omi-token-${Date.now()}-${Math.random()}`);
-
-  try {
-    delete process.env.OMI_API_KEY;
-    process.env.OMI_API_KEY_FILE = tokenPath;
-    await writeFile(tokenPath, "firebase-id-token-xyz", { mode: 0o600 });
-
-    assert.equal(readOmiApiKeyForTest(), "firebase-id-token-xyz");
-    await assert.rejects(unlink(tokenPath), /ENOENT/);
-  } finally {
-    if (previousKey === undefined) delete process.env.OMI_API_KEY;
-    else process.env.OMI_API_KEY = previousKey;
-    if (previousFile === undefined) delete process.env.OMI_API_KEY_FILE;
-    else process.env.OMI_API_KEY_FILE = previousFile;
-    try { await unlink(tokenPath); } catch {}
-  }
-});
 
 // ---------------------------------------------------------------------------
 // classifyBash — allow-by-default for normal dev commands
@@ -85,6 +64,22 @@ test("reasoning effort relay: strict two-token allowlist", () => {
   assert.equal(omiReasoningEffortFromRelayContext('{"reasoningEffort":"max"}'), undefined);
   assert.equal(omiReasoningEffortFromRelayContext('{"requestId":"req_1"}'), undefined);
   assert.equal(omiReasoningEffortFromRelayContext("not json"), undefined);
+});
+
+test("provider headers always advertise the versioned chat contract", () => {
+  const headers: Record<string, string> = {};
+  applyOmiProviderHeaders(headers, undefined);
+  assert.equal(headers["x-omi-chat-contract-version"], OMI_CHAT_CONTRACT_VERSION);
+
+  applyOmiProviderHeaders(
+    headers,
+    JSON.stringify({ requestId: "req_1", reasoningEffort: "adaptive" }),
+  );
+  assert.deepEqual(headers, {
+    "x-omi-chat-contract-version": "1",
+    "x-omi-request-id": "req_1",
+    "x-omi-reasoning-effort": "adaptive",
+  });
 });
 
 test("classifyBash: allows normal dev commands", () => {
@@ -1113,20 +1108,6 @@ test("OMI_TOOLS: unique tool names", () => {
 test("OMI_TOOLS: all have promptSnippet for system prompt injection", () => {
   for (const tool of OMI_TOOLS) {
     assert.ok(tool.promptSnippet, `${tool.name} missing promptSnippet`);
-  }
-});
-
-test("BROWSER_TOOL_SPECS: registers the Chrome browser tools for the pi-mono harness", () => {
-  const names = BROWSER_TOOL_SPECS.map(t => t.name);
-  for (const expected of ["browser_snapshot", "browser_navigate", "browser_click", "browser_type"]) {
-    assert.ok(names.includes(expected), `missing browser tool ${expected}`);
-  }
-  assert.equal(new Set(names).size, names.length, "duplicate browser tool names");
-});
-
-test("BROWSER_TOOL_SPECS: every browser tool has a promptSnippet", () => {
-  for (const spec of BROWSER_TOOL_SPECS) {
-    assert.ok(spec.promptSnippet, `${spec.name} missing promptSnippet`);
   }
 });
 

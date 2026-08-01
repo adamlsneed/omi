@@ -1476,7 +1476,7 @@ class AppLocalizationsBs extends AppLocalizations {
   String get payYourSttProvider => 'Slobodno koristi omi. Plaćate samo vašem STT dobavljaču direktno.';
 
   @override
-  String get freeMinutesMonth => '1.200 besplatnih minuta/mesec uključeno. Neograničeno sa ';
+  String get freeMinutesMonth => '300 besplatnih minuta/mesec uključeno. Neograničeno sa ';
 
   @override
   String get omiUnlimited => 'Omi Unlimited';
@@ -1798,20 +1798,6 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get lovingOmi => 'Vam se sviđa Omi?';
-
-  @override
-  String get leaveReviewIos =>
-      'Pomozite nam da dosegnemo više ljudi ostavljanjem recenzije u App Store-u. Vaša povratna informacija znači nam sve!';
-
-  @override
-  String get leaveReviewAndroid =>
-      'Pomozite nam da dosegnemo više ljudi ostavljanjem recenzije u Google Play Store-u. Vaša povratna informacija znači nam sve!';
-
-  @override
-  String get rateOnAppStore => 'Oceni u App Store-u';
-
-  @override
-  String get rateOnGooglePlay => 'Oceni na Google Play';
 
   @override
   String get maybeLater => 'Možda kasnije';
@@ -2149,6 +2135,18 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get editMemory => '✏️ Izmeni uspomenu';
+
+  @override
+  String get pinAsBaseline => 'Pin as Baseline';
+
+  @override
+  String get unpinAsBaseline => 'Unpin from Baseline';
+
+  @override
+  String get baselineMemory => 'Baseline Memory';
+
+  @override
+  String get alwaysInContext => 'Always in context';
 
   @override
   String get memoryContentHint => 'Volim da jedem sladoled...';
@@ -4728,7 +4726,7 @@ class AppLocalizationsBs extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Nema specifičnog pristupa podacima konfiguriranog.';
 
   @override
-  String get basicPlanDescription => '1.200 premium minuta + neograničeno na uređaju';
+  String get basicPlanDescription => '300 premium minuta + neograničeno na uređaju';
 
   @override
   String get minutes => 'minute';
@@ -6022,7 +6020,7 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1.200 premium minuta/mjesec. Kartaca na uređaju nudi neограничenu besplatnu transkripciju.';
+      '300 premium minuta/mjesec. Kartaca na uređaju nudi neограничenu besplatnu transkripciju.';
 
   @override
   String get viewUsage => 'Prikaži upotrebu';
@@ -6104,7 +6102,7 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1.200 premium minuta/mjesec. Kartaca na uređaju nudi neograničenu besplatnu transkripciju. ';
+      '300 premium minuta/mjesec. Kartaca na uređaju nudi neograničenu besplatnu transkripciju. ';
 
   @override
   String get audioProcessedLocally =>

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/pages/capture/widgets/widgets.dart';
-import 'package:omi/pages/conversation_detail/page.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 
@@ -20,7 +19,6 @@ class ProcessingConversationPage extends StatefulWidget {
 class _ProcessingConversationPageState extends State<ProcessingConversationPage> with TickerProviderStateMixin {
   final scaffoldKey = GlobalKey<ScaffoldState>();
   TabController? _controller;
-  bool _pushedToDetail = false;
 
   @override
   void initState() {
@@ -30,33 +28,9 @@ class _ProcessingConversationPageState extends State<ProcessingConversationPage>
   }
 
   @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  void _pushNewConversation(BuildContext context, conversation) async {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (c) => ConversationDetailPage(conversation: conversation)));
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Consumer<ConversationProvider>(
       builder: (context, provider, child) {
-        // Once the conversation finishes processing, swap this page for the real
-        // detail page instead of leaving a stale "In Progress" view.
-        if (!_pushedToDetail && !provider.processingConversations.any((c) => c.id == widget.conversation.id)) {
-          final idx = provider.conversations.indexWhere((c) => c.id == widget.conversation.id);
-          if (idx != -1) {
-            _pushedToDetail = true;
-            _pushNewConversation(context, provider.conversations[idx]);
-          }
-        }
-
         // Conversation source
         var convoSource = widget.conversation.source;
         bool hasPhotos = widget.conversation.photos.isNotEmpty;

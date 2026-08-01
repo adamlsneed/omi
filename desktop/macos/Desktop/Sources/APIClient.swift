@@ -9,7 +9,7 @@ actor APIClient {
     DesktopBackendEnvironment.pythonBaseURL()
   }
 
-  // Rust desktop backend URL — used only for: agent VM provisioning/status,
+  // Python desktop backend URL — used only for: agent VM provisioning/status,
   // config/api-keys, Crisp, and local test subscription. All data CRUD,
   // chat AI, and title generation are on Python.
   // Set via OMI_DESKTOP_API_URL env var (in .env).
@@ -17,7 +17,7 @@ actor APIClient {
     let resolved = DesktopBackendEnvironment.rustBackendURL()
     if !resolved.isEmpty { return resolved }
 
-    NSLog("OMI API: OMI_DESKTOP_API_URL not set — Rust backend calls will fail")
+    NSLog("OMI API: OMI_DESKTOP_API_URL not set — Python desktop backend calls will fail")
     return ""
   }
 
@@ -52,13 +52,6 @@ actor APIClient {
 
   var decoder: JSONDecoder { transport.decoder }
 
-  private func makeURL(base: String, endpoint: String) throws -> URL {
-    guard let url = URL(string: base + endpoint) else {
-      throw APIError.invalidURL(base + endpoint)
-    }
-    return url
-  }
-
   // MARK: - Request Building
 
   func buildHeaders(
@@ -91,7 +84,9 @@ actor APIClient {
     let authOwnerId = authPolicy.expectedAuthOwnerId
     try validateExpectedOwner(authPolicy)
     let base = customBaseURL ?? baseURL
-    let url = try makeURL(base: base, endpoint: endpoint)
+    guard let url = URL(string: base + endpoint) else {
+      throw APIError.invalidResponse
+    }
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
     request.allHTTPHeaderFields = try await buildHeaders(
@@ -120,7 +115,9 @@ actor APIClient {
     let authOwnerId = authPolicy.expectedAuthOwnerId
     try validateExpectedOwner(authPolicy)
     let base = customBaseURL ?? baseURL
-    let url = try makeURL(base: base, endpoint: endpoint)
+    guard let url = URL(string: base + endpoint) else {
+      throw APIError.invalidResponse
+    }
     log("APIClient: POST \(url.absoluteString)")
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
@@ -150,7 +147,9 @@ actor APIClient {
     let authOwnerId = authPolicy.expectedAuthOwnerId
     try validateExpectedOwner(authPolicy)
     let base = customBaseURL ?? baseURL
-    let url = try makeURL(base: base, endpoint: endpoint)
+    guard let url = URL(string: base + endpoint) else {
+      throw APIError.invalidResponse
+    }
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = try await buildHeaders(
@@ -162,50 +161,6 @@ actor APIClient {
     return try await performRequest(
       request,
       authPolicy: authPolicy)
-  }
-
-  func put<T: Decodable>(
-    _ endpoint: String,
-    requireAuth: Bool = true,
-    customBaseURL: String? = nil
-  ) async throws -> T {
-    let base = customBaseURL ?? baseURL
-    let url = try makeURL(base: base, endpoint: endpoint)
-    var request = URLRequest(url: url)
-    request.httpMethod = "PUT"
-    request.allHTTPHeaderFields = try await buildHeaders(requireAuth: requireAuth)
-
-    return try await performRequest(request)
-  }
-
-  func multipartForm<T: Decodable>(
-    _ endpoint: String,
-    method: String = "POST",
-    fields: [String: String],
-    requireAuth: Bool = true,
-    customBaseURL: String? = nil
-  ) async throws -> T {
-    let base = customBaseURL ?? baseURL
-    let url = try makeURL(base: base, endpoint: endpoint)
-    let boundary = "Boundary-\(UUID().uuidString)"
-
-    var request = URLRequest(url: url)
-    request.httpMethod = method
-
-    var headers = try await buildHeaders(requireAuth: requireAuth)
-    headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
-    request.allHTTPHeaderFields = headers
-
-    var body = Data()
-    for (name, value) in fields {
-      body.append(Data("--\(boundary)\r\n".utf8))
-      body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
-      body.append(Data("\(value)\r\n".utf8))
-    }
-    body.append(Data("--\(boundary)--\r\n".utf8))
-    request.httpBody = body
-
-    return try await performRequest(request)
   }
 
   /// Phase 2 realtime hub: ask the backend to mint a short-lived ephemeral token
@@ -729,21 +684,14 @@ extension APIClient {
   ///   - id: The conversation ID
   ///   - visibility: The visibility level ("shared", "public", or "private")
   func setConversationVisibility(id: String, visibility: String = "shared") async throws {
-    let url = try makeURL(
-      base: baseURL,
-      endpoint: "v1/conversations/\(id)/visibility?value=\(visibility)&visibility=\(visibility)"
-    )
+    let url = URL(
+      string: baseURL
+        + "v1/conversations/\(id)/visibility?value=\(visibility)&visibility=\(visibility)")!
     var request = URLRequest(url: url)
     request.httpMethod = "PATCH"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)
 
     try await performVoidRequest(request)
-  }
-
-  /// Public web URL for a shared conversation. Single source of truth for the share link,
-  /// shared with the conversation row's copy-link action.
-  static func conversationShareURL(id: String) -> String {
-    "https://h.omi.me/conversations/\(id)"
   }
 
   /// Gets a shareable link for a conversation by setting it to shared visibility
@@ -753,7 +701,7 @@ extension APIClient {
     // Set visibility to shared
     try await setConversationVisibility(id: id, visibility: "shared")
     // Return the web URL for the shared conversation
-    return Self.conversationShareURL(id: id)
+    return "https://h.omi.me/conversations/\(id)"
   }
 
   /// Updates the title of a conversation

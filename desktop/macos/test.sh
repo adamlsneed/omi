@@ -1,24 +1,10 @@
 #!/bin/bash
-# Desktop test runner — runs both Rust backend and Swift app tests.
+# Desktop test runner — runs both Python backend and Swift app tests.
 # Usage: cd desktop && bash test.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "=== Agent Runtime Tests ==="
-cd "$SCRIPT_DIR/agent"
-if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
-  npm install --no-fund --no-audit
-fi
-npm test
-echo ""
-
-echo "=== Pi-Mono Extension Tests ==="
-cd "$SCRIPT_DIR/pi-mono-extension"
-if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules/.package-lock.json" ]; then
-  npm install --no-fund --no-audit
-fi
-npm test
 echo "=== Desktop Launcher Script Tests ==="
 cd "$SCRIPT_DIR"
 # Discovery, not a hardcoded list — a hardcoded list already orphaned one test
@@ -31,9 +17,22 @@ done
 python3 scripts/check-e2e-flow-coverage.py --strict
 echo ""
 
-echo "=== Rust Backend Tests ==="
-cd "$SCRIPT_DIR/Backend-Rust"
-cargo test
+echo "=== Python Desktop Backend Tests ==="
+cd "$SCRIPT_DIR/../../backend"
+PYTHON_BIN="${PYTHON:-.venv/bin/python}"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "Python backend dependencies are not synced. Run: (cd backend && ./scripts/sync-python-deps.sh)" >&2
+  exit 1
+fi
+"$PYTHON_BIN" -m pytest -q \
+  tests/unit/test_desktop_agent_vm.py \
+  tests/unit/test_desktop_chat.py \
+  tests/unit/test_desktop_core.py \
+  tests/unit/test_desktop_proxy.py \
+  tests/unit/test_desktop_realtime.py \
+  tests/unit/test_desktop_screen_crisp.py \
+  tests/unit/test_desktop_tts_updates.py \
+  tests/unit/test_agent_vm_protocol.py
 echo ""
 
 echo "=== Swift App Tests (parallel per-suite process isolation) ==="

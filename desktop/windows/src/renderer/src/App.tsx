@@ -49,6 +49,7 @@ import { PrimitivesGallery } from './components/ui/__gallery/PrimitivesGallery'
 import { refreshIfStale } from './lib/voice/autoModelSelector'
 import { refreshAboutUserCard, resetAboutUserCard } from './lib/voice/aboutUser'
 import { refreshUserVocabulary, resetUserVocabulary } from './lib/ptt/userVocabulary'
+import { trackEvent } from './lib/analytics'
 
 // The overlay, insight-toast, and hidden capture windows load this same bundle at
 // their own hash routes. Window-singleton hosts (tray state, auth-change fan-out)
@@ -69,8 +70,8 @@ function AppShellInner(): React.JSX.Element {
     window.omi?.setTitleBarSurface?.(isHome)
   }, [isHome])
 
-  // Honor a one-shot destination requested by onboarding (e.g. the final
-  // "Take me to my tasks" button). The shell mounts at /home after the
+  // Honor the one-shot destination requested when onboarding completes. The
+  // shell mounts at /home after the
   // onboarding gate redirects; we consume the pending route here and jump to it.
   useEffect(() => {
     const dest = consumePendingRoute()
@@ -84,6 +85,7 @@ function AppShellInner(): React.JSX.Element {
   // measuring/quitting, so the loop can target real authed-startup cost rather
   // than the lightweight Login screen. No-op on prod (perfMark is buffered).
   useEffect(() => {
+    trackEvent('App Launched')
     requestAnimationFrame(() => {
       requestAnimationFrame(() => window.omi?.perfMark('renderer:app-ready'))
     })

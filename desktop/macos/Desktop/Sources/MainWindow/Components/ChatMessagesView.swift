@@ -57,6 +57,19 @@ enum ChatConversationSwitch {
   }
 }
 
+enum ChatTranscriptLayout {
+  static let regularRowSpacing: CGFloat = OmiSpacing.lg
+  static let consecutiveUserRowSpacing: CGFloat = OmiSpacing.sm
+
+  static func topAdjustment(at index: Int, in messages: [ChatMessage]) -> CGFloat {
+    guard index > 0, messages.indices.contains(index) else { return 0 }
+    let previous = messages[index - 1]
+    let current = messages[index]
+    guard previous.sender == .user, current.sender == .user else { return 0 }
+    return consecutiveUserRowSpacing - regularRowSpacing
+  }
+}
+
 /// Reusable chat messages scroll view extracted from ChatPage.
 /// Used by both ChatPage (main chat) and TaskChatPanel (task sidebar chat).
 struct ChatMessagesView<WelcomeContent: View>: View {
@@ -90,11 +103,20 @@ struct ChatMessagesView<WelcomeContent: View>: View {
   var onOpenAgentRef: ((AgentTimelineRef, @escaping (Bool) -> Void) -> Void)? = nil
   /// Horizontal inset of the message column. Home passes 0 so bubbles align
   /// exactly with the ask bar's edges; other surfaces keep the default gutter.
-  var horizontalContentPadding: CGFloat = OmiSpacing.xxl
+  var horizontalContentPadding: CGFloat = ChatComposerLayout.transcriptEdgeInset
+  /// Vertical transcript inset. Home uses a tighter value because its page
+  /// shell already provides the breathing room beneath the floating top bar.
+  var verticalContentPadding: CGFloat = OmiSpacing.xl
   /// Extra trailing inset only. Home passes a small value so the macOS overlay
   /// scrollbar doesn't clip right-aligned user pills when horizontalContentPadding
   /// is 0; the left edge stays aligned with the ask bar. Default 0.
   var trailingContentPadding: CGFloat = 0
+  /// Readable cap on the message column. The scroll view remains full-width so
+  /// the prompt timeline can occupy the resulting gutter.
+  var contentColumnWidth: CGFloat? = nil
+  /// Where the prompt rail's right edge should land in the surrounding chat
+  /// surface. Home uses zero because its ask bar fills the chat column.
+  var timelineTrailingInset: CGFloat = ChatComposerLayout.pageMargin
   @ViewBuilder var welcomeContent: () -> WelcomeContent
 
   /// IDs of messages that are near-duplicates of an earlier message in the same session.
@@ -105,7 +127,6 @@ struct ChatMessagesView<WelcomeContent: View>: View {
 
   // MARK: - Scroll State
 
-  @State private var isUserAtBottom = true
   /// Source of truth for scroll intent. Geometry/layout changes alone must NOT
   /// switch this to `.freeScrolling` — only physical user input (wheel/trackpad,
   /// mouse, or keyboard scroll-navigation).
@@ -121,12 +142,6 @@ struct ChatMessagesView<WelcomeContent: View>: View {
   /// Tracks work items for delayed initial bottom scrolls so they can be
   /// canceled on user scroll or disappear.
   @State private var initialScrollWorkItems: [DispatchWorkItem] = []
-  /// Last visible scroll viewport size. When a chat panel opens, sidebars
-  /// resize, or the window is dragged wider/taller, SwiftUI can lay out the
-  /// transcript after our first scroll request; this lets us re-follow the
-  /// latest message while still respecting explicit user scrolls.
-  @State private var lastScrollViewportSize: CGSize = .zero
-
   // MARK: - Local Send Anchoring
 
   /// Last observed local send token generation. When it increments, we know
@@ -163,12 +178,52 @@ struct ChatMessagesView<WelcomeContent: View>: View {
   /// Used to detect conversation switches so session-scoped @State can be reset.
   @State private var trackedConversationId: String?
 
+  /// Measured transcript geometry for the prompt timeline. This view deliberately
+  /// does not observe the object; only the overlay subscribes, so scrolling does
+  /// not re-evaluate every message row.
+  @State private var transcriptGeometry = ChatTranscriptGeometry()
+  /// SwiftUI's own scroll-indicator policy. The AppKit suppressor remains a
+  /// backstop, but this prevents the framework from recreating the legacy
+  /// scroller during later scroll-view updates.
+  @State private var hidesNativeScrollIndicator = false
+
   var body: some View {
     ScrollViewReader { proxy in
       ZStack(alignment: .bottom) {
         scrollContent(proxy: proxy)
         scrollToBottomButton(proxy: proxy)
       }
+      .overlay(alignment: .trailing) {
+        ChatPromptTimelineOverlay(
+          geometry: transcriptGeometry,
+          trailingInset: timelineTrailingInset,
+          onSelect: { markID in
+            jumpToPrompt(markID, proxy: proxy)
+          },
+          onVisibilityChange: { isVisible in
+            if hidesNativeScrollIndicator != isVisible {
+              hidesNativeScrollIndicator = isVisible
+            }
+          }
+        )
+      }
+      .onGeometryChange(for: CGSize.self) {
+        $0.size
+      } action: { size in
+        transcriptGeometry.setViewport(size, columnWidth: contentColumnWidth)
+      }
+    }
+  }
+
+  /// A direct timeline choice leaves live-follow mode and places the selected
+  /// prompt at the top of the viewport.
+  private func jumpToPrompt(_ markID: String, proxy: ScrollViewProxy) {
+    cancelAllPendingScrolls()
+    userIsScrolling = false
+    scrollMode = .freeScrolling
+    hasActivityBelow = false
+    OmiMotion.withGated(ChatPromptTimelineMetrics.jumpAnimation) {
+      proxy.scrollTo(markID, anchor: .top)
     }
   }
 
@@ -181,10 +236,12 @@ struct ChatMessagesView<WelcomeContent: View>: View {
       }
       .padding(.horizontal, horizontalContentPadding)
       .padding(.trailing, trailingContentPadding)
-      .padding(.vertical, OmiSpacing.xl)
+      .padding(.vertical, verticalContentPadding)
+      .frame(maxWidth: contentColumnWidth ?? .infinity)
+      .frame(maxWidth: .infinity)
       // Do not enable text selection on the whole stack. SelectionOverlay on every
       // chrome Text (agent card headers, tool summaries, timestamps) can peg the
-      // main thread in GraphHost layout. Message bodies opt in via SelectableMarkdown.
+      // main thread in GraphHost layout. Message bodies opt in via OmiMarkdown.
       .background(scrollDetectors)
 
       // Invisible anchor lives OUTSIDE the LazyVStack so it is always
@@ -197,9 +254,18 @@ struct ChatMessagesView<WelcomeContent: View>: View {
           .id("bottom-anchor")
       }
     }
+    .scrollIndicators(hidesNativeScrollIndicator ? .hidden : .automatic)
+    .coordinateSpace(name: ChatTranscriptSpace.viewport)
     // MARK: - React to message count changes
     .onChange(of: messages.count) { oldCount, newCount in
+      transcriptGeometry.setMessages(messages)
       handleMessagesCountChange(oldCount: oldCount, newCount: newCount, proxy: proxy)
+    }
+    // Refresh reply previews only once a streamed answer settles. Rebuilding
+    // sources for every token would re-walk the entire transcript.
+    .onChange(of: messages.last?.isStreaming) { wasStreaming, isStreaming in
+      guard wasStreaming == true, isStreaming != true else { return }
+      transcriptGeometry.setMessages(messages)
     }
     // A journal restore may be populated by background events while the
     // loader is still collecting its canonical snapshot. Reveal it only after
@@ -262,10 +328,12 @@ struct ChatMessagesView<WelcomeContent: View>: View {
         hasActivityBelow = false
         scrollMode = .followingBottom
         userIsScrolling = false
-        isUserAtBottom = true
+        transcriptGeometry.reset()
+        transcriptGeometry.setMessages(messages)
       }
     }
     .onAppear {
+      transcriptGeometry.setMessages(messages)
       if !isLoadingInitial, !messages.isEmpty {
         handleInitialRestore(proxy: proxy)
       }
@@ -273,7 +341,6 @@ struct ChatMessagesView<WelcomeContent: View>: View {
     .onDisappear {
       cancelAllPendingScrolls()
     }
-    .background(viewportResizeDetector(proxy: proxy))
   }
 
   // MARK: - Message Count Change Handler
@@ -395,36 +462,6 @@ struct ChatMessagesView<WelcomeContent: View>: View {
 
   // MARK: - Scheduled Scrolls
 
-  private func handleViewportSizeChange(_ size: CGSize, proxy: ScrollViewProxy) {
-    guard size.width > 0, size.height > 0 else { return }
-    guard size != lastScrollViewportSize else { return }
-    lastScrollViewportSize = size
-
-    guard
-      !isLoadingInitial,
-      scrollMode == .followingBottom,
-      !userIsScrolling,
-      !isInitialRestorePending,
-      !messages.isEmpty
-    else {
-      return
-    }
-    scrollToBottom(proxy: proxy)
-    scheduleInitialScroll(proxy: proxy, delay: 0.08)
-  }
-
-  private func viewportResizeDetector(proxy: ScrollViewProxy) -> some View {
-    GeometryReader { geometry in
-      Color.clear
-        .onAppear {
-          handleViewportSizeChange(geometry.size, proxy: proxy)
-        }
-        .onChange(of: geometry.size) { _, newSize in
-          handleViewportSizeChange(newSize, proxy: proxy)
-        }
-    }
-  }
-
   /// Schedules a delayed bottom scroll that is mode-aware and cancelable.
   private func scheduleInitialScroll(proxy: ScrollViewProxy, delay: TimeInterval) {
     var workItem: DispatchWorkItem?
@@ -503,10 +540,12 @@ struct ChatMessagesView<WelcomeContent: View>: View {
     } else {
       let dupeIds = duplicateMessageIds
       let displayMessages = AgentLifecycleDisplayProjection.project(messages)
-      ForEach(displayMessages) { message in
+      let finalAssistantMessageID = ChatOmiMarkPlacement.finalAssistantMessageID(in: displayMessages)
+      ForEach(Array(displayMessages.enumerated()), id: \.element.id) { index, message in
         ChatBubble(
           message: message,
           app: app,
+          showsOmiMark: message.id == finalAssistantMessageID,
           onRate: { rating in
             onRate(message.id, rating)
           },
@@ -518,7 +557,13 @@ struct ChatMessagesView<WelcomeContent: View>: View {
           onOpenAgent: onOpenAgent,
           onOpenAgentRef: onOpenAgentRef
         )
+        .padding(.top, ChatTranscriptLayout.topAdjustment(at: index, in: displayMessages))
         .id(message.id)
+        .background {
+          if message.sender == .user {
+            ChatPromptRowAnchorReporter(markID: message.id, geometry: transcriptGeometry)
+          }
+        }
       }
     }
   }
@@ -561,14 +606,24 @@ struct ChatMessagesView<WelcomeContent: View>: View {
   // coordinator then correctly finds the enclosing NSScrollView.
   private var scrollDetectors: some View {
     ZStack {
-      ScrollPositionDetector { atBottom in
-        isUserAtBottom = atBottom
+      // The custom prompt rail replaces the native vertical scroller only on
+      // wide transcripts where the rail is actually visible. Keep this host in
+      // the document view so it can reach the enclosing NSScrollView.
+      ChatTimelineScrollerSuppressionHost(isSuppressed: hidesNativeScrollIndicator)
+      ScrollPositionDetector { position in
+        transcriptGeometry.setContent(
+          height: position.documentHeight,
+          scrollTop: position.scrollTop
+        )
+        if position.isAtBottom {
+          transcriptGeometry.setFollowingLiveEdge(true)
+        }
         // Resume live following when the reader scrolls back to the
         // live edge. atBottom == true is unambiguous intent to follow
         // again; only atBottom == false is ambiguous (it can be a
         // geometry/layout change, not user intent) and must NOT switch
         // to .freeScrolling on its own.
-        if atBottom && scrollMode == .freeScrolling {
+        if position.isAtBottom && scrollMode == .freeScrolling {
           cancelAllPendingScrolls()
           userIsScrolling = false
           scrollMode = .followingBottom
@@ -579,6 +634,8 @@ struct ChatMessagesView<WelcomeContent: View>: View {
         scrollMode = .freeScrolling
         userIsScrolling = true
         hasActivityBelow = false
+        transcriptGeometry.setFollowingLiveEdge(false)
+        transcriptGeometry.releaseSelection()
         cancelAllPendingScrolls()
         let endWork = DispatchWorkItem {
           userIsScrolling = false
@@ -591,6 +648,7 @@ struct ChatMessagesView<WelcomeContent: View>: View {
         userIsScrolling = false
         scrollMode = .followingBottom
         hasActivityBelow = false
+        transcriptGeometry.setFollowingLiveEdge(true)
       }
     }
   }
@@ -606,6 +664,7 @@ struct ChatMessagesView<WelcomeContent: View>: View {
         scrollMode = .followingBottom
         hasActivityBelow = false
         scrollToBottom(proxy: proxy)
+        scheduleInitialScroll(proxy: proxy, delay: ChatScrollLiveEdge.explicitJumpSettlingDelay)
       } label: {
         ZStack(alignment: .center) {
           Circle()
@@ -638,6 +697,7 @@ struct ChatMessagesView<WelcomeContent: View>: View {
     // Don't fight the user — skip if they're actively wheel/trackpad scrolling
     guard !userIsScrolling else { return }
     guard !messages.isEmpty else { return }
+    transcriptGeometry.setFollowingLiveEdge(true)
     proxy.scrollTo("bottom-anchor", anchor: .bottom)
   }
 

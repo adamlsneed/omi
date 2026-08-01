@@ -153,25 +153,9 @@ extension SettingsContentView {
               .scaledFont(size: OmiType.subheading)
               .foregroundColor(OmiColors.textTertiary)
 
-            VStack(alignment: .leading, spacing: OmiSpacing.hairline) {
-              Text("AI Provider")
-                .scaledFont(size: OmiType.body)
-                .foregroundColor(OmiColors.textSecondary)
-
-              if let provider = AIProvider.from(bridgeMode: chatBridgeMode) {
-                if let url = provider.attributionURL {
-                  Link(destination: url) {
-                    Text("\(provider.tagline) · \(url.host ?? "")")
-                      .scaledFont(size: OmiType.caption)
-                      .foregroundColor(OmiColors.textTertiary)
-                  }
-                } else {
-                  Text(provider.tagline)
-                    .scaledFont(size: OmiType.caption)
-                    .foregroundColor(OmiColors.textTertiary)
-                }
-              }
-            }
+            Text("AI Provider")
+              .scaledFont(size: OmiType.subheading, weight: .semibold)
+              .foregroundColor(OmiColors.textPrimary)
 
             Spacer()
 
@@ -186,6 +170,20 @@ extension SettingsContentView {
                   await chatProvider?.switchBridgeMode(to: mode)
                 }
               }
+            }
+          }
+
+          if let provider = AIProvider.from(bridgeMode: chatBridgeMode) {
+            if let url = provider.attributionURL {
+              Link(destination: url) {
+                Text("\(provider.tagline) · \(url.host ?? "")")
+                  .scaledFont(size: OmiType.caption)
+                  .foregroundColor(OmiColors.textTertiary)
+              }
+            } else {
+              Text(provider.tagline)
+                .scaledFont(size: OmiType.caption)
+                .foregroundColor(OmiColors.textTertiary)
             }
           }
 
@@ -283,12 +281,12 @@ extension SettingsContentView {
 
             Spacer()
 
-            if playwrightUseExtension || !playwrightExtensionToken.isEmpty {
+            if !playwrightExtensionToken.isEmpty {
               HStack(spacing: OmiSpacing.xxs) {
                 Circle()
-                  .fill(browserExtensionStatusColor)
+                  .fill(Color.green)
                   .frame(width: 6, height: 6)
-                Text(browserExtensionStatusText)
+                Text("Connected")
                   .scaledFont(size: OmiType.caption)
                   .foregroundColor(OmiColors.textTertiary)
               }
@@ -303,10 +301,6 @@ extension SettingsContentView {
           Text("Lets the AI use your Chrome browser with all your logged-in sessions.")
             .scaledFont(size: OmiType.caption)
             .foregroundColor(OmiColors.textTertiary)
-
-          Text(browserExtensionStatus.detail)
-            .scaledFont(size: 11)
-            .foregroundColor(OmiColors.textQuaternary)
 
           if playwrightUseExtension {
             if playwrightExtensionToken.isEmpty {
@@ -340,14 +334,15 @@ extension SettingsContentView {
                   HStack(spacing: OmiSpacing.xxs) {
                     Image(systemName: "arrow.clockwise")
                       .scaledFont(size: OmiType.caption)
-                    Text(browserExtensionActionTitle)
+                    Text("Reconfigure")
                       .scaledFont(size: OmiType.caption)
                   }
                 }
                 .buttonStyle(OmiButtonStyle(.primary, size: .compact))
 
                 Button(action: {
-                  resetBrowserExtensionState()
+                  playwrightExtensionToken = ""
+                  UserDefaults.standard.set("", forKey: "playwrightExtensionToken")
                 }) {
                   HStack(spacing: OmiSpacing.xxs) {
                     Image(systemName: "xmark")

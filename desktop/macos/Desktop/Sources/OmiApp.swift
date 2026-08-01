@@ -230,148 +230,6 @@ struct OMIApp: App {
   }
 }
 
-/// A menu-bar on/off toggle that draws its state explicitly. A stock `NSSwitch`
-/// only paints its accent ("on") color when the app is the active app — so with
-/// the Omi window open in the background, the app is inactive and the switch
-/// desaturates to gray, making on and off indistinguishable. This control fills
-/// its own track, so the state stays legible regardless of app-active state.
-final class MenuToggleControl: NSControl {
-  var isOn: Bool = false {
-    didSet { needsDisplay = true }
-  }
-
-  override init(frame frameRect: NSRect) {
-    super.init(frame: frameRect)
-    wantsLayer = true
-  }
-
-  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-  override var intrinsicContentSize: NSSize { NSSize(width: 38, height: 21) }
-
-  // Draw our own fill rather than inheriting the menu's vibrancy, which would
-  // desaturate the track and re-introduce the inactive-app legibility problem.
-  override var allowsVibrancy: Bool { false }
-
-  override func draw(_ dirtyRect: NSRect) {
-    let track = bounds.insetBy(dx: 0.5, dy: 0.5)
-    let radius = track.height / 2
-    let trackPath = NSBezierPath(roundedRect: track, xRadius: radius, yRadius: radius)
-    (isOn ? NSColor.controlAccentColor : NSColor.tertiaryLabelColor).setFill()
-    trackPath.fill()
-
-    let inset: CGFloat = 2
-    let knobDiameter = track.height - inset * 2
-    let knobX = isOn ? track.maxX - knobDiameter - inset : track.minX + inset
-    let knobRect = NSRect(
-      x: knobX, y: track.minY + inset, width: knobDiameter, height: knobDiameter)
-    NSColor.white.setFill()
-    NSBezierPath(ovalIn: knobRect).fill()
-  }
-
-  override func mouseDown(with event: NSEvent) {
-    isOn.toggle()
-    if let action = action, let target = target {
-      NSApp.sendAction(action, to: target, from: self)
-    }
-  }
-}
-
-/// idea-capture: a full-width, clickable menu row for "Capture Idea". A stock
-/// NSMenuItem dismisses the whole menu on click, so the recording-state restyle was
-/// never seen on the click that started it. This custom view handles the click in
-/// place (like MenuToggleControl) so the menu stays open and the row flips to its red
-/// "Stop Idea Capture" state under the cursor. State is driven by `isActive`, set from
-/// AppState.isIdeaCaptureActive, so a session started/stopped elsewhere stays in sync.
-final class IdeaCaptureItemControl: NSControl {
-  var isActive: Bool = false {
-    didSet {
-      guard isActive != oldValue else { return }
-      setAccessibilityLabel(title)
-      needsDisplay = true
-    }
-  }
-
-  private var isHovering = false {
-    didSet {
-      guard isHovering != oldValue else { return }
-      needsDisplay = true
-    }
-  }
-
-  private var title: String { isActive ? "Stop Idea Capture" : "Capture Idea" }
-
-  override init(frame frameRect: NSRect) {
-    super.init(frame: frameRect)
-    wantsLayer = true
-    setAccessibilityRole(.button)
-    setAccessibilityLabel(title)
-  }
-
-  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-  override var intrinsicContentSize: NSSize { NSSize(width: 260, height: 36) }
-
-  // Draw our own colors rather than inheriting the menu's vibrancy, which would
-  // desaturate the red recording state (same reason as MenuToggleControl).
-  override var allowsVibrancy: Bool { false }
-
-  override func updateTrackingAreas() {
-    super.updateTrackingAreas()
-    for area in trackingAreas { removeTrackingArea(area) }
-    addTrackingArea(
-      NSTrackingArea(
-        rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
-        owner: self, userInfo: nil))
-  }
-
-  override func mouseEntered(with event: NSEvent) { isHovering = true }
-  override func mouseExited(with event: NSEvent) { isHovering = false }
-
-  override func draw(_ dirtyRect: NSRect) {
-    // Hover highlight: a rounded selection fill so the row reads as a real button,
-    // matching native menu-item selection (accent background, light content).
-    if isHovering {
-      let r = bounds.insetBy(dx: 5, dy: 1)
-      NSColor.selectedContentBackgroundColor.setFill()
-      NSBezierPath(roundedRect: r, xRadius: 4, yRadius: 4).fill()
-    }
-
-    let contentColor: NSColor =
-      isHovering
-      ? .alternateSelectedControlTextColor : (isActive ? .systemRed : .secondaryLabelColor)
-    let textColor: NSColor =
-      isHovering ? .alternateSelectedControlTextColor : (isActive ? .systemRed : .labelColor)
-
-    // Icon — red stop glyph while recording, lightbulb when idle.
-    let iconName = isActive ? "stop.circle.fill" : "lightbulb"
-    let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: isActive ? .semibold : .medium)
-      .applying(NSImage.SymbolConfiguration(paletteColors: [contentColor]))
-    if let img = NSImage(systemSymbolName: iconName, accessibilityDescription: title)?
-      .withSymbolConfiguration(cfg)
-    {
-      img.isTemplate = false
-      let s = img.size
-      let ix = 16 + (18 - s.width) / 2
-      let iy = (bounds.height - s.height) / 2
-      img.draw(in: NSRect(x: ix, y: iy, width: s.width, height: s.height))
-    }
-
-    // Label.
-    let font = NSFont.systemFont(ofSize: 13, weight: isActive ? .semibold : .regular)
-    let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: textColor, .font: font]
-    let str = NSAttributedString(string: title, attributes: attrs)
-    let textY = (bounds.height - str.size().height) / 2
-    str.draw(in: NSRect(x: 42, y: textY, width: bounds.width - 58, height: str.size().height))
-  }
-
-  override func mouseDown(with event: NSEvent) {
-    if let action = action, let target = target {
-      NSApp.sendAction(action, to: target, from: self)
-    }
-  }
-}
-
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked Sendable {
   /// The live AppDelegate instance. SwiftUI's `@NSApplicationDelegateAdaptor` does
   /// NOT make `NSApp.delegate` our `AppDelegate` — on macOS 14+ it installs an
@@ -392,24 +250,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
   private nonisolated(unsafe) static var mainWindowIsKey = false
   private nonisolated(unsafe) static var lastMainWindowForegroundAt: Date?
 
-  // idea-capture: set in applicationDidFinishLaunching so other subsystems (the
-  // capture-confirmation notification's tap handlers) can reach the delegate without
-  // an `NSApp.delegate as? AppDelegate` cast, which is unreliable under the SwiftUI
-  // NSApplicationDelegateAdaptor. Mirrors the `openMainWindow` static-closure pattern.
-  nonisolated(unsafe) static var revealIdeaFolderHandler: (@MainActor () -> Void)?
-
   private var sentryHeartbeatTimer: Timer?
   private var globalHotkeyMonitor: Any?
   private var localHotkeyMonitor: Any?
   private var windowObservers: [NSObjectProtocol] = []
   private var userDefaultsObserver: NSObjectProtocol?
-  private var dockIconVisibilityObserver: NSObjectProtocol?
   private var statusBarItem: NSStatusItem?
-  private var screenCaptureSwitch: MenuToggleControl?
-  private var audioRecordingSwitch: MenuToggleControl?
-  private weak var captureIdeaControl: IdeaCaptureItemControl?
-  private var ideaCaptureObserver: NSObjectProtocol?
-  private var transcriptionStateObserver: NSObjectProtocol?
+  private var screenCaptureSwitch: NSSwitch?
+  private var audioRecordingSwitch: NSSwitch?
   private var relaunchOnLoginSuppressedForOnboarding = false
   private var apiKeyFetchTask: Task<Void, Never>?
   private var floatingBarPlanFetchTask: Task<Void, Never>?
@@ -461,10 +309,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     LocalAgentAPIServer.shared.startIfNeeded()
     publishNamedBundleRuntimeManifest()
 
-    // Strip com.apple.provenance xattrs that macOS adds when Sparkle extracts updates.
-    // These break the code signature seal, causing the NEXT update to fail with
-    // "An error occurred while running the updater."
-    stripProvenanceXattrs()
+    runStartupSystemMaintenance()
 
     log("AppDelegate: applicationDidFinishLaunching started (mode: \(OMIApp.launchMode.rawValue))")
     log("AppDelegate: AuthState.isSignedIn=\(AuthState.shared.isSignedIn)")
@@ -474,31 +319,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       log(
         "AppDelegate: Sparkle update relaunch detected; restoreMainWindow=\(restoreMainWindowAfterUpdateRelaunch)"
       )
-    }
-
-    // idea-capture: expose the Ideas-folder reveal so notification tap handlers can call it.
-    AppDelegate.revealIdeaFolderHandler = { [weak self] in self?.revealIdeaFolder() }
-
-    // idea-capture: keep the menu item + status icon in sync the moment a session
-    // starts/stops (the menu may be closed when the user clicks Stop from elsewhere).
-    ideaCaptureObserver = NotificationCenter.default.addObserver(
-      forName: .ideaCaptureStateChanged, object: nil, queue: .main
-    ) { [weak self] _ in
-      MainActor.assumeIsolated { self?.updateCaptureIdeaMenuItem() }
-    }
-
-    // Keep the menu's Microphone switch live while the menu stays open: idea
-    // capture turns the mic on at start and can turn it back off at stop, both via
-    // .toggleTranscriptionRequested. Without this the switch only refreshes on the
-    // next menuWillOpen, so it looks stale mid-session.
-    transcriptionStateObserver = NotificationCenter.default.addObserver(
-      forName: .toggleTranscriptionRequested, object: nil, queue: .main
-    ) { [weak self] note in
-      let requestedEnabled = note.userInfo?["enabled"] as? Bool
-      MainActor.assumeIsolated {
-        let enabled = requestedEnabled ?? AssistantSettings.shared.transcriptionEnabled
-        self?.audioRecordingSwitch?.isOn = !AppState.isPaywalledEffective && enabled
-      }
     }
 
     // Refresh the "Auto" realtime-voice model pick from Artificial Analysis (daily, cached).
@@ -542,16 +362,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       icon.draw(in: contentRect)
       maskedIcon.unlockFocus()
       NSApp.applicationIconImage = maskedIcon
-      if let cfURL = Bundle.main.bundleURL as CFURL? {
-        LSRegisterURL(cfURL, true)
-      }
       log("AppDelegate: Set application icon with squircle mask")
     }
-
-    // One-time icon cache reset: forces macOS to pick up the new squircle icon.
-    // Without this, users who had the old square icon see it cached indefinitely
-    // in the Dock, notifications, and Sparkle updater.
-    resetIconCacheIfNeeded()
 
     // Initialize NotificationService early to set up UNUserNotificationCenterDelegate
     // This ensures notifications display properly when app is in foreground
@@ -577,6 +389,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       options.enableAppHangTracking = !isDev
       options.enableWatchdogTerminationTracking = !isDev
       options.environment = isDev ? "development" : "production"
+      // Build-attributable native events (#10425): bind every native crash / app-hang /
+      // watchdog event to the exact version+build (`v{version}+{build}-macos`, the same
+      // tag Codemagic publishes) and the release channel (`stable`/`beta`). Without these,
+      // Sentry's Release/Build filters return nothing for native events and beta+stable
+      // are indistinguishable (both report environment="production").
+      if let releaseTag = AppBuild.releaseTag {
+        options.releaseName = releaseTag
+      }
+      options.dist = AppBuild.currentUpdateChannel
       // Disable automatic HTTP client error capture — the SDK creates noisy events
       // for every 4xx/5xx response (e.g. Cloud Run 503 cold starts on /v1/crisp/unread).
       // App code already handles HTTP errors and reports meaningful ones explicitly.
@@ -598,6 +419,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
           exceptions: (event.exceptions ?? []).map { (type: $0.type, value: $0.value) })
         return drop ? nil : event
       }
+    }
+    // Tag every Sentry event (including native crashes, which bypass app code) with
+    // the release channel and bundle identity so a release cohort can be sliced without
+    // relying on `dist` alone (#10425).
+    SentrySDK.configureScope { scope in
+      scope.setTag(value: AppBuild.currentUpdateChannel, key: "update_channel")
+      scope.setTag(value: AppBuild.bundleIdentifier, key: "bundle_id")
     }
     log(
       "Sentry initialized (environment: \(isDev ? "development" : "production"), nativeHandlers=\(!isDev))"
@@ -678,6 +506,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Start resource monitoring (memory, CPU, disk)
     ResourceMonitor.shared.start()
 
+    // Route completed background-agent results into live voice sessions.
+    AgentCompletionVoiceDelivery.shared.start()
+
     scheduleAppLifecycleMaintenance()
 
     // Identify user if already signed in
@@ -705,9 +536,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
         await TierManager.shared.checkTierIfNeeded()
       }
 
-      // Report comprehensive settings state (at most once per day)
-      AnalyticsManager.shared.reportAllSettingsIfNeeded()
-
       // File indexing now runs through FileIndexingView UI (user consent required)
       // No background scan — prevents race condition where scan finishes before UI listens
     }
@@ -728,18 +556,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
         self?.updateOnboardingLifecyclePolicy(reason: "user_defaults_changed")
       }
     }
-    // Dock-icon policy is driven by the explicit preference notification below (and the
-    // launch call), not by the catch-all UserDefaults observer above — so it only runs
-    // when the user actually changes the setting, not on every unrelated defaults write.
-    dockIconVisibilityObserver = NotificationCenter.default.addObserver(
-      forName: .dockIconVisibilityPreferenceDidChange,
-      object: nil,
-      queue: .main
-    ) { [weak self] _ in
-      MainActor.assumeIsolated {
-        self?.applyDockIconVisibilityPolicy(reason: "preference_changed")
-      }
-    }
 
     // Register for Apple Events to handle URL scheme
     NSAppleEventManager.shared().setEventHandler(
@@ -755,7 +571,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Register Carbon-based global shortcuts for floating control bar (Ask Omi)
     GlobalShortcutManager.shared.registerShortcuts()
 
-    applyDockIconVisibilityPolicy(reason: "launch")
+    // Ensure app always shows in dock as a regular app
+    NSApp.setActivationPolicy(.regular)
 
     // Set up menu bar icon with NSStatusBar (more reliable than SwiftUI MenuBarExtra)
     // Called synchronously on main thread to ensure status item is created before app finishes launching
@@ -905,65 +722,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     MainActor.assumeIsolated { window.title.lowercased().hasPrefix("omi") }
   }
 
-  /// Strip com.apple.provenance extended attributes from our own bundle.
-  /// macOS adds these when Sparkle extracts the update ZIP, which breaks the code
-  /// signature seal and causes subsequent updates to fail.
-  private func stripProvenanceXattrs() {
+  /// Run the narrow, bundle-local maintenance required for update integrity.
+  /// Startup must never restart shared macOS services or mutate global caches.
+  private func runStartupSystemMaintenance() {
     let bundlePath = Bundle.main.bundlePath
+    let commands = StartupSystemMaintenancePolicy.commands(bundlePath: bundlePath)
     DispatchQueue.global(qos: .utility).async {
-      // A silent failure here breaks the code-signature seal and causes future
-      // Sparkle updates to fail, so surface it (BL-022) instead of dropping it.
-      SystemCommand.runLogging(
-        "AppDelegate: strip provenance xattrs",
-        executable: "/usr/bin/xattr", arguments: ["-cr", bundlePath])
-    }
-  }
-
-  /// One-time icon cache reset to force macOS to pick up the new squircle icon.
-  /// Runs lsregister unregister/register + kills iconservicesagent (auto-restarts).
-  /// Includes a safety net to restart the Dock if it crashes during the reset.
-  private func resetIconCacheIfNeeded() {
-    let key = "hasResetIconCache_v2"
-    guard !UserDefaults.standard.bool(forKey: key) else { return }
-    UserDefaults.standard.set(true, forKey: key)
-    log("AppDelegate: Running one-time icon cache reset")
-
-    let appPath = Bundle.main.bundlePath
-    let lsregister =
-      "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-
-    DispatchQueue.global(qos: .utility).async {
-      // Best-effort cosmetic maintenance. Capture each step's outcome instead of
-      // dropping it with `try?`, but keep it at info level — some steps exit
-      // non-zero benignly (e.g. killall when the agent isn't running), so this is
-      // not routed through the failure path (BL-022).
-      log(
-        "Icon cache: lsregister unregister \(SystemCommand.run(executable: lsregister, arguments: ["-u", appPath]).summary)"
-      )
-      log(
-        "Icon cache: lsregister register \(SystemCommand.run(executable: lsregister, arguments: ["-f", appPath]).summary)"
-      )
-      log(
-        "Icon cache: kill iconservicesagent \(SystemCommand.run(executable: "/usr/bin/killall", arguments: ["iconservicesagent"]).summary)"
-      )
-
-      // Safety net: verify the Dock is still running after 2 seconds.
-      // iconservicesagent restart can occasionally crash the Dock. pgrep exits
-      // non-zero when Dock isn't found, which is the signal we branch on.
-      Thread.sleep(forTimeInterval: 2.0)
-      let dockRunning = SystemCommand.run(
-        executable: "/usr/bin/pgrep", arguments: ["-x", "Dock"]
-      ).isSuccess
-
-      if !dockRunning {
-        // Dock is not running — restart it
-        log("AppDelegate: Dock not running after icon cache reset, restarting")
-        log(
-          "Icon cache: restart Dock \(SystemCommand.run(executable: "/usr/bin/open", arguments: ["-a", "Dock"]).summary)"
+      for command in commands {
+        // A silent failure here can break future update integrity, so surface it
+        // instead of dropping it.
+        SystemCommand.runLogging(
+          command.label,
+          executable: command.executable,
+          arguments: command.arguments
         )
       }
-
-      log("AppDelegate: Icon cache reset complete")
     }
   }
 
@@ -1025,69 +798,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     log("AppDelegate: Hotkey is Ctrl+Option+R (⌃⌥R), Ask Omi via Carbon hotkeys")
   }
 
-  @MainActor private func applyDockIconVisibilityPolicy(reason: String) {
-    let hidesDockIcon = DockIconVisibilitySettings().hidesDockIcon
-    let policy = DockIconVisibilitySettings.activationPolicy(hidesDockIcon: hidesDockIcon)
-    guard NSApp.activationPolicy() != policy else { return }
-
-    NSApp.setActivationPolicy(policy)
-    log(
-      "AppDelegate: Dock icon visibility updated (hidden=\(hidesDockIcon), policy=\(policy), reason=\(reason))"
-    )
-
-    if statusBarItem != nil {
-      refreshMenuBarIcon()
-    }
-
-    // Bringing the Dock icon back (.accessory -> .regular) is unreliable on its own:
-    // macOS frequently doesn't actually re-add the icon, and the switch drops the app
-    // behind whatever is frontmost. Re-assert activation on the next runloop tick (once
-    // the policy change has settled) and pull the main window back to the front, the
-    // same dance the launch path uses.
-    if policy == .regular {
-      DispatchQueue.main.async {
-        NSApp.activate(ignoringOtherApps: true)
-        _ = self.revealMainWindowIfAvailable()
-      }
-    }
-  }
-
-  private func makeMenuBarLogoIcon() -> NSImage {
-    let imageSize = NSSize(width: 18, height: 18)
-    let image = NSImage(size: imageSize)
-    image.lockFocus()
-
-    if let context = NSGraphicsContext.current?.cgContext {
-      context.setFillColor(NSColor.black.cgColor)
-      let iconRect = CGRect(x: 1.75, y: 1.75, width: 14.5, height: 14.5)
-      context.addPath(CGPath(roundedRect: iconRect, cornerWidth: 3.5, cornerHeight: 3.5, transform: nil))
-      context.fillPath()
-
-      let center = CGPoint(x: imageSize.width / 2, y: imageSize.height / 2)
-      let ringRadius: CGFloat = 4.4
-      let dotRadius: CGFloat = 1.05
-      context.setBlendMode(.clear)
-      for index in 0..<8 {
-        let angle = CGFloat(index) * (.pi / 4)
-        let dotCenter = CGPoint(
-          x: center.x + cos(angle) * ringRadius,
-          y: center.y + sin(angle) * ringRadius
-        )
-        context.fillEllipse(
-          in: CGRect(
-            x: dotCenter.x - dotRadius,
-            y: dotCenter.y - dotRadius,
-            width: dotRadius * 2,
-            height: dotRadius * 2
-          ))
-      }
-      context.setBlendMode(.normal)
-    }
-
-    image.unlockFocus()
-    image.isTemplate = true
-    return image
-  }
+  // Dock icon is always visible — LSUIElement=false and activation policy stays .regular
 
   /// Force-refresh the menu bar icon after activation policy changes.
   /// Works around a macOS Sequoia bug where NSStatusBar items vanish
@@ -1110,9 +821,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
           icon.isTemplate = true
           button.image = icon
         }
-      } else {
-        button.image = makeMenuBarLogoIcon()
-        button.imagePosition = .imageOnly
+      } else if let iconURL = Bundle.resourceBundle.url(
+        forResource: "omi_menu_bar_icon", withExtension: "png"),
+        let icon = NSImage(contentsOf: iconURL)
+      {
+        icon.isTemplate = true
+        icon.size = NSSize(width: 18, height: 18)
+        button.image = icon
       }
     }
     // Safety net: verify again after a short delay
@@ -1163,7 +878,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     let displayName =
       Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "omi"
 
-    // Set up the button with icon.
+    // Set up the button with compact circle mark.
     if let button = statusBarItem.button {
       if OMIApp.launchMode == .rewind {
         // Rewind mode uses SF Symbol
@@ -1174,11 +889,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
           button.image = icon
           log("AppDelegate: [MENUBAR] Rewind icon set successfully")
         }
-      } else {
-        let icon = makeMenuBarLogoIcon()
-        button.imagePosition = .imageOnly
+      } else if let iconURL = Bundle.resourceBundle.url(
+        forResource: "omi_menu_bar_icon", withExtension: "png"),
+        let icon = NSImage(contentsOf: iconURL)
+      {
+        icon.isTemplate = true
+        icon.size = NSSize(width: 18, height: 18)
         button.image = icon
-        log("AppDelegate: [MENUBAR] Omi icon set successfully (size: \(icon.size))")
+        button.imagePosition = .imageOnly
+        log("AppDelegate: [MENUBAR] Omi circle logo set successfully (size: \(icon.size))")
+      } else {
+        // Fallback to SF Symbol
+        if let icon = NSImage(systemSymbolName: "waveform", accessibilityDescription: "omi") {
+          icon.isTemplate = true
+          button.image = icon
+        }
+        log("AppDelegate: [MENUBAR] WARNING - Failed to load omi_menu_bar_icon, using fallback")
       }
       button.toolTip = OMIApp.launchMode == .rewind ? "omi Rewind" : displayName
     } else {
@@ -1188,13 +914,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Create menu
     let menu = NSMenu()
 
-    // Quick toggles for screen recording and microphone transcription.
+    // Quick toggles for screen capture and audio recording.
     // When paywalled (trial expired / usage limit hit) both render OFF — the
     // features can't run, and tapping a toggle surfaces the upgrade popup.
     let paywalled = AppState.isPaywalledEffective
     let screenCaptureItem = NSMenuItem()
     let screenCaptureView = makeToggleItemView(
-      title: DesktopRecordingControlCopy.screenRecordingTitle,
+      title: "Screen Capture",
       iconName: "rectangle.dashed.badge.record",
       isOn: !paywalled && AssistantSettings.shared.screenAnalysisEnabled
         && ProactiveAssistantsPlugin.shared.isMonitoring,
@@ -1205,34 +931,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
 
     let audioRecordingItem = NSMenuItem()
     let audioRecordingView = makeToggleItemView(
-      title: DesktopRecordingControlCopy.microphoneTitle,
+      title: "Audio Recording",
       iconName: "mic.fill",
       isOn: !paywalled && AssistantSettings.shared.transcriptionEnabled,
       action: #selector(audioRecordingToggled(_:))
     )
     audioRecordingItem.view = audioRecordingView
     menu.addItem(audioRecordingItem)
-
-    // idea-capture: start/stop quick capture (desktop has no pendant). Force-processes
-    // the in-progress conversation and files it under the "Ideas" folder. Only useful
-    // when signed in, since it hits the hosted backend. A custom control (not a stock
-    // NSMenuItem) so the click flips the row in place and keeps the menu open.
-    if AuthState.shared.isSignedIn {
-      let captureIdeaItem = NSMenuItem()
-      // Title is not drawn when a custom view is set, but VoiceOver/automation read it
-      // as the item's accessibility label (the control draws its own text, so without
-      // this the item would expose no label).
-      captureIdeaItem.title = "Capture Idea"
-      let control = IdeaCaptureItemControl(frame: NSRect(x: 0, y: 0, width: 260, height: 36))
-      control.target = self
-      control.action = #selector(captureIdeaFromMenu)
-      captureIdeaItem.view = control
-      captureIdeaItem.toolTip =
-        "Start recording an idea; click again to stop and save it to your Ideas folder"
-      menu.addItem(captureIdeaItem)
-      captureIdeaControl = control
-      updateCaptureIdeaMenuItem()  // reflect current (active/idle) state
-    }
 
     menu.addItem(NSMenuItem.separator())
 
@@ -1427,21 +1132,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     label.textColor = .labelColor
     view.addSubview(label)
 
-    // Toggle — custom-drawn so the on/off state stays legible even when the app is
-    // not frontmost. A stock NSSwitch greys out its accent ("on") color whenever
-    // the app is inactive (window open in the background), making on and off look
-    // identical; MenuToggleControl fills its own track instead.
-    let toggleSize = NSSize(width: 38, height: 21)
-    let toggle = MenuToggleControl(
-      frame: NSRect(x: 0, y: 0, width: toggleSize.width, height: toggleSize.height))
-    toggle.isOn = isOn
+    // Toggle switch — use .small for consistent rendering across items
+    let toggle = NSSwitch()
+    toggle.controlSize = .small
+    toggle.state = isOn ? .on : .off
     toggle.target = self
     toggle.action = action
+    toggle.sizeToFit()
     // Right-aligned position, pinned to right edge even when menu resizes the view
-    let toggleX = width - toggleSize.width - 16
-    let toggleY = (height - toggleSize.height) / 2
+    let toggleX = width - toggle.frame.width - 16
+    let toggleY = (height - toggle.frame.height) / 2
     toggle.frame = NSRect(
-      x: toggleX, y: toggleY, width: toggleSize.width, height: toggleSize.height)
+      x: toggleX, y: toggleY, width: toggle.frame.width, height: toggle.frame.height)
     toggle.autoresizingMask = [.minXMargin]
     view.addSubview(toggle)
 
@@ -1455,109 +1157,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     return view
   }
 
-  @MainActor @objc private func screenCaptureToggled(_ sender: MenuToggleControl) {
-    let enabled = sender.isOn
+  @MainActor @objc private func screenCaptureToggled(_ sender: NSSwitch) {
+    let enabled = sender.state == .on
     log("AppDelegate: [MENUBAR] Screen capture toggled: \(enabled)")
     AnalyticsManager.shared.menuBarActionClicked(
       action: enabled ? "screen_capture_on" : "screen_capture_off")
     AnalyticsManager.shared.settingToggled(setting: "monitoring", enabled: enabled)
 
-    if enabled {
-      // Paywall gate: trial expired / usage limit hit. Refuse to enable,
-      // revert the toggle, and surface the same upgrade popup as everywhere else.
-      if AppState.isPaywalledEffective {
-        sender.isOn = false
-        NotificationCenter.default.post(
-          name: .showUsageLimitPopup, object: nil, userInfo: ["reason": "trial_expired"])
-        return
-      }
-      if !ProactiveAssistantsPlugin.shared.hasScreenRecordingPermission {
-        // No permission — revert toggle, register + open preferences (PERM-02)
-        sender.isOn = false
-        ScreenCaptureService.requestScreenRecordingAccessAndOpenSettings()
-        return
-      }
-      AssistantSettings.shared.screenAnalysisEnabled = true
-      ProactiveAssistantsPlugin.shared.startMonitoring { success, error in
-        DispatchQueue.main.async {
-          if !success {
-            log("AppDelegate: [MENUBAR] Screen capture failed to start: \(error ?? "unknown")")
-            sender.isOn = false
-            AssistantSettings.shared.screenAnalysisEnabled = false
-          }
-        }
-      }
-    } else {
-      AssistantSettings.shared.screenAnalysisEnabled = false
-      ProactiveAssistantsPlugin.shared.stopMonitoring()
+    // Paywall gate, permission gate, and start/rollback all live in
+    // SystemCaptureControls so the notch cluster cannot drift from this menu.
+    let outcome = SystemCaptureControls.setScreenCapture(enabled) { started in
+      if !started { sender.state = .off }
     }
+    sender.state = outcome.resultingIsOn ? .on : .off
   }
 
-  @MainActor @objc private func audioRecordingToggled(_ sender: MenuToggleControl) {
-    let enabled = sender.isOn
+  @MainActor @objc private func audioRecordingToggled(_ sender: NSSwitch) {
+    let enabled = sender.state == .on
     log("AppDelegate: [MENUBAR] Audio recording toggled: \(enabled)")
     AnalyticsManager.shared.menuBarActionClicked(
       action: enabled ? "audio_recording_on" : "audio_recording_off")
     AnalyticsManager.shared.settingToggled(setting: "transcription", enabled: enabled)
 
-    // Paywall gate: trial expired / usage limit hit. Refuse to enable,
-    // revert the toggle, and surface the same upgrade popup as everywhere else.
-    if enabled && AppState.isPaywalledEffective {
-      sender.isOn = false
-      NotificationCenter.default.post(
-        name: .showUsageLimitPopup, object: nil, userInfo: ["reason": "trial_expired"])
-      return
-    }
-
-    AssistantSettings.shared.transcriptionEnabled = enabled
-    // Request the main view to start/stop transcription (needs AppState)
-    NotificationCenter.default.post(
-      name: .toggleTranscriptionRequested,
-      object: nil,
-      userInfo: ["enabled": enabled]
-    )
-  }
-
-  // idea-capture: menu-bar toggle. First click starts recording an idea (turns the mic
-  // on if needed); second click stops and files it under "Ideas".
-  @MainActor @objc private func captureIdeaFromMenu() {
-    guard let state = AppState.current else { return }
-    let starting = !state.isIdeaCaptureActive
-    log("AppDelegate: [MENUBAR] Idea capture toggle (\(starting ? "start" : "stop"))")
-    AnalyticsManager.shared.menuBarActionClicked(
-      action: starting ? "idea_capture_start" : "idea_capture_stop")
-    Task { await state.toggleIdeaCapture() }
-  }
-
-  /// idea-capture: reflect session state on the menu row — the control repaints itself
-  /// to the red "Stop Idea Capture" state while recording, vs "Capture Idea" when idle.
-  @MainActor private func updateCaptureIdeaMenuItem() {
-    captureIdeaControl?.isActive = AppState.current?.isIdeaCaptureActive ?? false
-  }
-
-  // idea-capture: reveal the Ideas folder in the main window. Invoked when the user
-  // taps the capture confirmation (system banner via NotificationService, or the
-  // floating-bar preview via FloatingControlBarManager).
-  @MainActor func revealIdeaFolder() {
-    log("AppDelegate: [MENUBAR] Reveal Ideas folder requested")
-    // Raise (or open) the main window, mirroring openOmiFromMenu.
-    var foundWindow = revealMainWindowIfAvailable()
-    if !foundWindow {
-      Self.openMainWindow?()
-      foundWindow = revealMainWindowIfAvailable()
-    }
-    NSApp.activate(ignoringOtherApps: true)
-    // Switch to Conversations and filter to Ideas. Delay slightly so a freshly
-    // opened window's view hierarchy is mounted and listening before we post.
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-      NotificationCenter.default.post(
-        name: .navigateToSidebarItem, object: nil,
-        userInfo: ["rawValue": SidebarNavItem.conversations.rawValue])
-      let folderId = UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey) ?? ""
-      if let state = AppState.current {
-        Task { await state.setFolderFilter(folderId.isEmpty ? nil : folderId) }
-      }
-    }
+    let outcome = SystemCaptureControls.setAudioRecording(enabled)
+    sender.state = outcome.resultingIsOn ? .on : .off
   }
 
   // MARK: - NSMenuDelegate
@@ -1567,12 +1190,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Refresh toggle states to match current runtime state. When paywalled,
     // force both OFF — the features can't run until the user upgrades.
     let paywalled = AppState.isPaywalledEffective
-    screenCaptureSwitch?.isOn =
-      (!paywalled && ProactiveAssistantsPlugin.shared.isMonitoring)
-    audioRecordingSwitch?.isOn =
-      (!paywalled && AssistantSettings.shared.transcriptionEnabled)
-    // idea-capture: reflect the active/idle session state (red "Stop Idea Capture").
-    updateCaptureIdeaMenuItem()
+    screenCaptureSwitch?.state =
+      (!paywalled && ProactiveAssistantsPlugin.shared.isMonitoring) ? .on : .off
+    audioRecordingSwitch?.state =
+      (!paywalled && AssistantSettings.shared.transcriptionEnabled) ? .on : .off
   }
 
   func menuDidClose(_ menu: NSMenu) {
@@ -1656,10 +1277,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       NotificationCenter.default.removeObserver(observer)
       userDefaultsObserver = nil
     }
-    if let observer = dockIconVisibilityObserver {
-      NotificationCenter.default.removeObserver(observer)
-      dockIconVisibilityObserver = nil
-    }
     // Remove hotkey monitors
     if let monitor = globalHotkeyMonitor {
       NSEvent.removeMonitor(monitor)
@@ -1724,9 +1341,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       return
     }
 
-    NSLog(
-      "OMI AppDelegate: Received URL event: %@://%@%@",
-      url.scheme ?? "(none)", url.host ?? "(none)", url.path)
+    NSLog("OMI AppDelegate: Received URL event: %@", urlString)
 
     Task { @MainActor in
       AuthService.shared.handleOAuthCallback(url: url)
@@ -1841,12 +1456,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       log("Found old app at \(oldPath), cleaning up...")
 
       // Kill the old app if it's running
-      let oldBundlePath = URL(fileURLWithPath: oldPath).standardizedFileURL.path
       let running = NSRunningApplication.runningApplications(
         withBundleIdentifier: "com.omi.computer-macos")
       for app in running {
         guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { continue }
-        guard app.bundleURL?.standardizedFileURL.path == oldBundlePath else { continue }
         log("Terminating old Omi Computer process (PID \(app.processIdentifier))")
         app.forceTerminate()
       }
