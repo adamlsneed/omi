@@ -354,6 +354,10 @@ class AppState: ObservableObject {
   var captureGateInFlight = false
   var captureReconcilePending = false
   var pendingCoreAudioCaptureRecoveryReason: String?
+  /// Counts CoreAudio rebuilds caused by a zero-sample microphone during one
+  /// transcription session. This lives above `AudioCaptureService` because each
+  /// rebuild creates a fresh service (and therefore a fresh service-local watchdog).
+  var silentMicRecoveryAttempts = 0
   var meetingEndFinalizationInProgress = false
   @Published var isAwaitingMeeting = false
 
@@ -390,7 +394,11 @@ class AppState: ObservableObject {
   var totalWordCount = 0
 
   var recordingStartTime: Date?
-  var recordingInputDeviceName: String?
+  /// Published: the capture-source label renders this, and the preferred-mic
+  /// resolution assigns it after `isTranscribing` has already published — a
+  /// plain var would leave the UI showing the default device until unrelated
+  /// state churned.
+  @Published var recordingInputDeviceName: String?
   var maxRecordingTimer: Timer? {
     get { servicesCoordinator.maxRecordingTimer }
     set { servicesCoordinator.maxRecordingTimer = newValue }
@@ -650,19 +658,19 @@ class AppState: ObservableObject {
       queue: .main
     ) { [weak self] _ in
       guard let self = self else { return }
-      // Must run synchronously: AppKit exits before an enqueued Task would
-      // ever execute. The observer is on the main queue, so this is safe.
-      MainActor.assumeIsolated {
+      Task { @MainActor in
         if self.isTranscribing {
           log("App terminating - stopping transcription (backend handles conversation)")
+          let sessionId = self.currentSessionId
           self.stopAudioCapture()
-          // clearTranscriptionState finishes the DB session (finishSession: true) via its
-          // own Task; the observer must stay synchronous, so we cannot await it here.
+          if let sessionId {
+            try? await TranscriptionStorage.shared.finishSession(id: sessionId, reason: .userStop)
+          }
           self.clearTranscriptionState(
             finalizationReason: .userStop,
             runFinalizer: false,
             allowCloudForceProcess: false,
-            finishSession: true
+            finishSession: false
           )
         }
       }
@@ -783,310 +791,6 @@ class AppState: ObservableObject {
       NotificationCenter.default.removeObserver(ownerChangeObserver)
     }
   }
-
-  // MARK: - Idea Capture (desktop quick-capture)
-
-  // idea-capture: desktop has no pendant, so "Capture Idea" is a one-shot app
-  // action. It force-processes the in-progress conversation (force_process
-  // bypasses the backend short-conversation discard gate, so any length saves)
-  // and files the result under a dedicated "Ideas" folder. Mirrors the mobile
-  // CaptureProvider.forceProcessingCurrentConversation(asIdea: true) path; see
-  // docs/developer/upstream-sync-and-backend-policy.mdx for the shared behavior.
-
-  /// idea-capture: true while a start/stop idea-capture session is recording. Drives the
-  /// menu-bar "Stop Idea Capture" state and the red status-bar indicator.
-  @Published var isIdeaCaptureActive = false
-
-  /// idea-capture: guards start/stop transitions (network calls) against double-clicks.
-  private var ideaCaptureBusy = false
-
-  /// idea-capture: the state the user last asked for via a toggle click. Set on every
-  /// click, consumed by the runner loop in `toggleIdeaCapture`. Clicks that land while
-  /// a transition's network tail is still running are recorded here and applied when
-  /// the transition finishes, instead of being silently dropped by the busy guard.
-  private var ideaCaptureDesiredActive: Bool?
-
-  /// idea-capture: true while `toggleIdeaCapture`'s runner loop is draining
-  /// `ideaCaptureDesiredActive`, so concurrent toggle calls just record intent.
-  private var ideaCaptureTransitionRunning = false
-
-  /// idea-capture: the mic (transcription) setting before a session began, so we can
-  /// restore it on stop when the session turned the mic on itself.
-  private var micEnabledBeforeIdeaCapture = false
-
-  static let ideaFolderIdKey = "desktop_ideaFolderId"
-
-  /// idea-capture: resolve (or lazily create) the "Ideas" destination folder, caching its id.
-  private func ensureIdeaFolder() async -> String? {
-    do {
-      let folders = try await APIClient.shared.getFolders()
-      let cachedId = UserDefaults.standard.string(forKey: Self.ideaFolderIdKey) ?? ""
-      if let existing = folders.first(where: {
-        (!cachedId.isEmpty && $0.id == cachedId) || $0.name.lowercased() == "ideas"
-      }) {
-        UserDefaults.standard.set(existing.id, forKey: Self.ideaFolderIdKey)
-        return existing.id
-      }
-      let created = try await APIClient.shared.createFolder(
-        name: "Ideas",
-        description:
-          "Captured ideas — intentional, fleeting thoughts saved from the pendant or app.",
-        color: "#22C55E")
-      UserDefaults.standard.set(created.id, forKey: Self.ideaFolderIdKey)
-      return created.id
-    } catch {
-      logError("idea-capture: ensure folder failed", error: error)
-      return nil
-    }
-  }
-
-  /// idea-capture: outcome of finishing + filing the desktop's own recording.
-  private enum IdeaCaptureOutcome { case nothing, savedToIdeas, savedLoose }
-
-  /// idea-capture: finish the desktop's own recording and file the resulting
-  /// conversation under "Ideas". Shared by the menu toggle's stop step and the
-  /// one-shot automation path.
-  ///
-  /// POST /v1/conversations (force-process) is the wrong tool here: it processes
-  /// whichever in-progress conversation the backend's Redis pointer names, which can
-  /// be another device's empty stub while this device's segments are still in flight.
-  /// The stub then gets filed and discarded (invisible in the folder), and the real
-  /// idea lands in a later conversation that was never moved. finishConversation()
-  /// closes this app's own stream, so the backend processes exactly the conversation
-  /// we recorded; its server id reaches the local session row via the memory_created
-  /// binding (or API reconciliation), and that id is what gets filed.
-  private func fileInProgressConversationAsIdea() async throws -> IdeaCaptureOutcome {
-    guard isTranscribing, let sessionId = currentSessionId else {
-      log("idea-capture: not recording on this device; not filing")
-      return .nothing
-    }
-    // On-device Parakeet emits segments in ~10s windows (and cloud STT has a couple
-    // seconds of latency), so a short idea can have zero in-memory segments at the
-    // moment the user stops. Give the in-flight window a chance to land before
-    // concluding nothing was said.
-    var waitedNanoseconds: UInt64 = 0
-    while totalSegmentCount == 0, speakerSegments.isEmpty, waitedNanoseconds < 12_000_000_000 {
-      try? await Task.sleep(nanoseconds: 500_000_000)
-      waitedNanoseconds += 500_000_000
-    }
-    guard totalSegmentCount > 0 || !speakerSegments.isEmpty else {
-      log("idea-capture: nothing recorded on this device; not filing")
-      return .nothing
-    }
-    if case .error(let message) = await finishConversation() {
-      // The recording was still closed and queued; only the restart failed.
-      log("idea-capture: finishConversation reported: \(message)")
-    }
-    guard let folderId = await ensureIdeaFolder() else {
-      log("idea-capture: no Ideas folder, leaving conversation in place")
-      return .savedLoose
-    }
-    if let conversationId = await ideaConversationId(
-      sessionId: sessionId, attempts: 30, delayNanoseconds: 1_000_000_000)
-    {
-      try await fileIdeaConversation(conversationId, folderId: folderId)
-      return .savedToIdeas
-    }
-    // Backend is still processing; finish the filing once the conversation id binds.
-    log("idea-capture: conversation id for session \(sessionId) not bound yet, filing in background")
-    Task { [weak self] in
-      guard let self = self else { return }
-      guard
-        let conversationId = await self.ideaConversationId(
-          sessionId: sessionId, attempts: 36, delayNanoseconds: 5_000_000_000)
-      else {
-        log("idea-capture: gave up waiting for the conversation id of session \(sessionId)")
-        return
-      }
-      do {
-        try await self.fileIdeaConversation(conversationId, folderId: folderId)
-        await self.loadConversations()
-      } catch {
-        logError("idea-capture: background filing failed", error: error)
-      }
-    }
-    return .savedToIdeas
-  }
-
-  /// idea-capture: move the conversation into the Ideas folder, force-structuring it
-  /// first if the backend's discard heuristic dropped a short capture (discarded
-  /// conversations are hidden from folder listings).
-  private func fileIdeaConversation(_ conversationId: String, folderId: String) async throws {
-    if let conversation = try? await APIClient.shared.getConversation(id: conversationId),
-      conversation.discarded
-    {
-      log("idea-capture: conversation \(conversationId) was discarded, reprocessing")
-      try? await APIClient.shared.reprocessConversation(conversationId: conversationId)
-    }
-    _ = try await APIClient.shared.moveConversationToFolder(
-      conversationId: conversationId, folderId: folderId)
-    log("idea-capture: filed conversation \(conversationId) under Ideas")
-  }
-
-  /// idea-capture: poll the local session row until its backend conversation id binds
-  /// (memory_created event or API reconciliation, whichever lands first).
-  private func ideaConversationId(
-    sessionId: Int64, attempts: Int, delayNanoseconds: UInt64
-  ) async -> String? {
-    for attempt in 0..<attempts {
-      if attempt > 0 { try? await Task.sleep(nanoseconds: delayNanoseconds) }
-      if let record = try? await TranscriptionStorage.shared.getSession(id: sessionId),
-        let backendId = record.backendId
-      {
-        return backendId
-      }
-    }
-    return nil
-  }
-
-  /// idea-capture: confirmation toast for a finished capture.
-  private func showIdeaCaptureResultToast(_ outcome: IdeaCaptureOutcome) {
-    switch outcome {
-    case .nothing:
-      IdeaCaptureToast.shared.show(
-        symbol: "mic.slash", title: "Nothing captured",
-        message: "No speech was recorded for this idea.")
-    case .savedToIdeas:
-      IdeaCaptureToast.shared.show(
-        symbol: "lightbulb.fill", title: "Idea captured",
-        message: "Saved to your Ideas folder — tap to open.",
-        onTap: { AppDelegate.revealIdeaFolderHandler?() })
-    case .savedLoose:
-      IdeaCaptureToast.shared.show(
-        symbol: "lightbulb.fill", title: "Idea captured",
-        message: "Saved to your conversations.")
-    }
-  }
-
-  /// idea-capture: toggle entry point — start a session, or stop & file one.
-  ///
-  /// Start/stop transitions hold multi-second network calls, during which the old code
-  /// dropped further clicks on the floor (the busy guard returned silently). A user who
-  /// clicked "Stop Idea Capture" right after starting saw nothing happen until they
-  /// waited and clicked again. Instead, every click records the state the user wants
-  /// (the opposite of what the UI showed when they clicked), and a single runner loop
-  /// converges to the latest desired state once the in-flight transition finishes.
-  /// Rapid repeat clicks on the same row coalesce into one transition.
-  func toggleIdeaCapture() async {
-    ideaCaptureDesiredActive = !isIdeaCaptureActive
-    guard !ideaCaptureTransitionRunning else { return }
-    ideaCaptureTransitionRunning = true
-    defer { ideaCaptureTransitionRunning = false }
-    while let desired = ideaCaptureDesiredActive {
-      ideaCaptureDesiredActive = nil
-      guard desired != isIdeaCaptureActive else { continue }
-      if desired {
-        await startIdeaCapture()
-      } else {
-        await stopIdeaCaptureAndFile()
-      }
-    }
-  }
-
-  /// idea-capture: begin a session. Turns the mic on (remembering its prior state) and
-  /// cuts a clean boundary so the idea is isolated from anything recorded before.
-  func startIdeaCapture() async {
-    guard !ideaCaptureBusy, !isIdeaCaptureActive else { return }
-    ideaCaptureBusy = true
-    defer { ideaCaptureBusy = false }
-
-    if AppState.isPaywalledEffective {
-      NotificationCenter.default.post(
-        name: .showUsageLimitPopup, object: nil, userInfo: ["reason": "trial_expired"])
-      return
-    }
-
-    // Flip state and confirm immediately so the click registers instantly — the menu
-    // row flips to "Stop Idea Capture" in place and the toast appears now, before the
-    // mic spin-up and the boundary-cutting network call below.
-    isIdeaCaptureActive = true
-    NotificationCenter.default.post(name: .ideaCaptureStateChanged, object: nil)
-    IdeaCaptureToast.shared.show(
-      symbol: "record.circle.fill", title: "Recording idea…",
-      message: "Click the Stop Idea control in the sidebar or menu when you're done.")
-
-    micEnabledBeforeIdeaCapture = AssistantSettings.shared.transcriptionEnabled
-    if !AssistantSettings.shared.transcriptionEnabled {
-      AssistantSettings.shared.transcriptionEnabled = true
-      NotificationCenter.default.post(
-        name: .toggleTranscriptionRequested, object: nil, userInfo: ["enabled": true])
-    }
-    // Close this device's in-progress conversation so the idea starts fresh.
-    // (Server-side force-process could cut another device's conversation instead.)
-    // finishConversation() skips the rotation itself when nothing has been recorded.
-    if isTranscribing {
-      _ = await finishConversation()
-    }
-  }
-
-  /// idea-capture: stop the session, file what was recorded under "Ideas", and restore
-  /// the mic to its pre-session state.
-  func stopIdeaCaptureAndFile() async {
-    guard !ideaCaptureBusy, isIdeaCaptureActive else { return }
-    ideaCaptureBusy = true
-    defer { ideaCaptureBusy = false }
-
-    isIdeaCaptureActive = false
-    NotificationCenter.default.post(name: .ideaCaptureStateChanged, object: nil)
-    IdeaCaptureToast.shared.show(
-      symbol: "hourglass", title: "Saving idea…", message: "One moment.", autoDismiss: false)
-
-    do {
-      let outcome = try await fileInProgressConversationAsIdea()
-      restoreMicAfterIdeaCapture()
-      showIdeaCaptureResultToast(outcome)
-      await loadConversations()
-    } catch {
-      logError("idea-capture: stop/file failed", error: error)
-      restoreMicAfterIdeaCapture()
-      IdeaCaptureToast.shared.show(
-        symbol: "exclamationmark.triangle.fill", title: "Couldn't save idea",
-        message: "Something went wrong. Please try again.")
-    }
-  }
-
-  /// idea-capture: if the session turned the mic on, turn it back off.
-  private func restoreMicAfterIdeaCapture() {
-    guard !micEnabledBeforeIdeaCapture, AssistantSettings.shared.transcriptionEnabled else { return }
-    AssistantSettings.shared.transcriptionEnabled = false
-    NotificationCenter.default.post(
-      name: .toggleTranscriptionRequested, object: nil, userInfo: ["enabled": false])
-  }
-
-  /// idea-capture: one-shot capture of the current in-progress conversation (used by the
-  /// automation bridge). `notify` shows confirmation toasts; the test path passes `false`.
-  func captureCurrentConversationAsIdea(notify: Bool = true) async {
-    guard !ideaCaptureBusy else { return }
-    ideaCaptureBusy = true
-    defer { ideaCaptureBusy = false }
-    if notify {
-      IdeaCaptureToast.shared.show(
-        symbol: "hourglass", title: "Capturing idea…",
-        message: "Saving what's being recorded.", autoDismiss: false)
-    }
-    do {
-      let outcome = try await fileInProgressConversationAsIdea()
-      if notify {
-        if case .nothing = outcome {
-          IdeaCaptureToast.shared.show(
-            symbol: "mic.slash", title: "Nothing to capture yet",
-            message:
-              "Turn on \(DesktopRecordingControlCopy.microphoneTitle) first - there's no active conversation."
-          )
-        } else {
-          showIdeaCaptureResultToast(outcome)
-        }
-      }
-      await loadConversations()
-    } catch {
-      logError("idea-capture: capture failed", error: error)
-      if notify {
-        IdeaCaptureToast.shared.show(
-          symbol: "exclamationmark.triangle.fill", title: "Couldn't capture idea",
-          message: "Something went wrong. Please try again.")
-      }
-    }
-  }
 }
 
 extension Notification.Name {
@@ -1160,9 +864,6 @@ extension Notification.Name {
   static let navigateToTasks = Notification.Name("navigateToTasks")
   /// Posted by keyboard shortcuts to navigate sidebar. userInfo: ["rawValue": Int]
   static let navigateToSidebarItem = Notification.Name("navigateToSidebarItem")
-  /// idea-capture: posted when a start/stop idea-capture session begins or ends, so the
-  /// menu-bar item and status icon can reflect the active/idle state immediately.
-  static let ideaCaptureStateChanged = Notification.Name("ideaCaptureStateChanged")
   /// Posted by Cmd+R to refresh all data (conversations, chat, tasks, memories)
   static let refreshAllData = Notification.Name("refreshAllData")
   /// Posted after a conversation is deleted so dependent views can prune local state.

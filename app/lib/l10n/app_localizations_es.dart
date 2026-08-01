@@ -1473,7 +1473,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get payYourSttProvider => 'Usa Omi gratis. Solo pagas a tu proveedor STT.';
 
   @override
-  String get freeMinutesMonth => '1.200 minutos gratis/mes incluidos.';
+  String get freeMinutesMonth => '300 minutos gratis/mes incluidos.';
 
   @override
   String get omiUnlimited => 'Omi Ilimitado';
@@ -1792,18 +1792,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lovingOmi => '¿Te gusta Omi?';
-
-  @override
-  String get leaveReviewIos => 'Ayúdanos a llegar a más gente dejando una reseña en la App Store.';
-
-  @override
-  String get leaveReviewAndroid => 'Ayúdanos a llegar a más gente dejando una reseña en Google Play.';
-
-  @override
-  String get rateOnAppStore => 'Calificar en App Store';
-
-  @override
-  String get rateOnGooglePlay => 'Calificar en Google Play';
 
   @override
   String get maybeLater => 'Quizás más tarde';
@@ -2130,6 +2118,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get editMemory => '✏️ Editar memoria';
+
+  @override
+  String get pinAsBaseline => 'Pin as Baseline';
+
+  @override
+  String get unpinAsBaseline => 'Unpin from Baseline';
+
+  @override
+  String get baselineMemory => 'Baseline Memory';
+
+  @override
+  String get alwaysInContext => 'Always in context';
 
   @override
   String get memoryContentHint => 'Me gusta el helado...';
@@ -4712,7 +4712,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'No hay acceso a datos específico configurado.';
 
   @override
-  String get basicPlanDescription => '1.200 minutos premium + ilimitado en dispositivo';
+  String get basicPlanDescription => '300 minutos premium + ilimitado en dispositivo';
 
   @override
   String get minutes => 'minutos';
@@ -6009,7 +6009,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1.200 minutos premium/mes. La pestaña En el dispositivo ofrece transcripción gratuita ilimitada.';
+      '300 minutos premium/mes. La pestaña En el dispositivo ofrece transcripción gratuita ilimitada.';
 
   @override
   String get viewUsage => 'Ver uso';
@@ -6093,7 +6093,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1.200 minutos premium/mes. La pestaña En dispositivo ofrece transcripción gratuita ilimitada. ';
+      '300 minutos premium/mes. La pestaña En dispositivo ofrece transcripción gratuita ilimitada. ';
 
   @override
   String get audioProcessedLocally =>

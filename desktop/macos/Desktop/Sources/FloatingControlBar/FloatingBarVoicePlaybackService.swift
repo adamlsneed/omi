@@ -161,11 +161,7 @@ final class FloatingBarVoicePlaybackService: NSObject, AVAudioPlayerDelegate, AV
     guard let message else { return }
 
     if currentResponseID != message.id {
-      let incomingText = Self.cleanedPlaybackText(from: message)
-      let isBackendIdSwap = !streamedText.isEmpty && incomingText.hasPrefix(streamedText)
-      if !isBackendIdSwap {
-        resetPlaybackPipeline(clearMode: false, notifyPTTDrain: true)
-      }
+      resetPlaybackPipeline(clearMode: false, notifyPTTDrain: true)
       currentResponseID = message.id
       interruptedResponseID = shouldInterruptNextResponse ? message.id : nil
       shouldInterruptNextResponse = false
@@ -577,7 +573,7 @@ final class FloatingBarVoicePlaybackService: NSObject, AVAudioPlayerDelegate, AV
     outcome: DesktopFallbackOutcome
   ) {
     DesktopDiagnosticsManager.shared.recordFallback(
-      area: activePTTLease == nil ? "other" : "ptt_cascade",
+      area: activePTTLease == nil ? "tts_fallback" : "ptt_cascade",
       from: "openai_tts",
       to: to,
       reason: reason,

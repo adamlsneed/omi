@@ -1805,20 +1805,6 @@ class AppLocalizationsMk extends AppLocalizations {
   String get lovingOmi => 'Вам се допаѓа Omi?';
 
   @override
-  String get leaveReviewIos =>
-      'Помогнете ни да дојдеме до повеќе луѓе со оставување рецензија во App Store. Вашата повратна информација ни значи многу!';
-
-  @override
-  String get leaveReviewAndroid =>
-      'Помогнете ни да дојдеме до повеќе луѓе со оставување рецензија во Google Play Store. Вашата повратна информација ни значи многу!';
-
-  @override
-  String get rateOnAppStore => 'Оценете во App Store';
-
-  @override
-  String get rateOnGooglePlay => 'Оценете на Google Play';
-
-  @override
   String get maybeLater => 'Можеби подоцна';
 
   @override
@@ -2156,6 +2142,18 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get editMemory => '✏️ Уредување успомена';
+
+  @override
+  String get pinAsBaseline => 'Pin as Baseline';
+
+  @override
+  String get unpinAsBaseline => 'Unpin from Baseline';
+
+  @override
+  String get baselineMemory => 'Baseline Memory';
+
+  @override
+  String get alwaysInContext => 'Always in context';
 
   @override
   String get memoryContentHint => 'Волам да јадам сладолед...';
@@ -4741,7 +4739,7 @@ class AppLocalizationsMk extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Нема конфигуриран специфичен пристап до податоци.';
 
   @override
-  String get basicPlanDescription => '1.200 премиум минути + неограничено на уред';
+  String get basicPlanDescription => '300 премиум минути + неограничено на уред';
 
   @override
   String get minutes => 'минути';
@@ -6039,7 +6037,7 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1.200 премиум минути/месец. Картичката На-уред нуди неограничена бесплатна транскрипција.';
+      '300 премиум минути/месец. Картичката На-уред нуди неограничена бесплатна транскрипција.';
 
   @override
   String get viewUsage => 'Преглед на користење';
@@ -6121,7 +6119,7 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '1.200 премиум минути/месец. Картичката На-уред нуди неограничена бесплатна транскрипција. ';
+      '300 премиум минути/месец. Картичката На-уред нуди неограничена бесплатна транскрипција. ';
 
   @override
   String get audioProcessedLocally =>

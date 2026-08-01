@@ -164,9 +164,6 @@ extension UserDefaults {
   @objc dynamic var playwrightUseExtension: Bool {
     return bool(forKey: "playwrightUseExtension")
   }
-  @objc dynamic var playwrightExtensionToken: String {
-    return string(forKey: "playwrightExtensionToken") ?? ""
-  }
 }
 
 // MARK: - Chat Session Model
@@ -639,8 +636,6 @@ final class ChatToolTraceInputStore: @unchecked Sendable {
 
 /// Metadata about the context and resources used to generate an AI response
 struct MessageMetadata {
-  private static let promptSectionPattern = try? NSRegularExpression(pattern: #"<([a-z][a-z0-9_]*)>"#, options: [])
-
   var model: String?
   var inputTokens: Int?
   var outputTokens: Int?
@@ -684,7 +679,7 @@ struct MessageMetadata {
     var seen = Set<String>()
 
     // Find all <tag>...</tag> pairs
-    guard let pattern = Self.promptSectionPattern else { return [] }
+    guard let pattern = try? NSRegularExpression(pattern: #"<([a-z][a-z0-9_]*)>"#, options: []) else { return [] }
     let matches = pattern.matches(in: prompt, range: NSRange(prompt.startIndex..., in: prompt))
 
     for match in matches {
@@ -1132,6 +1127,7 @@ class ChatProvider: ObservableObject {
 
   /// Set to true during onboarding so the ACP session ID is persisted for restart recovery.
   var isOnboarding = false
+  var preOnboardingMainMessages: [ChatMessage]?
   @Published var sessionsLoadError: String?
   @Published var selectedAppId: String? {
     didSet { restoreDraftForCurrentContextIfNeeded() }
@@ -1290,7 +1286,6 @@ class ChatProvider: ObservableObject {
 
   private var multiChatObserver: AnyCancellable?
   private var playwrightExtensionObserver: AnyCancellable?
-  private var playwrightExtensionTokenObserver: AnyCancellable?
   private var sessionGroupingObserver: AnyCancellable?
   private var activationObserver: AnyCancellable?
   private var runtimeOwnerObserver: AnyCancellable?
@@ -1488,19 +1483,22 @@ class ChatProvider: ObservableObject {
       .receive(on: DispatchQueue.main)
       .sink { [weak self] _ in
         Task { @MainActor in
-          await self?.restartAgentBridgeForPlaywrightSettingsChange(reason: "mode changed")
-        }
-      }
-
-    // Observe token changes too; otherwise reconfiguration can leave a running bridge
-    // with the previous PLAYWRIGHT_MCP_EXTENSION_TOKEN.
-    playwrightExtensionTokenObserver = UserDefaults.standard.publisher(for: \.playwrightExtensionToken)
-      .dropFirst()
-      .removeDuplicates()
-      .receive(on: DispatchQueue.main)
-      .sink { [weak self] _ in
-        Task { @MainActor in
-          await self?.restartAgentBridgeForPlaywrightSettingsChange(reason: "token changed")
+          guard let self = self else { return }
+          guard !self.isSending else {
+            log("ChatProvider: Skipping bridge restart — query in progress")
+            return
+          }
+          guard self.agentBridgeStarted else { return }
+          log("ChatProvider: Playwright extension setting changed, restarting agent bridge")
+          self.agentBridgeStarted = false
+          do {
+            try await self.resolvedAgentClient().restart()
+            if await self.ensureBridgeStarted() {
+              log("ChatProvider: agent bridge restarted with new Playwright settings")
+            }
+          } catch {
+            logError("Failed to restart agent bridge after Playwright setting change", error: error)
+          }
         }
       }
 
@@ -1555,34 +1553,15 @@ class ChatProvider: ObservableObject {
   }
 
   /// Pre-start the active bridge so the first query doesn't wait for process launch
-  func warmupBridge() async {
+  func warmupBridge() async -> Bool {
     await preparePromptContextIfNeeded()
-    _ = await ensureBridgeStarted()
+    return await ensureBridgeStarted()
   }
 
   /// Drop a cached agent surface so the next query recreates it with fresh prompt context.
   func invalidateAgentSurface(surface: AgentSurfaceReference) async {
     guard agentBridgeStarted else { return }
     await resolvedAgentClient().invalidateSurface(surface)
-  }
-
-  private func restartAgentBridgeForPlaywrightSettingsChange(reason: String) async {
-    guard !isSending else {
-      log("ChatProvider: Skipping Playwright bridge restart after \(reason) - query in progress")
-      return
-    }
-    guard agentBridgeStarted else { return }
-
-    log("ChatProvider: Playwright \(reason), restarting agent bridge")
-    agentBridgeStarted = false
-    do {
-      try await resolvedAgentClient().restart()
-      if await ensureBridgeStarted() {
-        log("ChatProvider: agent bridge restarted with new Playwright settings")
-      }
-    } catch {
-      logError("Failed to restart agent bridge after Playwright \(reason)", error: error)
-    }
   }
 
   /// Test that the Playwright Chrome extension is connected and working.
@@ -1614,7 +1593,8 @@ class ChatProvider: ObservableObject {
     authoritativeGeneration: Int? = nil
   ) async -> Bool {
     guard let authorization = RuntimeOwnerIdentity.captureAuthorizationSnapshot() else {
-      presentBridgeStartupFailure(BridgeError.authMissing, authoritativeGeneration: authoritativeGeneration)
+      await presentBridgeStartupFailure(
+        BridgeError.authMissing, authoritativeGeneration: authoritativeGeneration)
       return false
     }
     do {
@@ -1623,7 +1603,7 @@ class ChatProvider: ObservableObject {
         return try await self.performBridgeReadinessStartup()
       }
     } catch {
-      presentBridgeStartupFailure(error, authoritativeGeneration: authoritativeGeneration)
+      await presentBridgeStartupFailure(error, authoritativeGeneration: authoritativeGeneration)
       return false
     }
   }
@@ -1683,8 +1663,9 @@ class ChatProvider: ObservableObject {
   private func presentBridgeStartupFailure(
     _ error: Error,
     authoritativeGeneration: Int?
-  ) {
-    logError("Failed to start agent bridge", error: error)
+  ) async {
+    let context = await AgentRuntimeProcess.shared.consumePendingStartFailureDiagnostics()
+    logError("Failed to start agent bridge", error: error, context: context)
     let mayMutateSendState = authoritativeGeneration.map { sendGeneration == $0 } ?? true
     guard mayMutateSendState else { return }
     if let bridgeError = error as? BridgeError, let card = ChatErrorState.from(bridgeError) {
@@ -1705,6 +1686,12 @@ class ChatProvider: ObservableObject {
     journalWriteCoordinator.cancelAll()
     journalOwnerByMessageID.removeAll()
     journalTerminalTargets = ChatTerminalTargetRegistry<ChatJournalTerminalTarget>()
+    // A ChatErrorCard belongs to the session that produced it. Retaining an
+    // auth-required card after a successful account switch incorrectly asks
+    // the newly signed-in user to sign in again.
+    currentError = nil
+    errorMessage = nil
+    lastFailedPrompt = nil
     messages.removeAll()
     resetMessagesPagination()
     pendingAttachments.removeAll()
@@ -1741,16 +1728,15 @@ class ChatProvider: ObservableObject {
     sessionId: String?,
     systemPromptStyle: ChatSystemPromptStyle
   ) -> AgentSurfaceReference {
-    if let surfaceRef {
-      return surfaceRef
+    switch Self.querySurfaceChoice(
+      hasSurfaceRef: surfaceRef != nil, isOnboarding: isOnboarding,
+      isFloating: systemPromptStyle == .floating)
+    {
+    case .onboarding: return .onboarding()
+    case .explicit: return surfaceRef ?? .mainChat(chatId: mainChatRuntimeChatId(sessionId: sessionId))
+    case .floatingMain: return mainChatSurfaceReference()
+    case .defaultMain: return .mainChat(chatId: mainChatRuntimeChatId(sessionId: sessionId))
     }
-    if isOnboarding {
-      return .onboarding()
-    }
-    if systemPromptStyle == .floating {
-      return mainChatSurfaceReference()
-    }
-    return .mainChat(chatId: mainChatRuntimeChatId(sessionId: sessionId))
   }
 
   private func journalOrigin(for surface: AgentSurfaceReference) -> String {
@@ -2725,7 +2711,7 @@ class ChatProvider: ObservableObject {
         requestedModelProfile: ModelQoS.Claude.chatLabQuery
       )
       let result = try await resolvedAgentClient().query(
-        prompt: question,
+        prompt: ChatPromptBuilder.currentTimePrompt(for: question),
         session: kernelContext.session,
         surface: surface,
         expectedContext: kernelContext.snapshot.freshness,
@@ -3185,33 +3171,10 @@ class ChatProvider: ObservableObject {
       }
       if shouldTerminalizeJournal {
         _ = await self.finishJournalTarget(generation: stoppedGen, status: .failed)
-        await self.restartBridgeAfterForcedRelease(reason: "stop fallback")
       }
     }
     // Result flows back normally through the bridge with partial text
     return true
-  }
-
-  /// After the send watchdog or stop fallback force-releases `isSending`, the
-  /// stuck query loop is usually still suspended in the bridge's waitForMessage.
-  /// Restarting the bridge makes that loop throw BridgeError.stopped instead of
-  /// consuming messages meant for the next query (mirrors the wake handler).
-  private func restartBridgeAfterForcedRelease(reason: String) async {
-    guard agentBridgeStarted else { return }
-    guard !isSending else {
-      log("ChatProvider: \(reason): new query already in progress, skipping bridge restart")
-      return
-    }
-    log("ChatProvider: \(reason): restarting agent bridge to terminate the stale query loop")
-    agentBridgeStarted = false
-    do {
-      try await resolvedAgentClient().restart()
-      if await ensureBridgeStarted() {
-        log("ChatProvider: agent bridge restarted after \(reason)")
-      }
-    } catch {
-      logError("ChatProvider: bridge restart after \(reason) failed", error: error)
-    }
   }
 
   /// Record through the canonical journal before returning anything that a
@@ -3971,10 +3934,6 @@ class ChatProvider: ObservableObject {
         }
         if shouldTerminalizeJournal {
           _ = await self.finishJournalTarget(generation: sendGen, status: .failed)
-          // The stuck query loop is still parked in the bridge's waitForMessage.
-          // Restart the bridge so that loop throws and exits instead of stealing
-          // messages from the next query on the same continuation.
-          await self.restartBridgeAfterForcedRelease(reason: "send watchdog")
         }
         return
       }
@@ -4319,10 +4278,9 @@ class ChatProvider: ObservableObject {
           } else if toolStatus != .running,
             let startTime = toolTiming.toolStartTimes.removeValue(forKey: trackedId)
           {
-            if toolStatus == .completed {
-              let durationMs = Int(Date().timeIntervalSince(startTime) * 1000)
-              AnalyticsManager.shared.chatToolCallCompleted(toolName: name, durationMs: durationMs)
-            }
+            let durationMs = Int(Date().timeIntervalSince(startTime) * 1000)
+            AnalyticsManager.shared.chatToolCallCompleted(
+              toolName: name, durationMs: durationMs, outcome: status)
           }
           let transitions = await stallDetector.step(kind: detectorKind, atMs: nowMs)
           self.applyStallTransitions(messageId: aiMessageId, transitions: transitions)
@@ -4453,7 +4411,7 @@ class ChatProvider: ObservableObject {
       let queryResult: AgentClient.QueryResult
       do {
         queryResult = try await resolvedAgentClient().query(
-          prompt: trimmedText,
+          prompt: ChatPromptBuilder.currentTimePrompt(for: trimmedText),
           session: kernelContext.session,
           surface: resolvedSurface,
           mode: chatMode.rawValue,
@@ -4901,6 +4859,7 @@ class ChatProvider: ObservableObject {
           telemetryAttempt.fail(
             errorClass: errorClass,
             partialResponse: hadPartialResponse,
+            detail: .from(error),
             watchdogFired: watchdogFired
           )
           logError(
@@ -5188,8 +5147,28 @@ class ChatProvider: ObservableObject {
       &messages,
       hasActiveSendLock: sendLockOwnership.isHeld
     )
+    var repairGroups: [String: [String]] = [:]
     for messageID in terminalizedMessageIDs {
-      scheduleJournalUpdate(messageId: messageID)
+      if let ownerID = journalOwnerByMessageID[messageID] ?? runtimeOwnerId {
+        repairGroups[ownerID, default: []].append(messageID)
+      }
+    }
+    let repairSurface = mainChatSurfaceReference()
+    for (ownerID, messageIDs) in repairGroups {
+      Task { @MainActor [weak self] in
+        guard let self else { return }
+        let repaired = await self.kernelTurnProjection.repairNonterminalTurns(
+          surface: repairSurface,
+          turnIDs: messageIDs,
+          ownerID: ownerID
+        )
+        if repaired < messageIDs.count {
+          log(
+            "ChatProvider: canonical orphan repair deferred "
+              + "(requested=\(messageIDs.count), repaired=\(repaired))"
+          )
+        }
+      }
     }
     if !terminalizedMessageIDs.isEmpty {
       log("ChatProvider: terminalized \(terminalizedMessageIDs.count) orphaned streaming message(s) after send release")
@@ -5204,26 +5183,6 @@ class ChatProvider: ObservableObject {
         await self?.sendMessage(prompt)
       }
     }
-  }
-
-  /// A released send lock is the UI's terminal boundary. A transport failure
-  /// can otherwise leave an old tool row marked streaming while `isSending`
-  /// is already false, which makes later chat/PTT turns look stuck.
-  static func terminalizeOrphanedStreamingMessages(
-    _ messages: inout [ChatMessage],
-    hasActiveSendLock: Bool
-  ) -> [String] {
-    guard !hasActiveSendLock else { return [] }
-    var terminalizedMessageIDs: [String] = []
-    for index in messages.indices where messages[index].sender == .ai && messages[index].isStreaming {
-      messages[index].isStreaming = false
-      ToolCallBlockUpdater.completeRemainingToolCalls(
-        in: &messages[index].contentBlocks,
-        terminalStatus: .failed
-      )
-      terminalizedMessageIDs.append(messages[index].id)
-    }
-    return terminalizedMessageIDs
   }
 
   /// Generate a title for the session using LLM
@@ -5970,19 +5929,6 @@ class ChatProvider: ObservableObject {
   }
 
   // MARK: - Clear Chat
-
-  /// Reset onboarding's legacy default backend stream through the same
-  /// generation-fenced journal deletion path as every other chat clear.
-  /// The app may restart before the physical DELETE returns; the daemon's
-  /// durable outbox resumes that exact operation on the next launch.
-  func clearDefaultJournalForOnboardingReset() async -> Bool {
-    let surface = AgentSurfaceReference.mainChat(chatId: "default")
-    AgentRuntimeStatusStore.shared.clear(surface: surface)
-    // Local-only: an onboarding re-walkthrough resets the local chat view but
-    // must never hard-delete the user's server-side chat history. The backend
-    // stays authoritative and rehydrates the thread via reconcile.
-    return await kernelTurnProjection.clear(surface: surface, deleteBackend: false)
-  }
 
   /// Clear current session messages (delete and create new)
   func clearChat() async {

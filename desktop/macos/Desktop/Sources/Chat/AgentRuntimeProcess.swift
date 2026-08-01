@@ -1,13 +1,6 @@
 import Foundation
 import OmiSupport
 
-/// Sendable carrier for `[String: Any]` JSON payloads that must cross actor or
-/// isolation boundaries. The dictionary is parsed once and treated as immutable
-/// thereafter, so unchecked Sendable conformance is safe.
-struct RuntimeJSONPayloadBox: @unchecked Sendable {
-  let value: [String: Any]
-  init(_ value: [String: Any]) { self.value = value }
-}
 extension Notification.Name {
   /// Posted on MainActor after the runtime handshake makes direct control
   /// tools admissible. Carries no owner id or request content.
@@ -82,36 +75,6 @@ enum AgentRuntimeStartupAdmission {
   }
 }
 
-/// Firebase credentials are mandatory for every production and model runtime
-/// start. The sole exception is a non-production journal-control start, whose
-/// owner-bound RPCs deliberately operate without a model credential. The
-/// fault suite supplies a separate, inert model token so its named test bundle
-/// can reach the local 5xx endpoint without contacting Firebase.
-enum AgentRuntimeCredentialPolicy {
-  static let hermeticFaultModelTokenEnvironmentKey = "OMI_FAULT_MODEL_AUTH_TOKEN"
-  static let hermeticFaultBundleIdentifier = "com.omi.omi-fault"
-
-  static func hermeticFaultModelToken(
-    isNonProduction: Bool,
-    bundleIdentifier: String,
-    environment: [String: String] = ProcessInfo.processInfo.environment
-  ) -> String? {
-    guard isNonProduction, bundleIdentifier == hermeticFaultBundleIdentifier else { return nil }
-    let token =
-      environment[hermeticFaultModelTokenEnvironmentKey]?
-      .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    return token.isEmpty ? nil : token
-  }
-
-  static func requiresManagedCredentials(
-    requestedCredentials: Bool,
-    isNonProduction: Bool,
-    hermeticFaultModelToken: String? = nil
-  ) -> Bool {
-    (requestedCredentials || !isNonProduction) && hermeticFaultModelToken == nil
-  }
-}
-
 /// Serializes the pipe read and sequence assignment performed by Foundation's
 /// readability callback. The callback may be re-entered on different threads;
 /// sequencing only after `availableData` would still allow a later read to be
@@ -129,19 +92,6 @@ final class AgentRuntimeStdoutChunkReader: @unchecked Sendable {
       nextSequence &+= 1
     }
     return (sequence, data)
-  }
-}
-
-/// Journal writes use SQLite `BEGIN IMMEDIATE`, whose configured busy window is
-/// five seconds. Keep the client deadline strictly beyond that database window
-/// so a successful commit still has time to traverse the JSONL IPC boundary.
-struct AgentRuntimeJournalTimeoutPolicy {
-  static let sqliteBusyWindowNanoseconds: UInt64 = 5_000_000_000
-  static let ipcSlackNanoseconds: UInt64 = 5_000_000_000
-  static let deadlineNanoseconds = sqliteBusyWindowNanoseconds + ipcSlackNanoseconds
-
-  static func allowsCorrelatedResult(elapsedNanoseconds: UInt64) -> Bool {
-    elapsedNanoseconds < deadlineNanoseconds
   }
 }
 
@@ -281,57 +231,6 @@ actor AgentRuntimeProcess {
     "runtime_adapter_availability",
   ]
   private static let ownerTransitionClientID = "runtime-owner-transition"
-  private var authTokenFileDirectory: URL?
-
-  // Copying the whole app/shell environment can leak local secrets into child
-  // process listings, so the Node runtime gets a small allowlist and every
-  // other key is set explicitly below.
-  private nonisolated static func makeAgentSubprocessEnvironment() -> [String: String] {
-    let allowedKeys = [
-      "HOME",
-      "USER",
-      "LOGNAME",
-      "PATH",
-      "TMPDIR",
-      "LANG",
-      "LC_ALL",
-      "LC_CTYPE",
-      "TERM",
-    ]
-    let appEnvironment = ProcessInfo.processInfo.environment
-    var env: [String: String] = [:]
-    for key in allowedKeys {
-      if let value = appEnvironment[key] {
-        env[key] = value
-      }
-    }
-    return env
-  }
-
-  // The Firebase token reaches Node through a private 0600 file instead of the
-  // child environment, so process listings never expose it.
-  private func writeAuthTokenFile(_ token: String) throws -> String {
-    cleanupAuthTokenFile()
-    let directory = FileManager.default.temporaryDirectory
-      .appendingPathComponent("omi-agent-token-\(UUID().uuidString)", isDirectory: true)
-    try FileManager.default.createDirectory(
-      at: directory,
-      withIntermediateDirectories: true,
-      attributes: [.posixPermissions: 0o700])
-    let fileURL = directory.appendingPathComponent("token")
-    try token.write(to: fileURL, atomically: true, encoding: .utf8)
-    try FileManager.default.setAttributes(
-      [.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
-    authTokenFileDirectory = directory
-    return fileURL.path
-  }
-
-  private func cleanupAuthTokenFile() {
-    if let directory = authTokenFileDirectory {
-      try? FileManager.default.removeItem(at: directory)
-      authTokenFileDirectory = nil
-    }
-  }
 
   struct RuntimeHandshake: Equatable, Sendable {
     let protocolVersion: Int
@@ -623,6 +522,13 @@ actor AgentRuntimeProcess {
   /// an actor blocked writing to the frozen process. See DebugSuspendControl.
   private nonisolated let debugSuspend = DebugSuspendControl()
   private var lastExitWasOOM = false
+  private var startupBeganAt: Date?
+  private var startupBinaryPresent = false
+  private var startupBinaryPresentChecked = false
+  private var startupPermissionGrantedChecked = false
+  private var pendingStartFailureDiagnostics: DesktopErrorDiagnosticContext?
+  private var startupPermissionGranted = false
+  private var startupExitCode: Int32?
   private var clients: [String: ClientRegistration] = [:]
   private var activeRequests: [RuntimeMessage.RequestKey: ActiveRequest] = [:]
   private var activeControlRequests: [RuntimeMessage.RequestKey: ActiveControlRequest] = [:]
@@ -1949,6 +1855,26 @@ actor AgentRuntimeProcess {
     return turn
   }
 
+  func repairJournalTurns(
+    clientId: String,
+    surface: AgentSurfaceReference,
+    ownerID: String,
+    turnIDs: [String],
+    authorizationSnapshot: RuntimeOwnerAuthorizationSnapshot
+  ) async throws -> [KernelJournalTurn] {
+    let result = try await journalOperation(
+      type: "journal_repair_turns",
+      operation: "repair",
+      clientId: clientId,
+      surface: surface,
+      ownerID: ownerID,
+      payload: ["turnIds": Array(Set(turnIDs)).sorted()],
+      authorizationSnapshot: authorizationSnapshot
+    )
+    result.turns.forEach(recordLifecycleJournalMutation)
+    return result.turns
+  }
+
   func listJournalTurns(
     clientId: String,
     surface: AgentSurfaceReference,
@@ -2565,6 +2491,12 @@ actor AgentRuntimeProcess {
     admissionAuthorityEpoch: UInt64,
     requiresCredentials: Bool
   ) async throws -> StartupReceipt {
+    startupBeganAt = Date()
+    startupBinaryPresent = false
+    startupBinaryPresentChecked = false
+    startupPermissionGrantedChecked = false
+    startupPermissionGranted = false
+    startupExitCode = nil
     // `startProcess` owns the launch through `startupSingleFlight`. Do not use
     // the reducer's `.starting` state as a join signal here: the launch owner
     // intentionally sets it *before* this operation is scheduled.
@@ -2603,15 +2535,17 @@ actor AgentRuntimeProcess {
     negotiatedProtocolVersion = nil
     negotiatedRuntimeVersion = nil
 
-    guard let nodePath = Self.findNodeBinary() else {
+    guard let nodePath = findNodeBinary() else {
       throw BridgeError.nodeNotFound
     }
-    guard let bridgePath = Self.findBridgeScript() else {
+    guard let bridgePath = findBridgeScript() else {
       throw BridgeError.bridgeScriptNotFound
     }
 
     let nodeExists = FileManager.default.isExecutableFile(atPath: nodePath)
     let bridgeExists = FileManager.default.fileExists(atPath: bridgePath)
+    startupBinaryPresentChecked = true
+    startupBinaryPresent = nodeExists && bridgeExists
     let bridgeDir = (bridgePath as NSString).deletingLastPathComponent
     let pkgJsonPath = ((bridgeDir as NSString).deletingLastPathComponent as NSString)
       .appendingPathComponent("package.json")
@@ -2624,10 +2558,11 @@ actor AgentRuntimeProcess {
     proc.executableURL = URL(fileURLWithPath: nodePath)
     proc.arguments = ["--max-old-space-size=256", "--max-semi-space-size=16", bridgePath]
 
-    var env = Self.makeAgentSubprocessEnvironment()
+    var env = ProcessInfo.processInfo.environment
     let hermeticFaultModelToken = AgentRuntimeCredentialPolicy.hermeticFaultModelToken(
       isNonProduction: AppBuild.isNonProduction,
-      bundleIdentifier: AppBuild.bundleIdentifier)
+      bundleIdentifier: AppBuild.bundleIdentifier,
+      environment: env)
     env.removeValue(forKey: AgentRuntimeCredentialPolicy.hermeticFaultModelTokenEnvironmentKey)
     env["NODE_NO_WARNINGS"] = "1"
     env["HARNESS_MODE"] = preferredHarnessMode
@@ -2679,7 +2614,11 @@ actor AgentRuntimeProcess {
         isNonProduction: AppBuild.isNonProduction,
         hermeticFaultModelToken: hermeticFaultModelToken)
     let authService = await MainActor.run { AuthService.shared }
-    let forceRefreshToken = preferredAdapterId == .piMono && !DesktopLocalProfile.isEnabled
+    let forceRefreshToken =
+      preferredAdapterId == .piMono
+      && AgentRuntimeCredentialPolicy.shouldForceRefreshAtStartup(
+        isNonProduction: AppBuild.isNonProduction,
+        isDesktopLocalProfile: DesktopLocalProfile.isEnabled)
     let authHeader = try? await Self.startupAuthHeader(
       requiresCredentials: requiresPiMonoCredentials,
       fetchAuthHeader: {
@@ -2696,8 +2635,11 @@ actor AgentRuntimeProcess {
     } else if let authHeader,
       let token = Self.bearerToken(from: authHeader)
     {
-      env["OMI_AUTH_TOKEN_FILE"] = try writeAuthTokenFile(token)
+      startupPermissionGrantedChecked = requiresPiMonoCredentials
+      startupPermissionGranted = requiresPiMonoCredentials
+      env["OMI_AUTH_TOKEN"] = token
     } else if requiresPiMonoCredentials {
+      startupPermissionGrantedChecked = true
       log("AgentRuntimeProcess: pi-mono start refused, Firebase ID token is missing")
       throw BridgeError.authMissing
     } else if preferredAdapterId == .piMono {
@@ -2776,7 +2718,7 @@ actor AgentRuntimeProcess {
       try proc.run()
       markRuntimeOwnerAuthorityDirty()
       let launchedAuthorityEpoch = runtimeOwnerAuthorityEpoch
-      if env["OMI_AUTH_TOKEN"]?.isEmpty == false || env["OMI_AUTH_TOKEN_FILE"] != nil {
+      if env["OMI_AUTH_TOKEN"]?.isEmpty == false {
         synchronizedRuntimeCredentialOwnerID = authorizationSnapshot.ownerID
       }
       startReadingStdout()
@@ -3000,6 +2942,50 @@ actor AgentRuntimeProcess {
         "recovery_action": "retry_start",
         "recovery_result": "exhausted",
       ])
+    pendingStartFailureDiagnostics = bridgeStartFailureContext(failure)
+  }
+
+  func consumePendingStartFailureDiagnostics() -> DesktopErrorDiagnosticContext? {
+    defer { pendingStartFailureDiagnostics = nil }
+    return pendingStartFailureDiagnostics
+  }
+
+  private func bridgeStartFailureContext(
+    _ failure: AgentRuntimeBridgeLifecycle.StartFailure
+  ) -> DesktopErrorDiagnosticContext {
+    let elapsedMs = startupBeganAt.map { Int(Date().timeIntervalSince($0) * 1_000) } ?? -1
+    return Self.startFailureDiagnostics(
+      failure: failure,
+      elapsedMs: elapsedMs,
+      exitCode: startupExitCode,
+      binaryPresent: startupBinaryPresent,
+      binaryPresentChecked: startupBinaryPresentChecked,
+      permissionGrantedChecked: startupPermissionGrantedChecked,
+      permissionGranted: startupPermissionGranted)
+  }
+
+  nonisolated static func startFailureDiagnostics(
+    failure: AgentRuntimeBridgeLifecycle.StartFailure,
+    elapsedMs: Int,
+    exitCode: Int32?,
+    binaryPresent: Bool,
+    binaryPresentChecked: Bool,
+    permissionGrantedChecked: Bool,
+    permissionGranted: Bool
+  ) -> DesktopErrorDiagnosticContext {
+    DesktopErrorDiagnosticContext([
+      "startup_stage": failure.rawValue,
+      "exit_code": exitCode.map(Int.init) ?? -1,
+      "elapsed_ms": elapsedMs,
+      "configured_timeout_ms": 30_000,
+      "binary_present_checked": binaryPresentChecked,
+      "binary_present": binaryPresent,
+      // The JSONL bridge has no TCP listener; report that the port precondition was not checked.
+      "port_bound_checked": false,
+      "port_bound": false,
+      "permission_granted_checked": permissionGrantedChecked,
+      "permission_granted": permissionGranted,
+    ])
   }
 
   private func cleanupFailedStart(process failedProcess: Process, error: Error) async {
@@ -3020,7 +3006,6 @@ actor AgentRuntimeProcess {
     if let currentProcess = process, currentProcess === failedProcess {
       process = nil
     }
-    cleanupAuthTokenFile()
     closePipes()
     recordBridgeStartFailure(Self.startFailure(for: error))
     await cancelAndDrainAuthorizedToolExecutionTasks()
@@ -3094,7 +3079,6 @@ actor AgentRuntimeProcess {
     }
 
     process = nil
-    cleanupAuthTokenFile()
     closePipes()
     lastExitWasOOM = false
     oomDiagnosticLatch.reset(generation: processGeneration)
@@ -3454,7 +3438,7 @@ actor AgentRuntimeProcess {
         case .succeeded = executionResult
       {
         DesktopDiagnosticsManager.shared.recordFallback(
-          area: "other",
+          area: "agent_runtime",
           from: "spawn_agent",
           to: command.canonicalToolName,
           reason: "other",
@@ -4084,6 +4068,9 @@ actor AgentRuntimeProcess {
     }
 
     let likelyOOM = lastExitWasOOM || oomDiagnosticLatch.isConfirmed(generation: processGeneration)
+    if bridgeLifecycle.state == .starting {
+      startupExitCode = exitCode
+    }
     let error: BridgeError = likelyOOM ? .outOfMemory : .processExited
     lastExitWasOOM = false
     oomDiagnosticLatch.reset(generation: processGeneration)
@@ -4257,9 +4244,7 @@ actor AgentRuntimeProcess {
     return candidates
   }
 
-  // Also used by BrowserExtensionSetup.isLocalAIRuntimeReady so the readiness
-  // probe and the actual launcher can never disagree about where node lives.
-  static func findNodeBinary() -> String? {
+  private func findNodeBinary() -> String? {
     let bundleURLs =
       [Bundle.main.bundleURL]
       + Bundle.allBundles.map(\.bundleURL)
@@ -4313,7 +4298,7 @@ actor AgentRuntimeProcess {
     return nil
   }
 
-  static func findBridgeScript() -> String? {
+  private func findBridgeScript() -> String? {
     if let bundlePath = Bundle.main.resourcePath {
       let bundledScript = (bundlePath as NSString).appendingPathComponent("agent/dist/index.js")
       if FileManager.default.fileExists(atPath: bundledScript) {

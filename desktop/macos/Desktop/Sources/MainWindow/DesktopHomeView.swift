@@ -19,6 +19,13 @@ enum PersistedCaptureLaunchPolicy {
   }
 }
 
+enum DesktopHomeEscapeNavigation {
+  static func shouldNavigateHome(selectedIndex: Int, usesLegacyHomeDesign: Bool) -> Bool {
+    guard !usesLegacyHomeDesign, let item = SidebarNavItem(rawValue: selectedIndex) else { return false }
+    return [.conversations, .memories, .tasks, .rewind].contains(item)
+  }
+}
+
 // MARK: - NSHostingView sizingOptions access
 
 /// Protocol to access sizingOptions on any NSHostingView<Content> regardless of the generic parameter.
@@ -31,8 +38,6 @@ private protocol HostingSizingConfigurable: AnyObject {
 extension NSHostingView: HostingSizingConfigurable {}
 
 struct DesktopHomeView: View {
-  private let minimumWindowWidth: CGFloat = 1200
-  private let minimumWindowHeight: CGFloat = 680
   private static let pageNavigationAnimation = Animation.easeOut(duration: 0.08)
 
   @EnvironmentObject private var appState: AppState
@@ -44,7 +49,6 @@ struct DesktopHomeView: View {
     DesktopAutomationPresentationCoordinator.shared
   @State private var selectedIndex: Int = {
     if OMIApp.launchMode == .rewind { return SidebarNavItem.rewind.rawValue }
-    let tier = UserDefaults.standard.integer(forKey: "currentTierLevel")
     return SidebarNavItem.dashboard.rawValue
   }()
   @State private var isSidebarCollapsed: Bool = true
@@ -53,6 +57,8 @@ struct DesktopHomeView: View {
   @AppStorage("onboardingFurthestStep") private var onboardingFurthestStep = 0
   @AppStorage("onboardingJustCompleted") private var onboardingJustCompleted = false
   @AppStorage("useLegacyHomeDesign") private var useLegacyHomeDesign = false
+  @AppStorage(MemoryHubDestination.storageKey) private var memoryDestinationRawValue =
+    MemoryHubDestination.memories.rawValue
   /// Reference instant for the top bar's "new since you were last here" counts —
   /// updated to now whenever Omi resigns front (see the didResignActive handler).
   @AppStorage("topBarNewSince") private var topBarNewSinceRaw: Double = 0
@@ -61,6 +67,7 @@ struct DesktopHomeView: View {
   @State private var selectedSettingsSection: SettingsContentView.SettingsSection = .general
   @State private var highlightedSettingId: String? = nil
   @State private var showTryAskingPopup = false
+  @State private var isShowingMemoryAtlasPage = false
   @State private var previousIndexBeforeSettings: Int = 0
   @State private var logoPulse = false
   @State private var lastActivationRefresh = Date.distantPast
@@ -119,7 +126,7 @@ struct DesktopHomeView: View {
           .onAppear {
             log("DesktopHomeView: Showing SignInView (not signed in)")
           }
-      } else if !appState.hasCompletedOnboarding {
+      } else if !hasCompletedOnboardingAtAuthorityRead {
         // State 2: Signed in but onboarding not complete
         if shouldSkipOnboarding() {
           Color.clear.onAppear {
@@ -128,7 +135,10 @@ struct DesktopHomeView: View {
           }
         } else {
           SBOnboardingView(
-            appState: appState, chatProvider: viewModelContainer.chatProvider, onComplete: nil
+            appState: appState,
+            chatProvider: viewModelContainer.chatProvider,
+            importConnectorStatusStore: viewModelContainer.homeStatusStore.connectorStatusStore,
+            onComplete: nil
           )
           .onAppear {
             log("DesktopHomeView: Showing SBOnboardingView (signed in, not onboarded)")
@@ -406,7 +416,7 @@ struct DesktopHomeView: View {
       }
     }
     .background(OmiColors.backgroundPrimary)
-    .frame(minWidth: minimumWindowWidth, minHeight: minimumWindowHeight)
+    .frame(minWidth: DesktopWindowLayoutPolicy.width, minHeight: DesktopWindowLayoutPolicy.height)
     .preferredColorScheme(.dark)
     .tint(OmiColors.accent)
     .onAppear {
@@ -495,7 +505,7 @@ struct DesktopHomeView: View {
   }
 
   private func enforceMainWindowMinimumSize() {
-    let minimumContentSize = NSSize(width: minimumWindowWidth, height: minimumWindowHeight)
+    let minimumContentSize = DesktopWindowLayoutPolicy.minimumContentSize
     DispatchQueue.main.async {
       for window in NSApp.windows where window.title.lowercased().hasPrefix("omi") {
         window.appearance = NSAppearance(named: .darkAqua)
@@ -529,7 +539,7 @@ struct DesktopHomeView: View {
   private func installMinimumSizeGuardIfNeeded() {
     guard !Self.minimumSizeGuardInstalled else { return }
     Self.minimumSizeGuardInstalled = true
-    let minimumContentSize = NSSize(width: minimumWindowWidth, height: minimumWindowHeight)
+    let minimumContentSize = DesktopWindowLayoutPolicy.minimumContentSize
     NotificationCenter.default.addObserver(
       forName: NSWindow.didResizeNotification, object: nil, queue: .main
     ) { notification in
@@ -614,9 +624,11 @@ struct DesktopHomeView: View {
   /// replaces the old left nav rail. It shows on every main content page —
   /// including Settings, whose page has no back button, so the bar's nav pills
   /// are the way out. Permissions/help are full-screen utility flows with their
-  /// own chrome and stay bar-less.
+  /// own chrome and stay bar-less — the Memory atlas is the same: it has its
+  /// own back affordance and header, so the redundant top bar hides while it's open.
   private var showsTopBar: Bool {
     guard !useLegacyHomeDesign, let item = SidebarNavItem(rawValue: selectedIndex) else { return false }
+    if isShowingMemoryAtlasPage { return false }
     return ![.permissions, .help].contains(item)
   }
 
@@ -631,6 +643,32 @@ struct DesktopHomeView: View {
     if !authState.isSignedIn { return "signed_out" }
     if !appState.hasCompletedOnboarding { return "onboarding" }
     return "main"
+  }
+
+  /// Preserve the existing AppStorage winner while observing disagreement at
+  /// the actual product/onboarding gate. This read still runs when the completed
+  /// flag prevents SBOnboardingModel from mounting.
+  private var hasCompletedOnboardingAtAuthorityRead: Bool {
+    let completed = appState.hasCompletedOnboarding
+    guard completed else { return false }
+    let savedRaw = UserDefaults.standard.integer(forKey: SBOnboardingModel.resumeStepKey)
+    if savedRaw > SBOnboardingModel.Step.promise.rawValue,
+      SBOnboardingModel.Step(rawValue: savedRaw) != nil
+    {
+      DesktopDiagnosticsManager.shared.recordStateAuthoritySignal(
+        seam: .onboardingSetupState,
+        from: "completed_flag",
+        to: "persisted_resume",
+        direction: "completed_flag_with_resume_state")
+    }
+    if viewModelContainer.chatProvider.isOnboarding {
+      DesktopDiagnosticsManager.shared.recordStateAuthoritySignal(
+        seam: .onboardingSetupState,
+        from: "completed_flag",
+        to: "setup_journal",
+        direction: "completed_flag_with_active_journal")
+    }
+    return true
   }
 
   private func reportAutomationState() {
@@ -794,10 +832,10 @@ struct DesktopHomeView: View {
     let scheduled = viewModelContainer.scheduleSessionWarmup(
       id: .agentVMProvisioning,
       delay: StartupWarmupPolicy.agentVMProvisioningDelay,
-      onCancel: { didScheduleAgentVMProvisioning = false }
-    ) {
-      await AgentVMService.shared.ensureProvisioned()
-    }
+      onCancel: { didScheduleAgentVMProvisioning = false },
+      operation: {
+        await AgentVMService.shared.ensureProvisioned()
+      })
     if !scheduled { didScheduleAgentVMProvisioning = false }
   }
 
@@ -808,16 +846,16 @@ struct DesktopHomeView: View {
     let scheduled = viewModelContainer.scheduleSessionWarmup(
       id: .conversationWarmup,
       delay: StartupWarmupPolicy.conversationWarmupDelay,
-      onCancel: { didScheduleConversationWarmup = false }
-    ) {
-      async let conversations: Void = loadConversationsIfNeeded()
-      async let folders: Void = loadFoldersIfNeeded()
-      // Warm memories + tasks too so the top bar's new-item counter has data
-      // even before those tabs are visited.
-      async let memories: Void = viewModelContainer.memoriesViewModel.loadMemoriesIfNeeded()
-      async let tasks: Void = viewModelContainer.tasksStore.loadTasksIfNeeded()
-      _ = await (conversations, folders, memories, tasks)
-    }
+      onCancel: { didScheduleConversationWarmup = false },
+      operation: {
+        async let conversations: Void = loadConversationsIfNeeded()
+        async let folders: Void = loadFoldersIfNeeded()
+        // Warm memories + tasks too so the top bar's new-item counter has data
+        // even before those tabs are visited.
+        async let memories: Void = viewModelContainer.memoriesViewModel.loadMemoriesIfNeeded()
+        async let tasks: Void = viewModelContainer.tasksStore.loadTasksIfNeeded()
+        _ = await (conversations, folders, memories, tasks)
+      })
     if !scheduled { didScheduleConversationWarmup = false }
   }
 
@@ -838,30 +876,30 @@ struct DesktopHomeView: View {
     else { return }
 
     let sessionScope = StartupWarmupSessionScope(
-      userId: UserDefaults.standard.string(forKey: "auth_userId"))
+      userId: UserDefaults.standard.string(forKey: .authUserId))
     let scheduled = viewModelContainer.scheduleSessionWarmup(
       id: .initialFileIndexing,
       delay: StartupWarmupPolicy.initialFileIndexingDelay,
-      onCancel: { initialFileIndexingBackfill.releaseReservation() }
-    ) {
-      log("DesktopHomeView: Running delayed background file scan for existing user")
-      await FileIndexerService.shared.backgroundRescan()
-      guard !Task.isCancelled,
-        sessionScope.matches(
-          currentUserId: UserDefaults.standard.string(forKey: "auth_userId"),
-          isSignedIn: AuthState.shared.isSignedIn)
-      else {
-        initialFileIndexingBackfill.releaseReservation()
-        return
-      }
-      initialFileIndexingBackfill.markScanCompleted()
-      if initialFileIndexingBackfill.shouldMarkComplete {
-        UserDefaults.standard.set(true, forKey: "hasCompletedFileIndexing")
-        log(
-          "DesktopHomeView: Marked existing-user file indexing backfill complete after background scan returned"
-        )
-      }
-    }
+      onCancel: { initialFileIndexingBackfill.releaseReservation() },
+      operation: {
+        log("DesktopHomeView: Running delayed background file scan for existing user")
+        await FileIndexerService.shared.backgroundRescan()
+        guard !Task.isCancelled,
+          sessionScope.matches(
+            currentUserId: UserDefaults.standard.string(forKey: .authUserId),
+            isSignedIn: AuthState.shared.isSignedIn)
+        else {
+          initialFileIndexingBackfill.releaseReservation()
+          return
+        }
+        initialFileIndexingBackfill.markScanCompleted()
+        if initialFileIndexingBackfill.shouldMarkComplete {
+          UserDefaults.standard.set(true, forKey: .hasCompletedFileIndexing)
+          log(
+            "DesktopHomeView: Marked existing-user file indexing backfill complete after background scan returned"
+          )
+        }
+      })
     if !scheduled { initialFileIndexingBackfill.releaseReservation() }
   }
 
@@ -876,32 +914,32 @@ struct DesktopHomeView: View {
     let scheduled = viewModelContainer.scheduleSessionWarmup(
       id: .proactiveAssistantsStart,
       delay: delay,
-      onCancel: { proactiveMonitoringStartGate.finishAttempt() }
-    ) {
-      let plugin = ProactiveAssistantsPlugin.shared
-      guard AssistantSettings.shared.screenAnalysisEnabled, !plugin.isMonitoring else {
-        proactiveMonitoringStartGate.finishAttempt()
-        return
-      }
-      guard APIKeyService.keysAvailable else {
-        proactiveMonitoringStartGate.finishAttempt()
-        log("DesktopHomeView: Screen analysis still deferred after \(reason) — API keys not yet loaded")
-        return
-      }
-
-      plugin.startMonitoring { success, error in
-        Task { @MainActor in
+      onCancel: { proactiveMonitoringStartGate.finishAttempt() },
+      operation: {
+        let plugin = ProactiveAssistantsPlugin.shared
+        guard AssistantSettings.shared.screenAnalysisEnabled, !plugin.isMonitoring else {
           proactiveMonitoringStartGate.finishAttempt()
-          if success {
-            log("DesktopHomeView: Screen analysis started (\(reason), delayed)")
-          } else {
-            log(
-              "DesktopHomeView: Screen analysis failed to start (\(reason)): \(error ?? "unknown") — setting remains enabled for next launch"
-            )
+          return
+        }
+        guard APIKeyService.keysAvailable else {
+          proactiveMonitoringStartGate.finishAttempt()
+          log("DesktopHomeView: Screen analysis still deferred after \(reason) — API keys not yet loaded")
+          return
+        }
+
+        plugin.startMonitoring { success, error in
+          Task { @MainActor in
+            proactiveMonitoringStartGate.finishAttempt()
+            if success {
+              log("DesktopHomeView: Screen analysis started (\(reason), delayed)")
+            } else {
+              log(
+                "DesktopHomeView: Screen analysis failed to start (\(reason)): \(error ?? "unknown") — setting remains enabled for next launch"
+              )
+            }
           }
         }
-      }
-    }
+      })
     if !scheduled { proactiveMonitoringStartGate.finishAttempt() }
   }
 
@@ -966,218 +1004,287 @@ struct DesktopHomeView: View {
     viewModelContainer.tasksStore.isActive =
       index == SidebarNavItem.dashboard.rawValue || index == SidebarNavItem.tasks.rawValue
     viewModelContainer.memoriesViewModel.isActive =
-      index == SidebarNavItem.memories.rawValue
+      index == SidebarNavItem.conversations.rawValue || index == SidebarNavItem.memories.rawValue
   }
 
-  private var mainContent: some View {
-    HStack(spacing: 0) {
-      // Sidebar slot: settings sidebar overlays main sidebar
-      // IMPORTANT: SidebarView is kept alive (but hidden) when in settings to prevent
-      // EXC_BAD_ACCESS crash in SwiftUI's tooltip system. When the view is conditionally
-      // removed, its .help() tooltip graph nodes get invalidated, but the macOS tooltip
-      // tracking system still tries to evaluate them during window key state changes.
-      if isInSettings {
-        ZStack {
-          if showsPrimarySidebar {
-            SidebarView(
-              selectedIndex: $selectedIndex,
-              isCollapsed: $isSidebarCollapsed,
-              appState: appState
-            )
-            .opacity(0)
-            .allowsHitTesting(false)
+  // Sidebar slot: settings sidebar overlays main sidebar
+  // IMPORTANT: SidebarView is kept alive (but hidden) when in settings to prevent
+  // EXC_BAD_ACCESS crash in SwiftUI's tooltip system. When the view is conditionally
+  // removed, its .help() tooltip graph nodes get invalidated, but the macOS tooltip
+  // tracking system still tries to evaluate them during window key state changes.
+  //
+  // Extracted from `mainContent` (rather than inlined in its HStack) so the
+  // compiler type-checks each slot independently instead of one very large
+  // combined expression.
+  @ViewBuilder
+  private var sidebarSlot: some View {
+    if isInSettings {
+      ZStack {
+        if showsPrimarySidebar {
+          SidebarView(
+            selectedIndex: $selectedIndex,
+            isCollapsed: $isSidebarCollapsed,
+            memoryDestinationRawValue: $memoryDestinationRawValue,
+            appState: appState
+          )
+          .opacity(0)
+          .allowsHitTesting(false)
+        }
+        SettingsSidebar(
+          selectedSection: $selectedSettingsSection,
+          highlightedSettingId: $highlightedSettingId,
+          onBack: {
+            OmiMotion.withGated(Self.pageNavigationAnimation) {
+              selectedIndex =
+                previousIndexBeforeSettings == SidebarNavItem.settings.rawValue
+                ? SidebarNavItem.dashboard.rawValue
+                : previousIndexBeforeSettings
+            }
           }
+        )
+      }
+      .fixedSize(horizontal: true, vertical: false)
+      .clipped()
+    } else if showsPrimarySidebar {
+      ZStack {
+        if showsPrimarySidebar {
+          SidebarView(
+            selectedIndex: $selectedIndex,
+            isCollapsed: $isSidebarCollapsed,
+            memoryDestinationRawValue: $memoryDestinationRawValue,
+            appState: appState
+          )
+          .opacity(isInSettings ? 0 : 1)
+          .allowsHitTesting(!isInSettings)
+        }
+      }
+      .fixedSize(horizontal: true, vertical: false)
+      .clipped()
+    }
+  }
 
-          SettingsSidebar(
-            selectedSection: $selectedSettingsSection,
-            highlightedSettingId: $highlightedSettingId,
-            onBack: {
+  // Main content area with rounded container. Extracted from `mainContent`
+  // for the same type-checker-budget reason as `sidebarSlot`.
+  private var mainContentContainer: some View {
+    ZStack {
+      // Content container background — clean flat neutral dark (no gradient).
+      RoundedRectangle(cornerRadius: OmiChrome.windowRadius, style: .continuous)
+        .fill(Color(red: 0.050, green: 0.052, blue: 0.059))
+        .overlay(
+          RoundedRectangle(cornerRadius: OmiChrome.windowRadius, style: .continuous)
+            .stroke(OmiColors.border.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.22), radius: 26, x: 0, y: 14)
+
+      // Page content - switch recreates views on tab change
+      // Extracted into a separate struct so that pages like TasksPage
+      // are not re-rendered when AppState publishes unrelated changes.
+      VStack(spacing: 0) {
+        // Constant floating top bar — primary nav, new-item counts, and the
+        // Capture/Listening controls. Replaces the old left nav rail. Hidden
+        // for the Memory atlas (see showsTopBar), which has its own chrome.
+        if showsTopBar {
+          DesktopTopBar(
+            selectedIndex: $selectedIndex,
+            memoryDestinationRawValue: $memoryDestinationRawValue,
+            appState: appState,
+            memoriesViewModel: viewModelContainer.memoriesViewModel,
+            tasksStore: viewModelContainer.tasksStore,
+            sinceDate: topBarSinceDate,
+            onRewind: {
               OmiMotion.withGated(Self.pageNavigationAnimation) {
-                selectedIndex =
-                  previousIndexBeforeSettings == SidebarNavItem.settings.rawValue
-                  ? SidebarNavItem.dashboard.rawValue
-                  : previousIndexBeforeSettings
+                selectedIndex = SidebarNavItem.rewind.rawValue
               }
             }
           )
+          .zIndex(1)
         }
-        .fixedSize(horizontal: true, vertical: false)
-        .clipped()
-      } else if showsPrimarySidebar {
-        ZStack {
-          if showsPrimarySidebar {
-            SidebarView(
-              selectedIndex: $selectedIndex,
-              isCollapsed: $isSidebarCollapsed,
-              appState: appState
-            )
-            .opacity(isInSettings ? 0 : 1)
-            .allowsHitTesting(!isInSettings)
-          }
 
-        }
-        .fixedSize(horizontal: true, vertical: false)
-        .clipped()
+        PageContentView(
+          selectedIndex: selectedIndex,
+          appState: appState,
+          viewModelContainer: viewModelContainer,
+          memoryDestinationRawValue: $memoryDestinationRawValue,
+          selectedSettingsSection: $selectedSettingsSection,
+          highlightedSettingId: $highlightedSettingId,
+          selectedTabIndex: $selectedIndex,
+          isShowingMemoryAtlasPage: $isShowingMemoryAtlasPage
+        )
       }
+      .onEscapeKey(priority: .navigation) { navigateHomeOnEscapeIfNeeded() }
+      .clipShape(RoundedRectangle(cornerRadius: OmiChrome.windowRadius, style: .continuous))
+    }
+    .padding(OmiSpacing.md)
+  }
 
-      // Main content area with rounded container
-      ZStack {
-        // Content container background — clean flat neutral dark (no gradient).
-        RoundedRectangle(cornerRadius: OmiChrome.windowRadius, style: .continuous)
-          .fill(Color(red: 0.050, green: 0.052, blue: 0.059))
-          .overlay(
-            RoundedRectangle(cornerRadius: OmiChrome.windowRadius, style: .continuous)
-              .stroke(OmiColors.border.opacity(0.22), lineWidth: 1)
-          )
-          .shadow(color: .black.opacity(0.22), radius: 26, x: 0, y: 14)
-
-        // Page content - switch recreates views on tab change
-        // Extracted into a separate struct so that pages like TasksPage
-        // are not re-rendered when AppState publishes unrelated changes.
-        VStack(spacing: 0) {
-          // Constant floating top bar — primary nav, new-item counts, and the
-          // Capture/Listening controls. Replaces the old left nav rail.
-          if showsTopBar {
-            DesktopTopBar(
-              selectedIndex: $selectedIndex,
-              appState: appState,
-              memoriesViewModel: viewModelContainer.memoriesViewModel,
-              tasksStore: viewModelContainer.tasksStore,
-              sinceDate: topBarSinceDate,
-              onRewind: {
-                OmiMotion.withGated(Self.pageNavigationAnimation) {
-                  selectedIndex = SidebarNavItem.rewind.rawValue
-                }
-              }
-            )
-            .zIndex(1)
+  // The "Try asking" popup overlay content, split out so the overlay closure
+  // above it stays a small expression for the type checker.
+  @ViewBuilder
+  private var tryAskingPopupOverlay: some View {
+    if showTryAskingPopup {
+      let suggestions = PostOnboardingPromptSuggestions.suggestions()
+      if !suggestions.isEmpty {
+        TryAskingPopupView(
+          suggestions: suggestions,
+          onAsk: { suggestion in
+            showTryAskingPopup = false
+            PostOnboardingPromptSuggestions.shouldShowPopup = false
+            FloatingControlBarManager.shared.openAIInputWithQuery(suggestion)
+          },
+          onDismiss: {
+            showTryAskingPopup = false
+            PostOnboardingPromptSuggestions.shouldShowPopup = false
+            PostOnboardingPromptSuggestions.isDismissed = true
           }
-
-          PageContentView(
-            selectedIndex: selectedIndex,
-            appState: appState,
-            viewModelContainer: viewModelContainer,
-            selectedSettingsSection: $selectedSettingsSection,
-            highlightedSettingId: $highlightedSettingId,
-            selectedTabIndex: $selectedIndex
-          )
-        }
-        .onExitCommand {
-          navigateHomeOnEscapeIfNeeded()
-        }
-        .clipShape(RoundedRectangle(cornerRadius: OmiChrome.windowRadius, style: .continuous))
+        )
       }
-      .padding(OmiSpacing.md)
+    }
+  }
+
+  private var mainContentWithOverlays: some View {
+    HStack(spacing: 0) {
+      sidebarSlot
+      mainContentContainer
     }
     .overlay {
       // Goal completion celebration overlay
       GoalCelebrationView()
     }
     .overlay {
-      if showTryAskingPopup {
-        let suggestions = PostOnboardingPromptSuggestions.suggestions()
-        if !suggestions.isEmpty {
-          TryAskingPopupView(
-            suggestions: suggestions,
-            onAsk: { suggestion in
-              showTryAskingPopup = false
-              PostOnboardingPromptSuggestions.shouldShowPopup = false
-              FloatingControlBarManager.shared.openAIInputWithQuery(suggestion)
-            },
-            onDismiss: {
-              showTryAskingPopup = false
-              PostOnboardingPromptSuggestions.shouldShowPopup = false
-              PostOnboardingPromptSuggestions.isDismissed = true
-            }
-          )
-        }
-      }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .showTryAskingPopup)) { _ in
-      showTryAskingPopup = true
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToRewindSettings)) { _ in
-      // Set the section directly and navigate to settings
-      selectedSettingsSection = .rewind
-      selectedIndex = SidebarNavItem.settings.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToDeviceSettings)) { _ in
-      if let url = URL(string: "https://www.omi.me") {
-        NSWorkspace.shared.open(url)
-      }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToTaskSettings)) { _ in
-      // Navigate to settings > advanced > task assistant subsection
-      selectedSettingsSection = .advanced
-      selectedIndex = SidebarNavItem.settings.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToFloatingBarSettings)) { _ in
-      selectedSettingsSection = .floatingBar
-      selectedIndex = SidebarNavItem.settings.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToAIChatSettings)) { _ in
-      selectedSettingsSection = .advanced
-      selectedIndex = SidebarNavItem.settings.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToRewind)) { _ in
-      // Navigate to Rewind page (index 6) - triggered by global hotkey Cmd+Option+R
-      log(
-        "DesktopHomeView: Received navigateToRewind notification, navigating to Rewind (index \(SidebarNavItem.rewind.rawValue))"
-      )
-      selectedIndex = SidebarNavItem.rewind.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToRewindNotes)) { _ in
-      selectedIndex = SidebarNavItem.rewind.rawValue
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        NotificationCenter.default.post(name: .expandRewindTranscript, object: nil)
-      }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToChat)) { _ in
-      // Chat now lives on the Dashboard page.
-      selectedIndex = SidebarNavItem.dashboard.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToTasks)) { _ in
-      selectedIndex = SidebarNavItem.tasks.rawValue
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .navigateToSidebarItem)) { notification in
-      if let rawValue = notification.userInfo?["rawValue"] as? Int,
-        let item = SidebarNavItem(rawValue: rawValue)
-      {
-        selectedIndex = item.rawValue
-      }
-    }
-    .onChange(of: selectedIndex) { oldValue, newValue in
-      // Track the previous index when navigating to settings
-      if newValue == SidebarNavItem.settings.rawValue
-        && oldValue != SidebarNavItem.settings.rawValue
-      {
-        previousIndexBeforeSettings = oldValue
-      }
-      // Only auto-refresh stores when their pages are visible
-      updateStoreActivity(for: newValue)
-    }
-    .onChange(of: useLegacyHomeDesign) { _, newValue in
-      OmiMotion.withGated(.easeInOut(duration: 0.2)) {
-        isSidebarCollapsed = !newValue
-      }
-    }
-    .onAppear {
-      isSidebarCollapsed = !useLegacyHomeDesign
-      updateStoreActivity(for: selectedIndex)
-      // Restore window width if the user quit with task chat panel open.
-      // The chat panel is never open on startup (showChatPanel defaults to false),
-      // but macOS restores the expanded window frame from the previous session.
-      restorePreChatWindowWidth()
+      tryAskingPopupOverlay
     }
   }
 
-  private func navigateHomeOnEscapeIfNeeded() {
-    guard !useLegacyHomeDesign else { return }
-    guard let item = SidebarNavItem(rawValue: selectedIndex) else { return }
-    guard [.conversations, .memories, .tasks, .rewind].contains(item) else { return }
+  // The full `.onReceive`/`.onChange`/`.onAppear` chain below is, together with
+  // `mainContentWithOverlays`, one enormous SwiftUI expression for the `some
+  // View` type checker. Splitting it across several intermediate `some View`
+  // properties (rather than one long chain) keeps each link small enough to
+  // type-check in reasonable time — see "unable to type-check this expression"
+  // in Swift's SwiftUI diagnostics for this well-known compiler limitation.
+  private var mainContentWithNavigationNotifications: some View {
+    mainContentWithOverlays
+      .onReceive(NotificationCenter.default.publisher(for: .showTryAskingPopup)) { _ in
+        showTryAskingPopup = true
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToRewindSettings)) { _ in
+        // Set the section directly and navigate to settings
+        selectedSettingsSection = .rewind
+        selectedIndex = SidebarNavItem.settings.rawValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToDeviceSettings)) { _ in
+        if let url = URL(string: "https://www.omi.me") {
+          NSWorkspace.shared.open(url)
+        }
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToTaskSettings)) { _ in
+        // Navigate to settings > advanced > task assistant subsection
+        selectedSettingsSection = .advanced
+        selectedIndex = SidebarNavItem.settings.rawValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToFloatingBarSettings)) { _ in
+        selectedSettingsSection = .floatingBar
+        selectedIndex = SidebarNavItem.settings.rawValue
+      }
+  }
+
+  private var mainContentWithRewindAndMemoryNotifications: some View {
+    mainContentWithNavigationNotifications
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToAIChatSettings)) { _ in
+        selectedSettingsSection = .advanced
+        selectedIndex = SidebarNavItem.settings.rawValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToRewind)) { _ in
+        // Navigate to Rewind page (index 6) - triggered by global hotkey Cmd+Option+R
+        log(
+          "DesktopHomeView: Received navigateToRewind notification, navigating to Rewind (index \(SidebarNavItem.rewind.rawValue))"
+        )
+        selectedIndex = SidebarNavItem.rewind.rawValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToRewindNotes)) { _ in
+        selectedIndex = SidebarNavItem.rewind.rawValue
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+          NotificationCenter.default.post(name: .expandRewindTranscript, object: nil)
+        }
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToChat)) { _ in
+        // Chat now lives on the Dashboard page.
+        selectedIndex = SidebarNavItem.dashboard.rawValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToTasks)) { _ in
+        selectedIndex = SidebarNavItem.tasks.rawValue
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .desktopAutomationOpenMemoryAtlasRequested)) { _ in
+        selectedIndex = SidebarNavItem.memories.rawValue
+        isShowingMemoryAtlasPage = true
+      }
+  }
+
+  private var mainContentWithSidebarItemNotifications: some View {
+    mainContentWithRewindAndMemoryNotifications
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToSidebarItem)) { notification in
+        if let rawValue = notification.userInfo?["rawValue"] as? Int,
+          let item = SidebarNavItem(rawValue: rawValue)
+        {
+          if let destination = MemoryHubDestination.destination(for: item) {
+            memoryDestinationRawValue = destination.rawValue
+          }
+          selectedIndex = item.rawValue
+        }
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .desktopAutomationOpenConversationRequested)) { _ in
+        // Conversations now live behind the Memory menu. Route at
+        // the owning shell before the detail page mounts; its retained request is
+        // then consumed by ConversationsPage on appearance.
+        memoryDestinationRawValue = MemoryHubDestination.conversations.rawValue
+        selectedIndex = SidebarNavItem.conversations.rawValue
+      }
+  }
+
+  private var mainContent: some View {
+    mainContentWithSidebarItemNotifications
+      .onChange(of: selectedIndex) { oldValue, newValue in
+        if newValue != SidebarNavItem.memories.rawValue {
+          isShowingMemoryAtlasPage = false
+        }
+        // Track the previous index when navigating to settings
+        if newValue == SidebarNavItem.settings.rawValue
+          && oldValue != SidebarNavItem.settings.rawValue
+        {
+          previousIndexBeforeSettings = oldValue
+        }
+        // Only auto-refresh stores when their pages are visible
+        updateStoreActivity(for: newValue)
+      }
+      .onChange(of: useLegacyHomeDesign) { _, newValue in
+        OmiMotion.withGated(.easeInOut(duration: 0.2)) {
+          isSidebarCollapsed = !newValue
+        }
+      }
+      .onAppear {
+        isSidebarCollapsed = !useLegacyHomeDesign
+        updateStoreActivity(for: selectedIndex)
+        // Restore window width if the user quit with task chat panel open.
+        // The chat panel is never open on startup (showChatPanel defaults to false),
+        // but macOS restores the expanded window frame from the previous session.
+        restorePreChatWindowWidth()
+      }
+  }
+
+  private func navigateHomeOnEscapeIfNeeded() -> Bool {
+    if isShowingMemoryAtlasPage {
+      isShowingMemoryAtlasPage = false
+      return true
+    }
+    guard
+      DesktopHomeEscapeNavigation.shouldNavigateHome(
+        selectedIndex: selectedIndex,
+        usesLegacyHomeDesign: useLegacyHomeDesign
+      )
+    else { return false }
     OmiMotion.withGated(Self.pageNavigationAnimation) {
       selectedIndex = SidebarNavItem.dashboard.rawValue
     }
+    return true
   }
 }
 
@@ -1218,61 +1325,133 @@ private struct HubSegmentedControl: View {
   }
 }
 
-/// "Memory" tab — Conversations + Memories folded into one surface.
 private struct MemoryHubPage: View {
   let appState: AppState
   let viewModelContainer: ViewModelContainer
-  @State private var segment = 0
+  /// Observed, not just read through the container: the canonical lifecycle
+  /// capability arrives with the first authoritative memory response, and the
+  /// Brain Map destination must re-resolve its presentation when it flips.
+  @ObservedObject var memoriesViewModel: MemoriesViewModel
+  @ObservedObject private var conversationDetailState = ConversationDetailAutomationState.shared
+  @Binding var destinationRawValue: Int
 
-  /// Memories and conversations stay easy to scan in a calm, readable column;
-  /// the spatial Brain Map needs the full content surface so users can pan and
-  /// zoom without hitting an artificial canvas boundary.
-  private static let listContentWidth: CGFloat = 900
+  private var destination: MemoryHubDestination {
+    MemoryHubDestination(rawValue: destinationRawValue) ?? .memories
+  }
+
+  /// Canonical-cohort users get the atlas on the Brain Map destination; users
+  /// who have not entered the canonical lifecycle keep the legacy graph.
+  private var brainMapPresentationMode: MemoryGraphPresentationMode {
+    MemoryGraphPresentationMode.resolve(
+      canonicalLifecycleExposed: memoriesViewModel.canonicalLifecycleExposed,
+      forceCanonicalAtlasForLocalQA: MemoryGraphPresentationMode.localQAOverrideEnabled,
+      capabilityEstablished: memoriesViewModel.canonicalLifecycleCapabilityEstablished
+    )
+  }
 
   var body: some View {
-    Group {
-      if segment == 2 {
-        ZStack(alignment: .top) {
-          // Keep the graph's camera framing intact while removing the list-page
-          // width cap. The map only occupies more of the visual field when the
-          // user deliberately pans or zooms into it.
-          MemoryGraphPage(viewModel: viewModelContainer.memoryGraphViewModel)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-          hubSegmentedControl
-        }
-      } else {
-        VStack(spacing: 0) {
-          hubSegmentedControl
-
-          if segment == 0 {
-            constrainedListContent(
-              MemoriesPage(
-                viewModel: viewModelContainer.memoriesViewModel,
-                graphViewModel: viewModelContainer.memoryGraphViewModel))
-          } else {
-            constrainedListContent(ConversationsPageHost(appState: appState))
-          }
-        }
-      }
+    switch destination {
+    case .memories:
+      adaptiveContent(
+        MemoriesPage(viewModel: viewModelContainer.memoriesViewModel),
+        conversationID: viewModelContainer.memoriesViewModel.linkedConversation?.id
+      )
+    case .conversations:
+      ConversationsPageHost(appState: appState)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    case .brainMap:
+      brainMapDestination
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The lifecycle capability is established by the first authoritative
+        // memory response. Without this, opening straight into a persisted
+        // Brain Map destination would resolve the legacy graph for a canonical
+        // user purely because the Memories destination was never visited.
+        .task { await memoriesViewModel.loadMemoriesIfNeeded() }
     }
   }
 
-  private var hubSegmentedControl: some View {
-    // The "Memory" rail item lands here, so Memories is the default segment;
-    // Conversations (with its live transcript) is second, and the Brain Map
-    // graph is its own tab.
-    HubSegmentedControl(segments: ["Memories", "Conversations", "Brain Map"], selection: $segment)
-      .frame(maxWidth: Self.listContentWidth)
-      .padding(.top, 22)
-      .padding(.horizontal, 28)
-      .padding(.bottom, 4)
+  @ViewBuilder
+  private var brainMapDestination: some View {
+    switch brainMapPresentationMode {
+    case .canonicalAtlas:
+      // The Memory view model publishes for list/sync changes that do not
+      // alter the Brain Map. Keep the expensive Canvas subtree out of those
+      // parent transactions; it independently observes the graph view model
+      // and still updates immediately for a graph revision or rebuild.
+      CanonicalBrainMapDestination(
+        graphViewModel: viewModelContainer.memoryGraphViewModel,
+        memoriesViewModel: memoriesViewModel,
+        onLeave: { destinationRawValue = MemoryHubDestination.memories.rawValue }
+      )
+      .equatable()
+    case .legacyBrainMap:
+      MemoryGraphPage(viewModel: viewModelContainer.memoryGraphViewModel)
+    case .undetermined:
+      // Neither surface may mount before the cohort is known. The legacy graph
+      // in particular latches the shared view model's in-flight guard and runs
+      // an empty-graph rebuild bootstrap, so a one-frame appearance left the
+      // atlas permanently blank and fired a destructive rebuild.
+      ZStack {
+        OmiColors.backgroundPrimary
+        ProgressView().tint(OmiColors.textTertiary)
+      }
+      .accessibilityIdentifier("brain_map_resolving_cohort")
+    }
   }
 
-  private func constrainedListContent<V: View>(_ content: V) -> some View {
-    content
-      .frame(maxWidth: Self.listContentWidth, maxHeight: .infinity)
+  /// An update island around the Canvas-heavy Brain Map.
+  ///
+  /// `MemoryHubPage` has to observe `MemoriesViewModel` long enough to resolve
+  /// the canonical cohort, but its normal list refreshes must not rebuild the
+  /// map's SwiftUI graph. Reference identity is intentional: evidence reads
+  /// and open actions use the current model at invocation time, while the map
+  /// itself observes `MemoryGraphViewModel` for the only state that changes its
+  /// projection.
+  private struct CanonicalBrainMapDestination: View, Equatable {
+    let graphViewModel: MemoryGraphViewModel
+    let memoriesViewModel: MemoriesViewModel
+    let onLeave: () -> Void
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+      lhs.graphViewModel === rhs.graphViewModel && lhs.memoriesViewModel === rhs.memoriesViewModel
+    }
+
+    var body: some View {
+      CanonicalMemoryAtlasTabView(
+        viewModel: graphViewModel,
+        evidenceProvider: { memoryIDs in
+          MemoryAtlasEvidence.resolve(memoryIDs, in: await memoriesViewModel.memories(withIDs: memoryIDs))
+        },
+        onOpenMemory: { memoryID in
+          Task { @MainActor in
+            guard await memoriesViewModel.openMemory(id: memoryID) else { return }
+            onLeave()
+          }
+        },
+        onLeave: onLeave
+      )
+    }
+  }
+
+  private func adaptiveContent<Content: View>(
+    _ content: Content,
+    conversationID: String?
+  ) -> some View {
+    let usesAvailableWidth = MemoryHubLayoutPolicy.usesAvailableWidth(
+      conversationID: conversationID,
+      presentedConversationID: conversationDetailState.openConversationId,
+      transcriptDrawerOpen: conversationDetailState.transcriptDrawerOpen,
+      memoryDetailOpen: memoriesViewModel.selectedMemory != nil
+    )
+
+    return
+      content
+      .frame(
+        maxWidth: usesAvailableWidth ? .infinity : MemoryHubLayoutPolicy.readableContentWidth,
+        maxHeight: .infinity
+      )
       .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .animation(.easeInOut(duration: 0.22), value: usesAvailableWidth)
   }
 }
 
@@ -1300,21 +1479,21 @@ private struct PageContentView: View {
   let selectedIndex: Int
   let appState: AppState
   let viewModelContainer: ViewModelContainer
+  @Binding var memoryDestinationRawValue: Int
   @Binding var selectedSettingsSection: SettingsContentView.SettingsSection
   @Binding var highlightedSettingId: String?
   @Binding var selectedTabIndex: Int
+  @Binding var isShowingMemoryAtlasPage: Bool
 
   /// The list/detail pages (Conversations, Memories, Tasks, Apps) render their
   /// content in a centered, width-capped column so wide monitors get calm
   /// gutters instead of a full-bleed stretch — matching the Focus/Insights
   /// pages, which already self-constrain. Pages paint a clear background, so the
   /// gutters show the shell surface seamlessly.
-  private static let listPageContentWidth: CGFloat = 900
-
   @ViewBuilder
   private func constrainedListPage<V: View>(_ page: V) -> some View {
     page
-      .frame(maxWidth: Self.listPageContentWidth, maxHeight: .infinity)
+      .frame(maxWidth: MemoryHubLayoutPolicy.readableContentWidth, maxHeight: .infinity)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
@@ -1337,7 +1516,12 @@ private struct PageContentView: View {
           taskChatCoordinator: viewModelContainer.taskChatCoordinator,
           selectedIndex: $selectedTabIndex)
       case 1:
-        MemoryHubPage(appState: appState, viewModelContainer: viewModelContainer)
+        MemoryHubPage(
+          appState: appState,
+          viewModelContainer: viewModelContainer,
+          memoriesViewModel: viewModelContainer.memoriesViewModel,
+          destinationRawValue: $memoryDestinationRawValue
+        )
       case 2:
         ChatPage(
           appProvider: viewModelContainer.appProvider,
@@ -1345,10 +1529,36 @@ private struct PageContentView: View {
           onHome: { selectedTabIndex = SidebarNavItem.dashboard.rawValue }
         )
       case 3:
-        constrainedListPage(
-          MemoriesPage(
-            viewModel: viewModelContainer.memoriesViewModel,
-            graphViewModel: viewModelContainer.memoryGraphViewModel))
+        if isShowingMemoryAtlasPage {
+          CanonicalMemoryAtlasPage(
+            viewModel: viewModelContainer.memoryGraphViewModel,
+            onBack: { isShowingMemoryAtlasPage = false },
+            evidenceProvider: { memoryIds in
+              MemoryAtlasEvidence.resolve(
+                memoryIds,
+                in: await viewModelContainer.memoriesViewModel.memories(withIDs: memoryIds))
+            },
+            onOpenMemory: { memoryId in
+              Task { @MainActor in
+                guard await viewModelContainer.memoriesViewModel.openMemory(id: memoryId) else {
+                  return
+                }
+                isShowingMemoryAtlasPage = false
+              }
+            }
+          )
+        } else {
+          // Same rule as the hub's Memories destination: the readable-width
+          // cap yields while the detail panel is open so the panel takes new
+          // space instead of eating the list's column.
+          MemoriesPage(viewModel: viewModelContainer.memoriesViewModel)
+            .frame(
+              maxWidth: viewModelContainer.memoriesViewModel.selectedMemory == nil
+                ? MemoryHubLayoutPolicy.readableContentWidth : .infinity,
+              maxHeight: .infinity
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
       case 4:
         constrainedListPage(
           TasksPage(
@@ -1399,9 +1609,24 @@ private struct PageContentView: View {
 private struct ConversationsPageHost: View {
   let appState: AppState
   @State private var selectedConversation: ServerConversation? = nil
+  @ObservedObject private var conversationDetailState = ConversationDetailAutomationState.shared
+
+  private var usesAvailableWidth: Bool {
+    MemoryHubLayoutPolicy.usesAvailableWidth(
+      conversationID: selectedConversation?.id,
+      presentedConversationID: conversationDetailState.openConversationId,
+      transcriptDrawerOpen: conversationDetailState.transcriptDrawerOpen
+    )
+  }
 
   var body: some View {
     ConversationsPage(appState: appState, selectedConversation: $selectedConversation)
+      .frame(
+        maxWidth: usesAvailableWidth ? .infinity : MemoryHubLayoutPolicy.readableContentWidth,
+        maxHeight: .infinity
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .animation(.easeInOut(duration: 0.22), value: usesAvailableWidth)
       // Owner fencing: an open detail view must not keep showing the previous
       // account's conversation after an in-place account switch.
       .onReceive(NotificationCenter.default.publisher(for: .runtimeOwnerDidChange)) { _ in

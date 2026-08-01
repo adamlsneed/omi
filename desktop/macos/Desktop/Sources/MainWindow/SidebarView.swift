@@ -2,78 +2,11 @@
 import OmiTheme
 import SwiftUI
 
-// MARK: - Navigation Item Model
-enum SidebarNavItem: Int, CaseIterable {
-  case dashboard = 0
-  case conversations = 1
-  case chat = 2
-  case memories = 3
-  case tasks = 4
-  case focus = 5
-  case insight = 6
-  case rewind = 7
-  case apps = 8
-  case settings = 9
-  case permissions = 10
-  case help = 12
-
-  var title: String {
-    switch self {
-    case .dashboard: return "Home"
-    case .conversations: return "Conversations"
-    case .chat: return "Chat"
-    case .memories: return "Memories"
-    case .tasks: return "Tasks"
-    case .focus: return "Focus"
-    case .insight: return "Insights"
-    case .rewind: return "Rewind"
-    case .apps: return "Apps"
-    case .settings: return "Settings"
-    case .permissions: return "Permissions"
-    case .help: return "Help from Founder"
-    }
-  }
-
-  var icon: String {
-    switch self {
-    case .dashboard: return "house.fill"
-    case .conversations: return "text.bubble.fill"
-    case .chat: return "bubble.left.and.bubble.right.fill"
-    case .memories: return "brain"
-    case .tasks: return "checklist"
-    case .focus: return "eye.fill"
-    case .insight: return "lightbulb.fill"
-    case .rewind: return "clock.arrow.circlepath"
-    case .apps: return "puzzlepiece.fill"
-    case .settings: return "gearshape.fill"
-    case .permissions: return "exclamationmark.triangle.fill"
-    case .help: return "bubble.left.fill"
-    }
-  }
-
-  /// Minimum tier level required to access this item (0 = always available)
-  var requiredTier: Int {
-    switch self {
-    case .conversations, .rewind: return 1
-    case .memories: return 2
-    case .tasks: return 3
-    case .chat: return 4
-    case .dashboard: return 5
-    case .apps: return 6
-    default: return 0
-    }
-  }
-
-  /// Items shown in the main navigation (top section)
-  static var mainItems: [SidebarNavItem] {
-    [.dashboard, .conversations, .memories, .tasks, .focus, .insight, .rewind, .apps]
-  }
-}
-
 // MARK: - Sidebar View
 struct SidebarView: View {
   @Binding var selectedIndex: Int
   @Binding var isCollapsed: Bool
+  @Binding var memoryDestinationRawValue: Int
   @ObservedObject var appState: AppState
   @ObservedObject private var authState = AuthState.shared
   @ObservedObject private var insightStorage = InsightStorage.shared
@@ -172,7 +105,11 @@ struct SidebarView: View {
                         }
                       }
                     }
-                    selectedIndex = item.rawValue
+                    MemoryHubDestination.applySidebarSelection(
+                      item,
+                      selectedIndex: &selectedIndex,
+                      memoryDestinationRawValue: &memoryDestinationRawValue
+                    )
                     AnalyticsManager.shared.tabChanged(tabName: item.title)
                   },
                   onToggle: {
@@ -565,17 +502,12 @@ struct SidebarView: View {
     appState.hasMicrophonePermission || !appState.hasMicrophonePermission
   }
 
-  private var shouldShowIdeaCaptureStatus: Bool {
-    authState.isSignedIn
-  }
-
   private var shouldShowAccessibilityStatus: Bool {
     !appState.hasAccessibilityPermission || appState.isAccessibilityBroken
   }
 
   private var hasVisibleSidebarStatuses: Bool {
-    shouldShowScreenRecordingStatus || shouldShowMicrophoneStatus || shouldShowIdeaCaptureStatus
-      || shouldShowAccessibilityStatus
+    shouldShowScreenRecordingStatus || shouldShowMicrophoneStatus || shouldShowAccessibilityStatus
   }
 
   private var profileDisplayName: String {
@@ -680,10 +612,6 @@ struct SidebarView: View {
         microphonePermissionRow(isExpanded: !isCollapsed)
       }
 
-      if shouldShowIdeaCaptureStatus {
-        ideaCaptureRow(isExpanded: !isCollapsed)
-      }
-
       if shouldShowAccessibilityStatus {
         accessibilityPermissionRow(isExpanded: !isCollapsed)
       }
@@ -716,7 +644,7 @@ struct SidebarView: View {
       .scaleEffect(permissionPulse && (isDenied || isBroken || isStale) ? 1.1 : 1.0)
 
       if isExpanded {
-        Text(DesktopRecordingControlCopy.screenRecordingTitle)
+        Text("Screen Recording")
           .scaledFont(size: OmiType.body, weight: .medium)
           .foregroundColor(titleColor)
           .lineLimit(1)
@@ -769,15 +697,13 @@ struct SidebarView: View {
     .help(
       isToggleable
         ? (isActive
-          ? "Click to turn off \(DesktopRecordingControlCopy.screenRecordingTitle) monitoring"
-          : "Click to turn on \(DesktopRecordingControlCopy.screenRecordingTitle) monitoring")
+          ? "Click to turn off Screen Recording monitoring"
+          : "Click to turn on Screen Recording monitoring")
         : (isExpanded
           ? ""
           : (isStale
-            ? "\(DesktopRecordingControlCopy.screenRecordingTitle) needs re-enabling"
-            : (isBroken
-              ? "\(DesktopRecordingControlCopy.screenRecordingTitle) needs reset"
-              : "\(DesktopRecordingControlCopy.screenRecordingTitle) permission required")))
+            ? "Screen Recording needs re-enabling"
+            : (isBroken ? "Screen Recording needs reset" : "Screen Recording permission required")))
     )
 
     if isToggleable {
@@ -812,7 +738,7 @@ struct SidebarView: View {
         .scaleEffect(permissionPulse && isDenied ? 1.1 : 1.0)
 
       if isExpanded {
-        Text(DesktopRecordingControlCopy.microphoneTitle)
+        Text("Microphone")
           .scaledFont(size: OmiType.body, weight: .medium)
           .foregroundColor(titleColor)
           .lineLimit(1)
@@ -859,9 +785,9 @@ struct SidebarView: View {
     .help(
       isToggleable
         ? (isActive
-          ? "Click to turn off \(DesktopRecordingControlCopy.microphoneTitle) transcription"
-          : "Click to turn on \(DesktopRecordingControlCopy.microphoneTitle) transcription")
-        : (isExpanded ? "" : "\(DesktopRecordingControlCopy.microphoneTitle) permission required")
+          ? "Click to turn off Microphone transcription"
+          : "Click to turn on Microphone transcription")
+        : (isExpanded ? "" : "Microphone permission required")
     )
 
     if isToggleable {
@@ -874,54 +800,6 @@ struct SidebarView: View {
     } else {
       row
     }
-  }
-
-  private func ideaCaptureRow(isExpanded: Bool) -> some View {
-    let action = IdeaCaptureSidebarAction.current(isActive: appState.isIdeaCaptureActive)
-    let isActive = appState.isIdeaCaptureActive
-    let color: Color = isActive ? OmiColors.success : OmiColors.textSecondary
-
-    return Button(action: {
-      toggleIdeaCaptureFromSidebar()
-    }) {
-      HStack(spacing: 8) {
-        Image(systemName: action.systemImage)
-          .scaledFont(size: 15)
-          .foregroundColor(color)
-          .frame(width: iconWidth)
-
-        if isExpanded {
-          Text(action.title)
-            .scaledFont(size: 13, weight: .medium)
-            .foregroundColor(color)
-            .lineLimit(1)
-
-          Spacer()
-
-          if isActive {
-            Text("Recording")
-              .scaledFont(size: 10, weight: .semibold)
-              .foregroundColor(OmiColors.success)
-              .padding(.horizontal, 7)
-              .padding(.vertical, 3)
-              .background(Capsule().fill(OmiColors.success.opacity(0.16)))
-          }
-        }
-      }
-      .padding(.horizontal, 10)
-      .padding(.vertical, 7)
-      .frame(minHeight: 40)
-      .background(
-        RoundedRectangle(cornerRadius: 10)
-          .fill(isActive ? OmiColors.success.opacity(0.10) : Color.clear)
-      )
-      .contentShape(Rectangle())
-    }
-    .buttonStyle(.plain)
-    .help(action.helpText)
-    .accessibilityLabel(action.accessibilityLabel)
-    .accessibilityValue(isActive ? "Recording" : "Idle")
-    .accessibilityIdentifier("sidebar_capture_idea")
   }
 
   private func accessibilityPermissionRow(isExpanded: Bool) -> some View {
@@ -1072,15 +950,6 @@ struct SidebarView: View {
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
         isTogglingMonitoring = false
       }
-    }
-  }
-
-  private func toggleIdeaCaptureFromSidebar() {
-    let starting = !appState.isIdeaCaptureActive
-    AnalyticsManager.shared.menuBarActionClicked(
-      action: starting ? "idea_capture_start_sidebar" : "idea_capture_stop_sidebar")
-    Task { @MainActor in
-      await appState.toggleIdeaCapture()
     }
   }
 

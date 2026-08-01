@@ -28,12 +28,9 @@ import {
   type ToolResultEvent,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "@earendil-works/pi-ai";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { readFileSync, unlinkSync } from "node:fs";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { createConnection, type Socket } from "node:net";
-import { createInterface, type Interface as ReadlineInterface } from "node:readline";
 import { dirname, join, resolve } from "node:path";
 import { isSafeSkillName, loadSkillInstructions, searchSkills } from "../agent/src/runtime/node-tools.ts";
 import {
@@ -580,326 +577,21 @@ async function omiRelayCapabilityRef(): Promise<string | undefined> {
 
 export const OMI_TOOL_TIMEOUT_MS = 30_000;
 export const OMI_LONG_CONTROL_TOOL_TIMEOUT_MS = 10 * 60_000;
+export const OMI_CHAT_CONTRACT_VERSION = "1";
+
+export function applyOmiProviderHeaders(
+  headers: Record<string, string>,
+  relayContextRaw: string | undefined,
+): void {
+  headers["x-omi-chat-contract-version"] = OMI_CHAT_CONTRACT_VERSION;
+  if (relayContextRaw === undefined) return;
+  const requestId = omiRequestIdFromRelayContext(relayContextRaw);
+  if (requestId) headers["x-omi-request-id"] = requestId;
+  const reasoningEffort = omiReasoningEffortFromRelayContext(relayContextRaw);
+  if (reasoningEffort) headers["x-omi-reasoning-effort"] = reasoningEffort;
+}
 
 export { isSafeSkillName };
-
-// ---------------------------------------------------------------------------
-// Playwright MCP browser tools — forwarded to the bundled MCP server
-// ---------------------------------------------------------------------------
-
-interface BrowserToolSpec {
-  name: string;
-  label: string;
-  description: string;
-  promptSnippet: string;
-}
-
-interface JsonRpcResponse {
-  id?: number;
-  result?: unknown;
-  error?: {
-    code?: number;
-    message?: string;
-    data?: unknown;
-  };
-}
-
-interface McpToolCallResult {
-  content?: Array<{
-    type?: string;
-    text?: string;
-    data?: string;
-    mimeType?: string;
-  }>;
-  isError?: boolean;
-}
-
-export const BROWSER_TOOL_SPECS: BrowserToolSpec[] = [
-  {
-    name: "browser_snapshot",
-    label: "Browser Snapshot",
-    description: "Capture an accessibility snapshot of the current Chrome page. Use this before clicking or typing.",
-    promptSnippet: "browser_snapshot - Capture the current Chrome page accessibility tree",
-  },
-  {
-    name: "browser_navigate",
-    label: "Browser Navigate",
-    description: "Navigate Chrome to a URL.",
-    promptSnippet: "browser_navigate - Navigate Chrome to a URL",
-  },
-  {
-    name: "browser_click",
-    label: "Browser Click",
-    description: "Click an element on the current Chrome page using a ref from browser_snapshot.",
-    promptSnippet: "browser_click - Click a web page element by ref",
-  },
-  {
-    name: "browser_type",
-    label: "Browser Type",
-    description: "Type text into an editable element using a ref from browser_snapshot.",
-    promptSnippet: "browser_type - Type into a web page field by ref",
-  },
-  {
-    name: "browser_fill_form",
-    label: "Browser Fill Form",
-    description: "Fill multiple web form fields using refs from browser_snapshot.",
-    promptSnippet: "browser_fill_form - Fill multiple web form fields",
-  },
-  {
-    name: "browser_press_key",
-    label: "Browser Press Key",
-    description: "Press a keyboard key in Chrome.",
-    promptSnippet: "browser_press_key - Press a key in Chrome",
-  },
-  {
-    name: "browser_wait_for",
-    label: "Browser Wait",
-    description: "Wait for text to appear, disappear, or for a specified time.",
-    promptSnippet: "browser_wait_for - Wait for page text or time",
-  },
-  {
-    name: "browser_take_screenshot",
-    label: "Browser Screenshot",
-    description: "Take a screenshot of the current Chrome page.",
-    promptSnippet: "browser_take_screenshot - Capture a Chrome page screenshot",
-  },
-  {
-    name: "browser_tabs",
-    label: "Browser Tabs",
-    description: "List, create, close, or select Chrome tabs.",
-    promptSnippet: "browser_tabs - Manage Chrome tabs",
-  },
-  {
-    name: "browser_evaluate",
-    label: "Browser Evaluate",
-    description: "Evaluate JavaScript on the current Chrome page or selected element.",
-    promptSnippet: "browser_evaluate - Evaluate JavaScript in Chrome",
-  },
-  {
-    name: "browser_network_requests",
-    label: "Browser Network",
-    description: "Return network requests from the current Chrome page.",
-    promptSnippet: "browser_network_requests - List Chrome page network requests",
-  },
-  {
-    name: "browser_console_messages",
-    label: "Browser Console",
-    description: "Return console messages from the current Chrome page.",
-    promptSnippet: "browser_console_messages - List Chrome page console messages",
-  },
-  {
-    name: "browser_select_option",
-    label: "Browser Select",
-    description: "Select options in a web dropdown using a ref from browser_snapshot.",
-    promptSnippet: "browser_select_option - Select a web dropdown option",
-  },
-  {
-    name: "browser_hover",
-    label: "Browser Hover",
-    description: "Hover over an element using a ref from browser_snapshot.",
-    promptSnippet: "browser_hover - Hover over a web page element",
-  },
-  {
-    name: "browser_close",
-    label: "Browser Close",
-    description: "Close the current Chrome page.",
-    promptSnippet: "browser_close - Close the current Chrome page",
-  },
-];
-
-function isPlaywrightExtensionEnabled(): boolean {
-  return (
-    process.env.PLAYWRIGHT_USE_EXTENSION === "true" ||
-    process.env.PLAYWRIGHT_MCP_EXTENSION === "true"
-  );
-}
-
-function resolvePlaywrightMcpCli(): string {
-  return decodeURIComponent(new URL(
-    "../agent/node_modules/@playwright/mcp/cli.js",
-    import.meta.url
-  ).pathname);
-}
-
-function browserToolParameters() {
-  // Playwright MCP validates each tool call against its own schema. Keeping the
-  // pi-side schema permissive avoids schema drift between this extension and MCP.
-  return Type.Record(Type.String(), Type.Any());
-}
-
-class PlaywrightMcpClient {
-  private child: ChildProcessWithoutNullStreams | null = null;
-  private readline: ReadlineInterface | null = null;
-  private nextId = 1;
-  private pending = new Map<number, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-  }>();
-
-  async callTool(name: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<McpToolCallResult> {
-    if (signal?.aborted) {
-      throw new Error("Browser tool call aborted");
-    }
-    await this.ensureStarted();
-    const result = await this.request(
-      "tools/call",
-      { name, arguments: args },
-      signal
-    );
-    return result as McpToolCallResult;
-  }
-
-  private async ensureStarted(): Promise<void> {
-    if (this.child && !this.child.killed) {
-      return;
-    }
-
-    const cliPath = resolvePlaywrightMcpCli();
-    const args = [cliPath, "--extension"];
-    const env: Record<string, string> = {
-      ...(process.env as Record<string, string>),
-      PLAYWRIGHT_MCP_EXTENSION: "true",
-    };
-    if (process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN) {
-      env.PLAYWRIGHT_MCP_EXTENSION_TOKEN = process.env.PLAYWRIGHT_MCP_EXTENSION_TOKEN;
-    }
-
-    this.child = spawn(process.execPath, args, {
-      stdio: ["pipe", "pipe", "pipe"],
-      env,
-    });
-    this.readline = createInterface({ input: this.child.stdout });
-    this.readline.on("line", (line) => this.handleLine(line));
-    this.child.stderr.on("data", (data: Buffer) => {
-      const msg = data.toString().trim();
-      if (msg) process.stderr.write(`[playwright-mcp] ${msg}\n`);
-    });
-    this.child.on("exit", (code) => {
-      process.stderr.write(`[playwright-mcp] process exited with code ${code}\n`);
-      this.child = null;
-      this.readline?.close();
-      this.readline = null;
-      for (const [, pending] of this.pending) {
-        pending.reject(new Error(`Playwright MCP exited (code ${code})`));
-      }
-      this.pending.clear();
-    });
-
-    await this.request("initialize", {
-      protocolVersion: "2024-11-05",
-      capabilities: {},
-      clientInfo: { name: "omi-pi-mono", version: "1.0.0" },
-    });
-    this.notify("notifications/initialized", {});
-  }
-
-  private request(method: string, params: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
-    if (!this.child?.stdin.writable) {
-      return Promise.reject(new Error("Playwright MCP process is not running"));
-    }
-
-    const id = this.nextId++;
-    const message = { jsonrpc: "2.0", id, method, params };
-    return new Promise((resolve, reject) => {
-      const onAbort = () => {
-        this.pending.delete(id);
-        reject(new Error("Browser tool call aborted"));
-      };
-      if (signal) {
-        signal.addEventListener("abort", onAbort, { once: true });
-      }
-      this.pending.set(id, {
-        resolve: (value) => {
-          signal?.removeEventListener("abort", onAbort);
-          resolve(value);
-        },
-        reject: (error) => {
-          signal?.removeEventListener("abort", onAbort);
-          reject(error);
-        },
-      });
-      this.child!.stdin.write(JSON.stringify(message) + "\n");
-    });
-  }
-
-  private notify(method: string, params: Record<string, unknown>): void {
-    if (!this.child?.stdin.writable) return;
-    this.child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method, params }) + "\n");
-  }
-
-  private handleLine(line: string): void {
-    if (!line.trim()) return;
-    let response: JsonRpcResponse;
-    try {
-      response = JSON.parse(line) as JsonRpcResponse;
-    } catch {
-      process.stderr.write(`[playwright-mcp] invalid JSON: ${line.slice(0, 200)}\n`);
-      return;
-    }
-    if (typeof response.id !== "number") return;
-    const pending = this.pending.get(response.id);
-    if (!pending) return;
-    this.pending.delete(response.id);
-    if (response.error) {
-      pending.reject(new Error(response.error.message || `Playwright MCP error ${response.error.code ?? ""}`));
-    } else {
-      pending.resolve(response.result);
-    }
-  }
-}
-
-const playwrightMcpClient = new PlaywrightMcpClient();
-
-function formatMcpToolResult(result: McpToolCallResult): string {
-  const content = result.content ?? [];
-  if (content.length === 0) {
-    return result.isError ? "Browser tool failed without details." : "Browser tool completed.";
-  }
-  return content.map((part) => {
-    if (part.type === "text" && typeof part.text === "string") {
-      return part.text;
-    }
-    if (part.type === "image") {
-      return `[image: ${part.mimeType ?? "unknown"}]`;
-    }
-    return JSON.stringify(part);
-  }).join("\n");
-}
-
-function registerPlaywrightTools(pi: ExtensionAPI): void {
-  if (!isPlaywrightExtensionEnabled()) {
-    return;
-  }
-  for (const spec of BROWSER_TOOL_SPECS) {
-    pi.registerTool(defineTool({
-      name: spec.name,
-      label: spec.label,
-      description: spec.description,
-      promptSnippet: spec.promptSnippet,
-      parameters: browserToolParameters(),
-      async execute(_toolCallId, params, signal) {
-        try {
-          const result = await playwrightMcpClient.callTool(
-            spec.name,
-            params as Record<string, unknown>,
-            signal
-          );
-          return {
-            content: [{ type: "text" as const, text: formatMcpToolResult(result) }],
-            details: result,
-          };
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          return {
-            content: [{ type: "text" as const, text: `Error: ${msg}` }],
-            details: { error: msg },
-          };
-        }
-      },
-    }));
-  }
-  process.stderr.write(`[playwright-mcp] Registered ${BROWSER_TOOL_SPECS.length} browser tools\n`);
-}
 
 // ---------------------------------------------------------------------------
 // Omi tool definitions — pi-mono defineTool() with TypeBox schemas
@@ -1104,37 +796,9 @@ export async function __registerOmiToolsForTest(pi: ExtensionAPI): Promise<void>
 // Extension entry point
 // ---------------------------------------------------------------------------
 
-function readOmiApiKey(): string {
-  if (process.env.OMI_API_KEY) {
-    return process.env.OMI_API_KEY;
-  }
-
-  const tokenFile = process.env.OMI_API_KEY_FILE;
-  if (!tokenFile) {
-    return "";
-  }
-
-  try {
-    const token = readFileSync(tokenFile, "utf8").trim();
-    try {
-      unlinkSync(tokenFile);
-    } catch {
-      // Best-effort cleanup only; the parent process also removes the temp dir.
-    }
-    delete process.env.OMI_API_KEY_FILE;
-    return token;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`[omi-provider] failed to read OMI_API_KEY_FILE: ${msg}\n`);
-    return "";
-  }
-}
-
-export const readOmiApiKeyForTest = readOmiApiKey;
-
 export default function omiProvider(pi: ExtensionAPI): void {
   const baseUrl = process.env.OMI_API_BASE_URL || "https://api.omi.me/v2";
-  const apiKey = readOmiApiKey();
+  const apiKey = process.env.OMI_API_KEY || "";
 
   // BYOK: the Swift app sets OMI_BYOK_* env vars (all four, or none) when the user
   // is on the free plan with their own provider keys. Attach them as X-BYOK-*
@@ -1190,14 +854,10 @@ export default function omiProvider(pi: ExtensionAPI): void {
   // which preserves one safe correlation id across an upstream retry chain.
   pi.on("before_provider_headers", async (event) => {
     const raw = await omiRelayContextRaw();
-    if (raw === undefined) return;
-    const requestId = omiRequestIdFromRelayContext(raw);
-    if (requestId) event.headers["x-omi-request-id"] = requestId;
     // Per-turn effort lane: typed chat runs "adaptive" (the model decides its
     // own thinking depth), PTT runs "fast" (thinking off, low effort). The
     // gateway translates this into Anthropic thinking/effort parameters.
-    const reasoningEffort = omiReasoningEffortFromRelayContext(raw);
-    if (reasoningEffort) event.headers["x-omi-reasoning-effort"] = reasoningEffort;
+    applyOmiProviderHeaders(event.headers, raw);
   });
 
   pi.on("tool_call", async (event): Promise<ToolCallEventResult | void> => {
@@ -1252,7 +912,6 @@ export default function omiProvider(pi: ExtensionAPI): void {
   // Register Omi-specific tools (execute_sql, semantic_search, etc.)
   // These forward to Swift via the OMI_BRIDGE_PIPE Unix socket.
   void registerOmiTools(pi);
-  registerPlaywrightTools(pi);
 }
 
 // ---------------------------------------------------------------------------

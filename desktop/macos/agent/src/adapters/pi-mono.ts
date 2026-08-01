@@ -7,7 +7,7 @@
 // Issue #6594: Pi-mono harness with Omi API proxy for server-side cost control.
 
 import { ChildProcess, spawn } from "child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
 import { createInterface, Interface as ReadlineInterface } from "readline";
@@ -107,6 +107,13 @@ interface PiUsage {
     cacheWrite: number;
     total: number;
   };
+}
+
+function normalizeProviderHTTPErrorMessage(message: string): string {
+  const trimmed = message.trim();
+  // Provider SDK wording is not our downstream contract: retain its detail,
+  // but make a leading HTTP failure status explicit and stable for Swift.
+  return /^[45]\d{2}(?=$|[\s:])/.test(trimmed) ? `HTTP ${trimmed}` : trimmed;
 }
 
 const REQUIRED_AGENT_CONTROL_TOOLS = new Set([
@@ -211,9 +218,56 @@ const PUBLIC_WEB_ROUTING_INSTRUCTION = "<omi_retrieval_policy>Web search is requ
 
 const EXPLICIT_WEB_REQUESTS = [
   "search the web", "search web", "search the internet", "search online",
-  "look it up online", "find it online", "google it", "browse the web",
+  "look it up online", "look this up online", "look that up online",
+  "find it online", "find this online", "find that online",
+  "google it", "google this", "google that", "browse the web",
   "web search", "internet search",
 ];
+
+const EXPLICIT_WEB_PROHIBITIONS = [
+  "don't call web search", "do not call web search",
+  "don't call the web search", "do not call the web search",
+  "don't call internet search", "do not call internet search",
+  "don't call the internet search", "do not call the internet search",
+  "don't use web search", "do not use web search",
+  "don't use the web search", "do not use the web search",
+  "don't use internet search", "do not use internet search",
+  "don't use the internet search", "do not use the internet search",
+  "don't search the web", "do not search the web",
+  "don't search the internet", "do not search the internet",
+  "without web search",
+];
+
+function explicitlyProhibitsPublicWeb(normalized: string): boolean {
+  if (EXPLICIT_WEB_PROHIBITIONS.some((phrase) => {
+    let searchStart = 0;
+    while (searchStart < normalized.length) {
+      const start = normalized.indexOf(phrase, searchStart);
+      if (start < 0) {
+        return false;
+      }
+      const suffix = normalized.slice(start + phrase.length).trimStart();
+      if (!/^results?\b/.test(suffix)) {
+        return true;
+      }
+      searchStart = start + phrase.length;
+    }
+    return false;
+  })) {
+    return true;
+  }
+  return ["web search tool", "internet search tool"].some((referent) => {
+    const start = normalized.indexOf(referent);
+    if (start < 0) {
+      return false;
+    }
+    const tail = normalized.slice(start + referent.length, start + referent.length + 160);
+    return [
+      "don't call it because", "do not call it because",
+      "don't call it again", "do not call it again",
+    ].some((phrase) => tail.includes(phrase));
+  });
+}
 
 const FRESH_PUBLIC_REQUESTS = [
   "latest news", "latest on", "what's the latest", "what is the latest",
@@ -235,12 +289,22 @@ const FRESH_PUBLIC_LOOKUP_TERMS = [
   "score", "weather", "price", "news", "release", "released", "election", "market",
 ];
 
+const RESEARCH_INTENT_VERBS = [
+  "find out", "look up", "look him up", "look her up", "look them up",
+  "research", "tell me about", "everything about", "everything on",
+  "all about", "information about", "information on", "who is", "who's",
+];
+
+const PUBLIC_WEB_LOCUS = ["online", "on the web", "on the internet"];
+const MAX_GENERIC_LOOKUP_CHARS = 240;
+const ALPHANUMERIC_CHAR = /[\p{L}\p{N}]/u;
+
 const EXPLICIT_PRIVATE_CONTEXT = [
   "my conversations", "our conversations", "my memories", "your memory of me",
   "my screen history", "my screen activity", "my calendar", "your calendar",
   "my email", "your email", "my files", "your files", "my tasks", "your tasks",
   "my action items", "my notes", "your notes", "what did i say", "what have i said",
-  "when did i", "what was i doing", "what do you remember about me",
+  "what did i do", "when did i", "what was i doing", "what do you remember about me",
 ];
 
 const PUBLIC_WEB_ACCESS_DENIAL = /\b(?:I\s+)?(?:do\s+not|don't|cannot|can't|can not)\s+(?:(?:have\s+)?(?:direct\s+)?(?:access\s+to\s+)?(?:the\s+)?(?:internet|web(?:[ -]?search)?|browser|real[- ]time(?:\s+\w+){0,2}(?:\s+data)?)(?:\s+(?:or|and)\s+(?:the\s+)?(?:internet|web(?:[ -]?search)?|browser|real[- ]time(?:\s+\w+){0,2}(?:\s+data)?))*|(?:have\s+)?(?:direct\s+)?(?:internet|web(?:[ -]?search)?|browser)\s+access|(?:browse|search)\s+(?:the\s+)?(?:web|internet))/i;
@@ -257,8 +321,43 @@ function currentUserInstruction(renderedPrompt: string): string {
     : renderedPrompt.slice(delimiterIndex + CURRENT_USER_MESSAGE_DELIMITER.length);
 }
 
+function containsWholeTerm(text: string, terms: string[]): boolean {
+  return terms.some((term) => {
+    let searchStart = 0;
+    while (searchStart < text.length) {
+      const start = text.indexOf(term, searchStart);
+      if (start < 0) return false;
+      const before = text[start - 1];
+      const after = text[start + term.length];
+      const beforeIsWord = before !== undefined && ALPHANUMERIC_CHAR.test(before);
+      const afterIsWord = after !== undefined && ALPHANUMERIC_CHAR.test(after);
+      if (!beforeIsWord && !afterIsWord) return true;
+      searchStart = start + term.length;
+    }
+    return false;
+  });
+}
+
+function normalizedLookupText(text: string): string {
+  return text
+    .trim()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+    .toLowerCase()
+    .replace(/[\u2018\u2019]/g, "'");
+}
+
+function utf8ByteLength(text: string): number {
+  let bytes = 0;
+  for (const char of text) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    bytes += codePoint <= 0x7f ? 1 : codePoint <= 0x7ff ? 2 : codePoint <= 0xffff ? 3 : 4;
+  }
+  return bytes;
+}
+
 type PublicWebTurnState = {
   bufferedText: string;
+  emittedText: string;
   /**
    * The Rust gateway resolves Anthropic's server-side web tool internally, so
    * Pi never receives a local tool lifecycle. This synthetic, query-scoped
@@ -275,17 +374,34 @@ export function routePromptForPublicWeb(message: string): string {
   // The adapter receives the full rendered prompt, including inherited context
   // and prior turns. Inspect only the current user instruction when deciding
   // whether this particular turn requires a public-web lookup.
-  const normalized = currentUserInstruction(message).trim().toLowerCase();
-  if (!normalized || EXPLICIT_PRIVATE_CONTEXT.some((phrase) => normalized.includes(phrase))) {
+  const normalized = normalizedLookupText(currentUserInstruction(message));
+  if (!normalized) return message;
+  const hasExplicitWebReference = EXPLICIT_WEB_REQUESTS.some(
+    (phrase) => normalized.includes(phrase)
+  );
+  if (
+    hasExplicitWebReference
+    && explicitlyProhibitsPublicWeb(normalized)
+  ) {
     return message;
   }
-  const hasFreshPublicTemporalLookup = FRESH_PUBLIC_TEMPORAL_QUALIFIERS.some(
+  const hasExplicitPrivateContext = EXPLICIT_PRIVATE_CONTEXT.some(
     (phrase) => normalized.includes(phrase)
-  ) && FRESH_PUBLIC_LOOKUP_TERMS.some((term) => normalized.includes(term));
-  const requiresWeb = EXPLICIT_WEB_REQUESTS.some((phrase) => normalized.includes(phrase))
-    || FRESH_PUBLIC_REQUESTS.some((phrase) => normalized.includes(phrase))
+  );
+  if (hasExplicitPrivateContext && !hasExplicitWebReference) return message;
+
+  const isShortLookup = utf8ByteLength(normalized) <= MAX_GENERIC_LOOKUP_CHARS;
+  const hasFreshPublicTemporalLookup = isShortLookup
+    && containsWholeTerm(normalized, FRESH_PUBLIC_TEMPORAL_QUALIFIERS)
+    && containsWholeTerm(normalized, FRESH_PUBLIC_LOOKUP_TERMS);
+  const hasResearchIntentLookup = isShortLookup
+    && containsWholeTerm(normalized, PUBLIC_WEB_LOCUS)
+    && RESEARCH_INTENT_VERBS.some((verb) => normalized.includes(verb));
+  const requiresWeb = hasExplicitWebReference
+    || containsWholeTerm(normalized, FRESH_PUBLIC_REQUESTS)
     || CURRENT_WEATHER_PREFIXES.some((phrase) => normalized.includes(phrase))
-    || hasFreshPublicTemporalLookup;
+    || hasFreshPublicTemporalLookup
+    || hasResearchIntentLookup;
   return requiresWeb ? `${PUBLIC_WEB_ROUTING_INSTRUCTION}\n\n${message}` : message;
 }
 
@@ -339,8 +455,8 @@ export class PiMonoAdapter implements HarnessAdapter {
   private requiredAgentControlFailures = new Map<string, string>();
   private requiredControlInputs = new Map<string, Record<string, unknown>>();
   private currentAbortController: AbortController | null = null;
-  /** A public-web response is buffered until its gateway-routed terminal result,
-   * so false availability boilerplate never escapes before the search completes. */
+  /** State for projecting gateway-owned public-web progress without waiting for
+   * the terminal turn before forwarding model text. */
   private activePublicWebTurn: PublicWebTurnState | null = null;
   private piPath: string;
   private extensionPath: string;
@@ -357,8 +473,6 @@ export class PiMonoAdapter implements HarnessAdapter {
   private pendingTokenRefresh = false;
   /** True when a system-prompt change was deferred because a prompt was active */
   private pendingSystemPromptRefresh = false;
-  private tokenFileDir: string | null = null;
-  private tokenFilePath: string | null = null;
 
   constructor(config: PiMonoConfig, piPath?: string, extensionPath?: string) {
     this.config = config;
@@ -384,8 +498,6 @@ export class PiMonoAdapter implements HarnessAdapter {
       "omi",
       "--model",
       "omi-sonnet",
-      // Auto-discover extensions and MCP servers from the user's machine
-      // to maximize pi-mono's capabilities (e.g. Playwright, filesystem tools).
     ];
     // Pi has no set_system_prompt RPC — system prompt must be baked at spawn
     // time via the --system-prompt CLI flag. To change it, restart the process.
@@ -402,8 +514,13 @@ export class PiMonoAdapter implements HarnessAdapter {
       );
     }
 
-    this.cleanupTokenFile();
-    const env = this.makeSubprocessEnv();
+    // Scrub any ANTHROPIC_API_KEY from the child env so the extension cannot
+    // accidentally read it as a credential. pi-mono talks to api.omi.me with
+    // OMI_API_KEY only.
+    const env: Record<string, string> = {
+      ...process.env as Record<string, string>,
+    };
+    delete env.ANTHROPIC_API_KEY;
 
     // SECURITY: OMI_YOLO_MODE bypasses the extension's entire tool denylist.
     // Scrub it from the subprocess env, then only re-inject when explicitly
@@ -416,10 +533,10 @@ export class PiMonoAdapter implements HarnessAdapter {
       process.stderr.write("[pi-mono] WARNING: OMI_YOLO_MODE=1 — denylist bypass active\n");
     }
 
-    // Pass the raw Firebase ID token through a private file. pi sets a short
-    // process title on macOS; putting the token directly in env can make it
-    // appear in process listings when argv/environ memory is displayed.
-    env.OMI_API_KEY_FILE = this.writeAuthTokenFile(this.config.authToken);
+    // Pass the raw Firebase ID token. pi's openai-completions client already
+    // prepends `Authorization: Bearer ${apiKey}` — adding our own "Bearer "
+    // prefix here would produce a malformed `Bearer Bearer <token>` header.
+    env.OMI_API_KEY = this.config.authToken;
     if (this.config.omiApiBaseUrl) {
       env.OMI_API_BASE_URL = this.config.omiApiBaseUrl;
     }
@@ -430,8 +547,7 @@ export class PiMonoAdapter implements HarnessAdapter {
     // (execute_sql, semantic_search, etc.) that forward to Swift.
     // The shared runtime process sets the pipe in process.env before starting pi-mono.
 
-    const [command, spawnArgs] = this.spawnCommand(args);
-    this.process = spawn(command, spawnArgs, {
+    this.process = spawn(this.piPath, args, {
       stdio: ["pipe", "pipe", "pipe"],
       env,
     });
@@ -460,7 +576,6 @@ export class PiMonoAdapter implements HarnessAdapter {
       process.stderr.write(`[pi-mono] process exited with code ${code}\n`);
       this.process = null;
       this.readline = null;
-      this.cleanupTokenFile();
       this.sessions.clear();
       // Reject pending requests
       for (const [, req] of this.pendingRequests) {
@@ -493,7 +608,6 @@ export class PiMonoAdapter implements HarnessAdapter {
         this.readline = null;
       }
     }
-    this.cleanupTokenFile();
     this.sessions.clear();
     this.pendingRequests.clear();
     this.activePromptGeneration = 0;
@@ -600,7 +714,11 @@ export class PiMonoAdapter implements HarnessAdapter {
     const message = routePromptForPublicWeb(rawMessage);
     this.activePublicWebTurn = message === rawMessage
       ? null
-      : { bufferedText: "", progressToolUseId: `gateway-public-web-${generation}` };
+      : {
+          bufferedText: "",
+          emittedText: "",
+          progressToolUseId: `gateway-public-web-${generation}`,
+        };
     if (this.activePublicWebTurn) {
       this.eventHandler?.({
         type: "tool_activity",
@@ -816,58 +934,6 @@ export class PiMonoAdapter implements HarnessAdapter {
 
   // ── Private helpers ──────────────────────────────────────────────────
 
-  private makeSubprocessEnv(): Record<string, string> {
-    const env: Record<string, string> = {};
-    for (const key of [
-      "HOME",
-      "USER",
-      "LOGNAME",
-      "PATH",
-      "TMPDIR",
-      "LANG",
-      "LC_ALL",
-      "LC_CTYPE",
-      "TERM",
-      "NODE_NO_WARNINGS",
-      "OMI_BRIDGE_PIPE",
-      "PLAYWRIGHT_USE_EXTENSION",
-      "PLAYWRIGHT_MCP_EXTENSION",
-      "PLAYWRIGHT_MCP_EXTENSION_TOKEN",
-    ]) {
-      const value = process.env[key];
-      if (value) env[key] = value;
-    }
-    env.NODE_NO_WARNINGS = env.NODE_NO_WARNINGS || "1";
-    return env;
-  }
-
-  private writeAuthTokenFile(token: string): string {
-    const dir = mkdtempSync(join(tmpdir(), "omi-pi-token-"));
-    const filePath = join(dir, "token");
-    writeFileSync(filePath, token, { encoding: "utf8", mode: 0o600 });
-    chmodSync(filePath, 0o600);
-    this.tokenFileDir = dir;
-    this.tokenFilePath = filePath;
-    return filePath;
-  }
-
-  private cleanupTokenFile(): void {
-    if (this.tokenFileDir) {
-      rmSync(this.tokenFileDir, { recursive: true, force: true });
-    } else if (this.tokenFilePath) {
-      rmSync(this.tokenFilePath, { force: true });
-    }
-    this.tokenFileDir = null;
-    this.tokenFilePath = null;
-  }
-
-  private spawnCommand(args: string[]): [string, string[]] {
-    if (this.piPath.endsWith(".js")) {
-      return [process.execPath, [this.piPath, ...args]];
-    }
-    return [this.piPath, args];
-  }
-
   private sendCommand(cmd: PiRpcCommand): void {
     if (!this.process?.stdin?.writable) {
       throw new Error("pi-mono process not running");
@@ -875,6 +941,38 @@ export class PiMonoAdapter implements HarnessAdapter {
     const id = `req-${this.nextRequestId++}`;
     cmd.id = id;
     this.process.stdin.write(JSON.stringify(cmd) + "\n");
+  }
+
+  /** Reply on stdin without allocating a req-* id (must echo the request id). */
+  private writeRaw(cmd: PiRpcCommand): void {
+    if (!this.process?.stdin?.writable) return;
+    this.process.stdin.write(JSON.stringify(cmd) + "\n");
+  }
+
+  /**
+   * Pi extensions emit extension_ui_request for host UI. Desktop chat has no TUI,
+   * so fire-and-forget methods are ignored and blocking dialogs are cancelled.
+   * Leaving these unhandled hangs the turn (infinite loading).
+   */
+  private handleExtensionUIRequest(event: PiRpcEvent): void {
+    const method = typeof event.method === "string" ? event.method : "";
+    switch (method) {
+      case "notify":
+      case "setStatus":
+      case "setWidget":
+      case "setTitle":
+      case "set_editor_text":
+        return;
+      case "select":
+      case "confirm":
+      case "input":
+      case "editor":
+      default: {
+        const id = typeof event.id === "string" ? event.id : "";
+        if (!id) return;
+        this.writeRaw({ type: "extension_ui_response", id, cancelled: true });
+      }
+    }
   }
 
   private writeRelayContext(context: PiMonoRelayContext | undefined): void {
@@ -922,7 +1020,9 @@ export class PiMonoAdapter implements HarnessAdapter {
     // Log key events for diagnostic visibility
     if (event.type === 'turn_end') {
       const msg = (event as any).message;
-      const errMsg = msg?.errorMessage;
+      const errMsg = typeof msg?.errorMessage === "string"
+        ? normalizeProviderHTTPErrorMessage(msg.errorMessage)
+        : undefined;
       if (errMsg) {
         process.stderr.write(`[pi-mono] turn_end ERROR: ${errMsg}\n`);
       }
@@ -970,6 +1070,10 @@ export class PiMonoAdapter implements HarnessAdapter {
         // the terminal result that can settle Omi's canonical run lifecycle.
         break;
 
+      case "extension_ui_request":
+        this.handleExtensionUIRequest(event);
+        break;
+
       default:
         process.stderr.write(
           `[pi-mono] unknown event type: ${event.type}\n`
@@ -988,11 +1092,9 @@ export class PiMonoAdapter implements HarnessAdapter {
         if (msgEvent.delta) {
           if (this.activePublicWebTurn) {
             this.activePublicWebTurn.bufferedText += msgEvent.delta;
+            this.emitPublicWebText(this.activePublicWebTurn);
           } else {
-            this.eventHandler?.({
-              type: "text_delta",
-              text: msgEvent.delta,
-            });
+            this.eventHandler?.({ type: "text_delta", text: msgEvent.delta });
           }
         }
         break;
@@ -1140,7 +1242,7 @@ export class PiMonoAdapter implements HarnessAdapter {
 
     const message = event.message as PiAssistantMessage | undefined;
     const errorMessage = typeof message?.errorMessage === "string" && message.errorMessage.trim()
-      ? message.errorMessage.trim()
+      ? normalizeProviderHTTPErrorMessage(message.errorMessage)
       : undefined;
     if (errorMessage) {
       this.finishPublicWebProgress(this.activePublicWebTurn, "failed");
@@ -1206,10 +1308,8 @@ export class PiMonoAdapter implements HarnessAdapter {
       // provider interaction. Do not make this depend on local Pi tool events:
       // Anthropic's server-side web_search intentionally never exposes one.
       text = stripFalsePublicWebAvailabilityDisclaimers(text);
+      this.emitPublicWebText(publicWebTurn, true);
       this.finishPublicWebProgress(publicWebTurn, "completed");
-      if (text) {
-        this.eventHandler?.({ type: "text_delta", text });
-      }
     }
 
     // Extract usage
@@ -1246,6 +1346,41 @@ export class PiMonoAdapter implements HarnessAdapter {
       status,
       toolUseId: publicWebTurn.progressToolUseId,
     });
+  }
+
+  private emitPublicWebText(publicWebTurn: PublicWebTurnState, terminal = false): void {
+    const raw = publicWebTurn.bufferedText;
+    const normalized = raw.trimStart().toLowerCase();
+    const possibleDenialPrefixes = [
+      "i don't",
+      "i do not",
+      "i cannot",
+      "i can't",
+      "i can not",
+      "don't",
+      "do not",
+      "cannot",
+      "can't",
+      "can not",
+    ];
+    const mayBecomeAvailabilityDenial = possibleDenialPrefixes.some(
+      (prefix) => prefix.startsWith(normalized) || normalized.startsWith(prefix),
+    );
+    if (
+      !terminal
+      && publicWebTurn.emittedText.length === 0
+      && mayBecomeAvailabilityDenial
+      && !/[.!?]/.test(raw)
+      && !/\b(?:but|however)\b/i.test(raw)
+    ) {
+      return;
+    }
+
+    const sanitized = stripFalsePublicWebAvailabilityDisclaimers(raw);
+    if (!sanitized.startsWith(publicWebTurn.emittedText)) return;
+    const delta = sanitized.slice(publicWebTurn.emittedText.length);
+    publicWebTurn.emittedText = sanitized;
+    if (delta) this.eventHandler?.({ type: "text_delta", text: delta });
   }
 }
 

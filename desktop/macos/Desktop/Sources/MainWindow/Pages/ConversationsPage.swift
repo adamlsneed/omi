@@ -1,70 +1,12 @@
-import Combine
 import OmiTheme
 import SwiftUI
-
-// MARK: - Search Debouncer
-
-/// Debounces search queries to avoid excessive API calls
-class SearchDebouncer: ObservableObject {
-  /// The input query (set immediately when user types)
-  @Published var inputQuery: String = ""
-  /// The debounced query (updated 250ms after user stops typing)
-  @Published var debouncedQuery: String = ""
-  private var cancellables = Set<AnyCancellable>()
-
-  init() {
-    // Observe input and debounce to output
-    $inputQuery
-      .debounce(for: .milliseconds(250), scheduler: DispatchQueue.main)
-      .removeDuplicates()
-      .sink { [weak self] value in
-        self?.debouncedQuery = value
-      }
-      .store(in: &cancellables)
-  }
-}
-
-enum ConversationsRecordingControlAction: Equatable {
-  case start
-  case stop
-
-  static func current(isTranscribing: Bool) -> ConversationsRecordingControlAction {
-    isTranscribing ? .stop : .start
-  }
-
-  var title: String {
-    switch self {
-    case .start:
-      return "Start Recording"
-    case .stop:
-      return "Stop Recording"
-    }
-  }
-
-  var systemImage: String {
-    switch self {
-    case .start:
-      return "mic.fill"
-    case .stop:
-      return "stop.fill"
-    }
-  }
-
-  var helpText: String {
-    switch self {
-    case .start:
-      return "Start a new recording"
-    case .stop:
-      return "Stop and save the current recording"
-    }
-  }
-}
 
 // MARK: - Conversations Page
 
 struct ConversationsPage: View {
   @ObservedObject var appState: AppState
   @Binding var selectedConversation: ServerConversation?
+  @ObservedObject private var automation = ConversationDetailAutomationState.shared
 
   /// When true, renders without internal ScrollViews (for embedding in an outer ScrollView)
   var embedded: Bool = false
@@ -73,7 +15,7 @@ struct ConversationsPage: View {
   @AppStorage("conversationsCompactView") private var isCompactView = true
 
   // Listening mode — used only to decide whether the manual "Start Recording"
-  // affordance is meaningful (see recordingControlButton gating).
+  // affordance is meaningful (see startRecordingButton gating).
   @AppStorage("systemAudioCaptureMode") private var systemAudioCaptureModeRaw =
     AssistantSettings.SystemAudioCaptureMode.onlyDuringMeetings.rawValue
   private var listeningCaptureMode: AssistantSettings.SystemAudioCaptureMode {
@@ -85,7 +27,7 @@ struct ConversationsPage: View {
   @State private var searchResults: [ServerConversation] = []
   @State private var isSearching: Bool = false
   @State private var searchError: String? = nil
-  @StateObject private var searchDebouncer = SearchDebouncer()
+  @StateObject private var searchCoordinator = DebouncedSearchCoordinator()
 
   // Date picker state
   @State private var showDatePicker: Bool = false
@@ -126,15 +68,10 @@ struct ConversationsPage: View {
               await appState.refreshConversations()
             }
           },
-          onTitleUpdated: { title in
-            var updated = selected
-            updated.structured.title = title
-            selectedConversation = updated
-            Task {
-              await appState.updateConversationTitle(selected.id, title: title)
-
-              // Refresh to get updated data if conversation still exists
-              if appState.conversations.contains(where: { $0.id == selected.id }) {
+          onTitleUpdated: { _ in
+            // Refresh to get updated data if conversation still exists
+            if appState.conversations.contains(where: { $0.id == selected.id }) {
+              Task {
                 await appState.refreshConversations()
               }
             }
@@ -178,10 +115,14 @@ struct ConversationsPage: View {
           await appState.loadFolders()
         }
       }
+      consumePendingAutomationOpenConversation()
+    }
+    .onReceive(automation.$pendingOpenRequest.compactMap { $0 }) { _ in
+      consumePendingAutomationOpenConversation()
     }
     .onReceive(NotificationCenter.default.publisher(for: .desktopAutomationOpenConversationRequested)) {
-      notification in
-      handleAutomationOpenConversation(notification)
+      _ in
+      consumePendingAutomationOpenConversation()
     }
     .onReceive(
       NotificationCenter.default.publisher(for: .desktopAutomationSetConversationsSearchRequested)
@@ -227,20 +168,15 @@ struct ConversationsPage: View {
     }
   }
 
-  private func handleAutomationOpenConversation(_ notification: Notification) {
-    guard let conversationId = notification.userInfo?["conversationId"] as? String else { return }
-    let showTranscript = notification.userInfo?["showTranscript"] as? Bool ?? false
+  private func consumePendingAutomationOpenConversation() {
+    guard let request = ConversationDetailAutomationState.shared.takePendingOpenRequest() else { return }
+    handleAutomationOpenConversation(conversationId: request.conversationId)
+  }
+
+  private func handleAutomationOpenConversation(conversationId: String) {
 
     func present(_ conversation: ServerConversation) {
       selectedConversation = conversation
-      guard showTranscript else { return }
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-        NotificationCenter.default.post(
-          name: .desktopAutomationShowConversationTranscriptRequested,
-          object: nil,
-          userInfo: ["conversationId": conversation.id]
-        )
-      }
     }
 
     if let conversation = appState.conversations.first(where: { $0.id == conversationId }) {
@@ -271,9 +207,14 @@ struct ConversationsPage: View {
       // Fixed page header — title + actions stay pinned; everything below it
       // (live transcript, search, filters, list) scrolls together as one.
       HStack {
-        Text("Conversations")
-          .scaledFont(size: OmiType.heading, weight: .semibold)
-          .foregroundColor(OmiColors.textPrimary)
+        VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
+          Text("Conversations")
+            .scaledFont(size: OmiType.heading, weight: .semibold)
+            .foregroundColor(OmiColors.textPrimary)
+          Text("Recordings, notes, and transcripts from your day")
+            .scaledFont(size: OmiType.caption)
+            .foregroundStyle(OmiColors.textTertiary)
+        }
 
         Spacer()
 
@@ -286,15 +227,16 @@ struct ConversationsPage: View {
         // Only offer the manual "Start Recording" affordance when listening is
         // set to Always. In Meetings-only (the default) or Off, showing it while
         // nothing is transcribing misleads the user into thinking capture is
-        // active. While transcribing the same control stays visible as the
-        // Stop Recording action.
-        if appState.isTranscribing || listeningCaptureMode == .always {
-          recordingControlButton
+        // active — during an actual meeting isTranscribing is already true and
+        // the live transcript replaces this button.
+        if !appState.isTranscribing && listeningCaptureMode == .always {
+          startRecordingButton
         }
       }
       .padding(.horizontal, OmiSpacing.xxl)
       .padding(.top, OmiSpacing.lg)
       .padding(.bottom, OmiSpacing.md)
+      .background(OmiColors.backgroundPrimary)
 
       // The whole page below the header scrolls together. Floating action bars
       // (load-more, merge) stay pinned to the bottom via the ZStack overlay.
@@ -408,7 +350,7 @@ struct ConversationsPage: View {
         }
       }
     } label: {
-      HStack(spacing: OmiSpacing.xxs) {
+      HStack(spacing: OmiSpacing.xs) {
         Image(systemName: isMultiSelectMode ? "checkmark.circle" : "checkmark.circle.badge.questionmark")
           .scaledFont(size: OmiType.caption)
         Text(isMultiSelectMode ? "Done" : "Select")
@@ -429,7 +371,7 @@ struct ConversationsPage: View {
     Button {
       NotificationCenter.default.post(name: .navigateToRewindNotes, object: nil)
     } label: {
-      HStack(spacing: OmiSpacing.xxs) {
+      HStack(spacing: OmiSpacing.xs) {
         Image(systemName: "note.text")
           .scaledFont(size: OmiType.caption)
         Text("Quick Note")
@@ -450,44 +392,16 @@ struct ConversationsPage: View {
     VStack(spacing: 0) {
       // Section header with search bar and filters
       HStack(spacing: OmiSpacing.sm) {
-        // Search bar
-        HStack(spacing: OmiSpacing.sm) {
-          Image(systemName: "magnifyingglass")
-            .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textTertiary)
-
-          TextField("Search conversations...", text: $searchQuery)
-            .textFieldStyle(.plain)
-            .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textPrimary)
-            .onChange(of: searchQuery) { _, newValue in
-              // Feed input to debouncer
-              searchDebouncer.inputQuery = newValue
-            }
-            .onChange(of: searchDebouncer.debouncedQuery) { _, newValue in
-              // Debounced value changed - perform search
-              performSearch(query: newValue)
-            }
-
-          if !searchQuery.isEmpty {
-            Button(action: {
-              searchQuery = ""
-              searchDebouncer.inputQuery = ""
-              searchResults = []
-              searchError = nil
-            }) {
-              Image(systemName: "xmark.circle.fill")
-                .scaledFont(size: OmiType.body)
-                .foregroundColor(OmiColors.textTertiary)
-            }
-            .buttonStyle(.plain)
+        OmiSearchField(
+          placeholder: "Search conversations",
+          text: $searchQuery,
+          isLoading: isSearching
+        )
+        .onChange(of: searchQuery) { _, newValue in
+          searchCoordinator.submit(newValue) { query in
+            performSearch(query: query)
           }
         }
-        .padding(.horizontal, OmiSpacing.sm)
-        .padding(.vertical, OmiSpacing.md)
-        .frame(minHeight: 46)
-        .omiControlSurface(
-          fill: OmiColors.backgroundSecondary, radius: 18, stroke: OmiColors.border.opacity(0.18))
 
         // Filter buttons
         filterButtonsRow
@@ -509,7 +423,7 @@ struct ConversationsPage: View {
       // embedded (no inner ScrollView); the page's outer ScrollView (see
       // `scrollingBody`) owns scrolling so the whole page scrolls together.
       // Floating load-more / merge bars live in `floatingActionBars`.
-      if !searchQuery.isEmpty {
+      if DebouncedSearchCoordinator.isActive(searchQuery) {
         // Search results view
         searchResultsView
       } else {
@@ -931,54 +845,23 @@ struct ConversationsPage: View {
 
   // MARK: - Buttons
 
-  private var recordingControlButton: some View {
-    let action = ConversationsRecordingControlAction.current(isTranscribing: appState.isTranscribing)
-
-    return Button(action: {
-      handleRecordingControl(action)
+  private var startRecordingButton: some View {
+    Button(action: {
+      appState.startTranscription()
     }) {
       HStack(spacing: OmiSpacing.xs) {
-        Image(systemName: action.systemImage)
+        Image(systemName: "mic.fill")
           .scaledFont(size: OmiType.caption)
-        Text(action.title)
+        Text("Start Recording")
           .scaledFont(size: OmiType.body, weight: .medium)
       }
-      .foregroundColor(recordingControlForeground(for: action))
+      .foregroundColor(.black)
       .padding(.horizontal, OmiSpacing.md)
       .padding(.vertical, OmiSpacing.sm)
       .omiControlSurface(
-        fill: recordingControlFill(for: action), radius: 18, stroke: OmiColors.border.opacity(0.2))
+        fill: OmiColors.textPrimary, radius: 18, stroke: OmiColors.border.opacity(0.2))
     }
     .buttonStyle(.plain)
-    .help(action.helpText)
-    .accessibilityLabel(action.title)
-  }
-
-  private func handleRecordingControl(_ action: ConversationsRecordingControlAction) {
-    switch action {
-    case .start:
-      appState.startTranscription()
-    case .stop:
-      appState.stopTranscription()
-    }
-  }
-
-  private func recordingControlForeground(for action: ConversationsRecordingControlAction) -> Color {
-    switch action {
-    case .start:
-      return .black
-    case .stop:
-      return .white
-    }
-  }
-
-  private func recordingControlFill(for action: ConversationsRecordingControlAction) -> Color {
-    switch action {
-    case .start:
-      return OmiColors.textPrimary
-    case .stop:
-      return OmiColors.error
-    }
   }
 
 }

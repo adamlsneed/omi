@@ -14,6 +14,7 @@ import 'package:omi/backend/schema/app.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/conversation_detail/widgets/summarized_apps_sheet.dart';
+import 'package:omi/pages/conversation_detail/widgets/template_creation_outcome.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/utils/alerts/app_snackbar.dart';
 import 'package:omi/utils/logger.dart';
@@ -98,7 +99,6 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
 
       // Generate description and emoji using AI
       final result = await getGeneratedDescriptionAndEmoji(name, prompt);
-      if (!mounted) return;
       final description = result.description;
       final emoji = result.emoji;
 
@@ -108,7 +108,6 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
 
       // Create simple emoji icon
       final iconFile = await _createEmojiIcon(emoji);
-      if (!mounted) return;
 
       setState(() {
         _statusMessage = context.l10n.creatingYourApp;
@@ -181,7 +180,14 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
           if (mounted) {
             // Close the create template bottom sheet
             Navigator.pop(context);
-            if (success) {
+            // Polarity comes from the tested classifier so a failed install
+            // can never be reported as success (#10074).
+            final outcome = success ? TemplateCreationOutcome.installed : TemplateCreationOutcome.installFailed;
+            if (templateCreationOutcomeIsError(outcome)) {
+              // The provider already showed the failure dialog; tell the user
+              // what state they are actually in.
+              AppSnackbar.showSnackbarError(context.l10n.failedToInstallApp(createdApp.name));
+            } else {
               AppSnackbar.showSnackbarSuccess(context.l10n.appCreatedAndInstalled);
 
               // Show the summarized apps sheet so user can use the new app
@@ -191,10 +197,6 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
                 backgroundColor: Colors.transparent,
                 builder: (context) => const SummarizedAppsBottomSheet(),
               );
-            } else {
-              // The provider already showed the failure dialog; tell the user
-              // what state they are actually in.
-              AppSnackbar.showSnackbarError(context.l10n.failedToInstallApp(createdApp.name));
             }
           }
         } else if (mounted) {

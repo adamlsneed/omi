@@ -16,6 +16,8 @@ from pathlib import Path
 
 import yaml
 
+from git_bash import bash_executable, bash_path
+
 ROOT = Path(__file__).resolve().parents[2]
 MAX_SECURITY_BOUND_FILE_BYTES = 10 * 1024 * 1024
 
@@ -505,6 +507,7 @@ def check_codemagic_release_publishers() -> list[str]:
 def main() -> int:
     errors: list[str] = []
     errors.extend(check_desktop_codemagic_release())
+    errors.extend(check_desktop_candidate_trigger_authority())
     errors.extend(check_codemagic_release_publishers())
     errors.extend(check_desktop_preview_publishing())
     errors.extend(check_desktop_qualification_runner())
@@ -690,6 +693,48 @@ def check_desktop_codemagic_release() -> list[str]:
     return errors
 
 
+def check_desktop_candidate_trigger_authority() -> list[str]:
+    """Keep the normal candidate lane on Codemagic's native immutable-tag trigger."""
+    errors: list[str] = []
+    codemagic = ROOT / "codemagic.yaml"
+    candidate_workflow = ROOT / ".github/workflows/desktop_auto_release.yml"
+    preview_workflow = ROOT / ".github/workflows/desktop_publish_preview.yml"
+    if not codemagic.exists() or not candidate_workflow.exists() or not preview_workflow.exists():
+        return ["desktop candidate trigger guard is missing its checked-in release surfaces"]
+
+    codemagic_text = codemagic.read_text(encoding="utf-8")
+    match = re.search(
+        r"\n  omi-desktop-swift-release:\n(?P<body>.*?)(?=\n  [A-Za-z0-9_-]+:\n|\Z)",
+        codemagic_text,
+        flags=re.DOTALL,
+    )
+    required_trigger = (
+        "    triggering:\n"
+        "      events:\n"
+        "        - tag\n"
+        "      tag_patterns:\n"
+        '        - pattern: "v*-macos"\n'
+        "          include: true"
+    )
+    if match is None or required_trigger not in match.group("body"):
+        errors.append("normal omi-desktop-swift-release candidate lane must natively trigger on v*-macos tags")
+
+    direct_build_endpoint = "https://api.codemagic.io/builds"
+    for workflow in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        if direct_build_endpoint not in workflow.read_text(encoding="utf-8"):
+            continue
+        if workflow != preview_workflow:
+            errors.append(
+                f"normal desktop candidate lane must not start Codemagic with a direct builds API POST: "
+                f"{workflow.relative_to(ROOT)}"
+            )
+
+    preview_text = preview_workflow.read_text(encoding="utf-8")
+    if direct_build_endpoint not in preview_text or 'workflowId: "omi-desktop-swift-preview"' not in preview_text:
+        errors.append("the only checked-in direct Codemagic build API caller must remain the isolated preview lane")
+    return errors
+
+
 def check_desktop_preview_publishing() -> list[str]:
     """Keep the preview lane isolated from normal release authority and state."""
     errors: list[str] = []
@@ -815,19 +860,19 @@ def check_desktop_qualification_runner() -> list[str]:
         "self-hosted",
         "macos",
         "omi-desktop-qualification",
-        "ref: ${{ inputs.release_tag }}",
-        "docker info",
+        'git -C "$source_dir" checkout --quiet --detach "refs/tags/$RELEASE_TAG"',
         "check-desktop-auto-beta-candidate.py",
         "--automatic",
         "actions/create-github-app-token@v3",
-        "desktop-beta-qualification-${{ inputs.release_tag }}",
+        "group: desktop-beta-qualification-m1",
         "cancel-in-progress: false",
-        "safe without a second release-body claim state machine",
     ):
         if required_fragment not in text:
             errors.append(f"desktop qualification runner is missing required guard fragment: {required_fragment}")
     if "desktop_promote_beta.yml" in text:
         errors.append("desktop qualification runner must not promote beta inside its own run")
+    if "qualify-m4-mini" in text or "plan-fallbacks" in text:
+        errors.append("desktop qualification runner must use only the global M1 fallback lane")
 
     promotion = ROOT / ".github/workflows/desktop_promote_beta.yml"
     promotion_text = promotion.read_text(encoding="utf-8") if promotion.exists() else ""
@@ -835,9 +880,9 @@ def check_desktop_qualification_runner() -> list[str]:
         'workflows: ["Qualify Desktop Beta Candidate"]',
         "types: [completed]",
         "github.event.workflow_run.conclusion == 'success'",
-        "github.event.workflow_run.event == 'workflow_dispatch'",
-        "github.event.workflow_run.head_branch",
-        "github.event.workflow_run.head_sha",
+        "github.event.workflow_run.id",
+        "qualification-evidence.json",
+        "EVIDENCE_SOURCE_SHA",
         "/v2/desktop/beta/promote-qualified",
         "environment: beta",
     ):
@@ -997,6 +1042,11 @@ def check_firmware_release_metadata() -> list[str]:
     if not script.exists():
         return []
 
+    try:
+        bash = bash_executable()
+    except FileNotFoundError as exc:
+        return [f"firmware release body smoke failed: {exc}"]
+
     with tempfile.TemporaryDirectory() as temp_dir:
         output = Path(temp_dir) / "body.md"
         env = {
@@ -1008,19 +1058,21 @@ def check_firmware_release_metadata() -> list[str]:
             "MIN_APP_CODE": "438",
             "OTA_STEPS": "battery,internet",
             "IS_LEGACY_SECURE_DFU": "False",
-            "OUT": str(output),
+            "OUT": bash_path(output, bash),
         }
         completed = subprocess.run(
-            ["bash", str(script)],
+            [bash, str(script)],
             cwd=ROOT,
             env={**os.environ, **env},
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
         )
         if completed.returncode != 0:
-            return [f"firmware release body smoke failed: {completed.stderr.strip() or completed.stdout.strip()}"]
+            detail = (completed.stderr or "").strip() or (completed.stdout or "").strip()
+            return [f"firmware release body smoke failed: {detail or f'exit {completed.returncode}'}"]
         body = output.read_text(encoding="utf-8")
 
     kv = extract_key_value_pairs(body)

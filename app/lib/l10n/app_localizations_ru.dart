@@ -1807,20 +1807,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get lovingOmi => 'Нравится Omi?';
 
   @override
-  String get leaveReviewIos =>
-      'Помогите нам достичь большего количества людей, оставив отзыв в App Store. Ваш отзыв очень важен для нас!';
-
-  @override
-  String get leaveReviewAndroid =>
-      'Помогите нам достичь большего количества людей, оставив отзыв в Google Play Store. Ваш отзыв очень важен для нас!';
-
-  @override
-  String get rateOnAppStore => 'Оценить в App Store';
-
-  @override
-  String get rateOnGooglePlay => 'Оценить в Google Play';
-
-  @override
   String get maybeLater => 'Может позже';
 
   @override
@@ -2155,6 +2141,18 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get editMemory => '✏️ Редактировать память';
+
+  @override
+  String get pinAsBaseline => 'Pin as Baseline';
+
+  @override
+  String get unpinAsBaseline => 'Unpin from Baseline';
+
+  @override
+  String get baselineMemory => 'Baseline Memory';
+
+  @override
+  String get alwaysInContext => 'Always in context';
 
   @override
   String get memoryContentHint => 'Я люблю есть мороженое...';
@@ -4729,7 +4727,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noSpecificDataAccessConfigured => 'Конкретный доступ к данным не настроен.';
 
   @override
-  String get basicPlanDescription => '1 200 премиум минут + неограниченно на устройстве';
+  String get basicPlanDescription => '300 премиум минут + неограниченно на устройстве';
 
   @override
   String get minutes => 'минут';
@@ -6022,7 +6020,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get premiumMinutesInfo =>
-      '1 200 премиум-минут в месяц. Вкладка \"На устройстве\" предлагает неограниченную бесплатную транскрипцию.';
+      '300 премиум-минут в месяц. Вкладка \"На устройстве\" предлагает неограниченную бесплатную транскрипцию.';
 
   @override
   String get viewUsage => 'Посмотреть использование';

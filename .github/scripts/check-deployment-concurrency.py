@@ -37,11 +37,13 @@ class LockContract:
 # new deploy writer cannot silently bypass the audited lock graph.
 LOCK_CONTRACTS = {
     "desktop_backend_auto_dev.yml": LockContract("desktop-backend-auto-dev"),
+    "desktop_backend_prod.yml": LockContract("desktop-backend-prod"),
+    "desktop_backend_recover_prod.yml": LockContract("desktop-backend-prod"),
     "gcp_admin.yml": LockContract(
-        "deploy-cloud-run-omi-admin-dashboard-${{ github.ref == 'refs/heads/development' && 'development' || github.ref == 'refs/heads/main' && 'prod' || format('nondeploy-{0}', github.run_id) }}"
+        "deploy-cloud-run-omi-admin-dashboard-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref == 'refs/heads/development' && 'development' || github.ref == 'refs/heads/main' && 'prod' || format('nondeploy-{0}', github.run_id) }}"
     ),
     "gcp_app.yml": LockContract(
-        "deploy-cloud-run-omi-web-app-${{ github.ref == 'refs/heads/development' && 'development' || github.ref == 'refs/heads/main' && 'prod' || format('nondeploy-{0}', github.run_id) }}"
+        "deploy-cloud-run-omi-web-app-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref == 'refs/heads/development' && 'development' || github.ref == 'refs/heads/main' && 'prod' || format('nondeploy-{0}', github.run_id) }}"
     ),
     "gcp_backend.yml": LockContract("deploy-backend-stack-${{ github.event.inputs.environment }}"),
     "gcp_firestore_indexes.yml": LockContract("deploy-backend-stack-${{ github.event.inputs.environment }}"),
@@ -458,7 +460,9 @@ def validate_pusher_config_preflight(name: str, text: str) -> list[str]:
         return [f"{name}: pusher deploy must verify the backend runtime ConfigMap before Helm"]
 
     chart_indexes = [
-        index for index, line in enumerate(block) if PUSHER_CHART_MARKER in line and not line.lstrip().startswith("#")
+        index
+        for index, line in enumerate(block)
+        if PUSHER_CHART_MARKER in line and "helm" in line and not line.lstrip().startswith("#")
     ]
     if not chart_indexes:
         return []
@@ -507,9 +511,7 @@ def validate_automatic_backend_stack_lifecycle(workflow_text: dict[str, str]) ->
             continue
         if "workflow_run:" in trigger or "\n  push:" in trigger:
             automatic_writers.append(name)
-    # Fork policy: gcp_backend_auto_dev.yml is deliberately removed (no backend
-    # deploys from this fork), so zero automatic writers is also valid.
-    expected = ["gcp_backend_auto_dev.yml"] if "gcp_backend_auto_dev.yml" in workflow_text else []
+    expected = ["gcp_backend_auto_dev.yml"]
     return (
         []
         if sorted(automatic_writers) == expected
@@ -571,14 +573,7 @@ def check_repository() -> list[str]:
     errors.extend(validate_automatic_backend_stack_lifecycle(workflow_text))
 
     detected = {name for name, text in workflow_text.items() if is_persistent_writer(text)}
-    # Fork policy: auto-deploy workflows are deliberately removed (this fork
-    # never deploys backends; see AGENTS.md Safety Rules). Audit only the
-    # contracts whose workflow files exist.
-    expected = {
-        name
-        for name in set(LOCK_CONTRACTS) | set(RUN_SCOPED_EXEMPTIONS) | set(READ_ONLY_WORKFLOW_EXEMPTIONS)
-        if name in workflow_text
-    }
+    expected = set(LOCK_CONTRACTS) | set(RUN_SCOPED_EXEMPTIONS) | set(READ_ONLY_WORKFLOW_EXEMPTIONS)
     for name in sorted(detected - expected):
         errors.append(f"{name}: persistent deployment writer is missing from the lock policy")
     for name in sorted(expected - detected):
@@ -588,6 +583,7 @@ def check_repository() -> list[str]:
     for name, contract in LOCK_CONTRACTS.items():
         text = workflow_text.get(name)
         if text is None:
+            errors.append(f"{name}: audited deploy workflow is missing")
             continue
         errors.extend(validate_lock(name, text, contract))
         concurrency = parse_top_level_concurrency(text)
@@ -598,16 +594,12 @@ def check_repository() -> list[str]:
         errors.extend(validate_shared_families(groups))
 
     for name, marker in RUN_SCOPED_EXEMPTIONS.items():
-        if name not in workflow_text:
-            continue
-        text = workflow_text[name]
+        text = workflow_text.get(name, "")
         if marker not in text:
             errors.append(f"{name}: run-scoped deploy-lock exemption lost required marker {marker!r}")
 
     for name, marker in READ_ONLY_WORKFLOW_EXEMPTIONS.items():
-        if name not in workflow_text:
-            continue
-        text = workflow_text[name]
+        text = workflow_text.get(name, "")
         if marker not in text:
             errors.append(f"{name}: read-only workflow exemption lost required marker {marker!r}")
         for mutation in ("kubectl apply", "helm upgrade", "gcloud run deploy", "gcloud run services update"):
@@ -619,21 +611,16 @@ def check_repository() -> list[str]:
         "revision_suffix=${SHORT_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}",
     )
     for name in ("gcp_backend.yml", "gcp_backend_auto_dev.yml"):
-        if name not in workflow_text:
-            continue
-        text = workflow_text[name]
+        text = workflow_text.get(name, "")
         for marker in identity_markers:
             if marker not in text:
                 errors.append(f"{name}: backend revision identity must include {marker!r}")
 
-    auto_deploy = workflow_text.get("gcp_backend_auto_dev.yml")
-    if auto_deploy is not None:
-        errors.extend(validate_auto_deploy_acceptance(auto_deploy))
+    auto_deploy = workflow_text.get("gcp_backend_auto_dev.yml", "")
+    errors.extend(validate_auto_deploy_acceptance(auto_deploy))
     for name in ("gcp_backend.yml", "gcp_backend_auto_dev.yml"):
-        if name not in workflow_text:
-            continue
-        errors.extend(validate_serving_release_vector(name, workflow_text[name]))
-        errors.extend(validate_phase_aware_backend_promotion(name, workflow_text[name]))
+        errors.extend(validate_serving_release_vector(name, workflow_text.get(name, "")))
+        errors.extend(validate_phase_aware_backend_promotion(name, workflow_text.get(name, "")))
     for name, text in workflow_text.items():
         errors.extend(validate_pusher_config_preflight(name, text))
     release_vector_workflows = sorted(
@@ -886,6 +873,13 @@ jobs:
 """
     if validate_pusher_config_preflight("fixture.yml", reference_preflight):
         raise PolicyError("valid pusher reference preflight was rejected")
+    qualification_source_diff = reference_preflight.replace(
+        "      - run: helm upgrade ./backend/charts/pusher\n",
+        "      - run: git diff --quiet qualified current -- backend/pusher backend/charts/pusher\n"
+        "      - run: helm upgrade ./backend/charts/pusher\n",
+    )
+    if validate_pusher_config_preflight("fixture.yml", qualification_source_diff):
+        raise PolicyError("a non-Helm Pusher source comparison was treated as a deploy mutation")
     missing_preflight = pusher_deploy.replace(
         "kubectl -n ${{ vars.ENV }}-omi-backend get configmap ${{ vars.ENV }}-omi-backend-config >/dev/null\n",
         "",

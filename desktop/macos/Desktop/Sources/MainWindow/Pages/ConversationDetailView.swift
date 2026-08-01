@@ -151,6 +151,13 @@ struct ConversationDetailView: View {
             RoundedRectangle(cornerRadius: OmiChrome.controlRadius)
               .stroke(OmiColors.backgroundTertiary.opacity(0.3), lineWidth: 1)
           )
+          .overlay(alignment: .top) {
+            if isEnrichingDeferred {
+              deferredProcessingSection
+                .padding(OmiSpacing.xxl)
+                .allowsHitTesting(false)
+            }
+          }
           .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
           .padding(OmiSpacing.xxl)
         }
@@ -177,13 +184,19 @@ struct ConversationDetailView: View {
     .opacity(hasAppeared ? 1 : 0)
     .offset(y: hasAppeared ? 0 : 20)
     .onAppear {
-      ConversationDetailAutomationState.shared.setOpen(
+      showTranscriptDrawer = ConversationDetailAutomationState.shared.syncPresentedDetail(
         conversationId: conversation.id,
         transcriptDrawerOpen: showTranscriptDrawer
       )
       OmiMotion.withGated(.easeOut(duration: 0.5)) {
         hasAppeared = true
       }
+    }
+    .onChange(of: conversation.id) { _, conversationId in
+      showTranscriptDrawer = ConversationDetailAutomationState.shared.syncPresentedDetail(
+        conversationId: conversationId,
+        transcriptDrawerOpen: showTranscriptDrawer
+      )
     }
     .onDisappear {
       ConversationDetailAutomationState.shared.clear(conversationId: conversation.id)
@@ -350,7 +363,6 @@ struct ConversationDetailView: View {
     }
     .padding(.horizontal, OmiSpacing.xxl)
     .padding(.vertical, OmiSpacing.lg)
-    .background(OmiColors.backgroundTertiary.opacity(0.5))
     .alert("Edit Conversation Title", isPresented: $showEditDialog) {
       TextField("Title", text: $editedTitle)
       Button("Cancel", role: .cancel) {}
@@ -580,13 +592,6 @@ struct ConversationDetailView: View {
 
   @ViewBuilder
   private var summaryContent: some View {
-    // Lazy processing: while the deferred conversation is being enriched (polled) on first
-    // open, show a loader where the summary will appear. Cleared when enrichment completes or
-    // the poll times out, so it never spins forever.
-    if isEnrichingDeferred {
-      deferredProcessingSection
-    }
-
     // Overview section
     if !displayConversation.overview.isEmpty {
       overviewSection
@@ -805,7 +810,8 @@ struct ConversationDetailView: View {
 
   // MARK: - Deferred Processing Loader
 
-  /// Shown while a lazily-deferred conversation is being enriched on first open.
+  /// Overlaid while a lazily-deferred conversation is enriched, preserving the
+  /// position of details that may already be available from the local cache.
   private var deferredProcessingSection: some View {
     HStack(spacing: OmiSpacing.md) {
       ProgressView()
@@ -840,7 +846,7 @@ struct ConversationDetailView: View {
           .foregroundColor(OmiColors.textSecondary)
       }
 
-      SelectableMarkdown(text: displayConversation.overview, sender: .ai)
+      OmiMarkdown(text: displayConversation.overview, sender: .ai)
         .textSelection(.enabled)
         .environment(\.colorScheme, .dark)
         .frame(maxWidth: .infinity, alignment: .leading)

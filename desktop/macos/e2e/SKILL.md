@@ -12,11 +12,20 @@ This skill teaches you the Omi desktop macOS app's navigation structure, screen 
 
 Two things make iterating on the desktop app slow: signing in (web OAuth) and clicking through the UI to reach a screen. Both are solved — use these before reaching for `agent-swift`.
 
-### 1. Skip the web login
-Local deploys always target "Omi Dev" (`com.omi.desktop-dev`), installing on top of the existing app — never deploy under another name with `OMI_APP_NAME`. "Omi Dev" stores auth in UserDefaults and keeps it across redeploys, so sign in **once** and every later `./run.sh` boots already signed-in and past onboarding — no browser. If backend calls start 401ing, sign in again. **Scope:** this is for dev iteration only — when validating the onboarding or auth flows themselves (or running flow-walker E2E), use the real flow per Guard Conditions below.
+### 1. Skip the web login (seed auth/settings once, reuse forever)
+Named bundles clone auth state + Firebase tokens into UserDefaults; on first launch the app migrates tokens into its own Keychain item (correct `teamid:` partition — avoids the login-keychain password sheet). Prefer `./run.sh` for named bundles — it dumps/seeds after install. Manual seed:
+```bash
+cd desktop/macos
+./scripts/omi-auth-dump.sh                                  # capture Omi Dev's session -> tmp/desktop-auth.json
+./scripts/omi-auth-seed.sh com.omi.omi-myfeature \
+  tmp/desktop-auth.json \
+  "/Applications/omi-myfeature.app"                         # optional: Team ID for clearing stale Keychain
+./scripts/omi-settings-seed.sh com.omi.omi-myfeature       # replay shortcuts/settings
+```
+The seeded bundle boots already signed-in and past onboarding, with Omi Dev's shortcuts/settings — no browser. The captured Firebase idToken expires (~1h); re-run `omi-auth-dump.sh` after signing in again if backend calls start 401ing. **Scope:** this is for dev iteration only — when validating the onboarding or auth flows themselves (or running flow-walker E2E), use the real flow per Guard Conditions below.
 
 ### 2. Jump straight to any screen (automation bridge)
-The app runs a local HTTP control bridge (`DesktopAutomationBridge.swift`) that **auto-enables on every non-production bundle** (off on prod). `scripts/omi-ctl` drives it — jump to a screen in ~150ms instead of clicking through the sidebar:
+The app runs a local HTTP control bridge (`DesktopAutomationBridge.swift`) that **auto-enables on every non-production bundle** (off on prod). `scripts/omi-ctl` drives it — jump to a screen in ~150ms instead of clicking through the top nav bar:
 ```bash
 ./scripts/omi-ctl wait-ready                 # block until app reaches "main" state
 ./scripts/omi-ctl navigate rewind            # jump to the Rewind screen
@@ -24,7 +33,7 @@ The app runs a local HTTP control bridge (`DesktopAutomationBridge.swift`) that 
 ./scripts/omi-ctl state                       # read selected tab / auth / onboarding state as JSON
 ./scripts/omi-ctl screens                     # list valid targets
 ```
-Disable with `OMI_DISABLE_LOCAL_AUTOMATION=1` to run a dev build "clean".
+Disable with `OMI_DISABLE_LOCAL_AUTOMATION=1` to run a dev build "clean". Running several named bundles at once? Give each its own `OMI_AUTOMATION_PORT` (default 47777).
 
 ### 2a. Desktop core E2E harness (tiered)
 Primary entry for the desktop confidence ladder: `scripts/desktop-core-harness.sh` (see `e2e/CORE_E2E.md`).
@@ -374,10 +383,12 @@ signal on the workspace center, non-prod gated).
 ### The full loop
 ```bash
 cd desktop/macos
-./run.sh &                                               # build + launch (deploys as "Omi Dev" over the existing install; never use OMI_APP_NAME)
+OMI_APP_NAME="omi-myfeature" ./run.sh &                 # build + launch once
+./scripts/omi-auth-seed.sh com.omi.omi-myfeature tmp/desktop-auth.json "/Applications/omi-myfeature.app"  # after install; relaunch to apply
+./scripts/omi-settings-seed.sh com.omi.omi-myfeature    # copy shortcuts/settings from Omi Dev
 ./scripts/omi-ctl wait-ready
 ./scripts/omi-ctl navigate memories                      # jump to the screen you changed
-agent-swift connect --bundle-id com.omi.desktop-dev      # then drive/inspect with agent-swift
+agent-swift connect --bundle-id com.omi.omi-myfeature    # then drive/inspect with agent-swift
 agent-swift snapshot -i --json
 ```
 After a code change, an incremental `xcrun swift build` + relaunch is fast — the slow parts (login, navigation) are gone. For pure visual checks without launching at all, SwiftUI snapshot tests are an option, but most pages are entangled with `AppState.shared`/Firebase singletons, so the live-app bridge loop above is usually the better path.
@@ -400,7 +411,7 @@ agent-swift snapshot -i --json                       # see what's on screen
 |---------|---------|---------|
 | `snapshot -i --json` | See all interactive elements with refs, types, labels | `agent-swift snapshot -i --json` |
 | `click @ref` | CGEvent click — SwiftUI elements (NavigationLink, gestures) | `agent-swift click @e3` |
-| `press @ref` | AXPress — AppKit buttons, Settings sidebar items | `agent-swift press @e5` |
+| `press @ref` | AXPress — AppKit buttons only | `agent-swift press @e5` |
 | `find role/text/key VALUE` | Find element and chain action | `agent-swift find text "Settings" click` |
 | `fill @ref "text"` | Type into text field | `agent-swift fill @e7 "search"` |
 | `scroll down/up` | Scroll current view | `agent-swift scroll down` |
@@ -410,87 +421,112 @@ agent-swift snapshot -i --json                       # see what's on screen
 | `screenshot PATH` | Capture app window | `agent-swift screenshot /tmp/screen.png` |
 
 **Key rules:**
-- `click` = CGEvent mouse click (SwiftUI). Use for main sidebar icons, NavigationLink.
-- `press` = AXPress action (AppKit). Use for Settings sidebar sections.
+- `click` = CGEvent mouse click (SwiftUI). Use for top nav bar buttons, Settings section rows, NavigationLink.
+- `press` = AXPress action (AppKit). Use for AppKit-style buttons only.
 - Refs go stale after any mutation — always re-snapshot before the next interaction.
 - `find` with chained action is more stable than hardcoded `@ref` numbers.
 - `--json` flag on any command gives structured output for parsing.
 
 ## App Navigation Architecture
 
-### Screen Map
+### Screen Map (v0.12.119+ redesign)
 ```
-Main Window
-├── Sidebar (SidebarView.swift) — use `click`
-│   ├── Home (DesktopHomeView.swift)
-│   ├── Conversation (ChatSessionsSidebar.swift)
-│   ├── brain → Memories
-│   ├── checklist → Action Items
-│   ├── puzzlepiece.fill → Integrations
-│   └── gearshape.fill → Settings
+Main Window — Top Navigation Bar (use `click` for all nav buttons)
+├── Home (DesktopHomeView.swift) — chat + insights + status banners
+│   ├── Chat input area (embedded, no separate Chat tab)
+│   ├── Insight cards (screen recording, tasks, observations)
+│   └── Capture/Listening status (top-right)
+├── Memory — 3 sub-tabs
+│   ├── Memories — search, filter (This device / All), memory list
+│   ├── Conversations — Live section, search, category filters (All/Starred/Work/Personal/Social), conversation list
+│   └── Brain Map — interactive node graph visualization
+├── Tasks — search, Today/No Deadline sections, keyboard toolbar (Navigate/New/Delete/Indent/Outdent)
+├── Apps — search, Installed filter, Category dropdown, Create App
+│   ├── Imports (Calendar, Email, Local files, Apple Notes, X, ChatGPT, Claude)
+│   └── Exports (Notion, Obsidian, ChatGPT/Codex)
 │
-└── Settings (SettingsPage.swift) — use `press` for sidebar sections
-    ├── General — app preferences
-    ├── Rewind — screenshot/timeline settings
-    ├── Transcription — Language Mode (Auto-Detect / Single Language)
-    │   └── Language picker (popupbutton or button)
-    ├── Notifications — alert preferences
-    ├── Privacy — data settings
-    ├── Account — user info
-    ├── AI Chat — chat model settings
-    ├── Advanced — developer options
-    └── About — version info
+├── Capture status button (top-right, red when blocked)
+├── Listening status button (top-right, green when active)
+└── Settings gear icon (⚙️ top-right) → opens Settings page
+    └── Back button returns to previous tab
 
-System Tray Menu
-├── openOmi — Open Omi
-├── checkFor — Check for Updates
-├── resetOnb — Reset Onboarding
-├── reportIs — Report Issue
-├── signOut — Sign Out
-└── quitApp — Quit
+Settings (SettingsPage.swift) — use `click` for section rows
+├── General — app preferences, startup behavior
+├── Account & Plan — user info, sign out, delete account, subscription/plan, billing
+├── Transcription — Language Mode (Auto-Detect / Single Language), Voice Assistant Languages, Custom Vocabulary
+├── Floating Bar — show/hide, background style, draggable, typed questions, screen sharing, voice
+├── Notifications & Privacy — notification frequency/types, daily summary
+├── Rewind — storage info, excluded apps list
+├── Shortcuts — Open Omi shortcut, Push to Talk key, PTT microphone, locked mode, PTT sounds
+├── Advanced — AI Setup (Voice Model, AI Provider), Workspace, Browser Extension, Dev Mode
+└── About — version info, links, software updates, update channel
+
+Rewind overlay (View menu → Rewind or ⌘⌥R)
+├── Search bar, date picker, settings gear, toggle
+└── Permission gate: "Screen Recording Permission Required" with "Grant Permission" button
+
+System Tray Menu (menu bar icon)
+├── Screen Capture (toggle)
+├── Audio Recording (toggle)
+├── Open Omi Beta
+├── Check for Updates...
+├── [signed-in status]
+└── Quit
 ```
 
 ### Interaction Patterns
 
-**Main sidebar navigation:**
-- Icons are `image` type elements with accessibility identifiers: `sidebar_dashboard`, `sidebar_chat`, `sidebar_memories`, `sidebar_tasks`, `sidebar_rewind`, `sidebar_apps`, `sidebar_settings`
-- Use `find key sidebar_dashboard click` for reliable navigation (survives UI changes)
-- Keyboard shortcuts: Cmd+1 (Dashboard), Cmd+2 (Conversations), Cmd+3 (Memories), Cmd+4 (Tasks), Cmd+5 (Rewind), Cmd+6 (Apps), Cmd+, (Settings)
-- Use `click` — these are SwiftUI views with onTapGesture
+**Top navigation bar (v0.12.119+):**
+- Buttons are `AXButton` type with text labels: `Home`, `Memory`, `Tasks`, `Apps`
+- Use `agent-swift find text "Home" click` for reliable navigation
+- Use `agent-swift find text "Memory" click` to switch tabs
+- Settings: click the gear icon button (label `gearshape`) in top-right area
+- Use `click` — these are SwiftUI Button views
 
-**Settings sidebar navigation:**
-- Sections are `button` type elements with section name labels
-- Use `press` — these are SwiftUI Button views that respond to AXPress
+**Settings section navigation:**
+- Sections are `AXButton` type elements with section name labels
+- Use `click` for navigation — these are SwiftUI views that respond to CGEvent clicks
+- Section labels: General, Account & Plan, Transcription, Floating Bar, Notifications & Privacy, Rewind, Shortcuts, Advanced, About
+
+**Memory sub-tabs:**
+- Three `AXButton` tabs within the Memory page: Memories, Conversations, Brain Map
+- Use `click` to switch between sub-tabs
+
+**Rewind access:**
+- Not in top nav bar — access via View menu → Rewind (⌘⌥R)
+- Or navigate to Settings → Rewind section
+- Use `agent-swift press` on the View → Rewind menu item
 
 **Transcription language mode:**
-- Two radio-button-style options: "Auto-Detect Multi-Language" and "Single Language Better Accuracy"
+- Two radio-button-style options: "Auto-Detect (Multi-Language)" and "Single Language (Better Accuracy)"
 - `click` on the text to switch modes
 - Single Language mode shows a language picker (`popupbutton`)
 - Click popupbutton → menu items appear as `menuitem` elements
 
 **System tray menu:**
-- Menu items have `identifier` prefixes for detection
+- Menu items accessible via the Omi menu bar extra (unnamed `AXMenuBarItem`)
+- Items: Screen Capture, Audio Recording, Open Omi Beta, Check for Updates, [auth status], Quit
 - Access via `snapshot --json` (includes menu bar items)
 
 ## Known Flows
 
 Reference flows in `desktop/macos/e2e/flows/*.yaml` describe the app's key user journeys. Read these to understand navigation paths, expected elements, and UI state at each step.
 
-| Flow | Covers | Steps | Report |
-|------|--------|-------|--------|
-| `flows/navigation.yaml` | SidebarView, DesktopHomeView | 6/6 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/RVS7NChPvj.html) |
-| `flows/dashboard.yaml` | DashboardPage, GoalsWidget, TasksWidget | 3/6 (3 skipped) | [report](https://flow-walker.beastoin.workers.dev/runs/ghCdGIUAA2.html) |
-| `flows/chat-hermetic.yaml` | ChatPage, ChatProvider | 5/5 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/z62Nll0IzR.html) |
-| `flows/memories.yaml` | MemoriesPage, MemoryGraphPage | 5/6 (1 skipped) | [report](https://flow-walker.beastoin.workers.dev/runs/Mkp6ahc12I.html) |
-| `flows/tasks.yaml` | TasksPage, TasksStore | 4/5 (1 skipped) | [report](https://flow-walker.beastoin.workers.dev/runs/ealB_-UdqS.html) |
-| `flows/settings-basic.yaml` | SettingsPage, SettingsSidebar | 9/9 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/RoTW8GeljN.html) |
-| `flows/language.yaml` | SettingsPage, SettingsSidebar | 5 steps | — |
-| `flows/rewind.yaml` | RewindPage | 4/4 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/1HE5OsPOOy.html) |
-| `flows/apps.yaml` | IntegrationsPage | 6/6 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/VDGw-wbHqa.html) |
-| `flows/refer-external.yaml` | Profile menu → affiliate URL | 3/3 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/Jz8ymviOy1.html) |
-| `flows/screen-recording-permission.yaml` | RewindPage, ScreenCaptureService, PermissionsPage | 7/7 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/3WoXUG6xkT.html) |
-| `flows/audio-recording.yaml` | ConversationsPage, AudioCaptureService, AppState | 7/7 PASS | [report](https://flow-walker.beastoin.workers.dev/runs/UdkzB-dYG_.html) |
-| `flows/recording-finalization.yaml` | AppState, TranscriptionStorage, ConversationDetailView | 7 steps | - |
+| Flow | Covers | Steps | Notes |
+|------|--------|-------|-------|
+| `flows/navigation.yaml` | Top nav bar, Home, Memory, Tasks, Apps, Settings | 8 | Core nav smoke — top nav buttons + gear icon + Rewind via View menu |
+| `flows/home.yaml` | Home tab, embedded chat, insights, status banners | 5 | Chat input, insight cards, Capture/Listening status |
+| `flows/memories.yaml` | Memory tab — Memories, Conversations, Brain Map sub-tabs | 6 | Sub-tab switching, search, conversation list, brain map render |
+| `flows/tasks.yaml` | Tasks tab — search, Today/No Deadline sections | 5 | Task list, keyboard toolbar, task interactions |
+| `flows/apps-marketplace.yaml` | Apps tab — Imports, Exports, search, filters | 5 | Category filter, Installed view, Create App |
+| `flows/settings-basic.yaml` | Settings — all 9 sections | 11 | General through About, verify each loads |
+| `flows/rewind.yaml` | Rewind overlay — View menu access, permission gate | 4 | ⌘⌥R shortcut, search, date picker, Grant Permission |
+| `flows/chat-hermetic.yaml` | Home chat with Rust `OMI_LLM_STUB=1` | 6 | Hermetic chat send/receive in Home tab |
+| `flows/language.yaml` | Settings → Transcription language config | 5 | Language mode toggle, voice assistant languages |
+| `flows/screen-recording-permission.yaml` | Rewind permission flow | 7 | Grant Permission button, Capture status |
+| `flows/audio-recording.yaml` | Audio capture, mic source, transcription | 7 | Start/Stop Recording, BT/mic selection |
+| `flows/refer-external.yaml` | Refer a Friend | 3 | Profile → affiliate URL |
+| `flows/recording-finalization.yaml` | Recording lifecycle | 7 | Transcription storage, conversation detail |
 
 When you modify a Swift file, check if any flow's `covers:` includes it. That flow describes the user journey your change affects.
 
@@ -530,7 +566,9 @@ After making changes, verify them in the live app:
 | Problem | Solution |
 |---------|----------|
 | Element not found | Re-snapshot, try scrolling, check if on wrong screen |
-| Click doesn't navigate | Try `press` instead (Settings sidebar = `press`, main sidebar = `click`) |
+| Click doesn't navigate | All nav uses `click` in v0.12.119+. For menu items (View → Rewind), use `press` |
+| Can't find Rewind | Rewind is not in top nav — use View menu (⌘⌥R) or Settings → Rewind |
+| Can't find Chat | Chat is embedded in Home tab, not a separate nav item |
 | Picker not responding | SwiftUI Picker `.menu` style may not expose as `popupbutton` — look for `button` with value label |
 | App seems frozen | Check `agent-swift status --json`, re-connect, check `./scripts/omi-ctl log-path` |
 

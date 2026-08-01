@@ -28,16 +28,6 @@ class GraphNode3D {
       r * cos(phi)
     )
   }
-
-  func copy() -> GraphNode3D {
-    let copied = GraphNode3D(id: id, label: label, nodeType: nodeType)
-    copied.position = position
-    copied.velocity = velocity
-    copied.force = force
-    copied.isFixed = isFixed
-    copied.connectionCount = connectionCount
-    return copied
-  }
 }
 
 // MARK: - 3D Graph Edge
@@ -84,23 +74,6 @@ class ForceDirectedSimulation: @unchecked Sendable {
   private let stableFramesRequired = 10
 
   var isStable: Bool { stableFrameCount >= stableFramesRequired }
-
-  func copy() -> ForceDirectedSimulation {
-    let copied = ForceDirectedSimulation()
-    copied.nodes = nodes.map { $0.copy() }
-    copied.edges = edges
-    copied.nodeMap.removeAll()
-    for node in copied.nodes {
-      copied.nodeMap[node.id] = node
-    }
-    copied.repulsion = repulsion
-    copied.attraction = attraction
-    copied.centerGravity = centerGravity
-    copied.restLength = restLength
-    copied.tickCount = tickCount
-    copied.stableFrameCount = stableFrameCount
-    return copied
-  }
 
   /// Populate the simulation with nodes and edges from API response
   func populate(graphResponse: KnowledgeGraphResponse, userNodeLabel: String?) {

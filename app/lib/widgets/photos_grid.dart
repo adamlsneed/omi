@@ -9,28 +9,6 @@ class PhotosGridComponent extends StatelessWidget {
   final List<ConversationPhoto> photos;
   const PhotosGridComponent({super.key, required this.photos});
 
-  Widget _buildImage(ConversationPhoto photo) {
-    try {
-      return Image.memory(
-        base64Decode(photo.base64),
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        color: photo.discarded ? const Color(0xFF35343B) : null,
-        colorBlendMode: photo.discarded ? BlendMode.saturation : null,
-        errorBuilder: (context, error, stackTrace) => _buildBrokenImage(),
-      );
-    } on FormatException {
-      return _buildBrokenImage();
-    }
-  }
-
-  Widget _buildBrokenImage() {
-    return const ColoredBox(
-      color: Color(0xFF1C1C1E),
-      child: Center(child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 28)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
@@ -57,7 +35,13 @@ class PhotosGridComponent extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  _buildImage(photo),
+                  Image.memory(
+                    base64Decode(photo.base64),
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    color: photo.discarded ? const Color(0xFF35343B) : null,
+                    colorBlendMode: photo.discarded ? BlendMode.saturation : null,
+                  ),
                   if (photo.discarded)
                     Container(
                       color: Colors.black.withValues(alpha: 0.5),
