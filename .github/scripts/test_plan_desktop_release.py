@@ -492,6 +492,8 @@ class DesktopCandidateSourceCheckTests(unittest.TestCase):
         self.assertEqual(sleep.call_args_list, [((30,), {}), ((30,), {})])
 
     def test_workflow_has_no_input_manual_trigger_and_tags_only_the_merged_main_source(self) -> None:
+        if not WORKFLOW.exists():
+            self.skipTest("fork removes desktop_auto_release.yml (no auto-release)")
         workflow = WORKFLOW.read_text(encoding="utf-8")
         # Manual candidate publication only. Automatic push/schedule tagging was
         # retired so merges no longer mint a new macOS version tag per CI run.
@@ -536,6 +538,8 @@ class DesktopCandidateSourceCheckTests(unittest.TestCase):
         self.assertIn('test "$(git rev-parse "$RELEASE_TAG^{commit}")" = "$CANDIDATE_SHA"', workflow)
 
     def test_tag_release_runs_readiness_verification_and_publish_in_one_m1_transaction(self) -> None:
+        if not WORKFLOW.exists():
+            self.skipTest("fork removes desktop_auto_release.yml (no auto-release)")
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertNotIn("pre-tag-readiness:\n", workflow)
         self.assertNotIn("needs: pre-tag-readiness", workflow)
@@ -553,6 +557,8 @@ class DesktopCandidateSourceCheckTests(unittest.TestCase):
         self.assertIn("desktop-pre-tag-readiness", tag_release)
 
     def test_auto_release_is_manual_only(self) -> None:
+        if not WORKFLOW.exists():
+            self.skipTest("fork removes desktop_auto_release.yml (no auto-release)")
         # Candidate tags must not fire on push/schedule. The planner may still
         # gate a manual run; continuous path filters are intentionally gone.
         workflow = WORKFLOW.read_text(encoding="utf-8")
