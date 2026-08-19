@@ -85,6 +85,9 @@ enum DefaultsKey: String {
   /// `PUT /v1/users/preferences/app`. Same name mobile uses in SharedPreferences.
   case preferredSummarizationAppId = "preferredSummarizationAppId"
   case disableSystemAudioCapture = "disableSystemAudioCapture"
+  /// Shared token the browser extension presents to the local Playwright MCP
+  /// bridge. Also read through `@AppStorage` under the same raw name.
+  case playwrightExtensionToken = "playwrightExtensionToken"
 }
 
 /// Compile-checked owner-scoped defaults keys whose final storage key is

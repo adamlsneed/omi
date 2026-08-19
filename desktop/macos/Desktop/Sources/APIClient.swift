@@ -711,9 +711,13 @@ extension APIClient {
   ///   - id: The conversation ID
   ///   - visibility: The visibility level ("shared", "public", or "private")
   func setConversationVisibility(id: String, visibility: String = "shared") async throws {
-    let url = URL(
-      string: baseURL
-        + "v1/conversations/\(id)/visibility?value=\(visibility)&visibility=\(visibility)")!
+    guard
+      let url = URL(
+        string: baseURL
+          + "v1/conversations/\(id)/visibility?value=\(visibility)&visibility=\(visibility)")
+    else {
+      throw APIError.invalidResponse
+    }
     var request = URLRequest(url: url)
     request.httpMethod = "PATCH"
     request.allHTTPHeaderFields = try await buildHeaders(requireAuth: true)

@@ -362,7 +362,7 @@ extension SettingsContentView {
 
                 Button(action: {
                   playwrightExtensionToken = ""
-                  UserDefaults.standard.set("", forKey: "playwrightExtensionToken")
+                  UserDefaults.standard.set("", forKey: .playwrightExtensionToken)
                 }) {
                   HStack(spacing: OmiSpacing.xxs) {
                     Image(systemName: "xmark")

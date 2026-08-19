@@ -2198,8 +2198,8 @@ struct MemoriesPage: View {
   private var categoryFilterLabel: String {
     if viewModel.selectedTags.isEmpty {
       return "All"
-    } else if viewModel.selectedTags.count == 1 {
-      return viewModel.selectedTags.first!.displayName
+    } else if viewModel.selectedTags.count == 1, let only = viewModel.selectedTags.first {
+      return only.displayName
     } else {
       return "\(viewModel.selectedTags.count) selected"
     }

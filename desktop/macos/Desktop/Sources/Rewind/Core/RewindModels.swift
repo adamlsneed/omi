@@ -289,10 +289,11 @@ extension Array where Element == Screenshot {
         groupOrder.append((key: key, sessionIndex: 0))
       } else {
         // Check if this screenshot fits in an existing session
+        var sessions = contextSessions[key] ?? []
         var foundSession = false
-        for i in 0..<contextSessions[key]!.count {
-          if contextSessions[key]![i].contains(timestamp: screenshot.timestamp, within: timeWindowSeconds) {
-            contextSessions[key]![i].add(screenshot)
+        for i in 0..<sessions.count {
+          if sessions[i].contains(timestamp: screenshot.timestamp, within: timeWindowSeconds) {
+            sessions[i].add(screenshot)
             foundSession = true
             break
           }
@@ -305,10 +306,11 @@ extension Array where Element == Screenshot {
             minTime: screenshot.timestamp,
             maxTime: screenshot.timestamp
           )
-          let newIndex = contextSessions[key]!.count
-          contextSessions[key]!.append(session)
+          let newIndex = sessions.count
+          sessions.append(session)
           groupOrder.append((key: key, sessionIndex: newIndex))
         }
+        contextSessions[key] = sessions
       }
     }
 
