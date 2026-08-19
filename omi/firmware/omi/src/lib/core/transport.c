@@ -703,8 +703,7 @@ static void _transport_disconnected(struct bt_conn *conn, uint8_t err)
     // would be orphaned forever (live audio dead until reboot). Drain then
     // refill via k_sem_give, which does wake a waiter; push_to_gatt re-checks
     // is_connected after acquiring, so a woken pusher drops its frame safely.
-    while (k_sem_take(&audio_tx_sem, K_NO_WAIT) == 0) {
-    }
+    while (k_sem_take(&audio_tx_sem, K_NO_WAIT) == 0) {}
     for (int i = 0; i < CONFIG_BT_CONN_TX_MAX - AUDIO_TX_RESERVED_SLOTS; i++) {
         k_sem_give(&audio_tx_sem);
     }

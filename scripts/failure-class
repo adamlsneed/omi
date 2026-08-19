@@ -390,6 +390,23 @@ def changed_definition_paths(root: Path, common: str, head: str) -> list[Path]:
     return [path for path in paths if not is_upstream_inherited(root, common, head, path)]
 
 
+def merges_into_our_own_line(root: Path, common: str, candidate: str) -> bool:
+    """True when `candidate` already contains the PR base.
+
+    CI validates GitHub's synthetic merge of the PR branch into the base, so the
+    range's newest merge has the PR branch itself as its second parent. Treating
+    that parent as upstream classifies this PR's own definitions as inherited.
+    A real sync merge's second parent is an upstream commit, which never
+    contains the fork's base."""
+    return (
+        subprocess.run(
+            ["git", "-C", str(root), "merge-base", "--is-ancestor", common, candidate],
+            capture_output=True,
+        ).returncode
+        == 0
+    )
+
+
 def is_upstream_inherited(root: Path, common: str, head: str, path: Path) -> bool:
     """Fork policy: a definition whose head content is byte-identical to the
     second parent of a merge commit in the range was authored upstream and
@@ -401,6 +418,8 @@ def is_upstream_inherited(root: Path, common: str, head: str, path: Path) -> boo
         try:
             upstream_tip = run_git(root, "rev-parse", f"{merge}^2")
         except (CliError, subprocess.CalledProcessError):
+            continue
+        if merges_into_our_own_line(root, common, upstream_tip):
             continue
         try:
             upstream_blob = run_git(root, "rev-parse", f"{upstream_tip}:{path.as_posix()}")
