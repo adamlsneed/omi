@@ -599,8 +599,6 @@ struct SettingsContentView: View {
       initialValue: TaskAssistantSettings.shared.notificationsEnabled)
     _taskAutoPromoteEnabled = State(
       initialValue: TaskAssistantSettings.shared.autoPromoteEnabled)
-    _taskAutoPromoteEnabled = State(
-      initialValue: TaskAssistantSettings.shared.autoPromoteEnabled)
     _taskAllowedApps = State(initialValue: TaskAssistantSettings.shared.allowedApps)
     _taskBrowserKeywords = State(initialValue: TaskAssistantSettings.shared.browserKeywords)
     _insightEnabled = State(initialValue: InsightAssistantSettings.shared.isEnabled)
