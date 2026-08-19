@@ -643,7 +643,7 @@ struct SettingsContentView: View {
   var browserExtensionStatusColor: Color {
     switch browserExtensionStatus.kind {
     case .off:
-      return Ink.tertiary
+      return Ink.secondary
     case .notConfigured:
       return SettingsInk.notice
     case .needsVerification:

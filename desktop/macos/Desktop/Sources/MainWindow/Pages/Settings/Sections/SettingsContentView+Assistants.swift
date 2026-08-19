@@ -65,7 +65,7 @@ extension SettingsContentView {
                   .foregroundColor(Ink.secondary)
                 Text("Move extracted suggestions into active Tasks automatically")
                   .scaledFont(size: 12)
-                  .foregroundColor(Ink.tertiary)
+                  .foregroundColor(Ink.secondary)
               }
 
               Spacer()

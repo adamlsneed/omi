@@ -261,6 +261,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
   private var localHotkeyMonitor: Any?
   private var windowObservers: [NSObjectProtocol] = []
   private var userDefaultsObserver: NSObjectProtocol?
+  private var dockIconVisibilityObserver: NSObjectProtocol?
   private var statusBarItem: NSStatusItem?
   private var screenCaptureSwitch: NSSwitch?
   private var audioRecordingSwitch: NSSwitch?
@@ -577,6 +578,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
         }
       }
     }
+    // Dock-icon policy is driven by the explicit preference notification below (and the
+    // launch call), not by the catch-all UserDefaults observer above, so it only runs
+    // when the user actually changes the setting rather than on every unrelated write.
+    dockIconVisibilityObserver = NotificationCenter.default.addObserver(
+      forName: .dockIconVisibilityPreferenceDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated {
+        self?.applyDockIconVisibilityPolicy(reason: "preference_changed")
+      }
+    }
 
     // Register for Apple Events to handle URL scheme
     NSAppleEventManager.shared().setEventHandler(
@@ -592,8 +605,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Register Carbon-based global shortcuts for floating control bar (Ask Omi)
     GlobalShortcutManager.shared.registerShortcuts()
 
-    // Ensure app always shows in dock as a regular app
-    NSApp.setActivationPolicy(.regular)
+    applyDockIconVisibilityPolicy(reason: "launch")
 
     // Set up menu bar icon with NSStatusBar (more reliable than SwiftUI MenuBarExtra)
     // Called synchronously on main thread to ensure status item is created before app finishes launching
@@ -813,6 +825,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
   /// Force-refresh the menu bar icon after activation policy changes.
   /// Works around a macOS Sequoia bug where NSStatusBar items vanish
   /// when switching to .accessory activation policy.
+  @MainActor private func applyDockIconVisibilityPolicy(reason: String) {
+    let hidesDockIcon = DockIconVisibilitySettings().hidesDockIcon
+    let policy = DockIconVisibilitySettings.activationPolicy(hidesDockIcon: hidesDockIcon)
+    guard NSApp.activationPolicy() != policy else { return }
+
+    NSApp.setActivationPolicy(policy)
+    log(
+      "AppDelegate: Dock icon visibility updated (hidden=\(hidesDockIcon), policy=\(policy), reason=\(reason))"
+    )
+
+    if statusBarItem != nil {
+      refreshMenuBarIcon()
+    }
+
+    // Bringing the Dock icon back (.accessory to .regular) is unreliable on its own:
+    // macOS frequently doesn't actually re-add the icon, and the switch drops the app
+    // behind whatever is frontmost. Re-assert activation on the next runloop tick (once
+    // the policy change has settled) and pull the main window back to the front, the
+    // same dance the launch path uses.
+    if policy == .regular {
+      DispatchQueue.main.async {
+        NSApp.activate(ignoringOtherApps: true)
+        _ = self.revealMainWindowIfAvailable()
+      }
+    }
+  }
+
   @MainActor private func refreshMenuBarIcon() {
     guard let item = statusBarItem else {
       // Status bar item was lost — recreate it
@@ -1312,6 +1351,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     if let observer = userDefaultsObserver {
       NotificationCenter.default.removeObserver(observer)
       userDefaultsObserver = nil
+    }
+    if let observer = dockIconVisibilityObserver {
+      NotificationCenter.default.removeObserver(observer)
+      dockIconVisibilityObserver = nil
     }
     // Remove hotkey monitors
     if let monitor = globalHotkeyMonitor {

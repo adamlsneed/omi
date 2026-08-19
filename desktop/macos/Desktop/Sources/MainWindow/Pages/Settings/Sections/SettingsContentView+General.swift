@@ -175,6 +175,47 @@ extension SettingsContentView {
         InterfaceSoundsRow()
       }
 
+      // Dock Icon toggle
+      settingsCard(settingId: "general.dockicon") {
+        HStack(spacing: OmiSpacing.lg) {
+          SettingsIconTile(symbol: "dock.rectangle")
+
+          VStack(alignment: .leading, spacing: OmiSpacing.xxs) {
+            Text("Dock Icon")
+              .scaledFont(size: OmiType.subheading, weight: .semibold)
+              .foregroundColor(Ink.primary)
+
+            Text(
+              hidesDockIcon
+                ? "Hidden from Dock and app switcher"
+                : "Visible in Dock and app switcher"
+            )
+            .scaledFont(size: OmiType.body)
+            .foregroundColor(Ink.secondary)
+          }
+
+          Spacer()
+
+          Toggle(
+            "",
+            // ON = Dock icon visible. Stored as `hideDockIcon` (inverted) so the
+            // underlying preference and its default (visible) stay unchanged.
+            isOn: Binding(
+              get: { !hidesDockIcon },
+              set: { newValue in
+                hidesDockIcon = !newValue
+                NotificationCenter.default.post(
+                  name: .dockIconVisibilityPreferenceDidChange, object: nil)
+              }
+            )
+          )
+          .toggleStyle(OmiToggleStyle())
+          .labelsHidden()
+          .frame(width: 36, height: 20)
+          .accessibilityLabel("Dock Icon")
+        }
+      }
+
       // Font Size
       settingsCard(settingId: "general.fontsize") {
         VStack(spacing: OmiSpacing.md) {

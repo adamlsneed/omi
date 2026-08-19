@@ -623,7 +623,7 @@ extension SettingsContentView {
 
           Text(browserExtensionStatus.detail)
             .scaledFont(size: 11)
-            .foregroundColor(Ink.tertiary)
+            .foregroundColor(Ink.secondary)
 
           if playwrightUseExtension {
             if playwrightExtensionToken.isEmpty {

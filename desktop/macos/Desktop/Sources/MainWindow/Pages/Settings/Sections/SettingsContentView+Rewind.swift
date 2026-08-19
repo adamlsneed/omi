@@ -183,7 +183,7 @@ extension SettingsContentView {
                 "Skip Rewind capture for Chrome Incognito, Safari Private Browsing, Firefox Private Windows, and Edge InPrivate windows."
               )
               .scaledFont(size: 12)
-              .foregroundColor(Ink.tertiary)
+              .foregroundColor(Ink.secondary)
             }
 
             Spacer()
@@ -313,7 +313,7 @@ struct ExcludedWindowPatternRow: View {
     HStack(spacing: 12) {
       Image(systemName: "rectangle.on.rectangle.slash")
         .scaledFont(size: 16)
-        .foregroundColor(Ink.tertiary)
+        .foregroundColor(Ink.secondary)
         .frame(width: 24, height: 24)
 
       Text(pattern)
@@ -327,7 +327,7 @@ struct ExcludedWindowPatternRow: View {
       Button(action: onRemove) {
         Image(systemName: "xmark.circle.fill")
           .scaledFont(size: 16)
-          .foregroundColor(isHovered ? Ink.errorRed : Ink.tertiary)
+          .foregroundColor(isHovered ? Ink.errorRed : Ink.secondary)
       }
       .buttonStyle(.plain)
     }

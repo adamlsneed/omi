@@ -672,7 +672,9 @@ final class APIClientRoutingTests: XCTestCase {
 
   func testReprocessConversationRoutesAppIdAsQueryParameter() async {
     let client = await makeTestClient()
-    try? await client.reprocessConversation(conversationId: "c2", appId: "summary app")
+    // The route now returns the updated conversation; this test only asserts the
+    // request URL, so the decode result is deliberately discarded.
+    _ = try? await client.reprocessConversation(conversationId: "c2", appId: "summary app")
 
     assertRoutes(
       URLCapture.capturedRequests, host: "python-test", port: 9001,

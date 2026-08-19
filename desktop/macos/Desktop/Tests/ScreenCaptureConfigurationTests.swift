@@ -4,31 +4,22 @@ import XCTest
 @testable import Omi_Computer
 
 final class ScreenCaptureConfigurationTests: XCTestCase {
-  func testConfigurationSizeRejectsZeroHeightWindowFrame() {
-    let size = ScreenCaptureService.configurationSize(
-      forWindowFrame: CGRect(x: 0, y: 0, width: 1440, height: 0),
-      maxSize: 3000
-    )
+  func testCaptureDimensionsRejectsZeroHeightWindowFrame() {
+    let size = ScreenCaptureService.captureDimensions(width: 1440, height: 0, maxSize: 3000)
 
     XCTAssertNil(size)
   }
 
-  func testConfigurationSizeRejectsNonFiniteWindowFrame() {
-    let size = ScreenCaptureService.configurationSize(
-      forWindowFrame: CGRect(x: 0, y: 0, width: CGFloat.nan, height: 900),
-      maxSize: 3000
-    )
+  func testCaptureDimensionsRejectsNonFiniteWindowFrame() {
+    let size = ScreenCaptureService.captureDimensions(
+      width: CGFloat.nan, height: 900, maxSize: 3000)
 
     XCTAssertNil(size)
   }
 
-  func testConfigurationSizePreservesAspectRatioWithinMaxSize() throws {
+  func testCaptureDimensionsPreservesAspectRatioWithinMaxSize() throws {
     let size = try XCTUnwrap(
-      ScreenCaptureService.configurationSize(
-        forWindowFrame: CGRect(x: 0, y: 0, width: 6000, height: 3000),
-        maxSize: 3000
-      )
-    )
+      ScreenCaptureService.captureDimensions(width: 6000, height: 3000, maxSize: 3000))
 
     XCTAssertEqual(size.width, 3000)
     XCTAssertEqual(size.height, 1500)
