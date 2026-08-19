@@ -592,7 +592,9 @@ def has_automatic_trigger(text: str) -> bool:
 AUTOMATIC_BACKEND_STACK_WRITERS = ["gcp_backend_auto_dev.yml", "gcp_backend_listen_helm.yml"]
 
 
-def validate_automatic_backend_stack_lifecycle(workflow_text: dict[str, str]) -> list[str]:
+def validate_automatic_backend_stack_lifecycle(
+    workflow_text: dict[str, str], absent: set[str] | None = None
+) -> list[str]:
     """Keep the shared dev backend lock owned by known automatic lifecycles.
 
     GitHub Actions retains only one pending run per concurrency group. A second
@@ -613,12 +615,15 @@ def validate_automatic_backend_stack_lifecycle(workflow_text: dict[str, str]) ->
             continue
         if has_automatic_trigger(text):
             automatic_writers.append(name)
+    expected_writers = [
+        name for name in AUTOMATIC_BACKEND_STACK_WRITERS if name not in (absent or set())
+    ]
     return (
         []
-        if automatic_writers == AUTOMATIC_BACKEND_STACK_WRITERS
+        if automatic_writers == expected_writers
         else [
             "automatic development backend-stack deployment must be owned only by "
-            f"{AUTOMATIC_BACKEND_STACK_WRITERS!r}, found {automatic_writers!r}"
+            f"{expected_writers!r}, found {automatic_writers!r}"
         ]
     )
 
@@ -699,11 +704,28 @@ def check_repository() -> list[str]:
         for pattern in ("*.yml", "*.yaml")
         for path in WORKFLOWS.glob(pattern)
     }
+    # Fork policy: the backend auto-deploy workflows are deliberately removed
+    # (this fork never deploys backends; see AGENTS.md Safety Rules). Audit the
+    # policy entries whose workflow is actually present.
+    absent = {
+        name
+        for name in (
+            set(LOCK_CONTRACTS)
+            | set(RUN_SCOPED_EXEMPTIONS)
+            | set(READ_ONLY_WORKFLOW_EXEMPTIONS)
+            | set(BACKEND_DEPLOY_WORKFLOWS)
+            | set(AUTOMATIC_BACKEND_STACK_WRITERS)
+        )
+        if name not in workflow_text
+    }
+
     errors.extend(validate_firestore_schema_writers(workflow_text))
-    errors.extend(validate_automatic_backend_stack_lifecycle(workflow_text))
+    errors.extend(validate_automatic_backend_stack_lifecycle(workflow_text, absent))
 
     detected = {name for name, text in workflow_text.items() if is_persistent_writer(text)}
-    expected = set(LOCK_CONTRACTS) | set(RUN_SCOPED_EXEMPTIONS) | set(READ_ONLY_WORKFLOW_EXEMPTIONS)
+    expected = (
+        set(LOCK_CONTRACTS) | set(RUN_SCOPED_EXEMPTIONS) | set(READ_ONLY_WORKFLOW_EXEMPTIONS)
+    ) - absent
     for name in sorted(detected - expected):
         errors.append(f"{name}: persistent deployment writer is missing from the lock policy")
     for name in sorted(expected - detected):
@@ -711,6 +733,8 @@ def check_repository() -> list[str]:
 
     groups: dict[str, str] = {}
     for name, contract in LOCK_CONTRACTS.items():
+        if name in absent:
+            continue
         text = workflow_text.get(name)
         if text is None:
             errors.append(f"{name}: audited deploy workflow is missing")
@@ -725,11 +749,15 @@ def check_repository() -> list[str]:
         errors.extend(validate_shared_families(groups))
 
     for name, marker in RUN_SCOPED_EXEMPTIONS.items():
+        if name in absent:
+            continue
         text = workflow_text.get(name, "")
         if marker not in text:
             errors.append(f"{name}: run-scoped deploy-lock exemption lost required marker {marker!r}")
 
     for name, marker in READ_ONLY_WORKFLOW_EXEMPTIONS.items():
+        if name in absent:
+            continue
         text = workflow_text.get(name, "")
         if marker not in text:
             errors.append(f"{name}: read-only workflow exemption lost required marker {marker!r}")
@@ -742,18 +770,23 @@ def check_repository() -> list[str]:
         "revision_suffix=${SHORT_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}",
     )
     for name in ("gcp_backend.yml", "gcp_backend_auto_dev.yml"):
+        if name in absent:
+            continue
         contract = backend_deploy_contract_text(name, workflow_text.get(name, ""))
         for marker in identity_markers:
             if marker not in contract:
                 errors.append(f"{name}: backend revision identity must include {marker!r}")
 
-    errors.extend(
-        validate_auto_deploy_acceptance(
-            "gcp_backend_auto_dev.yml",
-            workflow_text.get("gcp_backend_auto_dev.yml", ""),
+    if "gcp_backend_auto_dev.yml" not in absent:
+        errors.extend(
+            validate_auto_deploy_acceptance(
+                "gcp_backend_auto_dev.yml",
+                workflow_text.get("gcp_backend_auto_dev.yml", ""),
+            )
         )
-    )
     for name in ("gcp_backend.yml", "gcp_backend_auto_dev.yml"):
+        if name in absent:
+            continue
         errors.extend(validate_serving_release_vector(name, workflow_text.get(name, "")))
         errors.extend(validate_phase_aware_backend_promotion(name, workflow_text.get(name, "")))
     for name, text in workflow_text.items():
