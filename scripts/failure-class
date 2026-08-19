@@ -369,7 +369,10 @@ def added_definition_paths(root: Path, common: str, head: str) -> list[Path]:
         "--",
         str(DEFINITIONS_RELATIVE_PATH),
     )
-    return [Path(line) for line in output.splitlines() if line]
+    paths = [Path(line) for line in output.splitlines() if line]
+    # Same fork policy as changed_definition_paths: a sync merge inherits every
+    # class upstream added in the range, and those are not authored by this PR.
+    return [path for path in paths if not is_upstream_inherited(root, common, head, path)]
 
 
 def changed_definition_paths(root: Path, common: str, head: str) -> list[Path]:
@@ -397,12 +400,12 @@ def is_upstream_inherited(root: Path, common: str, head: str, path: Path) -> boo
             continue
         try:
             upstream_tip = run_git(root, "rev-parse", f"{merge}^2")
-        except subprocess.CalledProcessError:
+        except (CliError, subprocess.CalledProcessError):
             continue
         try:
             upstream_blob = run_git(root, "rev-parse", f"{upstream_tip}:{path.as_posix()}")
             head_blob = run_git(root, "rev-parse", f"{head}:{path.as_posix()}")
-        except subprocess.CalledProcessError:
+        except (CliError, subprocess.CalledProcessError):
             # Deleted on both sides counts as inherited only when head also lacks it.
             head_missing = subprocess.run(
                 ["git", "-C", str(root), "cat-file", "-e", f"{head}:{path.as_posix()}"],
