@@ -232,6 +232,57 @@ actor AgentRuntimeProcess {
     "chat_first_capability_projection",
   ]
   private static let ownerTransitionClientID = "runtime-owner-transition"
+  private var authTokenFileDirectory: URL?
+
+  // Copying the whole app/shell environment can leak local secrets into child
+  // process listings, so the Node runtime gets a small allowlist and every
+  // other key is set explicitly below.
+  private nonisolated static func makeAgentSubprocessEnvironment() -> [String: String] {
+    let allowedKeys = [
+      "HOME",
+      "USER",
+      "LOGNAME",
+      "PATH",
+      "TMPDIR",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "TERM",
+    ]
+    let appEnvironment = ProcessInfo.processInfo.environment
+    var env: [String: String] = [:]
+    for key in allowedKeys {
+      if let value = appEnvironment[key] {
+        env[key] = value
+      }
+    }
+    return env
+  }
+
+  // The Firebase token reaches Node through a private 0600 file instead of the
+  // child environment, so process listings never expose it.
+  private func writeAuthTokenFile(_ token: String) throws -> String {
+    cleanupAuthTokenFile()
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("omi-agent-token-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: directory,
+      withIntermediateDirectories: true,
+      attributes: [.posixPermissions: 0o700])
+    let fileURL = directory.appendingPathComponent("token")
+    try token.write(to: fileURL, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+    authTokenFileDirectory = directory
+    return fileURL.path
+  }
+
+  private func cleanupAuthTokenFile() {
+    if let directory = authTokenFileDirectory {
+      try? FileManager.default.removeItem(at: directory)
+      authTokenFileDirectory = nil
+    }
+  }
 
   struct RuntimeHandshake: Equatable, Sendable {
     let protocolVersion: Int
@@ -2570,11 +2621,13 @@ actor AgentRuntimeProcess {
     proc.executableURL = URL(fileURLWithPath: nodePath)
     proc.arguments = ["--max-old-space-size=256", "--max-semi-space-size=16", bridgePath]
 
-    var env = ProcessInfo.processInfo.environment
+    var env = Self.makeAgentSubprocessEnvironment()
+    // The hermetic fault-model token is read from the app's own environment;
+    // the allowlisted child env never carries it.
     let hermeticFaultModelToken = AgentRuntimeCredentialPolicy.hermeticFaultModelToken(
       isNonProduction: AppBuild.isNonProduction,
       bundleIdentifier: AppBuild.bundleIdentifier,
-      environment: env)
+      environment: ProcessInfo.processInfo.environment)
     env.removeValue(forKey: AgentRuntimeCredentialPolicy.hermeticFaultModelTokenEnvironmentKey)
     env["NODE_NO_WARNINGS"] = "1"
     env["HARNESS_MODE"] = preferredHarnessMode
@@ -2649,7 +2702,7 @@ actor AgentRuntimeProcess {
     {
       startupPermissionGrantedChecked = requiresPiMonoCredentials
       startupPermissionGranted = requiresPiMonoCredentials
-      env["OMI_AUTH_TOKEN"] = token
+      env["OMI_AUTH_TOKEN_FILE"] = try writeAuthTokenFile(token)
     } else if requiresPiMonoCredentials {
       startupPermissionGrantedChecked = true
       log("AgentRuntimeProcess: pi-mono start refused, Firebase ID token is missing")
@@ -2730,7 +2783,7 @@ actor AgentRuntimeProcess {
       try proc.run()
       markRuntimeOwnerAuthorityDirty()
       let launchedAuthorityEpoch = runtimeOwnerAuthorityEpoch
-      if env["OMI_AUTH_TOKEN"]?.isEmpty == false {
+      if env["OMI_AUTH_TOKEN"]?.isEmpty == false || env["OMI_AUTH_TOKEN_FILE"] != nil {
         synchronizedRuntimeCredentialOwnerID = authorizationSnapshot.ownerID
       }
       startReadingStdout()
@@ -3020,6 +3073,7 @@ actor AgentRuntimeProcess {
     if let currentProcess = process, currentProcess === failedProcess {
       process = nil
     }
+    cleanupAuthTokenFile()
     closePipes()
     recordBridgeStartFailure(Self.startFailure(for: error))
     await cancelAndDrainAuthorizedToolExecutionTasks()
@@ -3093,6 +3147,7 @@ actor AgentRuntimeProcess {
     }
 
     process = nil
+    cleanupAuthTokenFile()
     closePipes()
     lastExitWasOOM = false
     oomDiagnosticLatch.reset(generation: processGeneration)

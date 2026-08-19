@@ -32,7 +32,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createNetServer, type Socket } from "net";
 import { homedir, tmpdir } from "os";
-import { unlinkSync, appendFileSync } from "fs";
+import { unlinkSync, appendFileSync, readFileSync } from "fs";
 import type {
   InboundMessage,
   ControlToolRequestMessage,
@@ -207,6 +207,22 @@ function logErr(msg: string): void {
     // ignore — parent pipe is gone; we'll exit shortly anyway
   }
 }
+
+// The Swift host passes the Firebase token through a private 0600 file
+// (OMI_AUTH_TOKEN_FILE) so it never appears in spawn-time process listings.
+// Hydrate it into this process's own env once so activation gating, adapter
+// creation, and token refresh all keep their existing OMI_AUTH_TOKEN contract.
+(function hydrateAuthTokenFromFile(): void {
+  if (process.env.OMI_AUTH_TOKEN) return;
+  const tokenFile = process.env.OMI_AUTH_TOKEN_FILE;
+  if (!tokenFile) return;
+  try {
+    const token = readFileSync(tokenFile, "utf8").trim();
+    if (token) process.env.OMI_AUTH_TOKEN = token;
+  } catch (err) {
+    logErr(`Failed to read OMI_AUTH_TOKEN_FILE: ${err}`);
+  }
+})();
 
 // Queue stdout lines so a full parent pipe waits on `drain` instead of
 // blocking the event loop inside kernel subscribers / query completion.
