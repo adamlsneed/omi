@@ -56,7 +56,10 @@ class DesktopBackendReleasePolicyTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         workflows = ROOT / ".github" / "workflows"
-        cls.dev = (workflows / "desktop_backend_auto_dev.yml").read_text(encoding="utf-8")
+        # Fork policy: the dev auto-deploy workflow is deliberately removed.
+        # Tests touching it skip through the `dev` property.
+        dev_path = workflows / "desktop_backend_auto_dev.yml"
+        cls._dev = dev_path.read_text(encoding="utf-8") if dev_path.is_file() else None
         cls.prod = (workflows / "desktop_backend_prod.yml").read_text(encoding="utf-8")
         cls.stable = (workflows / "desktop_promote_prod.yml").read_text(encoding="utf-8")
         cls.recovery = (workflows / "desktop_backend_recover_prod.yml").read_text(encoding="utf-8")
@@ -64,10 +67,16 @@ class DesktopBackendReleasePolicyTests(unittest.TestCase):
         cls.python_health = (ROOT / "backend/routers/desktop_core.py").read_text(encoding="utf-8")
         cls.python_chat = (ROOT / "backend/routers/desktop_chat.py").read_text(encoding="utf-8")
 
+    @property
+    def dev(self) -> str:
+        if self._dev is None:
+            raise unittest.SkipTest("fork removes desktop_backend_auto_dev.yml")
+        return self._dev
+
     def test_current_release_boundary_passes(self) -> None:
         self.assertEqual(
             POLICY.validate_all(
-                dev=self.dev,
+                dev=self._dev,
                 prod=self.prod,
                 stable=self.stable,
                 recovery=self.recovery,

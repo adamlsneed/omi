@@ -537,6 +537,8 @@ class WorkflowContractTests(unittest.TestCase):
         )
 
     def test_auto_workflow_rejects_github_sha_or_incomplete_source_binding(self) -> None:
+        if not (ROOT / CHECKER.AUTO_WORKFLOW_PATH).exists():
+            self.skipTest(f"fork removes {CHECKER.AUTO_WORKFLOW_PATH}")
         root = self.fixture_root()
         self.mutate(
             root,

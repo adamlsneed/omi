@@ -335,7 +335,7 @@ def validate_contract_sources(*, dockerfile: str, python_health: str, python_cha
 
 def validate_all(
     *,
-    dev: str,
+    dev: "str | None",
     prod: str,
     stable: str,
     recovery: str,
@@ -344,7 +344,7 @@ def validate_all(
     python_chat: str,
 ) -> list[str]:
     return [
-        *validate_deploy_workflow(dev, production=False),
+        *(validate_deploy_workflow(dev, production=False) if dev is not None else []),
         *validate_deploy_workflow(prod, production=True),
         *validate_desktop_release_gates(stable),
         *validate_recovery_workflow(recovery),
@@ -357,8 +357,12 @@ def validate_all(
 
 
 def main() -> int:
+    # Fork policy: the dev auto-deploy workflow is deliberately removed (this
+    # fork never deploys backends; see AGENTS.md Safety Rules). Validate only
+    # the workflows that exist.
+    dev_workflow = WORKFLOWS / "desktop_backend_auto_dev.yml"
     errors = validate_all(
-        dev=(WORKFLOWS / "desktop_backend_auto_dev.yml").read_text(encoding="utf-8"),
+        dev=dev_workflow.read_text(encoding="utf-8") if dev_workflow.is_file() else None,
         prod=(WORKFLOWS / "desktop_backend_prod.yml").read_text(encoding="utf-8"),
         stable=(WORKFLOWS / "desktop_promote_prod.yml").read_text(encoding="utf-8"),
         recovery=(WORKFLOWS / "desktop_backend_recover_prod.yml").read_text(encoding="utf-8"),
