@@ -14,6 +14,21 @@ Fixed in the sync PR: a duplicated `_taskAutoPromoteEnabled` initializer in
 (unbounded agent loop on an unknown tool name) is moot: that file is deleted by this PR,
 since `backend/` is a byte-exact upstream mirror and upstream replaced those modules.
 
+Running the desktop Swift suite (which had not compiled since PR #100) surfaced two more
+upstream defects. The first is fixed in this PR; the second is open, below.
+
+### Fixed: compacted-screenshot CTE never projects `embedding` (upstream)
+`desktop/macos/Desktop/Sources/Rewind/Core/RewindDatabase+Embeddings.swift`
+
+`getCompactedScreenshotsMissingEmbeddings` builds a `ranked` CTE selecting
+`id, ocrText, appName, windowTitle`, then filters the outer query on
+`bucketRank = 1 AND embedding IS NULL`. `embedding` is never projected into the CTE, so
+SQLite raises `no such column: embedding` and the call throws every time the
+screenshot-embedding backfill re-arms. The file was byte-identical to upstream, so this
+ships broken upstream. Fixed by adding `embedding` to the CTE projection, which preserves
+the intent: rank the bucket by OCR length first, then require the winning row itself to be
+missing an embedding.
+
 ## Open
 
 ### 1. Routed summary wedges forever when you switch conversations mid-request
@@ -104,6 +119,28 @@ rather than truly unbounded, but a failed startup still multiplies sqlite open a
 while the UI is loading.
 
 Fix direction: set a `pendingRecovery` flag synchronously before spawning.
+
+### 7. Owner-snapshot test is order-dependent (upstream)
+`desktop/macos/Desktop/Tests/RewindCaptureExclusionGenerationTests.swift`
+
+`testOwnerSnapshotStaysCurrentWhenAuthLeadsUnresolvedRewindDatabase` passes in isolation
+(`--filter RewindCaptureExclusionGenerationTests` is 9/9 green) but fails inside the full
+5408-test run, where `RewindCaptureOwnerSnapshot.capture()` resolves `anonymous` instead of
+the `auth_userId` the test just wrote.
+
+`resolvedOwnerID` prefers `RuntimeOwnerIdentity.captureAuthorizationSnapshot()`, which
+returns nil while `EffectiveOwnerAuthorizationRevocation.shared.isActive` or
+`RuntimeOwnerAuthorizationAuthority.shared` is mid-transition. Both are process-wide
+singletons shared by every test in the target, so an earlier test that begins an owner
+transition without ending it makes every later owner resolution nil. The test file, the
+production file (`RewindCaptureExclusion.swift`), and `RuntimeOwnerIdentity.swift` are all
+byte-identical to upstream, so this is upstream's defect, and it is a test-hermeticity
+problem rather than a production one: the production transition path is structured
+begin/end.
+
+AGENTS.md requires CI tests to be free of ordering dependence. Fix direction: give the
+owner-authority singletons a test reset hook and call it in `setUp`, or find the polluting
+suite by bisecting class order. Not fixed here to keep the sync PR reviewable.
 
 ## Checked and cleared
 
