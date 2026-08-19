@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:omi/gen/pigeon_communicator.g.dart';
 import 'package:omi/services/bridges/ble_bridge.dart';
+import 'package:omi/services/devices/bluetooth_readiness.dart';
 import 'package:omi/utils/logger.dart';
 import 'device_transport.dart';
 
@@ -13,7 +14,7 @@ import 'device_transport.dart';
 class NativeBleTransport extends DeviceTransport {
   final String _peripheralUuid;
   final bool requiresBond;
-  final BleHostApi _hostApi = BleHostApi();
+  final BleHostApi _hostApi;
   final StreamController<DeviceTransportState> _connectionStateController =
       StreamController<DeviceTransportState>.broadcast();
 
@@ -32,7 +33,8 @@ class NativeBleTransport extends DeviceTransport {
   DeviceTransportState _state = DeviceTransportState.disconnected;
   bool _isManagedByNative = false;
 
-  NativeBleTransport(this._peripheralUuid, {this.requiresBond = false}) {
+  NativeBleTransport(this._peripheralUuid, {this.requiresBond = false, BleHostApi? hostApi})
+      : _hostApi = hostApi ?? BleHostApi() {
     BleBridge.instance.registerPeripheral(
       peripheralUuid: _peripheralUuid,
       onConnectionState: _handleConnectionState,
@@ -52,6 +54,10 @@ class NativeBleTransport extends DeviceTransport {
   @override
   Future<void> connect() async {
     if (_state == DeviceTransportState.connected) return;
+
+    if (!await BluetoothReadiness.instance.ensureReady(BluetoothUse.connection)) {
+      throw BluetoothAdapterUnavailableException(BluetoothReadiness.instance.state);
+    }
 
     _updateState(DeviceTransportState.connecting);
 
@@ -103,6 +109,8 @@ class NativeBleTransport extends DeviceTransport {
       }
     }
 
+    _activeSubscriptionKeys.clear();
+    _subscribedSubscriptionKeys.clear();
     _closeAllStreams();
     _services = [];
 
@@ -122,7 +130,7 @@ class NativeBleTransport extends DeviceTransport {
   @override
   Future<bool> isConnected() async {
     try {
-      return _hostApi.isPeripheralConnected(_peripheralUuid);
+      return await _hostApi.isPeripheralConnected(_peripheralUuid);
     } catch (e) {
       return false;
     }
@@ -131,7 +139,7 @@ class NativeBleTransport extends DeviceTransport {
   @override
   Future<bool> ping() async {
     try {
-      return _hostApi.isPeripheralConnected(_peripheralUuid);
+      return await _hostApi.isPeripheralConnected(_peripheralUuid);
     } catch (e) {
       return false;
     }
@@ -178,12 +186,17 @@ class NativeBleTransport extends DeviceTransport {
   }
 
   void _subscribeCharacteristic(String serviceUuid, String characteristicUuid) {
+    final key = '${serviceUuid.toLowerCase()}:${characteristicUuid.toLowerCase()}';
+    if (_subscribedSubscriptionKeys.contains(key)) return;
+    _subscribedSubscriptionKeys.add(key);
     _hostApi.subscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid).catchError((e) {
+      _subscribedSubscriptionKeys.remove(key);
       Logger.debug('[NativeBleTransport] Failed to subscribe $serviceUuid:$characteristicUuid: $e');
     });
   }
 
   void _unsubscribeCharacteristic(String serviceUuid, String characteristicUuid) {
+    _subscribedSubscriptionKeys.remove('${serviceUuid.toLowerCase()}:${characteristicUuid.toLowerCase()}');
     _hostApi.unsubscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid).catchError((e) {
       Logger.debug('[NativeBleTransport] Failed to unsubscribe $serviceUuid:$characteristicUuid: $e');
     });
@@ -232,6 +245,8 @@ class NativeBleTransport extends DeviceTransport {
   Future<void> dispose() async {
     await disconnect();
     BleBridge.instance.unregisterPeripheral(_peripheralUuid);
+    _activeSubscriptionKeys.clear();
+    _subscribedSubscriptionKeys.clear();
     _closeAllStreams();
     await _connectionStateController.close();
   }
@@ -263,8 +278,15 @@ class NativeBleTransport extends DeviceTransport {
 
   // MARK: - Native Callbacks
 
+  /// Characteristics with a native subscription currently in place; dedups
+  /// subscribe calls and is reset when the link drops.
+  final Set<String> _subscribedSubscriptionKeys = {};
+
   void _handleConnectionState(bool connected, String? error) {
     if (!connected) {
+      // Native subscriptions died with the link. _activeSubscriptionKeys is
+      // listener-driven and survives so ready/reconnect can re-subscribe.
+      _subscribedSubscriptionKeys.clear();
       _services = [];
       _updateState(DeviceTransportState.disconnected);
 
@@ -278,7 +300,9 @@ class NativeBleTransport extends DeviceTransport {
   void _handleDeviceReady(List<BleService> services) {
     if (_deviceReadyCompleter != null && !_deviceReadyCompleter!.isCompleted) {
       // Initial connection
+      _services = services;
       _deviceReadyCompleter!.complete(services);
+      _subscribeActiveCharacteristics();
     } else {
       // Auto-reconnect from native — re-subscribe to characteristics
       _resubscribeAfterReconnect(services);
@@ -287,6 +311,15 @@ class NativeBleTransport extends DeviceTransport {
 
   bool _isResubscribing = false;
 
+  void _subscribeActiveCharacteristics() {
+    for (final key in _activeSubscriptionKeys) {
+      final parts = key.split(':');
+      if (parts.length == 2 && _hasCharacteristic(parts[0], parts[1])) {
+        _subscribeCharacteristic(parts[0], parts[1]);
+      }
+    }
+  }
+
   void _resubscribeAfterReconnect(List<BleService> services) {
     if (_isResubscribing) return;
     _isResubscribing = true;
@@ -294,12 +327,17 @@ class NativeBleTransport extends DeviceTransport {
     try {
       _services = services;
 
-      // Re-create stream controllers and re-subscribe to previously active characteristics
+      // Native re-emits ready for a link that is already up, so keep live controllers.
       for (final key in _activeSubscriptionKeys) {
         final parts = key.split(':');
         if (parts.length == 2) {
-          _streamControllers[key] ??= _createStreamController(parts[0], parts[1], key);
-          _subscribeCharacteristic(parts[0], parts[1]);
+          final controller = _streamControllers[key];
+          if (controller == null || controller.isClosed) {
+            _streamControllers[key] = _createStreamController(parts[0], parts[1], key);
+          }
+          if (_hasCharacteristic(parts[0], parts[1])) {
+            _subscribeCharacteristic(parts[0], parts[1]);
+          }
         }
       }
 

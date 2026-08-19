@@ -61,6 +61,7 @@ actor RewindIndexer {
   }
 
   func suspendForOwnerTransition() {
+    RewindCaptureOwnerGeneration.beginTransition()
     ownerTransitionSuspended = true
     resetInitializationState()
     log("RewindIndexer: Suspended for effective-owner transition")
@@ -68,6 +69,7 @@ actor RewindIndexer {
 
   func resumeAfterOwnerTransition() {
     ownerTransitionSuspended = false
+    RewindCaptureOwnerGeneration.endTransition()
     log("RewindIndexer: Resumed after effective-owner transition")
   }
 
@@ -104,6 +106,7 @@ actor RewindIndexer {
 
     // Initialize storage
     try await RewindStorage.shared.initialize()
+    await retryPendingExcludedVideoChunkCleanups()
 
     isInitialized = true
     initFailureCount = 0
@@ -220,27 +223,6 @@ actor RewindIndexer {
     lastEncodedFrameTimestamp = timestamp
   }
 
-  private func hasMetadata(focusStatus: String?, extractedTasks: [String]?, insight: String?) -> Bool {
-    if focusStatus != nil { return true }
-    if extractedTasks?.isEmpty == false { return true }
-    if insight?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false { return true }
-    return false
-  }
-
-  /// The encoder reports an immutable path when it abandons a writer
-  /// generation. Storage owns the DB tombstone and file deletion; keeping that
-  /// mutation out of the encoder avoids a circular actor dependency and lets
-  /// the persistence boundary reject stale post-OCR inserts for the path.
-  @discardableResult
-  private func discardAbandonedVideoChunkIfNeeded(_ error: Error) async -> Bool {
-    do {
-      return try await RewindStorage.shared.recoverAbandonedVideoChunkIfNeeded(error)
-    } catch {
-      logError("RewindIndexer: Failed to discard abandoned video chunk", error: error)
-      return true
-    }
-  }
-
   private func textSource(ocrText: String?, skippedForBattery: Bool) -> String {
     if let ocrText, !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       return CapturedTextSource.ocr.rawValue
@@ -254,9 +236,16 @@ actor RewindIndexer {
   // MARK: - Frame Processing
 
   /// Process a captured frame from ProactiveAssistantsPlugin
-  func processFrame(_ frame: CapturedFrame) async {
+  func processFrame(
+    _ frame: CapturedFrame,
+    exclusionSnapshot: RewindCaptureExclusionSnapshot? = nil
+  ) async {
     // Ensure initialized with backoff
     guard await ensureInitialized() else { return }
+    guard let snapshot = exclusionSnapshot ?? RewindCaptureExclusionGeneration.snapshot(appName: frame.appName),
+      snapshot.appName == frame.appName,
+      RewindCaptureExclusionGeneration.isCurrent(snapshot)
+    else { return }
     scheduleRetentionCleanupIfDue()
 
     do {
@@ -280,10 +269,8 @@ actor RewindIndexer {
       }
 
       // Add frame to video encoder
-      let encodedFrame = try await VideoChunkEncoder.shared.addFrame(
-        image: cgImage,
-        timestamp: frame.captureTime
-      )
+      let encodedFrame = try await encodeFrameIfCurrent(
+        image: cgImage, timestamp: frame.captureTime, snapshot: snapshot)
 
       // Frame was dropped by encoder (e.g. aspect ratio debounce) — skip DB insert
       // since there's no video chunk to load later
@@ -341,14 +328,17 @@ actor RewindIndexer {
       )
 
       guard !ownerTransitionSuspended else { return }
-      let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
+      let inserted = try await insertScreenshotIfCurrent(screenshot, snapshot: snapshot)
+      guard RewindCaptureExclusionGeneration.isCurrent(snapshot) else { return }
       markFrameEncodedForDedupe(dedupeSignature, timestamp: frame.captureTime)
 
       // Embed OCR text for semantic search (non-blocking)
       if let ocrText = ocrText, !ocrText.isEmpty, let id = inserted.id {
         Task(priority: .utility) {
           await OCREmbeddingService.shared.embedScreenshot(
-            id: id, ocrText: ocrText, appName: frame.appName, windowTitle: frame.windowTitle)
+            id: id, timestamp: frame.captureTime, ocrText: ocrText, appName: frame.appName,
+            windowTitle: frame.windowTitle,
+            ownerSnapshot: snapshot.ownerSnapshot)
         }
       }
 
@@ -372,9 +362,14 @@ actor RewindIndexer {
     appName: String,
     windowTitle: String?,
     captureTime: Date,
-    captureTrigger: CaptureTrigger = .timer
+    captureTrigger: CaptureTrigger = .timer,
+    exclusionSnapshot: RewindCaptureExclusionSnapshot? = nil
   ) async {
     guard await ensureInitialized() else { return }
+    guard let snapshot = exclusionSnapshot ?? RewindCaptureExclusionGeneration.snapshot(appName: appName),
+      snapshot.appName == appName,
+      RewindCaptureExclusionGeneration.isCurrent(snapshot)
+    else { return }
     scheduleRetentionCleanupIfDue()
 
     do {
@@ -384,10 +379,8 @@ actor RewindIndexer {
       }
 
       // Add frame to video encoder (CGImage directly, no decode needed)
-      let encodedFrame = try await VideoChunkEncoder.shared.addFrame(
-        image: cgImage,
-        timestamp: captureTime
-      )
+      let encodedFrame = try await encodeFrameIfCurrent(
+        image: cgImage, timestamp: captureTime, snapshot: snapshot)
 
       // Frame was dropped by encoder (e.g. aspect ratio debounce) — skip DB insert
       guard let encodedFrame = encodedFrame else { return }
@@ -443,14 +436,16 @@ actor RewindIndexer {
       )
 
       guard !ownerTransitionSuspended else { return }
-      let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
+      let inserted = try await insertScreenshotIfCurrent(screenshot, snapshot: snapshot)
+      guard RewindCaptureExclusionGeneration.isCurrent(snapshot) else { return }
       markFrameEncodedForDedupe(dedupeSignature, timestamp: captureTime)
 
       // Embed OCR text for semantic search (non-blocking)
       if let ocrText = ocrText, !ocrText.isEmpty, let id = inserted.id {
         Task(priority: .utility) {
           await OCREmbeddingService.shared.embedScreenshot(
-            id: id, ocrText: ocrText, appName: appName, windowTitle: windowTitle)
+            id: id, timestamp: captureTime, ocrText: ocrText, appName: appName, windowTitle: windowTitle,
+            ownerSnapshot: snapshot.ownerSnapshot)
         }
       }
 
@@ -471,131 +466,6 @@ actor RewindIndexer {
           databaseURL: nil,
           error: error,
           appIsTerminating: RewindDatabase.isTerminationInProgress))
-      await RewindDatabase.shared.reportQueryError(error)
-    }
-  }
-
-  /// Process a frame with additional metadata (focus status, etc.)
-  func processFrame(_ frame: CapturedFrame, focusStatus: String?, extractedTasks: [String]?, insight: String?) async {
-    guard await ensureInitialized() else { return }
-    scheduleRetentionCleanupIfDue()
-
-    do {
-      // Convert JPEG to CGImage for video encoding.
-      // Wrap in autoreleasepool so the NSImage and its internal Obj-C
-      // representations are released promptly instead of accumulating.
-      let cgImage: CGImage? = autoreleasepool {
-        guard let nsImage = NSImage(data: frame.jpegData) else { return nil }
-        return nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
-      }
-
-      guard let cgImage = cgImage else {
-        logError("RewindIndexer: Failed to create CGImage from frame data")
-        return
-      }
-
-      let dedupeSignature = makeFrameDedupeSignature(
-        cgImage: cgImage, appName: frame.appName, windowTitle: frame.windowTitle)
-      let carriesMetadata = hasMetadata(focusStatus: focusStatus, extractedTasks: extractedTasks, insight: insight)
-      if !carriesMetadata, await shouldSkipFrameForDedupe(dedupeSignature, timestamp: frame.captureTime) {
-        return
-      }
-
-      // Add frame to video encoder
-      let encodedFrame = try await VideoChunkEncoder.shared.addFrame(
-        image: cgImage,
-        timestamp: frame.captureTime
-      )
-
-      // Frame was dropped by encoder (e.g. aspect ratio debounce) — skip DB insert
-      guard let encodedFrame = encodedFrame else { return }
-      guard !ownerTransitionSuspended else { return }
-
-      // OCR gating: throttle frequency, then deduplicate
-      var ocrText: String?
-      var ocrDataJson: String?
-      var isIndexed = false
-      // Legacy flag: battery handling now uses adaptive capture cadence, so frames
-      // are never skipped for battery here. Kept for the existing DB column/textSource.
-      let skippedForBattery = false
-
-      framesSinceLastOCR += 1
-      if framesSinceLastOCR < ocrEveryNthFrame {
-        recordOCROutcome(.skippedFrequency)
-        isIndexed = true
-      } else if await RewindOCRService.shared.shouldSkipOCR(for: cgImage) {
-        recordOCROutcome(.skippedDedup)
-        isIndexed = true
-      } else {
-        framesSinceLastOCR = 0
-        recordOCROutcome(.ran)
-        do {
-          let ocrResult = try await Task(priority: .utility) {
-            try await RewindOCRService.shared.extractTextWithBounds(from: cgImage)
-          }.value
-          ocrText = ocrResult.fullText
-          if let data = try? JSONEncoder().encode(ocrResult) {
-            ocrDataJson = String(data: data, encoding: .utf8)
-          }
-          isIndexed = true
-        } catch {
-          logError("RewindIndexer: OCR failed for frame with metadata: \(error)")
-        }
-      }
-
-      // Encode tasks and insight as JSON
-      var tasksJson: String?
-      if let tasks = extractedTasks, !tasks.isEmpty {
-        let data = try JSONEncoder().encode(tasks)
-        tasksJson = String(data: data, encoding: .utf8)
-      }
-
-      let adviceJson: String? = insight
-
-      let screenshot = Screenshot(
-        timestamp: frame.captureTime,
-        appName: frame.appName,
-        windowTitle: frame.windowTitle,
-        imagePath: "",
-        videoChunkPath: encodedFrame.videoChunkPath,
-        frameOffset: encodedFrame.frameOffset,
-        ocrText: ocrText,
-        ocrDataJson: ocrDataJson,
-        isIndexed: isIndexed,
-        focusStatus: focusStatus,
-        extractedTasksJson: tasksJson,
-        adviceJson: adviceJson,
-        skippedForBattery: skippedForBattery,
-        captureTrigger: frame.captureTrigger.rawValue,
-        textSource: textSource(ocrText: ocrText, skippedForBattery: skippedForBattery),
-        deviceName: currentComputerName,
-        clientDeviceId: currentClientDeviceId
-      )
-
-      guard !ownerTransitionSuspended else { return }
-      let inserted = try await RewindDatabase.shared.insertScreenshot(screenshot)
-      if !carriesMetadata {
-        markFrameEncodedForDedupe(dedupeSignature, timestamp: frame.captureTime)
-      }
-
-      // Embed OCR text for semantic search (non-blocking)
-      if let ocrText = ocrText, !ocrText.isEmpty, let id = inserted.id {
-        Task(priority: .utility) {
-          await OCREmbeddingService.shared.embedScreenshot(
-            id: id, ocrText: ocrText, appName: frame.appName, windowTitle: frame.windowTitle)
-        }
-      }
-
-      // Notify that a new frame was captured (for live UI updates)
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .rewindFrameCaptured, object: nil)
-      }
-
-    } catch {
-      if await discardAbandonedVideoChunkIfNeeded(error) {
-        return
-      }
-      logError("RewindIndexer: Failed to process frame with metadata", error: error)
       await RewindDatabase.shared.reportQueryError(error)
     }
   }
@@ -623,13 +493,17 @@ actor RewindIndexer {
 
     let retentionDays = RewindSettings.shared.retentionDays
 
+    // "Keep everything" is the absence of a cutoff, not a very old one. Returning here — before
+    // the database is even opened — is what lets a Rewind timeline be all-time: there is no pass
+    // that could delete the oldest day out from under it.
+    guard let cutoffDate = RewindSettings.retentionCutoff(retentionDays: retentionDays) else {
+      return
+    }
+
     do {
       // Ensure recovery has a chance to run if a previous cleanup closed the DB
       // after a corruption/I/O error.
       try await RewindDatabase.shared.initialize()
-
-      // Get cutoff date
-      let cutoffDate = Calendar.current.date(byAdding: .day, value: -retentionDays, to: Date())!
 
       // Delete from database and get paths to delete
       let deleteResult = try await RewindDatabase.shared.deleteScreenshotsOlderThan(cutoffDate)

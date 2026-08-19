@@ -117,6 +117,7 @@ _SYS_MODULE_NAMES = [
     "utils.llm.gateway_observability",
     "utils.llm.clients",
     "utils.llm.conversation_folder",
+    "utils.llm.conversation_prompt_prefix",
     "utils.llm.conversation_processing",
     "utils.retrieval",
     "utils.retrieval.tools",
@@ -295,6 +296,10 @@ conv_folder_stub.FolderAssignment = MagicMock()
 conv_folder_stub.assign_conversation_to_folder = MagicMock()
 conv_folder_stub.build_folders_context = MagicMock(return_value="")
 
+# Stub utils.llm.gateway_error_contract (conversation_processing imports from it)
+gateway_error_contract_stub = _stub_module("utils.llm.gateway_error_contract")
+gateway_error_contract_stub.is_byok_rate_limit_gateway_error = MagicMock(return_value=False)
+
 # Load models first
 _stub_package("models")
 sys.modules["models"].__path__ = [str(BACKEND_DIR / "models")]
@@ -311,6 +316,15 @@ update_action_item_tool = action_item_tools.update_action_item_tool
 
 # discard_parser only needs pydantic and langchain_core, so load the real module.
 _load_module_from_file("utils.llm.discard_parser", BACKEND_DIR / "utils" / "llm" / "discard_parser.py")
+
+# prompt_cache is stdlib-only, so load the real module. utils.llm is stubbed with an
+# empty __path__ above, which leaves conversation_processing's absolute import of it
+# unresolvable.
+_load_module_from_file("utils.llm.prompt_cache", BACKEND_DIR / "utils" / "llm" / "prompt_cache.py")
+
+prompt_prefix_stub = _stub_module("utils.llm.conversation_prompt_prefix")
+prompt_prefix_stub.ConversationPromptPrefix = MagicMock
+prompt_prefix_stub.shared_conversation_cache_supported = MagicMock(return_value=False)
 
 conversation_processing = _load_module_from_file(
     "utils.llm.conversation_processing",

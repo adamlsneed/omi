@@ -321,7 +321,7 @@ class AppLocalizationsBe extends AppLocalizations {
   String get searchApps => 'Поіск дадатаў...';
 
   @override
-  String get myApps => 'Мае дадатыі';
+  String get myApps => 'Створана мной';
 
   @override
   String get installedApps => 'Усталяваныя дадатыі';
@@ -753,11 +753,6 @@ class AppLocalizationsBe extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'Ваш план скасуецца на $date.';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'Ваш план аднаўляецца на $date.';
   }
 
   @override
@@ -2138,16 +2133,16 @@ class AppLocalizationsBe extends AppLocalizations {
   String get editMemory => '✏️ Редагаваць спамін';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'Замацаваць як базавае';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'Адмацаваць ад базавага';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'Базавая памяць';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'Заўсёды ў кантэксце';
 
   @override
   String get memoryContentHint => 'Мне нравіцца есці мароженае...';
@@ -10030,4 +10025,93 @@ class AppLocalizationsBe extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'Не ўдалося падключыцца да гэтага мікрафона. Праверце, ці падключаны ён у наладах iPhone.';
+
+  @override
+  String get syncStatusTooOld => 'Занадта старое для сінхранізацыі — Omi не можа яго прыняць';
+
+  @override
+  String get planSheetChooseYourPlan => 'Выберыце свой план, каб адкрыць безмежны Omi.';
+
+  @override
+  String get availableOnMacMobileWeb => 'Даступна на Mac, мабільным і ў вэбе';
+
+  @override
+  String get popularBadge => 'ПАПУЛЯРНЫ';
+
+  @override
+  String get worksOnDesktop => 'Працуе на камп\'ютары';
+
+  @override
+  String get noDesktopAccess => 'Не працуе на камп\'ютары';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months мес. / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count месяца бясплатна',
+      many: '$count месяцаў бясплатна',
+      few: '$count месяцы бясплатна',
+      one: '$count месяц бясплатна',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro =>
+      'Omi бясплатны, але бясплатная версія мае абмежаванні, якія ўплываюць на ваш вопыт:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => 'Затрымка 5-7 секунд (не ў рэальным часе)';
+
+  @override
+  String get downgradeToFreemiumAction => 'Перайсці на бясплатны план';
+
+  @override
+  String get getFreeUnlimitedAccess => 'Атрымайце бязмежны доступ бясплатна';
+
+  @override
+  String get shareDataForTraining => 'Дзяліцца дадзенымі для навучання';
+
+  @override
+  String get yourRequestUnderReview => 'Ваш запыт разглядаецца';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'Требуется обновление';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage =>
+      'Установите последнее приложение Omi, чтобы продолжить после миграции аккаунта.';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'Идёт миграция';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'Ваш аккаунт мигрирует. Функции продукта приостановлены до завершения миграции.';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'Ваш аккаунт на обслуживании после отката миграции. Часть более новых данных может быть изолирована.';
+
+  @override
+  String get accountCutoverOpenStore => 'Открыть магазин';
+
+  @override
+  String get sendRawAudioToOmi => 'Адпраўляць неапрацаванае аўдыя ў Omi';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'Выключыце, каб не адпраўляць у Omi неапрацаванае аўдыя. Расшыфроўкі і даныя, патрэбныя воблачным функцыям, усё яшчэ могуць адпраўляцца ў Omi.';
+
+  @override
+  String get findDevice => 'Знайсці';
+
+  @override
+  String get diagnosticsShareFailed => 'Не ўдалося падзяліцца дыягностыкай. Паспрабуйце яшчэ раз.';
 }

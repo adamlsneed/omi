@@ -320,7 +320,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchApps => 'アプリを検索...';
 
   @override
-  String get myApps => 'マイアプリ';
+  String get myApps => '自分で作成';
 
   @override
   String get installedApps => 'インストール済みアプリ';
@@ -513,6 +513,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get micGain => 'マイクゲイン';
+
+  @override
+  String get pressAndHold => '長押し';
+
+  @override
+  String get captureIdea => 'アイデアを記録';
+
+  @override
+  String get savingIdea => 'アイデアを保存中';
 
   @override
   String get disconnect => '接続解除';
@@ -731,11 +740,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'プランは$dateにキャンセルされます。';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'プランは$dateに更新されます。';
   }
 
   @override
@@ -2089,16 +2093,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editMemory => '✏️ 記憶を編集';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'ベースラインに固定';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'ベースラインから解除';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'ベースラインメモリ';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => '常にコンテキストに含む';
 
   @override
   String get memoryContentHint => 'アイスクリームが好き...';
@@ -9139,6 +9143,139 @@ class AppLocalizationsJa extends AppLocalizations {
   String get syncCardBackendBusy => 'Omi のサーバーが混雑しています — 空き容量が戻り次第、録音が同期されます';
 
   @override
+  String memoriesUsedThisMonth(String used, String limit) {
+    return '今月 $limit個中$used個の記憶作成済み';
+  }
+
+  @override
+  String get wifiSyncSettings => 'WiFi同期設定';
+
+  @override
+  String get enterHotspotCredentials => 'スマートフォンのホットスポット認証情報を入力';
+
+  @override
+  String get wifiSyncUsesHotspot => 'WiFi同期はスマートフォンをホットスポットとして使用します。設定 > インターネット共有で名前とパスワードを確認してください。';
+
+  @override
+  String get hotspotNameSsid => 'ホットスポット名（SSID）';
+
+  @override
+  String get exampleIphoneHotspot => '例：iPhoneホットスポット';
+
+  @override
+  String get enterHotspotPassword => 'ホットスポットのパスワードを入力';
+
+  @override
+  String get pleaseEnterHotspotName => 'ホットスポット名を入力してください';
+
+  @override
+  String get wifiCredentialsSaved => 'WiFi認証情報を保存しました';
+
+  @override
+  String get wifiCredentialsCleared => 'WiFi認証情報をクリアしました';
+
+  @override
+  String get fastTransfer => '高速転送';
+
+  @override
+  String get transferMethod => '転送方法';
+
+  @override
+  String get fast => '高速';
+
+  @override
+  String get ble => 'BLE';
+
+  @override
+  String get wifiEnableFailed => 'デバイスでWiFiを有効にできませんでした。もう一度お試しください。';
+
+  @override
+  String get deviceNoFastTransfer => 'お使いのデバイスは高速転送に対応していません。Bluetoothをご使用ください。';
+
+  @override
+  String get enableHotspotMessage => '電話のホットスポットを有効にしてもう一度お試しください。';
+
+  @override
+  String get transferStartFailed => '転送を開始できませんでした。もう一度お試しください。';
+
+  @override
+  String get invalidWifiCredentials => 'WiFi認証情報が無効です。ホットスポットの設定を確認してください。';
+
+  @override
+  String get wifiConnectionFailed => 'WiFi接続に失敗しました。もう一度お試しください。';
+
+  @override
+  String get wifiSyncFailed => 'WiFi同期に失敗しました';
+
+  @override
+  String get wifiSync => 'WiFi同期';
+
+  @override
+  String get wifiConnectionFailedTitle => '接続に失敗しました';
+
+  @override
+  String enableDeviceWifi(String deviceName) {
+    return '$deviceNameのWiFiを有効化';
+  }
+
+  @override
+  String get switchedToFastTransfer => '高速転送に切り替えました';
+
+  @override
+  String get fastTransferEnabled => '高速転送が有効になりました';
+
+  @override
+  String get enableFastTransfer => '高速転送を有効にする';
+
+  @override
+  String get fastTransferDescription => '高速転送はWiFiを使用して約5倍の速度を実現します。転送中、電話は一時的にOmiデバイスのWiFiネットワークに接続されます。';
+
+  @override
+  String get internetAccessPausedDuringTransfer => '転送中はインターネットアクセスが一時停止されます';
+
+  @override
+  String get chooseTransferMethodDescription => 'Omiデバイスから電話への録音の転送方法を選択してください。';
+
+  @override
+  String get wifiSpeed => 'WiFi経由で約150 KB/s';
+
+  @override
+  String get fiveTimesFaster => '5倍高速';
+
+  @override
+  String get fastTransferMethodDescription => 'Omiデバイスへの直接WiFi接続を作成します。転送中、電話は通常のWiFiから一時的に切断されます。';
+
+  @override
+  String get locationPermissionRequired => '位置情報の許可が必要です';
+
+  @override
+  String get locationPermissionContent => '高速転送にはWiFi接続を確認するために位置情報の許可が必要です。続行するには位置情報の許可を付与してください。';
+
+  @override
+  String get chooseTransferMethod => '転送方法を選択';
+
+  @override
+  String get fastTransferSpeed => 'WiFi経由で約150 KB/s';
+
+  @override
+  String get deviceDoesNotSupportWifiSwitchingToBle => 'デバイスはWiFi同期をサポートしていません。Bluetoothに切り替えています';
+
+  @override
+  String get autoAddTasksToAppleReminders => 'タスクをAppleリマインダーに自動追加';
+
+  @override
+  String get autoAddTasksToAppleRemindersDescription => 'オンにすると、Omiが作成したタスクが自動的にリマインダーに追加されます。オフの場合でも、手動でタスクを追加できます。';
+
+  @override
+  String get addSelectedToAppleReminders => '選択項目をApple Remindersに追加';
+
+  @override
+  String get selectedActionItemsPartiallyAddedToAppleReminders => '一部の選択したタスクを追加できませんでした。';
+
+  @override
+  String get selectedActionItemsAlreadyExported => '選択したタスクはすでにエクスポートされています。';
+
+  @override
   String get unableToDetermineFirmwareVersion => '現在のファームウェアバージョンを特定できません';
 
   @override
@@ -9149,6 +9286,84 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get invalidPromotionCode => '無効なプロモコードです。';
+
+  @override
+  String get templateRouting => 'テンプレートルーティング';
+
+  @override
+  String get templateRoutingAutoRunOnOpen => '開いたときに自動実行';
+
+  @override
+  String get templateRoutingWorkDays => '勤務日';
+
+  @override
+  String get templateRoutingWorkDaysMonFri => '月曜～金曜';
+
+  @override
+  String get templateRoutingWorkStart => '作業開始';
+
+  @override
+  String get templateRoutingWorkEnd => '作業終了';
+
+  @override
+  String get templateRoutingWorkPrompt => '作業プロンプト';
+
+  @override
+  String get templateRoutingPersonalPrompt => '個人的なプロンプト';
+
+  @override
+  String get templateRoutingSaved => 'テンプレートルーティングが保存されました';
+
+  @override
+  String get templateRoutingTimeFormatError => '08:00 や 17:00 などの 24 時間時間を使用します。';
+
+  @override
+  String get templateRoutingStartBeforeEndError => '作業開始は作業終了前���なければなりません。';
+
+  @override
+  String get templateRoutingPromptsRequiredError => 'ルーティングを有効にする前に、両方のプロンプトを追加します。';
+
+  @override
+  String get templateRoutingApplyingLocalTemplate => 'ローカル テンプレートを適用しています...';
+
+  @override
+  String get templateRoutingReturnedNoSummary => 'テンプレート ルーティングは概要を返しませんでした。';
+
+  @override
+  String get templateRoutingFailed => 'テンプレートのルーティングに失敗しました。';
+
+  @override
+  String get templateRoutingLocalDescription => 'ローカルテンプレートルーティング';
+
+  @override
+  String get templateRoutingRoutedSummary => 'ルーティングされた概要';
+
+  @override
+  String get templateRoutingWorkRoutedSummary => 'ルーティングされた作業の概要';
+
+  @override
+  String get templateRoutingPersonalRoutedSummary => '個人ルーティン��の概要';
+
+  @override
+  String get templateRoutingBackendTemplateSection => 'バックエンドテンプレート（任意）';
+
+  @override
+  String get templateRoutingWorkTemplate => '仕事用テンプレート';
+
+  @override
+  String get templateRoutingPersonalTemplate => '個人用テンプレート';
+
+  @override
+  String get templateRoutingTemplateNone => 'なし — プロンプトを使用';
+
+  @override
+  String get templateRoutingManageApps => '要約アプリを有効化';
+
+  @override
+  String get templateRoutingTemplateHint => 'このプロフィール用にインストール済みの要約アプリを選択するか、「なし」のままにして上記のプロンプトを使用してください。';
+
+  @override
+  String get templateRoutingProfileRequiredError => '有効化する前に、仕事と個人の両方のプロフィールにプロンプトまたはテンプレートを追加してください。';
 
   @override
   String get backgroundModeTitle => 'バックグラウンドモード';
@@ -9609,4 +9824,86 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get rayBanMetaMicPickerConnectError => 'そのマイクに接続できませんでした。iPhone の設定で接続されていることを確認してください。';
+
+  @override
+  String get syncStatusTooOld => '古すぎて同期できません — Omi は受け付けられません';
+
+  @override
+  String get planSheetChooseYourPlan => 'プランを選んで、無制限のOmiを解放しましょう。';
+
+  @override
+  String get availableOnMacMobileWeb => 'Mac、モバイル、ウェブで利用可能';
+
+  @override
+  String get popularBadge => '人気';
+
+  @override
+  String get worksOnDesktop => 'デスクトップで利用できます';
+
+  @override
+  String get noDesktopAccess => 'デスクトップでは利用できません';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$monthsか月 / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countか月無料',
+      one: '1か月無料',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro => 'Omiは無料ですが、無料版には体験に影響する制限があります:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => '5〜7秒の遅延（リアルタイムではありません）';
+
+  @override
+  String get downgradeToFreemiumAction => '無料版に変更';
+
+  @override
+  String get getFreeUnlimitedAccess => '無制限アクセスを無料で入手';
+
+  @override
+  String get shareDataForTraining => 'トレーニング用にデータを共有';
+
+  @override
+  String get yourRequestUnderReview => 'リクエストを確認中です';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'アップデートが必要です';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage => 'アカウント移行後も続行するには、最新のOmiアプリをインストールしてください。';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => '移行中';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage => 'アカウントを移行中です。移行が完了するまでプロダクト機能は一時停止されます。';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage => '移行のロールバック後、アカウントはメンテナンス中です。新しいデータの一部が孤立している可能性があります。';
+
+  @override
+  String get accountCutoverOpenStore => 'ストアを開く';
+
+  @override
+  String get sendRawAudioToOmi => '未処理の音声を Omi に送信';
+
+  @override
+  String get sendRawAudioToOmiDescription => 'オフにすると、未処理の音声は Omi に送信されません。文字起こしとクラウド機能に必要なデータは、引き続き Omi に送信される場合があります。';
+
+  @override
+  String get findDevice => '探す';
+
+  @override
+  String get diagnosticsShareFailed => '診断情報を共有できませんでした。もう一度お試しください。';
 }

@@ -2,6 +2,22 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
+enum CaptureTrigger: String, Codable, Equatable {
+  case timer
+  case startupImmediate = "startup_immediate"
+  case contextSwitch = "context_switch"
+  case manual
+  case replay
+}
+
+enum CapturedTextSource: String, Codable, Equatable {
+  case none
+  case ocr
+  case accessibility
+  case hybrid
+  case deferred
+}
+
 struct CapturedFrame: @unchecked Sendable {
   var jpegData: Data { lazyData.value }
 
@@ -11,6 +27,10 @@ struct CapturedFrame: @unchecked Sendable {
   let captureTime: Date
   let screenshotId: Int64?
 
+  /// Reason this frame was captured. Stored with Rewind screenshots so later
+  /// prompts and diagnostics can distinguish timer captures from event-driven captures.
+  let captureTrigger: CaptureTrigger
+
   private let lazyData: LazyJPEGData
 
   init(
@@ -19,7 +39,8 @@ struct CapturedFrame: @unchecked Sendable {
     windowTitle: String? = nil,
     frameNumber: Int,
     captureTime: Date = Date(),
-    screenshotId: Int64? = nil
+    screenshotId: Int64? = nil,
+    captureTrigger: CaptureTrigger = .timer
   ) {
     self.lazyData = LazyJPEGData(jpegData: jpegData)
     self.appName = appName
@@ -27,6 +48,7 @@ struct CapturedFrame: @unchecked Sendable {
     self.frameNumber = frameNumber
     self.captureTime = captureTime
     self.screenshotId = screenshotId
+    self.captureTrigger = captureTrigger
   }
 
   init(
@@ -36,7 +58,8 @@ struct CapturedFrame: @unchecked Sendable {
     windowTitle: String? = nil,
     frameNumber: Int,
     captureTime: Date = Date(),
-    screenshotId: Int64? = nil
+    screenshotId: Int64? = nil,
+    captureTrigger: CaptureTrigger = .timer
   ) {
     self.lazyData = LazyJPEGData(cgImage: cgImage, quality: jpegQuality)
     self.appName = appName
@@ -44,6 +67,7 @@ struct CapturedFrame: @unchecked Sendable {
     self.frameNumber = frameNumber
     self.captureTime = captureTime
     self.screenshotId = screenshotId
+    self.captureTrigger = captureTrigger
   }
 
   private final class LazyJPEGData: @unchecked Sendable {

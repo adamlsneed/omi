@@ -322,7 +322,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get searchApps => 'جستجوی اپلیکیشن‌ها...';
 
   @override
-  String get myApps => 'اپلیکیشن‌های من';
+  String get myApps => 'ساخته‌شده توسط من';
 
   @override
   String get installedApps => 'اپلیکیشن‌های نصب‌شده';
@@ -753,11 +753,6 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'طرح شما در تاریخ $date لغو خواهد شد.';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'طرح شما در تاریخ $date تجدید خواهد شد.';
   }
 
   @override
@@ -2134,16 +2129,16 @@ class AppLocalizationsFa extends AppLocalizations {
   String get editMemory => '✏️ ویرایش خاطره';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'سنجاق به‌عنوان مبنا';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'برداشتن سنجاق از مبنا';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'حافظه مبنا';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'همیشه در زمینه';
 
   @override
   String get memoryContentHint => 'من دوست دارم بستنی بخورم...';
@@ -10002,4 +9997,89 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'اتصال به این میکروفون ممکن نشد. مطمئن شوید در تنظیمات iPhone متصل است.';
+
+  @override
+  String get syncStatusTooOld => 'برای همگام‌سازی خیلی قدیمی است — Omi نمی‌تواند آن را بپذیرد';
+
+  @override
+  String get planSheetChooseYourPlan => 'برای باز کردن Omi نامحدود، طرح خود را انتخاب کنید.';
+
+  @override
+  String get availableOnMacMobileWeb => 'در دسترس روی Mac، موبایل و وب';
+
+  @override
+  String get popularBadge => 'محبوب';
+
+  @override
+  String get worksOnDesktop => 'روی دسکتاپ کار می‌کند';
+
+  @override
+  String get noDesktopAccess => 'روی دسکتاپ کار نمی‌کند';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months ماه / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ماه رایگان',
+      one: '۱ ماه رایگان',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro => 'Omi رایگان است، اما نسخه رایگان محدودیت‌هایی دارد که بر تجربه شما اثر می‌گذارد:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => '۵ تا ۷ ثانیه تأخیر (بلادرنگ نیست)';
+
+  @override
+  String get downgradeToFreemiumAction => 'بازگشت به نسخه رایگان';
+
+  @override
+  String get getFreeUnlimitedAccess => 'دسترسی نامحدود رایگان بگیرید';
+
+  @override
+  String get shareDataForTraining => 'اشتراک‌گذاری داده برای آموزش';
+
+  @override
+  String get yourRequestUnderReview => 'درخواست شما در حال بررسی است';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'التحديث مطلوب';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage => 'ثبّت أحدث تطبيق Omi للمتابعة بعد ترحيل الحساب.';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'الترحيل قيد التقدم';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'حسابك قيد الترحيل. ميزات المنتج متوقفة مؤقتًا حتى انتهاء الترحيل.';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'حسابك قيد الصيانة بعد التراجع عن الترحيل. قد تُعزل بعض البيانات الأحدث.';
+
+  @override
+  String get accountCutoverOpenStore => 'فتح المتجر';
+
+  @override
+  String get sendRawAudioToOmi => 'ارسال صدای خام به Omi';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'برای جلوگیری از ارسال صدای خام به Omi این گزینه را خاموش کنید. متن پیاده‌شده و داده‌های مورد نیاز قابلیت‌های ابری ممکن است همچنان به Omi ارسال شوند.';
+
+  @override
+  String get findDevice => 'پیدا کردن';
+
+  @override
+  String get diagnosticsShareFailed => 'اشتراک‌گذاری اطلاعات تشخیصی ممکن نشد. لطفاً دوباره تلاش کنید.';
 }

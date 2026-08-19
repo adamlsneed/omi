@@ -7,11 +7,11 @@ on:
       - 'backend/Dockerfile.desktop_backend'
       - 'backend/**/*.py'
       - 'backend/pylock.runtime.toml'
-      - 'backend/agent_vm/**'
       - 'backend/runtime_images.json'
       - '.github/workflows/desktop_backend_auto_dev.yml'
       - '.github/scripts/desktop_backend_candidate_probe.py'
       - '.github/scripts/verify_desktop_backend_image_lineage.py'
+      - '.github/scripts/extract_single_cloud_run_traffic_revision.py'
       - 'backend/scripts/resolve_cloud_run_tagged_url.py'
       - 'backend/scripts/wait_cloud_run_candidate_readiness.py'
       - 'backend/scripts/firebase_release_probe_token.py'
@@ -32,7 +32,6 @@ env:
   DEVELOPMENT_DESKTOP_BACKEND_URL: https://desktop-backend-dt5lrfkkoa-uc.a.run.app
   CANDIDATE_TAG: desktop-dev-candidate
   CHAT_CONTRACT_VERSION: '1'
-  AGENT_GCS_BUCKET: ${{ vars.AGENT_GCS_BUCKET }}
 
 concurrency:
   group: desktop-backend-auto-dev
@@ -180,23 +179,11 @@ jobs:
           cache-from: type=registry,ref=gcr.io/${{ vars.GCP_PROJECT_ID }}/${{ env.SERVICE }}:buildcache
           cache-to: type=registry,ref=gcr.io/${{ vars.GCP_PROJECT_ID }}/${{ env.SERVICE }}:buildcache,mode=max
 
-      - name: Build and publish Agent VM image
-        env:
-          PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          AGENT_GCS_BUCKET: ${{ vars.AGENT_GCS_BUCKET }}
+      - name: Smoke desktop-backend runtime image
         run: |
-          set -euo pipefail
-          if [[ -z "$AGENT_GCS_BUCKET" ]]; then
-            echo "::warning::AGENT_GCS_BUCKET is not set — skipping Agent VM image build"
-            exit 0
-          fi
-          agent_image="gcr.io/$PROJECT_ID/agent-vm:${{ steps.candidate-identity.outputs.image_tag }}"
-          docker build --tag "$agent_image" --file backend/agent_vm/Dockerfile .
           python3 backend/scripts/runtime_image_contracts.py smoke \
-            --dockerfile backend/agent_vm/Dockerfile --image "$agent_image"
-          docker push "$agent_image"
-          AGENT_VM_IMAGE="$agent_image" envsubst < backend/agent_vm/startup.sh \
-            | gcloud storage cp - "gs://$AGENT_GCS_BUCKET/startup.sh"
+            --dockerfile backend/Dockerfile.desktop_backend \
+            --image gcr.io/${{ vars.GCP_PROJECT_ID }}/${{ env.SERVICE }}:${{ steps.candidate-identity.outputs.image_tag }}
 
       - name: Deploy desktop-backend to Cloud Run
         id: deploy-candidate
@@ -211,14 +198,20 @@ jobs:
             --allow-unauthenticated
             --revision-suffix=${{ steps.candidate-identity.outputs.revision_suffix }}
             --tag=${{ env.CANDIDATE_TAG }}
-            --remove-env-vars=OMI_DESKTOP_RELEASE_TAG,OMI_DESKTOP_RELEASE_SHA,OMI_DESKTOP_RELEASE_CHANNEL
+            --network=default
+            --subnet=default
+            --vpc-egress=private-ranges-only
+            --remove-env-vars=GOOGLE_APPLICATION_CREDENTIALS,SERVICE_ACCOUNT_JSON,OMI_DESKTOP_RELEASE_TAG,OMI_DESKTOP_RELEASE_SHA,OMI_DESKTOP_RELEASE_CHANNEL,AGENT_VM_TRUSTED_HEALTH_CHANNEL,AGENT_GCS_BUCKET,GCE_SERVICE_ACCOUNT,GCE_RUNTIME_SERVICE_ACCOUNT,GCE_PROJECT_ID,AGENT_VM_BOOT_IMAGE,AGENT_VM_STARTUP_URI,AGENT_VM_RELEASE_ID,AGENT_VM_IMAGE_DIGEST,AGENT_VM_STARTUP_SHA256,AGENT_VM_STOP_AUDIENCE,AGENT_VM_PROVISIONING_ENABLED
           env_vars: |
+            FIREBASE_AUTH_PROJECT_ID=${{ env.FIREBASE_AUTH_PROJECT_ID }}
             FIREBASE_PROJECT_ID=${{ env.FIREBASE_AUTH_PROJECT_ID }}
-            GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase/service-account.json
+            GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT_ID }}
+            USE_VERTEX_AI=true
+            GCP_LOCATION=us-central1
+            FIREBASE_AUTH_CREDENTIALS_PATH=/secrets/firebase/service-account.json
             BASE_API_URL=${{ steps.desktop-base-api-url.outputs.base_api_url }}
             OMI_DESKTOP_BACKEND_RELEASE_SHA=${{ steps.candidate-identity.outputs.source_sha }}
             OMI_DESKTOP_BACKEND_RELEASE_CHANNEL=development
-            AGENT_GCS_BUCKET=${{ env.AGENT_GCS_BUCKET }}
           secrets: |
             /secrets/firebase/service-account.json=SERVICE_ACCOUNT_JSON:latest
             GEMINI_API_KEY=GEMINI_API_KEY:latest
@@ -358,12 +351,30 @@ jobs:
           REVISION: ${{ steps.candidate-identity.outputs.revision }}
         run: |
           set -euo pipefail
+          # Refuse only promotions that would move the service backwards in history.
+          # Requiring origin/main to be unchanged fails whenever any commit lands
+          # during the build, which discards an accepted candidate without saving a
+          # single Cloud Build. Run ordering is already guaranteed by the
+          # desktop-backend-auto-dev concurrency group (cancel-in-progress: false).
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          current_main="$(git rev-parse 'origin/main^{commit}')"
-          if [[ "$current_main" != "${{ steps.candidate-identity.outputs.source_sha }}" ]]; then
-            echo "ERROR: candidate is stale because origin/main advanced to $current_main; traffic remains unchanged." >&2
-            exit 1
+          git fetch --no-tags --deepen=200 origin main 2>/dev/null || true
+          serving_revision="$(gcloud run services describe "$SERVICE" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format=json 2>/dev/null \
+            | python3 .github/scripts/extract_single_cloud_run_traffic_revision.py 2>/dev/null || true)"
+          serving_release_sha=""
+          if [[ -n "$serving_revision" ]]; then
+            serving_release_sha="$(gcloud run revisions describe "$serving_revision" \
+              --project="$PROJECT_ID" \
+              --region="$REGION" \
+              --format=json 2>/dev/null \
+              | jq -r '[.spec.containers[]?.env[]? | select(.name == "OMI_DESKTOP_BACKEND_RELEASE_SHA") | .value] | first // ""' \
+              || true)"
           fi
+          python3 .github/scripts/check_desktop_backend_traffic_regression.py \
+            --candidate-sha="${{ steps.candidate-identity.outputs.source_sha }}" \
+            --serving-release-sha="$serving_release_sha"
           python3 backend/scripts/resolve_cloud_run_tagged_url.py \
             --project="$PROJECT_ID" \
             --region="$REGION" \
@@ -437,7 +448,7 @@ jobs:
           restored_revision="$(gcloud run services describe "$SERVICE" \
             --project="$PROJECT_ID" \
             --region="$REGION" \
-            --format='value(status.traffic[percent=100].revisionName)')"
+            --format=json | python3 .github/scripts/extract_single_cloud_run_traffic_revision.py)"
           if [[ "$restored_revision" != "$PREVIOUS_REVISION" ]]; then
             echo "ERROR: rollback verification found $restored_revision, expected $PREVIOUS_REVISION." >&2
             exit 1

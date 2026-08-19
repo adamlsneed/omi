@@ -1,86 +1,71 @@
-import os
+"""Contract tests for the retired Agent VM broker tombstones.
+
+These pin the response shapes every desktop client released before the
+retirement still depends on. They are the regression guard for the only
+server change that hits all old clients at once:
+
+- provision/stop-self answer 410 — never 401, because the desktop APIClient
+  signs the user out on any 401 here (signOutOn401) and a retirement must
+  not force sign-outs;
+- status answers 200 with a null body — never a 200 body claiming
+  ``status: "provisioning"`` without an IP, which released clients would
+  treat as progress and poll for ~6.25 minutes.
+"""
+
 import sys
 from pathlib import Path
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-os.environ.setdefault("ENCRYPTION_SECRET", "omi_ZwB2ZNqB2HHpMK6wStk7sTpavJiPTFg7gXUHnc4tFABPU6pZ2c2DKgehtfgi4RZv")
-
-from routers import desktop_agent_vm
+from routers import desktop_agent_vm  # noqa: E402
 
 
-@pytest.mark.asyncio
-async def test_provision_returns_existing_vm_without_scheduling(monkeypatch):
-    vm = {"vmName": "omi-agent-user", "ip": "1.2.3.4", "authToken": "omi-token", "status": "ready"}
-
-    async def run_blocking(_, function, *args):
-        return function(*args)
-
-    monkeypatch.setattr(desktop_agent_vm, "run_blocking", run_blocking)
-    monkeypatch.setattr(desktop_agent_vm, "_get_vm", lambda uid: vm)
-    tasks = BackgroundTasks()
-
-    response = await desktop_agent_vm.provision_agent_vm(tasks, "user")
-
-    assert response.model_dump(by_alias=True) == {
-        "status": "exists",
-        "vmName": "omi-agent-user",
-        "ip": "1.2.3.4",
-        "authToken": "omi-token",
-        "agentStatus": "ready",
-    }
-    assert not tasks.tasks
+@pytest.fixture()
+def client() -> TestClient:
+    app = FastAPI()
+    app.include_router(desktop_agent_vm.router)
+    return TestClient(app)
 
 
-@pytest.mark.asyncio
-async def test_status_restarts_stopped_vm_and_returns_provisioning(monkeypatch):
-    vm = {
-        "vmName": "omi-agent-user",
-        "zone": "us-central1-a",
-        "ip": "1.2.3.4",
-        "authToken": "omi-token",
-        "status": "ready",
-        "createdAt": "2026-07-26T00:00:00Z",
-    }
-    writes = []
-
-    async def run_blocking(_, function, *args):
-        return function(*args)
-
-    monkeypatch.setattr(desktop_agent_vm, "run_blocking", run_blocking)
-    monkeypatch.setattr(desktop_agent_vm, "_get_vm", lambda uid: vm)
-    monkeypatch.setattr(desktop_agent_vm, "_project", lambda: "project")
-    monkeypatch.setattr(desktop_agent_vm, "_instance", lambda *args: _stopped_instance())
-    monkeypatch.setattr(desktop_agent_vm, "_set_vm", lambda *args: writes.append(args))
-    tasks = BackgroundTasks()
-
-    response = await desktop_agent_vm.get_agent_status(tasks, "user")
-
-    assert response.status == "provisioning"
-    assert response.ip is None
-    assert writes[0][2] == "provisioning"
-    assert len(tasks.tasks) == 1
+def test_provision_is_gone_not_unauthorized(client: TestClient) -> None:
+    response = client.post("/v2/agent/provision")
+    assert response.status_code == 410
+    assert response.status_code != 401
 
 
-@pytest.mark.asyncio
-async def test_agent_vm_rejects_paywalled_desktop_user(monkeypatch):
-    async def run_blocking(_, function, *args):
-        return function(*args)
-
-    monkeypatch.setattr(desktop_agent_vm, "run_blocking", run_blocking)
-    monkeypatch.setattr(desktop_agent_vm, "is_trial_paywalled", lambda uid, platform: True)
-
-    with pytest.raises(HTTPException) as error:
-        await desktop_agent_vm._authorized_desktop_user("user")
-
-    assert error.value.status_code == 402
-    assert error.value.detail == "trial_expired"
+def test_provision_surfaces_a_machine_readable_detail(client: TestClient) -> None:
+    response = client.post("/v2/agent/provision")
+    assert response.json()["detail"]
 
 
-async def _stopped_instance():
-    return "TERMINATED", None
+def test_stop_self_is_gone_not_unauthorized(client: TestClient) -> None:
+    response = client.post("/v2/agent/vm/stop-self")
+    assert response.status_code == 410
+    assert response.status_code != 401
+
+
+def test_status_is_200_with_null_body(client: TestClient) -> None:
+    response = client.get("/v2/agent/status")
+    assert response.status_code == 200
+    assert response.json() is None
+
+
+def test_status_never_reports_provisioning_without_ip(client: TestClient) -> None:
+    """A provisioning body without an IP makes old clients poll 75x5s."""
+    response = client.get("/v2/agent/status")
+    body = response.json()
+    assert not (isinstance(body, dict) and body.get("status") == "provisioning" and not body.get("ip"))
+
+
+def test_tombstones_do_not_require_authentication(client: TestClient) -> None:
+    """No Authorization header anywhere: auth failures are the 401 class the
+    retirement must never emit, so the tombstones skip auth entirely."""
+    for method, path in (("post", "/v2/agent/provision"), ("get", "/v2/agent/status")):
+        response = getattr(client, method)(path, headers={"Authorization": "Bearer stale-or-absent"})
+        assert response.status_code in (200, 410)

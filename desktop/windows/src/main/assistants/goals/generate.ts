@@ -25,7 +25,9 @@ import { getAppSettings, setAppSettings } from '../../appSettings'
 import { fetchGoalContext, hasSufficientContext, type GoalContextData } from './context'
 import { GOAL_SYSTEM_PROMPT, GOAL_SUGGESTION_SCHEMA, fillPrompt } from './prompt'
 
-const MODEL = 'gemini-2.5-flash'
+// Flash-Lite: text-only, schema-bounded, nobody waiting — no business on the Vertex
+// Flash PT reservation. Mirrors Mac's ModelQoS.Gemini.lightweight goals pin.
+export const MODEL = 'gemini-2.5-flash-lite'
 const REQUEST_TIMEOUT_MS = 30_000
 /** 3 attempts total. Mac's backoff, exactly: 2s then 8s. */
 const RETRY_DELAYS_MS = [2_000, 8_000]
@@ -33,18 +35,20 @@ const RETRY_DELAYS_MS = [2_000, 8_000]
 /** The assistant id under which the "New Goal" toast is throttled/logged. */
 export const GOALS_ASSISTANT_ID = 'goals'
 
-/** Carries the status only — never a response body (it can echo the prompt, which
+/** Carries typed response metadata only — never a response body (it can echo the prompt, which
  *  carries the user's memories/conversations). */
 export class GeminiHttpError extends Error {
-  constructor(readonly status: number) {
+  constructor(
+    readonly status: number,
+    readonly retryable: boolean
+  ) {
     super(`gemini proxy HTTP ${status}`)
     this.name = 'GeminiHttpError'
   }
 }
 
 function isTransient(e: unknown): boolean {
-  if (e instanceof GeminiHttpError) return e.status === 429 || e.status >= 500
-  return !(e instanceof Error && e.name === 'AbortError')
+  return e instanceof GeminiHttpError && e.retryable
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -124,7 +128,8 @@ async function attempt(
           signal
         }
       )
-      if (!res.ok) throw new GeminiHttpError(res.status)
+      if (!res.ok)
+        throw new GeminiHttpError(res.status, res.headers?.get?.('x-omi-retryable') === 'true')
       return extractText(await res.json())
     },
     external

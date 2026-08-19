@@ -5,7 +5,9 @@ import 'dart:typed_data';
 import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:permission_handler/permission_handler.dart';
+// hide PermissionStatus: flutter_contacts has its own PermissionStatus enum, and this
+// file never spells out permission_handler's version by name (only inferred via `var`).
+import 'package:permission_handler/permission_handler.dart' hide PermissionStatus;
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -487,7 +489,7 @@ class PhoneCallProvider extends ChangeNotifier {
     Logger.info('PhoneCallProvider: connecting to $wsUrl');
 
     try {
-      var headers = await buildHeaders(requireAuthCheck: true);
+      var headers = await buildHeaders(requireAuthCheck: true, url: wsUrl, forWebSocket: true);
       if (generation != _sessionGeneration || !_sessionEnabled) return;
       _transcriptionSocket = IOWebSocketChannel.connect(
         wsUrl,
@@ -611,10 +613,10 @@ class PhoneCallProvider extends ChangeNotifier {
 
   Future<String?> _resolveContactName(String phoneNumber) async {
     try {
-      bool hasPermission = await FlutterContacts.requestPermission(readonly: true);
-      if (!hasPermission) return null;
+      final status = await FlutterContacts.permissions.request(PermissionType.read);
+      if (status != PermissionStatus.granted && status != PermissionStatus.limited) return null;
 
-      var contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
+      var contacts = await FlutterContacts.getAll(properties: {ContactProperty.phone});
       var cleaned = _cleanPhoneNumber(phoneNumber);
 
       for (var contact in contacts) {

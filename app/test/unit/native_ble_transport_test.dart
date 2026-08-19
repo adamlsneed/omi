@@ -45,6 +45,9 @@ void main() {
       hostCalls.add('unmanageDevice');
       return wrapResponse();
     });
+    // connect() gates on BluetoothReadiness, which queries the adapter state
+    // through the same pigeon channel; reply is pigeon-wrapped in a List.
+    setBleHostHandler('getBluetoothState', (message) async => ['on']);
   });
 
   tearDown(() {
@@ -53,6 +56,7 @@ void main() {
       'subscribeCharacteristic',
       'unsubscribeCharacteristic',
       'unmanageDevice',
+      'getBluetoothState',
     ]) {
       final channel = BasicMessageChannel<Object?>(
         'dev.flutter.pigeon.omi_pigeon.BleHostApi.$method',
@@ -70,6 +74,9 @@ void main() {
     addTearDown(transport.dispose);
 
     final connect = transport.connect();
+    // connect() awaits the BluetoothReadiness channel before it registers the
+    // device-ready completer; flush that hop so the ready event is not dropped.
+    await pumpEventQueue();
     BleBridge.instance.onDeviceReady(peripheralUuid, [
       BleService(
         uuid: serviceUuid,
@@ -94,6 +101,9 @@ void main() {
     addTearDown(transport.dispose);
 
     final connect = transport.connect();
+    // connect() awaits the BluetoothReadiness channel before it registers the
+    // device-ready completer; flush that hop so the ready event is not dropped.
+    await pumpEventQueue();
     BleBridge.instance.onDeviceReady(peripheralUuid, [
       BleService(
         uuid: serviceUuid,
@@ -121,6 +131,9 @@ void main() {
     final transport = NativeBleTransport(peripheralUuid);
 
     final connect = transport.connect();
+    // connect() awaits the BluetoothReadiness channel before it registers the
+    // device-ready completer; flush that hop so the ready event is not dropped.
+    await pumpEventQueue();
     BleBridge.instance.onDeviceReady(peripheralUuid, [
       BleService(
         uuid: serviceUuid,

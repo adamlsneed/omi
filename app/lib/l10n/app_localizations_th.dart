@@ -321,7 +321,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get searchApps => 'ค้นหาแอป...';
 
   @override
-  String get myApps => 'แอปของฉัน';
+  String get myApps => 'สร้างโดยฉัน';
 
   @override
   String get installedApps => 'แอปที่ติดตั้งแล้ว';
@@ -749,11 +749,6 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'แผนของคุณจะยกเลิกในวันที่ $date';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'แผนของคุณจะต่ออายุในวันที่ $date';
   }
 
   @override
@@ -2125,16 +2120,16 @@ class AppLocalizationsTh extends AppLocalizations {
   String get editMemory => '✏️ แก้ไขความทรงจำ';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'ปักหมุดเป็นค่าพื้นฐาน';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'เลิกปักหมุดจากค่าพื้นฐาน';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'หน่วยความจำพื้นฐาน';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'อยู่ในบริบทเสมอ';
 
   @override
   String get memoryContentHint => 'ฉันชอบกินไอศกรีม...';
@@ -9944,4 +9939,89 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'เชื่อมต่อกับไมโครโฟนนั้นไม่ได้ ตรวจสอบว่าเชื่อมต่ออยู่ในการตั้งค่า iPhone';
+
+  @override
+  String get syncStatusTooOld => 'เก่าเกินกว่าจะซิงค์ — Omi รับไม่ได้';
+
+  @override
+  String get planSheetChooseYourPlan => 'เลือกแพ็กเกจของคุณเพื่อปลดล็อก Omi แบบไม่จำกัด';
+
+  @override
+  String get availableOnMacMobileWeb => 'ใช้ได้บน Mac มือถือ และเว็บ';
+
+  @override
+  String get popularBadge => 'ยอดนิยม';
+
+  @override
+  String get worksOnDesktop => 'ใช้งานได้บนเดสก์ท็อป';
+
+  @override
+  String get noDesktopAccess => 'ใช้งานบนเดสก์ท็อปไม่ได้';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months เดือน / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ฟรี $count เดือน',
+      one: 'ฟรี 1 เดือน',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro => 'Omi ใช้ฟรี แต่เวอร์ชันฟรีมีข้อจำกัดที่ส่งผลต่อประสบการณ์ของคุณ:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => 'ดีเลย์ 5-7 วินาที (ไม่ใช่แบบเรียลไทม์)';
+
+  @override
+  String get downgradeToFreemiumAction => 'เปลี่ยนไปใช้เวอร์ชันฟรี';
+
+  @override
+  String get getFreeUnlimitedAccess => 'รับสิทธิ์ใช้งานไม่จำกัดฟรี';
+
+  @override
+  String get shareDataForTraining => 'แบ่งปันข้อมูลเพื่อการฝึกฝน';
+
+  @override
+  String get yourRequestUnderReview => 'คำขอของคุณอยู่ระหว่างการตรวจสอบ';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'ต้องอัปเดต';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage => 'ติดตั้งแอป Omi ล่าสุดเพื่อใช้งานต่อหลังการย้ายบัญชี';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'กำลังย้ายข้อมูล';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'บัญชีของคุณกำลังย้าย ฟีเจอร์ผลิตภัณฑ์จะหยุดชั่วคราวจนกว่าการย้ายจะเสร็จ';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'บัญชีของคุณอยู่ในโหมดบำรุงรักษาหลังการย้อนกลับการย้าย ข้อมูลที่ใหม่กว่าบางส่วนอาจถูกแยกไว้';
+
+  @override
+  String get accountCutoverOpenStore => 'เปิดสโตร์';
+
+  @override
+  String get sendRawAudioToOmi => 'ส่งเสียงดิบไปยัง Omi';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'ปิดเพื่อไม่ให้ส่งเสียงดิบไปยัง Omi ข้อความถอดเสียงและข้อมูลที่ฟีเจอร์คลาวด์ต้องใช้อาจยังถูกส่งไปยัง Omi';
+
+  @override
+  String get findDevice => 'ค้นหา';
+
+  @override
+  String get diagnosticsShareFailed => 'ไม่สามารถแชร์ข้อมูลวินิจฉัยได้ โปรดลองใหม่';
 }

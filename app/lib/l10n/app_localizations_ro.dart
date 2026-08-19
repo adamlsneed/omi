@@ -324,7 +324,7 @@ class AppLocalizationsRo extends AppLocalizations {
   String get searchApps => 'Căutați aplicații...';
 
   @override
-  String get myApps => 'Aplicațiile mele';
+  String get myApps => 'Creat de mine';
 
   @override
   String get installedApps => 'Aplicații instalate';
@@ -756,11 +756,6 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'Planul tău se va anula pe $date.';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'Planul tău se reînnoiește pe $date.';
   }
 
   @override
@@ -2146,16 +2141,16 @@ class AppLocalizationsRo extends AppLocalizations {
   String get editMemory => '✏️ Editează amintirea';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'Fixează ca referință';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'Anulează fixarea ca referință';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'Memorie de referință';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'Mereu în context';
 
   @override
   String get memoryContentHint => 'Îmi place să mănânc înghețată...';
@@ -10047,4 +10042,92 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'Nu s-a putut conecta la acel microfon. Asigură-te că este conectat în Configurările iPhone.';
+
+  @override
+  String get syncStatusTooOld => 'Prea veche pentru sincronizare — Omi nu o poate accepta';
+
+  @override
+  String get planSheetChooseYourPlan => 'Alege-ți planul pentru a debloca Omi nelimitat.';
+
+  @override
+  String get availableOnMacMobileWeb => 'Disponibil pe Mac, mobil și web';
+
+  @override
+  String get popularBadge => 'POPULAR';
+
+  @override
+  String get worksOnDesktop => 'Funcționează pe desktop';
+
+  @override
+  String get noDesktopAccess => 'Nu funcționează pe desktop';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months luni / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count de luni gratuit',
+      few: '$count luni gratuit',
+      one: '$count lună gratuit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro =>
+      'Omi este gratuit, dar versiunea gratuită are limite care îți afectează experiența:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => 'Întârziere de 5-7 secunde (nu în timp real)';
+
+  @override
+  String get downgradeToFreemiumAction => 'Treci la versiunea gratuită';
+
+  @override
+  String get getFreeUnlimitedAccess => 'Obține acces nelimitat gratuit';
+
+  @override
+  String get shareDataForTraining => 'Partajează date pentru antrenare';
+
+  @override
+  String get yourRequestUnderReview => 'Cererea ta este în curs de examinare';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'Actualizare necesară';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage =>
+      'Instalează cea mai recentă aplicație Omi pentru a continua după migrarea contului.';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'Migrare în curs';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'Contul tău este în curs de migrare. Funcțiile produsului sunt întrerupte până la finalizarea migrării.';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'Contul tău este în mentenanță după un rollback al migrării. Unele date mai noi pot fi izolate.';
+
+  @override
+  String get accountCutoverOpenStore => 'Deschide magazinul';
+
+  @override
+  String get sendRawAudioToOmi => 'Trimite sunetul brut către Omi';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'Dezactivează pentru a împiedica trimiterea sunetului brut către Omi. Transcrierile și datele necesare funcțiilor cloud pot fi trimise în continuare către Omi.';
+
+  @override
+  String get findDevice => 'Găsește';
+
+  @override
+  String get diagnosticsShareFailed => 'Diagnosticul nu a putut fi partajat. Încearcă din nou.';
 }

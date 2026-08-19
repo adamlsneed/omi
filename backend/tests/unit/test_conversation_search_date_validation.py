@@ -65,6 +65,7 @@ _stubs = [
     'utils.conversations.calendar_utils',
     'utils.conversations.location',
     'utils.executors',
+    'utils.product_telemetry',
     'utils.llm.conversation_processing',
     'utils.speaker_identification',
     'utils.app_integrations',
@@ -180,9 +181,22 @@ _canonical_activation_stub = ModuleType('utils.memory.canonical_activation')
 setattr(_canonical_activation_stub, 'canonical_write_enabled', MagicMock(return_value=False))
 _register_module('utils.memory.canonical_activation', _canonical_activation_stub)
 
-_surface_routing_stub = ModuleType('utils.memory.surface_routing')
-setattr(_surface_routing_stub, 'pin_memory_system', MagicMock())
-_register_module('utils.memory.surface_routing', _surface_routing_stub)
+_retraction_scope_stub = ModuleType('utils.memory.retraction_scope')
+setattr(_retraction_scope_stub, 'retraction_can_be_skipped', MagicMock(return_value=False))
+_register_module('utils.memory.retraction_scope', _retraction_scope_stub)
+
+# The router imports the typed conflict raised by exhausted cascade-retract CAS
+# retries (#11726); expose it as a real RuntimeError subclass so the
+# except-clause in delete_conversation binds to something concrete.
+_canonical_adapter_stub = ModuleType('utils.memory.canonical_memory_adapter')
+
+
+class _ConversationReplacementConflictError(RuntimeError):
+    pass
+
+
+setattr(_canonical_adapter_stub, 'ConversationReplacementConflictError', _ConversationReplacementConflictError)
+_register_module('utils.memory.canonical_memory_adapter', _canonical_adapter_stub)
 
 _apps_stub = ModuleType('utils.apps')
 setattr(_apps_stub, 'get_available_app_by_id_with_reviews', MagicMock())
@@ -203,6 +217,12 @@ try:
     from routers import conversations as conv  # noqa: E402
 finally:
     _restore_stubbed_modules()
+
+# The router imports these helpers from a lightweight module stub in this test file. Keep the default
+# parser on the natural-language path; individual exact-reference tests override it explicitly.
+conv.parse_exact_conversation_reference = MagicMock(return_value=None)
+conv.clamp_conversation_search_pagination = MagicMock(return_value=(1, 10))
+conv.conversation_matches_date_range = MagicMock(return_value=True)
 
 
 def _client():
@@ -292,6 +312,40 @@ def test_user_speaker_does_not_require_person_record():
     assert resp.status_code == 200
     mock_get_person.assert_not_called()
     assert mock_search.call_args.kwargs['speaker_id'] == 'user'
+
+
+def test_exact_reference_uses_owner_scoped_hydration_without_semantic_search():
+    conversation_id = 'e8c05000-52f0-4a95-951c-ccd715523429'
+    hydrated = [_conversation_dict(conversation_id, [])]
+    with (
+        patch.object(conv, 'parse_exact_conversation_reference', return_value=conversation_id),
+        patch.object(conv, 'search_conversations') as mock_search,
+        patch.object(
+            conv.conversations_db,
+            'get_conversations_by_id_without_photos',
+            return_value=hydrated,
+        ) as get_by_id,
+    ):
+        client = _client()
+        resp = client.post('/v1/conversations/search', json={'query': conversation_id})
+
+    assert resp.status_code == 200
+    assert [item['id'] for item in resp.json()['items']] == [conversation_id]
+    get_by_id.assert_called_once_with('test-uid', [conversation_id], include_discarded=True)
+    mock_search.assert_not_called()
+
+
+def test_exact_reference_missing_conversation_is_generic_empty_result():
+    conversation_id = 'e8c05000-52f0-4a95-951c-ccd715523429'
+    with (
+        patch.object(conv, 'parse_exact_conversation_reference', return_value=conversation_id),
+        patch.object(conv.conversations_db, 'get_conversations_by_id_without_photos', return_value=[]),
+    ):
+        client = _client()
+        resp = client.post('/v1/conversations/search', json={'query': conversation_id})
+
+    assert resp.status_code == 200
+    assert resp.json()['items'] == []
 
 
 def _conversation(conversation_id='conv-1', status=ConversationStatus.in_progress):
@@ -643,6 +697,7 @@ def test_finalization_status_endpoint_exposes_retryable_durable_state():
         'retryable': True,
         'attempt_count': 2,
         'task_retry_count': 1,
+        'meeting_treatment_eligible': False,
     }
     with (
         patch.object(conv.conversations_db, 'get_conversation', return_value={'id': 'conv-1'}),

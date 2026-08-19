@@ -21,18 +21,18 @@ from database.vector_db import (
     search_action_items_by_vector,
 )
 from utils.users import get_user_display_name
+from utils.share_links import build_share_url
 from utils.other import endpoints as auth
 from utils.notifications import (
     send_notification,
     send_action_item_data_message,
-    send_action_item_update_message,
     send_action_item_deletion_message,
     send_action_items_batch_deletion_message,
     sync_action_item_reminder,
 )
 from utils.task_sync import auto_sync_action_item
+from utils.task_intelligence.proactive_engine import run_task_changed_wake
 from pydantic import BaseModel, Field, ValidationError
-from models.shared import StatusResponse
 from models.action_item import (
     ActionItemCreateRequest,
     ActionItemResponse,
@@ -43,6 +43,7 @@ from models.action_item import (
     PendingSyncResponse,
 )
 from utils.task_intelligence import task_links
+from utils.product_telemetry import emit_product_event
 
 router = APIRouter()
 
@@ -71,6 +72,7 @@ def _batch_mutation_response(result, *, locked_ids: Optional[set[str]] = None) -
 
 class ActionItemIdsResponse(BaseModel):
     ids: List[str]
+    completed_scope: Optional[bool] = None
 
 
 class BatchMutationResponse(BaseModel):
@@ -128,6 +130,13 @@ def _safe_action_item_responses(items, *, uid: str = '', context: str = '') -> L
     return responses
 
 
+def _wake_task_changes(uid: str, task_ids: List[str], mutation_key: object) -> None:
+    """Notify proactive Chat-first after the route's persistence has committed."""
+
+    for task_id in task_ids:
+        run_task_changed_wake(uid, task_id=task_id, mutation_key=mutation_key)
+
+
 def _get_valid_action_item(uid: str, action_item_id: str) -> dict:
     action_item = action_items_db.get_action_item(uid, action_item_id)
     if not action_item:
@@ -163,6 +172,7 @@ class BatchUpdateActionItemsRequest(BaseModel):
 def batch_update_action_items(request: BatchUpdateActionItemsRequest, uid: str = Depends(auth.get_current_user_uid)):
     """Batch update sort_order and indent_level for multiple action items."""
     result = action_items_db.batch_update_action_items(uid, request.items)
+    _wake_task_changes(uid, result.updated_ids, datetime.now(timezone.utc))
     return _batch_mutation_response(result)
 
 
@@ -243,6 +253,7 @@ def sync_batch_update(request: SyncBatchRequest, uid: str = Depends(auth.get_cur
             updates.append({'id': item.id, 'data': update_data})
 
     result = action_items_db.batch_sync_update_action_items(uid, updates)
+    _wake_task_changes(uid, result.updated_ids, datetime.now(timezone.utc))
 
     updated_ids = set(result.updated_ids)
     desc_updates = [u for u in updates if u['id'] in updated_ids and 'description' in u['data']]
@@ -302,6 +313,7 @@ def create_action_item(request: ActionItemCreateRequest, uid: str = Depends(auth
 
     if not action_item:
         raise HTTPException(status_code=500, detail="Failed to create action item")
+    _wake_task_changes(uid, [action_item_id], action_item.get('updated_at'))
 
     # Schedule a reminder only for an open task with a due date — an already-completed item must
     # not arm a reminder (#5085).
@@ -394,14 +406,33 @@ def search_action_items(
 
 
 @router.get("/v1/action-items/ids", response_model=ActionItemIdsResponse, tags=['action-items'])
-def list_action_item_ids(uid: str = Depends(auth.get_current_user_uid)):
-    """Return all of the user's action-item IDs (IDs only, no field reads).
+def list_action_item_ids(
+    completed: Optional[bool] = Query(
+        None,
+        description="When present, return only non-deleted IDs in this completion bucket",
+    ),
+    uid: str = Depends(auth.get_current_user_uid),
+):
+    """Return the user's action-item IDs (lightweight reconciliation).
 
-    A lightweight way for a client to reconcile which tasks it has without paging the full
-    list. Declared before /v1/action-items/{action_item_id} so the static path is not
+    Without ``completed``: returns every ID with no field reads — the cheapest
+    way for a client to know which tasks it has without paging the full list.
+
+    With ``completed``: returns only non-deleted IDs in the requested bucket. The
+    ``completed`` bucket is filtered server-side; only documents in that bucket are
+    streamed (a two-field ``completed``, ``deleted`` projection), and the ``deleted``
+    exclusion is still applied in Python since Firestore equality filters would drop
+    undeleted rows that have no ``deleted`` field.
+
+    Declared before /v1/action-items/{action_item_id} so the static path is not
     captured as an action item id.
     """
-    return {"ids": action_items_db.get_action_item_ids(uid)}
+    if completed is None:
+        return {"ids": action_items_db.get_action_item_ids(uid)}
+    return {
+        "ids": action_items_db.get_visible_action_item_ids(uid, completed=completed),
+        "completed_scope": completed,
+    }
 
 
 @router.get("/v1/action-items/{action_item_id}", response_model=ActionItemResponse, tags=['action-items'])
@@ -457,6 +488,26 @@ def update_action_item(
     if updated_item is None:
         raise HTTPException(status_code=500, detail="Updated action item could not be loaded")
 
+    if request.owner is not None:
+        previous_owner_value = existing_item.get('owner') or 'unknown'
+        previous_owner = getattr(previous_owner_value, 'value', str(previous_owner_value))
+        next_owner = request.owner.value
+        if previous_owner != next_owner:
+            emit_product_event(
+                uid=uid,
+                event='Task Assignee Corrected',
+                properties={
+                    'action_item_id': action_item_id,
+                    'conversation_id': updated_item.get('conversation_id'),
+                    'previous_assignee': (
+                        previous_owner if previous_owner in {'user', 'other', 'unknown'} else 'unknown'
+                    ),
+                    'new_assignee': next_owner,
+                    'field_changed': 'owner',
+                },
+            )
+    _wake_task_changes(uid, [action_item_id], updated_item.get('updated_at'))
+
     # Reconcile the client-scheduled reminder when completion or due date changed, using the final
     # state: cancel if completed or no due date, (re)schedule only for an open task with a due date
     # (#5085). Previously this re-armed the reminder whenever due_at was present, even on completion.
@@ -493,6 +544,7 @@ def toggle_action_item_completion(
     updated_item = action_items_db.get_action_item(uid, action_item_id)
     if updated_item is None:
         raise HTTPException(status_code=500, detail="Updated action item could not be loaded")
+    _wake_task_changes(uid, [action_item_id], updated_item.get('updated_at'))
 
     # Cancel the scheduled client reminder on completion, or re-schedule it when un-completing an
     # item that still has a future due date (#5085).
@@ -528,6 +580,7 @@ def delete_action_item(action_item_id: str, uid: str = Depends(auth.get_current_
     success = action_items_db.delete_action_item(uid, action_item_id)
     if not success:
         raise HTTPException(status_code=404, detail="Action item not found")
+    _wake_task_changes(uid, [action_item_id], datetime.now(timezone.utc))
 
     delete_action_item_vector(uid, action_item_id)
 
@@ -547,9 +600,18 @@ def batch_delete_action_items(request: BatchDeleteActionItemsRequest, uid: str =
     vector store delete and the FCM cancellation message both use their batch
     helpers — no per-id loop on this hot path.
     """
+    # Chunk the locked-task preflight so large Select All batches (up to 10,000
+    # IDs) stay within Firestore's batch-get limits and avoid loading tens of
+    # megabytes of document data in one RPC before any deletion begins.
+    for i in range(0, len(request.ids), 500):
+        existing_items = action_items_db.get_action_items_by_ids(uid, request.ids[i : i + 500])
+        if any(item.get('is_locked', False) for item in existing_items):
+            raise HTTPException(status_code=402, detail="A paid plan is required to delete locked action items.")
+
     deleted_ids = action_items_db.delete_action_items_batch(uid, request.ids)
 
     if deleted_ids:
+        _wake_task_changes(uid, deleted_ids, datetime.now(timezone.utc))
         delete_action_item_vectors_batch(uid, deleted_ids)
         send_action_items_batch_deletion_message(user_id=uid, action_item_ids=deleted_ids)
 
@@ -675,6 +737,7 @@ def create_action_items_batch(
             for aid, data in zip(created_ids, action_items_data)
         ],
     )
+    _wake_task_changes(uid, created_ids, datetime.now(timezone.utc))
 
     return {"action_items": created_items, "created_count": len(created_items)}
 
@@ -712,7 +775,7 @@ def share_action_items(request: ShareTasksRequest, uid: str = Depends(auth.get_c
     if result is None:
         raise HTTPException(status_code=500, detail="Failed to create share link")
 
-    return {"url": f"https://h.omi.me/tasks/{token}", "token": token}
+    return {"url": build_share_url(f"/tasks/{token}"), "token": token}
 
 
 @router.get("/v1/action-items/shared/{token}", response_model=SharedActionItemsResponse, tags=['action-items'])

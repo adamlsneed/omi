@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 
 from llm_gateway.gateway.config_loader import load_gateway_config
-from llm_gateway.gateway.errors import GatewayCapabilityMismatchError, GatewayInvalidRequestError
+from llm_gateway.gateway.errors import (
+    GatewayCapabilityMismatchError,
+    GatewayInvalidRequestError,
+)
 from llm_gateway.gateway.validator import validate_chat_completion_request
 
 LANE_ID = 'omi:auto:chat-structured'
@@ -40,6 +43,36 @@ def test_forwards_prompt_cache_key():
     assert validated.forwarded_params['prompt_cache_key'] == 'omi-extract-actions'
 
 
+@pytest.mark.parametrize(
+    'lane_id',
+    ['omi:auto:memory-conflict-flex', 'omi:auto:memory-l2-flex', 'omi:auto:x-memory-extraction-flex'],
+)
+def test_forwards_flex_only_for_scheduled_background_lanes(lane_id):
+    lane = load_gateway_config(prod_mode=True).lanes[lane_id]
+    request = valid_request(service_tier='flex')
+    request.pop('response_format')
+
+    validated = validate_chat_completion_request(request, lane)
+
+    assert validated.forwarded_params['service_tier'] == 'flex'
+
+
+def test_rejects_flex_for_other_lanes():
+    lane = load_gateway_config(prod_mode=True).lanes[LANE_ID]
+
+    with pytest.raises(GatewayCapabilityMismatchError, match='scheduled background memory work'):
+        validate_chat_completion_request(valid_request(service_tier='flex'), lane)
+
+
+def test_rejects_unbounded_service_tier_values():
+    lane = load_gateway_config(prod_mode=True).lanes['omi:auto:memory-conflict-flex']
+    request = valid_request(service_tier='auto')
+    request.pop('response_format')
+
+    with pytest.raises(GatewayInvalidRequestError, match='service_tier'):
+        validate_chat_completion_request(request, lane)
+
+
 def test_forwards_explicit_gpt56_cache_contract_on_a_text_content_block():
     lane = load_gateway_config(prod_mode=True).lanes[LANE_ID]
     request = valid_request(
@@ -63,12 +96,21 @@ def test_forwards_explicit_gpt56_cache_contract_on_a_text_content_block():
     validated = validate_chat_completion_request(request, lane)
 
     assert validated.messages == tuple(request['messages'])
-    assert validated.forwarded_params['prompt_cache_options'] == {'mode': 'explicit', 'ttl': '30m'}
+    assert validated.forwarded_params['prompt_cache_options'] == {
+        'mode': 'explicit',
+        'ttl': '30m',
+    }
 
 
 @pytest.mark.parametrize(
     'prompt_cache_options',
-    [None, {}, {'mode': 'implicit', 'ttl': '30m'}, {'mode': 'explicit'}, {'mode': 'explicit', 'ttl': '24h'}],
+    [
+        None,
+        {},
+        {'mode': 'implicit', 'ttl': '30m'},
+        {'mode': 'explicit'},
+        {'mode': 'explicit', 'ttl': '24h'},
+    ],
 )
 def test_rejects_invalid_gpt56_cache_options(prompt_cache_options):
     lane = load_gateway_config(prod_mode=True).lanes[LANE_ID]
@@ -155,15 +197,83 @@ def test_rejects_invalid_messages():
         validate_chat_completion_request(request, lane)
 
 
-def test_rejects_non_text_message_content():
+def test_accepts_image_url_message_content():
     lane = load_gateway_config(prod_mode=True).lanes[LANE_ID]
     request = valid_request(
         messages=[
-            {'role': 'user', 'content': [{'type': 'image_url', 'image_url': {'url': 'https://example.com/image.png'}}]}
+            {
+                'role': 'user',
+                'content': [
+                    {'type': 'text', 'text': 'describe'},
+                    {
+                        'type': 'image_url',
+                        'image_url': {'url': 'https://example.com/image.png'},
+                    },
+                ],
+            }
         ]
     )
 
-    with pytest.raises(GatewayCapabilityMismatchError, match='text message content'):
+    validated = validate_chat_completion_request(request, lane)
+
+    assert validated.messages[0]['content'][1]['type'] == 'image_url'
+
+
+def test_accepts_assistant_tool_call_history_without_content():
+    lane = load_gateway_config(prod_mode=True).lanes['omi:auto:chat-agent']
+    request = {
+        'model': 'omi:auto:chat-agent',
+        'messages': [
+            {
+                'role': 'assistant',
+                'tool_calls': [
+                    {
+                        'id': 'call_1',
+                        'type': 'function',
+                        'function': {'name': 'weather', 'arguments': '{"city":"NYC"}'},
+                    }
+                ],
+            },
+            {'role': 'tool', 'tool_call_id': 'call_1', 'content': 'sunny'},
+            {'role': 'assistant', 'content': None},
+        ],
+        'tools': [
+            {
+                'type': 'function',
+                'function': {'name': 'weather', 'parameters': {'type': 'object'}},
+            }
+        ],
+    }
+
+    validated = validate_chat_completion_request(request, lane)
+
+    assert validated.messages[0]['content'] == ''
+    assert validated.messages[0]['tool_calls'][0]['id'] == 'call_1'
+    assert validated.messages[1]['content'] == 'sunny'
+    assert validated.messages[2]['content'] == ''
+
+
+@pytest.mark.parametrize('role', ['developer', 'system', 'tool', 'user'])
+def test_rejects_null_content_outside_assistant_tool_history(role):
+    lane = load_gateway_config(prod_mode=True).lanes[LANE_ID]
+    request = valid_request(messages=[{'role': role, 'content': None}])
+
+    with pytest.raises(GatewayInvalidRequestError, match='message content is required'):
+        validate_chat_completion_request(request, lane)
+
+
+def test_rejects_unsupported_message_content_parts():
+    lane = load_gateway_config(prod_mode=True).lanes[LANE_ID]
+    request = valid_request(
+        messages=[
+            {
+                'role': 'user',
+                'content': [{'type': 'input_audio', 'input_audio': {'data': 'abc'}}],
+            }
+        ]
+    )
+
+    with pytest.raises(GatewayCapabilityMismatchError, match='text or image_url message content'):
         validate_chat_completion_request(request, lane)
 
 

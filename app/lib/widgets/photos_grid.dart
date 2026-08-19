@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,14 @@ class PhotosGridComponent extends StatelessWidget {
   final List<ConversationPhoto> photos;
   const PhotosGridComponent({super.key, required this.photos});
 
+  static Uint8List? _decodedBytes(ConversationPhoto photo) {
+    try {
+      return base64Decode(photo.base64);
+    } on FormatException {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
@@ -18,6 +27,7 @@ class PhotosGridComponent extends StatelessWidget {
       itemBuilder: (context, idx) {
         final photo = photos[idx];
         final isProcessing = !photo.discarded && photo.description == null;
+        final imageBytes = _decodedBytes(photo);
 
         return GestureDetector(
           key: ValueKey(photo.id),
@@ -35,13 +45,23 @@ class PhotosGridComponent extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.memory(
-                    base64Decode(photo.base64),
-                    fit: BoxFit.cover,
-                    gaplessPlayback: true,
-                    color: photo.discarded ? const Color(0xFF35343B) : null,
-                    colorBlendMode: photo.discarded ? BlendMode.saturation : null,
-                  ),
+                  if (imageBytes == null)
+                    Container(
+                      color: Colors.black26,
+                      child: const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 28),
+                    )
+                  else
+                    Image.memory(
+                      imageBytes,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                      color: photo.discarded ? const Color(0xFF35343B) : null,
+                      colorBlendMode: photo.discarded ? BlendMode.saturation : null,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.black26,
+                        child: const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 28),
+                      ),
+                    ),
                   if (photo.discarded)
                     Container(
                       color: Colors.black.withValues(alpha: 0.5),

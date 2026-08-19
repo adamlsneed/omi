@@ -107,25 +107,6 @@ def verify_manifest_source(manifest_path: Path) -> dict[str, Any]:
     return generated
 
 
-def deploy_indexes(*, project: str, manifest_path: Path, runner: CommandRunner = subprocess.run) -> None:
-    command = [
-        'npx',
-        '--no-install',
-        'firebase',
-        'deploy',
-        '--only',
-        'firestore:indexes',
-        '--project',
-        project,
-        '--config',
-        str(ROOT / 'firebase.json'),
-        '--non-interactive',
-    ]
-    result = runner(command, cwd=ROOT, check=False)
-    if result.returncode != 0:
-        raise RuntimeError('Firebase index deployment failed')
-
-
 def gcloud_create_index_command(*, project: str, database: str, signature: IndexSignature) -> list[str]:
     """Build the Firestore Admin API create command for one manifest signature."""
 
@@ -260,6 +241,52 @@ def expected_index_states(
         else:
             states[signature] = matches[0].state
     return states
+
+
+def unmanaged_live_indexes(
+    *,
+    expected: Iterable[IndexSignature],
+    live_indexes: Iterable[LiveIndex],
+) -> list[LiveIndex]:
+    """Return live composite indexes the repository manifest does not declare.
+
+    Reconciliation is create-only by design: an index dropped from the manifest,
+    or created by hand in the console during an incident, survives forever with
+    nothing pointing at it. Deleting it automatically would be an outage
+    primitive -- a still-serving older Cloud Run revision can need an index the
+    new manifest no longer declares -- so this reports drift instead of acting
+    on it, and deletion stays a deliberate human operation.
+    """
+
+    expected_set = set(expected)
+    unmanaged: list[LiveIndex] = []
+    for index in live_indexes:
+        if index.api_scope != 'ANY_API':
+            continue
+        if index.signature in expected_set:
+            continue
+        alias = _implicit_terminal_document_id_alias(index.signature)
+        if alias is not None and alias in expected_set:
+            continue
+        unmanaged.append(index)
+    return unmanaged
+
+
+def report_unmanaged_live_indexes(
+    *,
+    expected: Iterable[IndexSignature],
+    live_indexes: Iterable[LiveIndex],
+) -> list[LiveIndex]:
+    """Surface create-only drift as non-blocking annotations on an existing gate."""
+
+    unmanaged = unmanaged_live_indexes(expected=expected, live_indexes=live_indexes)
+    for index in sorted(unmanaged, key=lambda live: live.resource_name):
+        print(
+            '::warning title=Unmanaged Firestore index::'
+            f'{format_signature(index.signature)} is serving but is not declared by '
+            'firestore.indexes.json; reconciliation is create-only and will never remove it'
+        )
+    return unmanaged
 
 
 def format_signature(signature: IndexSignature) -> str:
@@ -554,12 +581,14 @@ def check_indexes_and_write_proposal(
     """Check one live snapshot and emit a bounded proposal when readiness fails."""
 
     expected_set = set(expected)
+    live_indexes = list_live_indexes(project=project, database=database, runner=runner)
     states = expected_index_states(
         expected=expected_set,
-        live_indexes=list_live_indexes(project=project, database=database, runner=runner),
+        live_indexes=live_indexes,
         project=project,
         database=database,
     )
+    report_unmanaged_live_indexes(expected=expected_set, live_indexes=live_indexes)
     pending = {signature: state for signature, state in states.items() if state != 'READY'}
     if not pending:
         print(f'Firestore index readiness passed: {len(expected_set)} composite indexes READY')
@@ -683,9 +712,9 @@ def reconcile(
     manifest_path: Path,
     timeout_seconds: float,
     poll_interval_seconds: float,
-    provision_missing: bool = False,
     check_only: bool = False,
     dry_run: bool = False,
+    provision_missing: bool = False,
     proposal_output: Path | None = None,
     source_commit: str | None = None,
     proposal_ttl_seconds: int = DEFAULT_PROPOSAL_TTL_SECONDS,
@@ -694,8 +723,8 @@ def reconcile(
     monotonic: Callable[[], float] = time.monotonic,
     clock: Clock = lambda: datetime.now(timezone.utc),
 ) -> None:
-    if check_only and dry_run:
-        raise ValueError('--check-only cannot be combined with --dry-run')
+    if sum((check_only, dry_run, provision_missing)) > 1:
+        raise ValueError('--check-only, --dry-run, and --provision-missing cannot be combined')
     if check_only:
         if proposal_output is None or not source_commit:
             raise ValueError('--check-only requires --proposal-output and --source-commit')
@@ -717,11 +746,9 @@ def reconcile(
             project=project,
             database=database,
         )
-        if provision_missing:
-            for signature in sorted(missing):
-                print(f'Firestore index provisioning dry run: would create {format_signature(signature)}')
-        else:
-            print('Firestore index deployment dry run: would deploy the generated Firebase manifest')
+        for signature in sorted(missing):
+            print(f'Firestore index provisioning dry run: would create {format_signature(signature)}')
+        report_unmanaged_live_indexes(expected=expected, live_indexes=live_indexes)
         return
     if check_only:
         assert proposal_output is not None and source_commit is not None
@@ -739,8 +766,6 @@ def reconcile(
         return
     if provision_missing:
         provision_missing_indexes(expected=expected, project=project, database=database, runner=runner)
-    else:
-        deploy_indexes(project=project, manifest_path=manifest_path, runner=runner)
     wait_for_indexes(
         expected=expected,
         project=project,
@@ -795,15 +820,17 @@ def main() -> int:
             )
             print('Firestore schema proposal validation passed')
             return 0
+        if not (args.check_only or args.dry_run or args.provision_missing):
+            raise ValueError('choose one reconciliation mode: --check-only, --dry-run, or --provision-missing')
         reconcile(
             project=args.project,
             database=args.database,
             manifest_path=args.manifest.resolve(),
             timeout_seconds=args.timeout_seconds,
             poll_interval_seconds=args.poll_interval_seconds,
-            provision_missing=args.provision_missing,
             check_only=args.check_only,
             dry_run=args.dry_run,
+            provision_missing=args.provision_missing,
             proposal_output=args.proposal_output.resolve() if args.proposal_output else None,
             source_commit=args.source_commit,
             proposal_ttl_seconds=args.proposal_ttl_seconds,

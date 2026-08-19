@@ -107,9 +107,9 @@ def _install_route_stubs(monkeypatch):
     action_services_mod.update_action_item_text = MagicMock(return_value='Updated action item.')
     monkeypatch.setitem(sys.modules, 'utils.retrieval.tool_services.action_items', action_services_mod)
 
-    users_mod = types.ModuleType('database.users')
-    users_mod.get_agent_vm = MagicMock(return_value=None)
-    monkeypatch.setitem(sys.modules, 'database.users', users_mod)
+    client_mod = types.ModuleType('database._client')
+    client_mod.get_firestore_client = MagicMock()
+    monkeypatch.setitem(sys.modules, 'database._client', client_mod)
 
     executors_mod = types.ModuleType('utils.executors')
     executors_mod.db_executor = object()
@@ -143,6 +143,7 @@ def _install_route_stubs(monkeypatch):
     firestore_mod.ArrayRemove = MagicMock()
     firestore_mod.DELETE_FIELD = object()
     firestore_mod.Increment = MagicMock()
+    firestore_mod.transactional = lambda fn: fn
     firestore_v1_mod = types.ModuleType('google.cloud.firestore_v1')
     firestore_v1_mod.FieldFilter = MagicMock()
     firestore_v1_mod.transactional = lambda fn: fn
@@ -264,6 +265,7 @@ def test_tools_rest_memory_routes_fail_closed_for_unbounded_memory_like_text(loa
     response = tools_router.ToolResponse.model_validate(tools_router.get_memories(limit=10, offset=0, uid='uid-route'))
 
     assert response.result_text == 'No memories available for this request.'
+    assert response.sources == []
     assert 'SYSTEM:' not in response.result_text
     assert response.is_error is False
 
