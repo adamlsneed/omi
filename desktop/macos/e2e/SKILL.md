@@ -10,6 +10,11 @@ This skill teaches you the Omi desktop macOS app's navigation structure, screen 
 
 ## Fast-Path for Local Iteration (start here)
 
+> **Fork policy: deploy as `Omi Dev` every time, in place.** `./run.sh --yolo` installs over
+> `/Applications/Omi Dev.app` so permissions, database, and auth survive. Never set
+> `OMI_APP_NAME`. Where this skill shows a named `omi-*` bundle below, use `Omi Dev` instead;
+> its auth is already seeded, so the seeding steps are unnecessary.
+
 Two things make iterating on the desktop app slow: signing in (web OAuth) and clicking through the UI to reach a screen. Both are solved — use these before reaching for `agent-swift`.
 
 ### 1. Skip the web login (seed auth/settings once, reuse forever)

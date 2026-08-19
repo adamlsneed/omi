@@ -19,9 +19,6 @@ Requires macOS 14.0+, Python 3.11 with uv, and code signing with an Apple Develo
 # Run (builds Swift app, starts Python backend, launches app)
 ./run.sh
 
-# Run an isolated named bundle for parallel testing
-OMI_APP_NAME="omi-subagent-test" ./run.sh
-
 # Run with the dev backend (skips local Python + tunnel)
 ./run.sh --yolo
 
@@ -29,15 +26,17 @@ OMI_APP_NAME="omi-subagent-test" ./run.sh
 ./scripts/dev-feedback.py --watch swift 'ChatTests/testSendsMessage'
 ./scripts/dev-feedback.py --watch python 'tests/unit/test_desktop_chat.py'
 
-# Relaunch an already-built named app without holding the terminal open.
+# Relaunch the already-built app without holding the terminal open.
 # Supply a harness/external backend; --no-wait deliberately does not own one.
-OMI_SKIP_BACKEND=1 OMI_APP_NAME="omi-subagent-test" ./run.sh --yolo --fast-only --no-wait
+OMI_SKIP_BACKEND=1 ./run.sh --yolo --fast-only --no-wait
 
 # Force a complete bundle refresh after changing packaged runtime inputs
 ./run.sh --full
 ```
 
-`--yolo` targets the deployed development services. Those services currently use production Firebase identities and data stores, so use a named `omi-*` bundle for isolated desktop state and avoid treating it as an offline data sandbox.
+`--yolo` targets the deployed development services. Those services currently use production Firebase identities and data stores, so do not treat it as an offline data sandbox.
+
+**Fork policy: every local deploy is `Omi Dev`, in place.** Each `./run.sh` installs over `/Applications/Omi Dev.app` (`com.omi.desktop-dev`) so macOS permissions, the local database, and auth state survive the redeploy. Never set `OMI_APP_NAME` and never create a named or throwaway bundle, including for feature testing and sync verification.
 
 `run.sh` auto-detects an `Apple Development` or `Developer ID Application` signing identity from your login keychain, then falls back to a self-signed `Omi Local Dev Signing` identity if you have one. Override with `OMI_SIGN_IDENTITY="..." ./run.sh`. See [`docs/local-code-signing.md`](docs/local-code-signing.md) for how to create that identity and why a signing identity's Team ID decides the local entitlements.
 
