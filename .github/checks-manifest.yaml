@@ -249,6 +249,11 @@ checks:
     triggers: ["desktop/macos/Desktop/Sources/**/*.swift", "app/lib/**/*.dart", "web/**/*.ts", "web/**/*.tsx", "web/**/*.js", "web/**/*.jsx", "web/**/*.css"]
     lanes: ["local", "ci"]
     reason: "INV-UI-1 applies to changed UI sources"
+  - id: ios-uiscene-lifecycle-adoption
+    command: ["ruby", "app/ios/test/uiscene_lifecycle_adoption_test.rb"]
+    triggers: ["app/ios/Runner/Info.plist", "app/ios/Runner/AppDelegate.swift", "app/ios/Runner/SceneDelegate.swift", "app/ios/Runner.xcodeproj/project.pbxproj", "app/ios/test/uiscene_lifecycle_adoption_test.rb", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "the iOS 26+ SDK terminates an app with no UIApplicationSceneManifest at launch, and a scene delegate silently stops the app delegate receiving foreground and open-URL callbacks"
   - id: rayban-dat-plugin-boundary
     command: ["ruby", "app/ios/test/rayban_dat_plugin_boundary_test.rb"]
     triggers: ["app/ios/Podfile", "app/ios/Podfile.lock", "app/ios/rayban_dat_plugin_boundary.rb", "app/ios/test/rayban_dat_plugin_boundary_test.rb", ".github/checks-manifest.yaml"]
