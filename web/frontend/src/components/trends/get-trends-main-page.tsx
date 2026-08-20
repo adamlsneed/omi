@@ -53,8 +53,8 @@ export default async function GetTrendsMainPage() {
                         index === 0
                           ? 'border-amber-300 bg-gradient-to-r from-white to-yellow-100/80'
                           : index === 1
-                            ? 'border-gray-500 '
-                            : 'border-gray-300'
+                          ? 'border-gray-500 '
+                          : 'border-gray-300'
                       }`}
                     >
                       {index < 3 && (
@@ -63,8 +63,8 @@ export default async function GetTrendsMainPage() {
                             index === 0
                               ? 'bg-yellow-400'
                               : index === 1
-                                ? 'bg-gray-500 text-white'
-                                : 'bg-gray-300'
+                              ? 'bg-gray-500 text-white'
+                              : 'bg-gray-300'
                           }`}
                         >
                           {index + 1}
@@ -99,8 +99,8 @@ export default async function GetTrendsMainPage() {
                         index === 0
                           ? 'border-gray-300'
                           : index === 1
-                            ? 'border-gray-300 '
-                            : 'border-gray-300'
+                          ? 'border-gray-300 '
+                          : 'border-gray-300'
                       }`}
                     >
                       {/* {index < 3 && (

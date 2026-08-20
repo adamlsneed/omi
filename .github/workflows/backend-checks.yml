@@ -56,6 +56,14 @@ jobs:
       - name: Check backend runtime env manifest
         if: needs.changes.outputs.has_backend_runtime_env == 'true'
         run: |
+          # Fork policy: pre-deploy-check.sh passes --check-workflows, which reads the
+          # backend auto-deploy workflows this fork deliberately deletes (AGENTS.md
+          # Safety Rules: the fork never deploys backends). backend/ is a byte-exact
+          # upstream mirror, so the guard lives here rather than in the script.
+          if [ ! -f .github/workflows/gcp_backend_auto_dev.yml ]; then
+            echo "Skipping backend runtime env manifest: fork removes the backend auto-deploy workflows."
+            exit 0
+          fi
           CLOUD_RUN_VPC_NETWORK=offline-check-network \
           CLOUD_RUN_VPC_SUBNET=offline-check-subnet \
             backend/scripts/pre-deploy-check.sh
