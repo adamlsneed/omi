@@ -80,6 +80,12 @@ class NycTimeContractTests(unittest.TestCase):
         for uid in BOARDS:
             self.assertEqual(load(uid)["timezone"], "America/New_York", uid)
 
+    def test_auto_refresh_is_hourly(self) -> None:
+        """Layout edits live in Grafana's DB; aggressive auto-refresh churns
+        panels and the boards must not refresh more than once an hour."""
+        for uid in BOARDS:
+            self.assertEqual(load(uid)["refresh"], "1h", uid)
+
     def test_no_bare_date_columns_survive(self) -> None:
         for uid in BOARDS:
             for panel, target, col in timestamp_columns(load(uid)):
@@ -243,6 +249,55 @@ class AccountLevelLeakTests(unittest.TestCase):
         all_titles = {build_dashboards.base_title(p) for p in load("omi-tv")["panels"]}
         self.assertTrue(account_level <= all_titles,
                         "All board must keep the account-level panels")
+
+
+class ReleasePanelTests(unittest.TestCase):
+    def test_all_board_has_the_two_line_release_chart(self) -> None:
+        panel = next(p for p in load("omi-tv")["panels"]
+                     if build_dashboards.base_title(p) == build_dashboards.RELEASES_CHART_TITLE)
+        target = panel["targets"][0]
+        self.assertIn("/api/omi/stats/releases", target["url"])
+        self.assertIn("_tzdates=date", target["url"])
+        names = [c["text"] for c in target["columns"]]
+        self.assertEqual(names, ["time", "macOS releases", "iOS releases"])
+
+    def test_platform_boards_show_their_latest_release_stat(self) -> None:
+        for uid, root, absent in [("omi-tv-macos", "latest.macos", "latest.ios"),
+                                  ("omi-tv-mobile", "latest.ios", "latest.macos")]:
+            dash = load(uid)
+            titles = [build_dashboards.base_title(p) for p in dash["panels"]]
+            self.assertNotIn(build_dashboards.RELEASES_CHART_TITLE, titles, uid)
+            stat = next(p for p in dash["panels"]
+                        if build_dashboards.base_title(p).startswith("Latest"))
+            self.assertEqual(stat["targets"][0]["root_selector"], root, uid)
+            self.assertNotEqual(stat["targets"][0]["root_selector"], absent, uid)
+
+
+class ShareTileDescriptionTests(unittest.TestCase):
+    def test_share_tile_description_names_its_board_scope(self) -> None:
+        for uid, label in [("omi-tv", "all platforms"), ("omi-tv-macos", "macOS"),
+                           ("omi-tv-mobile", "Mobile")]:
+            panel = next(p for p in load(uid)["panels"]
+                         if build_dashboards.base_title(p).startswith("Share rate"))
+            self.assertIn(f"last 30d ({label})", panel["description"], uid)
+
+
+class ExactRevenueTests(unittest.TestCase):
+    def test_platform_revenue_never_includes_unknown_attribution(self) -> None:
+        """profitability's plain desktop/mobile revenue fields smear
+        unknown-platform subscription MRR proportionally; platform boards must
+        chart only the exact-attribution fields."""
+        for uid, field in [("omi-tv-macos", "desktopExact"), ("omi-tv-mobile", "mobileExact")]:
+            dash = load(uid)
+            panel = next(p for p in dash["panels"]
+                         if build_dashboards.base_title(p).startswith("Revenue / day"))
+            selectors = [c["selector"] for c in panel["targets"][0]["columns"]
+                         if c.get("type") != "timestamp"]
+            self.assertEqual(selectors, [field], uid)
+            var = next(v for v in dash["templating"]["list"] if v["name"] == "d_prev")
+            url = var["query"]["infinityQuery"]["url"]
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+            self.assertEqual(params["fields"], [field], uid)
 
 
 class BuilderIdempotencyTests(unittest.TestCase):

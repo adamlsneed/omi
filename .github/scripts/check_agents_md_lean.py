@@ -37,6 +37,7 @@ BUDGETS: dict[str, tuple[int, int]] = {
     # Fork-authored firmware guide (commit hygiene, feature-flag contract).
     "omi/AGENTS.md": (40, 2_200),
     "web/admin/AGENTS.md": (25, 1_500),
+    "web/app/AGENTS.md": (55, 2_400),
 }
 
 SKIP_PARTS = {"node_modules", ".build", ".git"}
