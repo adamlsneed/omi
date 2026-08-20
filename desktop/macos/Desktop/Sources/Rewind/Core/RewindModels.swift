@@ -1,10 +1,17 @@
+import Combine
 import Foundation
 @preconcurrency import GRDB
 
 // MARK: - Screenshot Model
 
 /// Represents a captured screenshot stored in the Rewind database
-struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Equatable {
+///
+/// **`MutablePersistableRecord`, deliberately.** `didInsert` is how this row learns the rowid
+/// SQLite generated for it, and capture keys everything that follows the insert — embeddings,
+/// canonical-memory linkage — to that id. `PersistableRecord` declares `didInsert` non-mutating
+/// and ships an empty default, so a `mutating func didInsert` on a `PersistableRecord` struct is
+/// not a witness for it: it compiles, never runs, and every insert quietly returns `id == nil`.
+struct Screenshot: Codable, FetchableRecord, MutablePersistableRecord, Identifiable, Equatable {
   /// Database row ID (auto-generated)
   var id: Int64?
 
@@ -47,6 +54,15 @@ struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Eq
   /// Whether OCR was skipped because the Mac was on battery (needs backfill when AC reconnects)
   var skippedForBattery: Bool
 
+  /// Why this screen frame was captured.
+  var captureTrigger: String
+
+  /// Where the persisted text came from: none, OCR, accessibility, hybrid, or deferred.
+  var textSource: String
+
+  /// Accessibility-tree text captured alongside the image when available.
+  var accessibilityText: String?
+
   /// User-facing computer name captured with this screenshot (nil when provenance is unknown)
   var deviceName: String?
 
@@ -79,6 +95,9 @@ struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Eq
     extractedTasksJson: String? = nil,
     adviceJson: String? = nil,
     skippedForBattery: Bool = false,
+    captureTrigger: String = CaptureTrigger.timer.rawValue,
+    textSource: String = CapturedTextSource.none.rawValue,
+    accessibilityText: String? = nil,
     deviceName: String? = nil,
     clientDeviceId: String? = nil
   ) {
@@ -96,6 +115,9 @@ struct Screenshot: Codable, FetchableRecord, PersistableRecord, Identifiable, Eq
     self.extractedTasksJson = extractedTasksJson
     self.adviceJson = adviceJson
     self.skippedForBattery = skippedForBattery
+    self.captureTrigger = captureTrigger
+    self.textSource = textSource
+    self.accessibilityText = accessibilityText
     self.deviceName = deviceName
     self.clientDeviceId = clientDeviceId
   }
@@ -267,10 +289,11 @@ extension Array where Element == Screenshot {
         groupOrder.append((key: key, sessionIndex: 0))
       } else {
         // Check if this screenshot fits in an existing session
+        var sessions = contextSessions[key] ?? []
         var foundSession = false
-        for i in 0..<contextSessions[key]!.count {
-          if contextSessions[key]![i].contains(timestamp: screenshot.timestamp, within: timeWindowSeconds) {
-            contextSessions[key]![i].add(screenshot)
+        for i in 0..<sessions.count {
+          if sessions[i].contains(timestamp: screenshot.timestamp, within: timeWindowSeconds) {
+            sessions[i].add(screenshot)
             foundSession = true
             break
           }
@@ -283,10 +306,11 @@ extension Array where Element == Screenshot {
             minTime: screenshot.timestamp,
             maxTime: screenshot.timestamp
           )
-          let newIndex = contextSessions[key]!.count
-          contextSessions[key]!.append(session)
+          let newIndex = sessions.count
+          sessions.append(session)
           groupOrder.append((key: key, sessionIndex: newIndex))
         }
+        contextSessions[key] = sessions
       }
     }
 
@@ -368,13 +392,14 @@ class RewindSettings: ObservableObject {
   nonisolated(unsafe) static let shared = RewindSettings()
 
   private let defaults = UserDefaults.standard
+  private var ownerChangeCancellable: AnyCancellable?
   static let batteryCaptureIntervalMultiplier = 3.0
 
   /// Default apps that should be excluded from screen capture for privacy
   static let defaultExcludedApps: Set<String> = [
     "Omi Computer",  // Our own app - no point capturing ourselves (legacy name)
     "Omi Beta",  // Legacy production app name
-    "omi",  // Production app name
+    "Omi",  // Production app name
     "Omi Dev",  // Development app name
     "Passwords",  // macOS Passwords app
     "1Password",  // 1Password (various versions)
@@ -388,10 +413,43 @@ class RewindSettings: ObservableObject {
     "Keychain Access",  // macOS Keychain Access
   ]
 
+  /// The retention setting that means "never delete a captured frame".
+  ///
+  /// **This is what makes an all-time Rewind possible at all.** Every other value here is a
+  /// deletion window: the cleanup pass runs `DELETE FROM screenshots WHERE timestamp < cutoff` and
+  /// removes the backing video chunks from disk, so on the shipped 7-day default a Rewind timeline
+  /// physically cannot reach further back than a week no matter what the UI is willing to draw.
+  /// Zero is the sentinel rather than a large day count because "3,650 days" is still a promise the
+  /// cleanup would eventually break, and because it stores as a plain `Int` in the same key.
+  static let unlimitedRetentionDays = 0
+
   @Published var retentionDays: Int {
     didSet {
       defaults.set(retentionDays, forKey: "rewindRetentionDays")
     }
+  }
+
+  /// Whether capture is kept forever.
+  var keepsEverything: Bool { Self.isUnlimited(retentionDays: retentionDays) }
+
+  /// A retention day count that promises never to delete.
+  ///
+  /// Non-positive rather than `== 0` so a value that arrives from an older build, a corrupted
+  /// default, or a hand-edited plist can only ever fail *safe* — an unreadable retention setting
+  /// keeps the user's history instead of silently erasing it.
+  static func isUnlimited(retentionDays: Int) -> Bool { retentionDays <= unlimitedRetentionDays }
+
+  /// The instant before which capture may be deleted — or `nil` when nothing may be.
+  ///
+  /// Pure and static so the boundary between "keep everything" and "prune at N days" is testable
+  /// without a database, a clock, or the indexer that calls it.
+  static func retentionCutoff(
+    retentionDays: Int,
+    now: Date = Date(),
+    calendar: Calendar = .current
+  ) -> Date? {
+    guard !isUnlimited(retentionDays: retentionDays) else { return nil }
+    return calendar.date(byAdding: .day, value: -retentionDays, to: now)
   }
 
   @Published var captureInterval: Double {
@@ -402,8 +460,25 @@ class RewindSettings: ObservableObject {
 
   @Published var excludedApps: Set<String> {
     didSet {
+      for appName in oldValue.symmetricDifference(excludedApps) {
+        RewindCaptureExclusionGeneration.setExcluded(
+          appName, excluded: excludedApps.contains(appName))
+      }
       let array = Array(excludedApps)
       defaults.set(array, forKey: "rewindExcludedApps")
+    }
+  }
+
+  /// When true, skip Rewind persistence for browser private/incognito windows.
+  @Published var suppressPrivateBrowsing: Bool {
+    didSet {
+      defaults.set(suppressPrivateBrowsing, forKey: "rewindSuppressPrivateBrowsing")
+    }
+  }
+
+  @Published var excludedWindowPatterns: Set<String> {
+    didSet {
+      defaults.set(Array(excludedWindowPatterns), forKey: "rewindExcludedWindowPatterns")
     }
   }
 
@@ -420,6 +495,8 @@ class RewindSettings: ObservableObject {
     self.retentionDays = defaults.object(forKey: "rewindRetentionDays") as? Int ?? 7
     self.captureInterval = defaults.object(forKey: "rewindCaptureInterval") as? Double ?? 3.0
     self.removedDefaults = Set(defaults.array(forKey: "rewindRemovedDefaultApps") as? [String] ?? [])
+    self.suppressPrivateBrowsing = defaults.object(forKey: "rewindSuppressPrivateBrowsing") as? Bool ?? true
+    self.excludedWindowPatterns = Set(defaults.array(forKey: "rewindExcludedWindowPatterns") as? [String] ?? [])
 
     // Load excluded apps, merging in any new defaults
     if let savedApps = defaults.array(forKey: "rewindExcludedApps") as? [String] {
@@ -431,6 +508,30 @@ class RewindSettings: ObservableObject {
     } else {
       self.excludedApps = Self.defaultExcludedApps
     }
+    RewindCaptureExclusionGeneration.setInitialExcludedApps(self.excludedApps)
+
+    // A purge is local and deterministic, but file cleanup can fail transiently
+    // (for example while RewindStorage is still initializing).  Retry durable
+    // work from the next launch instead of silently leaving excluded pixels on
+    // disk.  This does not alter capture cadence or retention behavior.
+    // Pending markers are owner-scoped so a failed purge for account A cannot
+    // run against account B's store after an account switch.
+    if let ownerID = RuntimeOwnerIdentity.currentOwnerId() {
+      let pending = RewindPendingContextBucketPurgeJournal.pending(ownerID: ownerID)
+      if !pending.isEmpty {
+        Task { @MainActor in
+          await Self.retryPendingContextBucketPurges(pending, ownerID: ownerID)
+        }
+      }
+    }
+
+    ownerChangeCancellable = NotificationCenter.default.publisher(for: .runtimeOwnerDidChange)
+      .receive(on: DispatchQueue.main)
+      .sink { _ in
+        Task { @MainActor in
+          await Self.rearmPendingContextBucketPurgesForCurrentOwner()
+        }
+      }
   }
 
   /// Check if an app is excluded from screen capture
@@ -438,16 +539,72 @@ class RewindSettings: ObservableObject {
     excludedApps.contains(appName)
   }
 
+  /// Check if an app/window should be excluded from Rewind capture for privacy.
+  func isCaptureExcluded(appName: String, windowTitle: String?) -> Bool {
+    RewindPrivacyFilter.shouldExclude(
+      appName: appName,
+      windowTitle: windowTitle,
+      excludedApps: excludedApps,
+      excludedWindowPatterns: excludedWindowPatterns,
+      suppressPrivateBrowsing: suppressPrivateBrowsing
+    )
+  }
+
+  func excludeWindowPattern(_ pattern: String) {
+    let trimmed = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return }
+    excludedWindowPatterns.insert(trimmed)
+  }
+
+  func includeWindowPattern(_ pattern: String) {
+    excludedWindowPatterns.remove(pattern)
+  }
+
   func effectiveCaptureInterval(isOnBattery: Bool) -> Double {
     isOnBattery ? captureInterval * Self.batteryCaptureIntervalMultiplier : captureInterval
   }
 
   /// Add an app to the exclusion list
+  @MainActor
   func excludeApp(_ appName: String) {
     excludedApps.insert(appName)
     // If re-excluding a default app, stop tracking it as removed
     if Self.defaultExcludedApps.contains(appName) {
       removedDefaults.remove(appName)
+    }
+    guard ContextBucketsFeature.isEnabled else { return }
+    guard let ownerID = RuntimeOwnerIdentity.currentOwnerId() else { return }
+    // Persist the retry marker before scheduling async storage work.
+    RewindPendingContextBucketPurgeJournal.enqueue(appName: appName, ownerID: ownerID)
+    Task { @MainActor in
+      do {
+        _ = try await ContextBucketStore.shared.purgeExcludedApp(appName)
+        RewindPendingContextBucketPurgeJournal.complete(appName: appName, ownerID: ownerID)
+      } catch {
+        logError("RewindSettings: purge-on-exclude failed", error: error)
+      }
+    }
+  }
+
+  @MainActor
+  static func rearmPendingContextBucketPurgesForCurrentOwner() async {
+    guard let ownerID = RuntimeOwnerIdentity.currentOwnerId() else { return }
+    let pending = RewindPendingContextBucketPurgeJournal.pending(ownerID: ownerID)
+    guard !pending.isEmpty else { return }
+    await retryPendingContextBucketPurges(pending, ownerID: ownerID)
+  }
+
+  private static func retryPendingContextBucketPurges(_ pending: Set<String>, ownerID: String) async {
+    guard await MainActor.run(body: { ContextBucketsFeature.isEnabled }) else { return }
+    guard RuntimeOwnerIdentity.currentOwnerId() == ownerID else { return }
+    for appName in pending {
+      guard RuntimeOwnerIdentity.currentOwnerId() == ownerID else { return }
+      do {
+        _ = try await ContextBucketStore.shared.purgeExcludedApp(appName)
+        RewindPendingContextBucketPurgeJournal.complete(appName: appName, ownerID: ownerID)
+      } catch {
+        logError("RewindSettings: deferred purge-on-exclude failed", error: error)
+      }
     }
   }
 
@@ -458,12 +615,99 @@ class RewindSettings: ObservableObject {
     if Self.defaultExcludedApps.contains(appName) {
       removedDefaults.insert(appName)
     }
+    // A flag-off caller may have recorded the crash-safe marker before the
+    // asynchronous feature check ran.  Do not leave inert test/legacy markers;
+    // retain a real flag-on marker so a failed purge is still retried.
+    Task { @MainActor in
+      guard !ContextBucketsFeature.isEnabled else { return }
+      if let ownerID = RuntimeOwnerIdentity.currentOwnerId() {
+        RewindPendingContextBucketPurgeJournal.complete(appName: appName, ownerID: ownerID)
+      }
+    }
   }
 
   /// Reset excluded apps to defaults
   func resetToDefaults() {
     excludedApps = Self.defaultExcludedApps
     removedDefaults = []
+  }
+}
+
+/// Owner-scoped retry journal for context-bucket purge-on-exclude. A global
+/// string-array marker would let account A's failed purge run against account B
+/// after an owner switch; this map keeps retries bound to the originating owner.
+enum RewindPendingContextBucketPurgeJournal {
+  private static let defaultsKey = "rewindPendingContextBucketPurges"
+
+  private final class State: @unchecked Sendable {
+    let lock = NSLock()
+  }
+
+  private static let state = State()
+
+  static func enqueue(appName: String, ownerID: String) {
+    let name = appName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !name.isEmpty, !ownerID.isEmpty else { return }
+    withLock {
+      var pending = loadOwnerScoped(migratingLegacyTo: ownerID)
+      pending[ownerID, default: []].append(name)
+      pending[ownerID] = Array(Set(pending[ownerID] ?? [])).sorted()
+      save(pending)
+    }
+  }
+
+  static func pending(ownerID: String) -> Set<String> {
+    withLock {
+      Set(loadOwnerScoped(migratingLegacyTo: ownerID)[ownerID] ?? [])
+    }
+  }
+
+  static func complete(appName: String, ownerID: String) {
+    let name = appName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !name.isEmpty, !ownerID.isEmpty else { return }
+    withLock {
+      var pending = loadOwnerScoped(migratingLegacyTo: ownerID)
+      guard var ownerPending = pending[ownerID] else { return }
+      ownerPending.removeAll { $0 == name }
+      if ownerPending.isEmpty {
+        pending.removeValue(forKey: ownerID)
+      } else {
+        pending[ownerID] = ownerPending
+      }
+      save(pending)
+    }
+  }
+
+  private static func withLock<T>(_ body: () -> T) -> T {
+    state.lock.lock()
+    defer { state.lock.unlock() }
+    return body()
+  }
+
+  private static func loadOwnerScoped(migratingLegacyTo ownerID: String = "") -> [String: [String]] {
+    let defaults = UserDefaults.standard
+    if let legacy = defaults.stringArray(forKey: defaultsKey) {
+      let names = Set(legacy.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+        .filter { !$0.isEmpty }
+      let migrated = names.isEmpty || ownerID.isEmpty ? [:] : [ownerID: names.sorted()]
+      save(migrated)
+      return migrated
+    }
+    guard let data = defaults.data(forKey: defaultsKey),
+      let pending = try? JSONDecoder().decode([String: [String]].self, from: data)
+    else { return [:] }
+    return pending
+  }
+
+  private static func save(_ pending: [String: [String]]) {
+    let defaults = UserDefaults.standard
+    guard !pending.isEmpty,
+      let data = try? JSONEncoder().encode(pending)
+    else {
+      defaults.removeObject(forKey: defaultsKey)
+      return
+    }
+    defaults.set(data, forKey: defaultsKey)
   }
 }
 

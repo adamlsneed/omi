@@ -321,7 +321,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get searchApps => 'ऐप्स खोजें...';
 
   @override
-  String get myApps => 'मेरे ऐप्स';
+  String get myApps => 'मेरे द्वारा बनाया गया';
 
   @override
   String get installedApps => 'इंस्टॉल किए गए ऐप्स';
@@ -749,11 +749,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'आपकी योजना $date को समाप्त हो रही है।';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'आपकी योजना $date को नवीनीकृत होती है।';
   }
 
   @override
@@ -2111,16 +2106,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get editMemory => '✏️ स्मृति संपादित करें';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'आधार के रूप में पिन करें';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'आधार से अनपिन करें';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'आधार मेमोरी';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'हमेशा संदर्भ में';
 
   @override
   String get memoryContentHint => 'मुझे आइसक्रीम पसंद है...';
@@ -9979,4 +9974,91 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'उस माइक्रोफ़ोन से कनेक्ट नहीं हो सके। सुनिश्चित करें कि वह iPhone सेटिंग्स में कनेक्ट है।';
+
+  @override
+  String get syncStatusTooOld => 'सिंक करने के लिए बहुत पुराना — Omi इसे स्वीकार नहीं कर सकता';
+
+  @override
+  String get planSheetChooseYourPlan => 'असीमित Omi अनलॉक करने के लिए अपना प्लान चुनें।';
+
+  @override
+  String get availableOnMacMobileWeb => 'Mac, मोबाइल और वेब पर उपलब्ध';
+
+  @override
+  String get popularBadge => 'लोकप्रिय';
+
+  @override
+  String get worksOnDesktop => 'डेस्कटॉप पर काम करता है';
+
+  @override
+  String get noDesktopAccess => 'डेस्कटॉप पर काम नहीं करता';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months महीने / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count महीने मुफ़्त',
+      one: '1 महीना मुफ़्त',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro =>
+      'Omi मुफ़्त है, लेकिन मुफ़्त संस्करण की कुछ सीमाएँ हैं जो आपके अनुभव को प्रभावित करती हैं:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => '5-7 सेकंड की देरी (रीयल-टाइम नहीं)';
+
+  @override
+  String get downgradeToFreemiumAction => 'मुफ़्त संस्करण पर जाएँ';
+
+  @override
+  String get getFreeUnlimitedAccess => 'मुफ़्त असीमित एक्सेस पाएँ';
+
+  @override
+  String get shareDataForTraining => 'प्रशिक्षण के लिए डेटा साझा करें';
+
+  @override
+  String get yourRequestUnderReview => 'आपका अनुरोध समीक्षाधीन है';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'अपडेट आवश्यक';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage =>
+      'खाता माइग्रेशन के बाद जारी रखने के लिए नवीनतम Omi ऐप इंस्टॉल करें।';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'माइग्रेशन जारी है';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'आपका खाता माइग्रेट हो रहा है। माइग्रेशन पूरा होने तक उत्पाद सुविधाएँ रुकी रहेंगी।';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'माइग्रेशन रोलबैक के बाद आपका खाता रखरखाव में है। कुछ नए डेटा अलग रह सकते हैं।';
+
+  @override
+  String get accountCutoverOpenStore => 'स्टोर खोलें';
+
+  @override
+  String get sendRawAudioToOmi => 'Omi को कच्चा ऑडियो भेजें';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'Omi को कच्चा ऑडियो भेजे जाने से रोकने के लिए इसे बंद करें। ट्रांसक्रिप्ट और क्लाउड सुविधाओं के लिए आवश्यक डेटा अभी भी Omi को भेजा जा सकता है।';
+
+  @override
+  String get findDevice => 'ढूँढें';
+
+  @override
+  String get diagnosticsShareFailed => 'डायग्नोस्टिक्स साझा नहीं किया जा सका। कृपया पुनः प्रयास करें।';
 }

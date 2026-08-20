@@ -163,6 +163,20 @@ final class ScreenRecordingPermissionPolicyTests: XCTestCase {
       .right)
   }
 
+  /// System Settings renders the Screen Recording list in the upper content
+  /// pane, beneath its toolbar/header. The target must not fall into the lower
+  /// pane merely because AppKit's Y axis starts at the bottom.
+  @MainActor
+  func testPermissionListTargetSitsInUpperContentPane() {
+    let settings = CGRect(x: 600, y: 160, width: 800, height: 640)
+    let target = CloudConnectorGuidanceOverlay.permissionListTargetFrame(in: settings)
+
+    XCTAssertGreaterThan(target.midY, settings.midY)
+    XCTAssertLessThan(settings.maxY - target.maxY, settings.height * 0.25)
+    XCTAssertGreaterThanOrEqual(target.minY, settings.minY + settings.height * 0.5)
+    XCTAssertGreaterThan(target.midX, settings.midX, "target belongs in the content pane")
+  }
+
   /// Target and source geometry must follow a resized/moved System Settings
   /// window instead of drifting to a screen-relative fallback position.
   @MainActor
@@ -278,6 +292,59 @@ final class ScreenRecordingPermissionPolicyTests: XCTestCase {
       ScreenRecordingPermissionPolicy.needsRelaunchToApply(
         grantedNow: false, grantedAtLaunch: true),
       "revoked while running → a relaunch can't help; the grant flow handles it")
+  }
+
+  func testScreenCaptureKitInvokedOnlyWhenGrantWasLiveAtLaunch() {
+    XCTAssertTrue(
+      ScreenRecordingPermissionPolicy.shouldInvokeScreenCaptureKit(grantedAtLaunch: true),
+      "SCK is usable when this process launched with Screen Recording already granted")
+    XCTAssertFalse(
+      ScreenRecordingPermissionPolicy.shouldInvokeScreenCaptureKit(grantedAtLaunch: false),
+      "an in-session first grant is not live on this window-server connection")
+  }
+
+  func testFirstGrantPathsDoNotCallScreenCaptureKitUntilRelaunch() throws {
+    // omi-test-quality: source-inspection -- static contract: SCK abort after an
+    // in-session first grant is not reproducible in XCTest without a WindowServer
+    // connection that predates TCC; every SCK entry must consult the policy gate.
+    let src = try sourceFile("Sources/ScreenCaptureService.swift")
+    XCTAssertTrue(src.contains("requestScreenCaptureKitPermissionIfUsableInThisProcess()"))
+    XCTAssertTrue(
+      src.contains("ScreenRecordingPermissionPolicy.shouldInvokeScreenCaptureKit("),
+      "ScreenCaptureService must consult the launch-time SCK gate")
+
+    guard let rfn = src.range(of: "static func requestAllScreenCapturePermissions() {"),
+      let rend = src.range(of: "\n  }", range: rfn.upperBound..<src.endIndex)?.lowerBound
+    else { return XCTFail("requestAllScreenCapturePermissions must exist") }
+    let rbody = String(src[rfn.upperBound..<rend])
+    XCTAssertTrue(
+      rbody.contains("requestScreenCaptureKitPermissionIfUsableInThisProcess()"),
+      "requestAll must not call SCK until the grant is live in this process")
+    XCTAssertFalse(
+      rbody.contains("await requestScreenCaptureKitPermission()"),
+      "requestAll must not call raw SCK after the first TCC dialog")
+
+    guard
+      let pfn = src.range(of: "static func primeCaptureConsent() async {"),
+      let pend = src.range(of: "\n  }", range: pfn.upperBound..<src.endIndex)?.lowerBound
+    else { return XCTFail("primeCaptureConsent must exist") }
+    let pbody = String(src[pfn.upperBound..<pend])
+    XCTAssertTrue(
+      pbody.contains("shouldInvokeScreenCaptureKit"),
+      "primeCaptureConsent must skip SCK when the grant arrived after launch")
+
+    let onboarding = try sourceFile("Sources/Onboarding/SecondBrain/SBOnboardingModel+Steps.swift")
+    guard let ofn = onboarding.range(of: "func primeScreenCaptureConsentIfNeeded() {"),
+      let oend = onboarding.range(of: "\n  }", range: ofn.upperBound..<onboarding.endIndex)?
+        .lowerBound
+    else { return XCTFail("primeScreenCaptureConsentIfNeeded must exist") }
+    let obody = String(onboarding[ofn.upperBound..<oend])
+    XCTAssertTrue(
+      obody.contains("shouldInvokeScreenCaptureKit"),
+      "onboarding must not prime SCK until a relaunch makes the grant live")
+    XCTAssertTrue(
+      obody.contains("screenRecordingGrantedAtLaunch"),
+      "onboarding must use AppState's launch-time snapshot, not a post-grant preflight")
   }
 
   func testScreenCaptureRestartsUseSharedRelaunchCommand() throws {

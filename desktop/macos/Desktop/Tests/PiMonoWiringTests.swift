@@ -287,4 +287,37 @@ final class PiMonoWiringTests: XCTestCase {
         + violations.joined(separator: "\n"))
   }
 
+  func testAgentRuntimeDoesNotCopyWholeAppEnvironmentToNode() throws {
+    let runtimePath = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // Tests/
+      .deletingLastPathComponent()  // Desktop/
+      .appendingPathComponent("Sources/Chat/AgentRuntimeProcess.swift")
+
+    // omi-test-quality: source-inspection -- static contract: forbidden-pattern tripwire that the whole app environment is never copied into the Node subprocess
+    let src = try String(contentsOf: runtimePath, encoding: .utf8)
+    XCTAssertFalse(
+      src.contains("var env = ProcessInfo.processInfo.environment"),
+      "AgentRuntimeProcess must not copy the whole app environment into Node; shell secrets can leak into child process listings"
+    )
+    XCTAssert(
+      src.contains("makeAgentSubprocessEnvironment"),
+      "AgentRuntimeProcess should build a small allowlisted subprocess environment")
+  }
+
+  func testAgentRuntimeDoesNotPutAuthTokenDirectlyInNodeEnvironment() throws {
+    let runtimePath = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // Tests/
+      .deletingLastPathComponent()  // Desktop/
+      .appendingPathComponent("Sources/Chat/AgentRuntimeProcess.swift")
+
+    // omi-test-quality: source-inspection -- static contract: forbidden-pattern tripwire that Firebase auth tokens are never placed directly in the Node subprocess environment
+    let src = try String(contentsOf: runtimePath, encoding: .utf8)
+    XCTAssertFalse(
+      src.contains("env[\"OMI_AUTH_TOKEN\"] = token"),
+      "AgentRuntimeProcess must not put Firebase tokens directly in Node env; process listings expose env values")
+    XCTAssert(
+      src.contains("OMI_AUTH_TOKEN_FILE"),
+      "AgentRuntimeProcess should pass the Firebase token to Node through a private token file")
+  }
+
 }

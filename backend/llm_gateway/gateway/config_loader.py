@@ -241,7 +241,13 @@ def _generated_feature_route_items(
                 'fallbacks': [],
                 'provider_options': provider_options,
                 'output_budget': _output_budget_for_feature(feature, provider),
-                'timeouts': {'request_ms': 120000 if capabilities['streaming'] else 30000},
+                'timeouts': {
+                    'request_ms': (
+                        override.request_timeout_ms
+                        if override is not None and override.request_timeout_ms is not None
+                        else (120000 if capabilities['streaming'] else 30000)
+                    )
+                },
                 'retry': {'max_attempts': 1},
                 'capabilities': capabilities,
                 'evidence': {
@@ -303,7 +309,7 @@ def _capabilities_for_feature(feature: str, *, provider: str, surface: str) -> d
         'text_input': True,
         'streaming': anthropic_messages or provider in {'openai', 'openrouter', 'perplexity', 'gemini'},
         'structured_output': structured_output,
-        'tools': anthropic_messages or feature == 'memory_l2',
+        'tools': anthropic_messages or feature in {'chat_agent', 'memory_l2'},
         'translation': feature == 'translation',
     }
 

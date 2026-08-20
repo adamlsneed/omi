@@ -322,7 +322,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get searchApps => 'अ‍ॅप शोधा...';
 
   @override
-  String get myApps => 'माझी अ‍ॅप्स';
+  String get myApps => 'माझे बनवलेले';
 
   @override
   String get installedApps => 'स्थापित अ‍ॅप्स';
@@ -753,11 +753,6 @@ class AppLocalizationsMr extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'आपल्या योजना $date वर रद्द होईल.';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'आपल्या योजना $date वर नवीकरण होईल.';
   }
 
   @override
@@ -2137,16 +2132,16 @@ class AppLocalizationsMr extends AppLocalizations {
   String get editMemory => '✏️ स्मृती संपादित करा';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'आधार म्हणून पिन करा';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'आधारातून अनपिन करा';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'आधार स्मृती';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'नेहमी संदर्भात';
 
   @override
   String get memoryContentHint => 'मला आयस्क्रीम खाण्यास आवडते...';
@@ -10008,4 +10003,91 @@ class AppLocalizationsMr extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'त्या मायक्रोफोनशी कनेक्ट करता आले नाही. तो iPhone सेटिंग्जमध्ये कनेक्ट असल्याची खात्री करा.';
+
+  @override
+  String get syncStatusTooOld => 'सिंक करण्यासाठी खूप जुने — Omi ते स्वीकारू शकत नाही';
+
+  @override
+  String get planSheetChooseYourPlan => 'अमर्यादित Omi अनलॉक करण्यासाठी तुमची योजना निवडा.';
+
+  @override
+  String get availableOnMacMobileWeb => 'Mac, मोबाइल आणि वेबवर उपलब्ध';
+
+  @override
+  String get popularBadge => 'लोकप्रिय';
+
+  @override
+  String get worksOnDesktop => 'डेस्कटॉपवर चालते';
+
+  @override
+  String get noDesktopAccess => 'डेस्कटॉपवर चालत नाही';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months महिने / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count महिने मोफत',
+      one: '1 महिना मोफत',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro =>
+      'Omi मोफत आहे, परंतु मोफत आवृत्तीला मर्यादा आहेत ज्या तुमच्या अनुभवावर परिणाम करतात:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => '5-7 सेकंद विलंब (रिअल-टाइम नाही)';
+
+  @override
+  String get downgradeToFreemiumAction => 'मोफत आवृत्तीवर जा';
+
+  @override
+  String get getFreeUnlimitedAccess => 'मोफत अमर्यादित प्रवेश मिळवा';
+
+  @override
+  String get shareDataForTraining => 'प्रशिक्षणासाठी डेटा सामायिक करा';
+
+  @override
+  String get yourRequestUnderReview => 'तुमची विनंती पुनरावलोकनाधीन आहे';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'अपडेट आवश्यक';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage =>
+      'खाता माइग्रेशन के बाद जारी रखने के लिए नवीनतम Omi ऐप इंस्टॉल करें।';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'माइग्रेशन जारी है';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'आपका खाता माइग्रेट हो रहा है। माइग्रेशन पूरा होने तक उत्पाद सुविधाएँ रुकी रहेंगी।';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'माइग्रेशन रोलबैक के बाद आपका खाता रखरखाव में है। कुछ नए डेटा अलग रह सकते हैं।';
+
+  @override
+  String get accountCutoverOpenStore => 'स्टोर खोलें';
+
+  @override
+  String get sendRawAudioToOmi => 'Omi ला कच्चा ऑडिओ पाठवा';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'Omi ला कच्चा ऑडिओ पाठवणे थांबवण्यासाठी हे बंद करा. प्रतिलेख आणि क्लाउड वैशिष्ट्यांसाठी आवश्यक डेटा अजूनही Omi ला पाठवला जाऊ शकतो.';
+
+  @override
+  String get findDevice => 'शोधा';
+
+  @override
+  String get diagnosticsShareFailed => 'डायग्नोस्टिक्स शेअर करता आले नाही. कृपया पुन्हा प्रयत्न करा.';
 }

@@ -121,6 +121,11 @@ def wire_common_stubs(install) -> SimpleNamespace:
     sanitizer.sanitize_pii = lambda value: value
     observability = install('utils.observability', ModuleType('utils.observability'))
     observability.submit_langsmith_feedback = MagicMock()
+    # routers.chat imports utils.observability.fallback as a submodule; keep it
+    # stubbed here so suites that only load the router do not require the real package.
+    fallback_observability = install('utils.observability.fallback', ModuleType('utils.observability.fallback'))
+    fallback_observability.record_fallback = MagicMock()
+    observability.record_fallback = fallback_observability.record_fallback
 
     journey_observability = install('utils.observability.journeys', ModuleType('utils.observability.journeys'))
 
@@ -172,6 +177,9 @@ def wire_common_stubs(install) -> SimpleNamespace:
     storage.schedule_syncing_temporal_file_deletion = MagicMock()
     chat_file = install('utils.other.chat_file', ModuleType('utils.other.chat_file'))
     chat_file.FileChatTool = MagicMock()
+    # routers.chat imports this name; the stub must carry it or the module fails to load. A local
+    # subclass keeps the real module (PIL, openai, database) out of these suites' import graph.
+    chat_file.UnsupportedChatFileError = type('UnsupportedChatFileError', (Exception,), {})
 
     sync_files = install('utils.sync.files', ModuleType('utils.sync.files'))
     sync_files.retrieve_file_paths = MagicMock(return_value=[])

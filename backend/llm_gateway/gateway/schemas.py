@@ -39,6 +39,15 @@ class RolloutStage(str, Enum):
     ACTIVE = 'active'
 
 
+class RouteServingClass(str, Enum):
+    """Bounded classification of why the terminal provider served the request."""
+
+    ACTIVE = 'active'
+    CANARY = 'canary'
+    LKG = 'lkg'
+    ACTUAL_FALLBACK = 'actual_fallback'
+
+
 class FailureClass(str, Enum):
     TIMEOUT_BEFORE_OUTPUT = 'timeout_before_output'
     PROVIDER_429_OMI_PAID = 'provider_429_omi_paid'
@@ -136,6 +145,7 @@ class GeneratedRouteOverride(StrictBaseModel):
     feature: str = Field(min_length=1)
     primary: ProviderRef
     provider_options: dict[str, Any] = Field(default_factory=dict)
+    request_timeout_ms: int | None = Field(default=None, gt=0, le=900_000)
 
 
 class TimeoutPolicy(StrictBaseModel):

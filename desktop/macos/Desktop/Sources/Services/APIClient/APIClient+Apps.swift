@@ -458,6 +458,39 @@ extension APIClient {
     )
   }
 
+  /// Multipart form-data request helper for routes that reject JSON bodies.
+  func multipartForm<T: Decodable>(
+    _ endpoint: String,
+    method: String = "POST",
+    fields: [String: String],
+    requireAuth: Bool = true,
+    customBaseURL: String? = nil
+  ) async throws -> T {
+    let base = customBaseURL ?? baseURL
+    guard let url = URL(string: base + endpoint) else {
+      throw APIError.invalidResponse
+    }
+    let boundary = "Boundary-\(UUID().uuidString)"
+
+    var request = URLRequest(url: url)
+    request.httpMethod = method
+
+    var headers = try await buildHeaders(requireAuth: requireAuth)
+    headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
+    request.allHTTPHeaderFields = headers
+
+    var body = Data()
+    for (name, value) in fields {
+      body.append(Data("--\(boundary)\r\n".utf8))
+      body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
+      body.append(Data("\(value)\r\n".utf8))
+    }
+    body.append(Data("--\(boundary)--\r\n".utf8))
+    request.httpBody = body
+
+    return try await performRequest(request)
+  }
+
   /// Sets the current user's preferred summary app using the hosted Omi backend.
   func setPreferredSummarizationApp(appId: String) async throws {
     struct PreferenceResponse: Decodable {
@@ -492,7 +525,10 @@ extension APIClient {
       if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
         return json["is_setup_completed"] as? Bool ?? false
       }
-    } catch {}
+      log("APIClient: app setup status response was not JSON")
+    } catch {
+      logError("APIClient: failed to check app setup status", error: error)
+    }
     return false
   }
 
@@ -519,18 +555,53 @@ extension APIClient {
 
   // MARK: - Conversation Reprocessing
 
-  /// Reprocess a conversation with a specific app
-  func reprocessConversation(conversationId: String, appId: String) async throws {
+  /// Reprocess a conversation with a specific app.
+  ///
+  /// The route returns the updated conversation (backend
+  /// `response_model=Conversation`); the caller adopts it so the summary pane
+  /// re-renders with the reprocessed app as primary. Decoding a synthetic
+  /// `{success, message}` envelope here used to throw on every successful call.
+  func reprocessConversation(conversationId: String, appId: String) async throws -> ServerConversation {
+    // `app_id` is declared as a QUERY parameter on the route, so a JSON body is silently
+    // ignored and the reprocess runs with no explicit app. Under the apps-opt-in pipeline
+    // mode that means picking an app returns the first-party note instead of the chosen app.
+    // Encode with query metacharacters excluded so an app id cannot smuggle
+    // extra query parameters (urlQueryAllowed keeps & + = ? literal).
     var queryAllowed = CharacterSet.urlQueryAllowed
     queryAllowed.remove(charactersIn: "&+=?")
-    let encodedAppId = appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
-    let _: ServerConversation = try await post(
-      "v1/conversations/\(conversationId)/reprocess?app_id=\(encodedAppId)"
-    )
+    let encoded =
+      appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
+    return try await post(
+      "v1/conversations/\(conversationId)/reprocess?app_id=\(encoded)",
+      body: EmptyBody())
   }
 
-  /// Reprocess a conversation without an app, force-structuring a discarded one.
-  func reprocessConversation(conversationId: String) async throws {
-    let _: ServerConversation = try await post("v1/conversations/\(conversationId)/reprocess")
+  private struct EmptyBody: Encodable {}
+
+  /// Bodyless PUT counterpart of the `post`/`patch` helpers, kept in this
+  /// extension so the oversized core transport file stays net-neutral.
+  func put<T: Decodable>(
+    _ endpoint: String,
+    requireAuth: Bool = true,
+    customBaseURL: String? = nil,
+    expectedOwnerId: String? = nil,
+    authorizationSnapshot: RuntimeOwnerAuthorizationSnapshot? = nil
+  ) async throws -> T {
+    let authPolicy = try resolvedRequestAuthPolicy(
+      expectedOwnerId: expectedOwnerId,
+      authorizationSnapshot: authorizationSnapshot)
+    let authOwnerId = authPolicy.expectedAuthOwnerId
+    try validateExpectedOwner(authPolicy)
+    let base = customBaseURL ?? baseURL
+    guard let url = URL(string: base + endpoint) else {
+      throw APIError.invalidResponse
+    }
+    var request = URLRequest(url: url)
+    request.httpMethod = "PUT"
+    request.allHTTPHeaderFields = try await buildHeaders(
+      requireAuth: requireAuth,
+      expectedAuthOwnerId: authOwnerId)
+    try validateExpectedOwner(authPolicy)
+    return try await performRequest(request, authPolicy: authPolicy)
   }
 }

@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('BasedHardware endpoint defaults', () {
     test('frontend app-management and app streaming defaults do not fall back to local or fork URLs', () {
+      // api.omiapi.com is upstream's explicit mobile_beta serving plane and may
+      // be referenced by name; only ngrok tunnels are banned outright. The
+      // production default is pinned separately below.
       final disallowed = <String>[
         'https://omi-backend.ngrok.app/',
-        'https://api.omiapi.com/',
       ];
 
       final files = <String>[
@@ -28,6 +30,21 @@ void main() {
           );
         }
       }
+    });
+
+    test('production profile defaults to the hosted BasedHardware API', () {
+      final env = File('lib/env/env.dart').readAsStringSync();
+      expect(
+        env.contains("productionApiBaseUrl = 'https://api.omi.me/'"),
+        isTrue,
+        reason: 'env.dart must pin production to https://api.omi.me/',
+      );
+      final profiles = File('lib/env/environment_profile.dart').readAsStringSync();
+      expect(
+        RegExp(r"production\(\s*name: 'production',\s*defaultApiBaseUrl: 'https://api\.omi\.me/'").hasMatch(profiles),
+        isTrue,
+        reason: 'the production profile default must be https://api.omi.me/',
+      );
     });
 
     test('web marketplace frontend defaults to the hosted BasedHardware API', () {

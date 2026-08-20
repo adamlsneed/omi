@@ -10,6 +10,11 @@ This skill teaches you the Omi desktop macOS app's navigation structure, screen 
 
 ## Fast-Path for Local Iteration (start here)
 
+> **Fork policy: deploy as `Omi Dev` every time, in place.** `./run.sh --yolo` installs over
+> `/Applications/Omi Dev.app` so permissions, database, and auth survive. Never set
+> `OMI_APP_NAME`. Where this skill shows a named `omi-*` bundle below, use `Omi Dev` instead;
+> its auth is already seeded, so the seeding steps are unnecessary.
+
 Two things make iterating on the desktop app slow: signing in (web OAuth) and clicking through the UI to reach a screen. Both are solved — use these before reaching for `agent-swift`.
 
 ### 1. Skip the web login (seed auth/settings once, reuse forever)
@@ -62,6 +67,13 @@ Add new actions in `DesktopAutomationActionRegistry` (`registerBuiltins()` for g
 ones, or `register(name:summary:params:handler:)` from a view model for screen-scoped
 ones). `GET /actions` lists them; `POST /action {name, params}` runs one and returns
 the resulting state snapshot.
+
+The typed `omi-harness` keeps bridge and visual runs in the action-controlled
+`quiet` presentation and restores the prior mode in teardown. AX snapshots and
+semantic `press` actions remain quiet and cursor-free. An explicit coordinate
+`click` temporarily requests `interactive` with activation in the bottom-right
+corner, then returns to `quiet` in a `finally` path. Older bundles that do not
+expose `set_automation_ui_presentation` continue with a recorded warning.
 
 For a background-agent/voice regression, use the read-only cross-surface probe after
 the child run reaches a terminal state:
@@ -432,9 +444,10 @@ agent-swift snapshot -i --json                       # see what's on screen
 ### Screen Map (v0.12.119+ redesign)
 ```
 Main Window — Top Navigation Bar (use `click` for all nav buttons)
-├── Home (DesktopHomeView.swift) — chat + insights + status banners
-│   ├── Chat input area (embedded, no separate Chat tab)
-│   ├── Insight cards (screen recording, tasks, observations)
+├── Home (DesktopHomeView.swift) — query bar + results panel + status banners
+│   ├── Query bar (embedded chat; ⏎ searches, ⌘⏎ asks — no separate Chat tab)
+│   ├── Results panel header — `Filter ›`, `Brain Map ›`, `Chat ›`, and the
+│   │   All / Conversations / Memories / Rewind chips over one merged spine
 │   └── Capture/Listening status (top-right)
 ├── Memory — 3 sub-tabs
 │   ├── Memories — search, filter (This device / All), memory list
@@ -515,7 +528,7 @@ Reference flows in `desktop/macos/e2e/flows/*.yaml` describe the app's key user 
 | Flow | Covers | Steps | Notes |
 |------|--------|-------|-------|
 | `flows/navigation.yaml` | Top nav bar, Home, Memory, Tasks, Apps, Settings | 8 | Core nav smoke — top nav buttons + gear icon + Rewind via View menu |
-| `flows/home.yaml` | Home tab, embedded chat, insights, status banners | 5 | Chat input, insight cards, Capture/Listening status |
+| `flows/home.yaml` | Home tab, embedded chat, panel header controls, status banners | 5 | Chat input, `Brain Map ›` into the hub, Capture/Listening status |
 | `flows/memories.yaml` | Memory tab — Memories, Conversations, Brain Map sub-tabs | 6 | Sub-tab switching, search, conversation list, brain map render |
 | `flows/tasks.yaml` | Tasks tab — search, Today/No Deadline sections | 5 | Task list, keyboard toolbar, task interactions |
 | `flows/apps-marketplace.yaml` | Apps tab — Imports, Exports, search, filters | 5 | Category filter, Installed view, Create App |

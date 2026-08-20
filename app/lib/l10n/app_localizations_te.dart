@@ -323,7 +323,7 @@ class AppLocalizationsTe extends AppLocalizations {
   String get searchApps => 'అనువర్తనాలను శోధించండి...';
 
   @override
-  String get myApps => 'నా అనువర్తనాలు';
+  String get myApps => 'నా సృష్టి';
 
   @override
   String get installedApps => 'ఇన్‌స్టాల్ చేసిన అనువర్తనాలు';
@@ -754,11 +754,6 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'మీ ప్లాన్ $dateన రద్దు చేయబడుతుంది.';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'మీ ప్లాన్ $dateన పునరుద్ధరించబడుతుంది.';
   }
 
   @override
@@ -2145,16 +2140,16 @@ class AppLocalizationsTe extends AppLocalizations {
   String get editMemory => '✏️ జ్ఞాపకం సవరించండి';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'ఆధారంగా పిన్ చేయండి';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'ఆధారం నుండి అన్‌పిన్ చేయండి';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'ఆధార మెమరీ';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'ఎల్లప్పుడూ సందర్భంలో';
 
   @override
   String get memoryContentHint => 'నేను ice cream తినడానికి ఇష్టపడతాను...';
@@ -10048,4 +10043,90 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'ఆ మైక్రోఫోన్‌కు కనెక్ట్ కాలేకపోయాము. అది iPhone సెట్టింగ్‌లలో కనెక్ట్ అయిందని నిర్ధారించుకోండి.';
+
+  @override
+  String get syncStatusTooOld => 'సింక్ చేయడానికి చాలా పాతది — Omi దీన్ని అంగీకరించలేదు';
+
+  @override
+  String get planSheetChooseYourPlan => 'అపరిమిత Omi అన్‌లాక్ చేయడానికి మీ ప్లాన్‌ను ఎంచుకోండి.';
+
+  @override
+  String get availableOnMacMobileWeb => 'Mac, మొబైల్ మరియు వెబ్‌లో అందుబాటులో ఉంది';
+
+  @override
+  String get popularBadge => 'ప్రసిద్ధం';
+
+  @override
+  String get worksOnDesktop => 'డెస్క్‌టాప్‌లో పనిచేస్తుంది';
+
+  @override
+  String get noDesktopAccess => 'డెస్క్‌టాప్‌లో పనిచేయదు';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months నెలలు / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count నెలలు ఉచితం',
+      one: '1 నెల ఉచితం',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro => 'Omi ఉచితం, కానీ ఉచిత వెర్షన్‌లో మీ అనుభవాన్ని ప్రభావితం చేసే పరిమితులు ఉన్నాయి:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => '5-7 సెకన్ల ఆలస్యం (రియల్-టైమ్ కాదు)';
+
+  @override
+  String get downgradeToFreemiumAction => 'ఉచిత వెర్షన్‌కు మారండి';
+
+  @override
+  String get getFreeUnlimitedAccess => 'ఉచిత అపరిమిత యాక్సెస్ పొందండి';
+
+  @override
+  String get shareDataForTraining => 'శిక్షణ కోసం డేటాను భాగస్వామ్యం చేయండి';
+
+  @override
+  String get yourRequestUnderReview => 'మీ అభ్యర్థన సమీక్షలో ఉంది';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'अपडेट आवश्यक';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage =>
+      'खाता माइग्रेशन के बाद जारी रखने के लिए नवीनतम Omi ऐप इंस्टॉल करें।';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'माइग्रेशन जारी है';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'आपका खाता माइग्रेट हो रहा है। माइग्रेशन पूरा होने तक उत्पाद सुविधाएँ रुकी रहेंगी।';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'माइग्रेशन रोलबैक के बाद आपका खाता रखरखाव में है। कुछ नए डेटा अलग रह सकते हैं।';
+
+  @override
+  String get accountCutoverOpenStore => 'स्टोर खोलें';
+
+  @override
+  String get sendRawAudioToOmi => 'ముడి ఆడియోను Omiకి పంపండి';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'ముడి ఆడియో Omiకి పంపబడకుండా ఉండటానికి దీన్ని ఆఫ్ చేయండి. ట్రాన్స్‌క్రిప్ట్‌లు మరియు క్లౌడ్ ఫీచర్లకు అవసరమైన డేటా ఇప్పటికీ Omiకి పంపబడవచ్చు.';
+
+  @override
+  String get findDevice => 'కనుగొనండి';
+
+  @override
+  String get diagnosticsShareFailed => 'డయాగ్నొస్టిక్స్‌ను షేర్ చేయలేకపోయాము. దయచేసి మళ్లీ ప్రయత్నించండి.';
 }

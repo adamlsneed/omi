@@ -481,7 +481,15 @@ check_backend_runtime_env_if_needed() {
   fi
 
   require_backend_python
-  "$BACKEND_PYTHON" backend/scripts/validate-backend-runtime-env.py --env dev --check-workflows
+  # Fork policy: --check-workflows reads the backend auto-deploy workflows this
+  # fork deletes (it never deploys backends; see AGENTS.md Safety Rules), and
+  # the backend validator is an upstream-exact mirror we do not patch.
+  if [ -f '.github/workflows/gcp_backend_auto_dev.yml' ]; then
+    "$BACKEND_PYTHON" backend/scripts/validate-backend-runtime-env.py --env dev --check-workflows
+  else
+    echo "Skipping --check-workflows: fork removes the backend auto-deploy workflows."
+    "$BACKEND_PYTHON" backend/scripts/validate-backend-runtime-env.py --env dev
+  fi
   "$BACKEND_PYTHON" backend/scripts/validate-backend-runtime-env.py --env prod
 }
 
@@ -665,7 +673,6 @@ check_openapi_contract_if_needed() {
 
 check_release_process_guards_if_needed() {
   if ! changed_matches \
-    '.github/workflows/desktop_qualify_beta.yml' \
     '.github/scripts/check-release-process-guards.py' \
     'scripts/run-release-process-guards.sh' \
     'backend/tests/unit/test_desktop_release_scripts.py'
@@ -764,6 +771,15 @@ check_desktop_launcher_tests_if_needed() {
   (
     cd desktop/macos
     for test_script in tests/test-*.sh; do
+      # These are live named-bundle checks, not hermetic launcher tests. The
+      # pre-push hook neither launches an automation bridge nor knows a QA app
+      # path, so retain them for their Tier-3 E2E flow/direct harness command.
+      case "$test_script" in
+        tests/test-mounted-navigation-latency.sh|tests/test-named-bundle-resources.sh)
+          echo "== $test_script (skipped: requires a mounted named bundle)"
+          continue
+          ;;
+      esac
       echo "== $test_script"
       bash "$test_script"
     done

@@ -4,7 +4,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, cast
 
-from llm_gateway.gateway.errors import GatewayCapabilityMismatchError, GatewayInvalidRequestError
+from llm_gateway.gateway.errors import (
+    GatewayCapabilityMismatchError,
+    GatewayInvalidRequestError,
+)
 from llm_gateway.gateway.schemas import LaneConfig, StructuredOutputMode
 
 
@@ -30,6 +33,7 @@ FORWARDED_CHAT_COMPLETION_PARAMS = frozenset(
         'prompt_cache_options',
         'prompt_cache_key',
         'seed',
+        'service_tier',
         'stop',
         'stream_options',
         'temperature',
@@ -57,7 +61,7 @@ def validate_chat_completion_request(
 
     messages = _validate_messages(request.get('messages'))
     response_format = _validate_response_format(request.get('response_format'), lane)
-    forwarded_params = _validate_forwarded_params(request)
+    forwarded_params = _validate_forwarded_params(request, lane)
 
     return ValidatedChatCompletionRequest(
         model=model.strip(),
@@ -81,8 +85,12 @@ def _validate_messages(value: object) -> list[Mapping[str, Any]]:
         role = typed_message.get('role')
         if not isinstance(role, str) or not role:
             raise GatewayInvalidRequestError('message role is required', param=f'{param}.role')
-        if 'content' not in typed_message:
-            raise GatewayInvalidRequestError('message content is required', param=f'{param}.content')
+        content = typed_message.get('content')
+        if 'content' not in typed_message or content is None:
+            if role == 'assistant':
+                typed_message = {**dict(typed_message), 'content': ''}
+            else:
+                raise GatewayInvalidRequestError('message content is required', param=f'{param}.content')
         _validate_text_content(typed_message.get('content'), param=f'{param}.content')
         validated.append(typed_message)
     return validated
@@ -95,11 +103,17 @@ def _validate_text_content(content: object, *, param: str) -> None:
     if (
         isinstance(content, list)
         and content
-        and all(_is_text_content_part(part) for part in cast(list[object], content))
+        and all(_is_supported_content_part(part) for part in cast(list[object], content))
     ):
         return
 
-    raise GatewayCapabilityMismatchError('only text message content is supported for this lane', param=param)
+    raise GatewayCapabilityMismatchError(
+        'only text or image_url message content is supported for this lane', param=param
+    )
+
+
+def _is_supported_content_part(part: object) -> bool:
+    return _is_text_content_part(part) or _is_image_url_content_part(part)
 
 
 def _is_text_content_part(part: object) -> bool:
@@ -111,6 +125,16 @@ def _is_text_content_part(part: object) -> bool:
     if 'prompt_cache_breakpoint' in typed_part:
         _validate_prompt_cache_breakpoint(typed_part['prompt_cache_breakpoint'])
     return True
+
+
+def _is_image_url_content_part(part: object) -> bool:
+    if not isinstance(part, Mapping):
+        return False
+    typed_part = cast(Mapping[str, object], part)
+    if typed_part.get('type') != 'image_url':
+        return False
+    image_url = typed_part.get('image_url')
+    return isinstance(image_url, Mapping) and isinstance(cast(Mapping[str, object], image_url).get('url'), str)
 
 
 def _validate_response_format(value: object, lane: LaneConfig) -> Mapping[str, Any] | None:
@@ -130,19 +154,22 @@ def _validate_response_format(value: object, lane: LaneConfig) -> Mapping[str, A
 
     if lane.capabilities.structured_output != StructuredOutputMode.JSON_SCHEMA:
         raise GatewayCapabilityMismatchError(
-            'lane does not support json_schema structured output', param='response_format'
+            'lane does not support json_schema structured output',
+            param='response_format',
         )
 
     json_schema = response_format.get('json_schema')
     if not isinstance(json_schema, Mapping):
         raise GatewayInvalidRequestError(
-            'response_format.json_schema must be an object', param='response_format.json_schema'
+            'response_format.json_schema must be an object',
+            param='response_format.json_schema',
         )
     typed_json_schema = cast(Mapping[str, Any], json_schema)
     name = typed_json_schema.get('name')
     if not isinstance(name, str) or not name.strip():
         raise GatewayInvalidRequestError(
-            'response_format.json_schema.name is required', param='response_format.json_schema.name'
+            'response_format.json_schema.name is required',
+            param='response_format.json_schema.name',
         )
     schema = typed_json_schema.get('schema')
     if not isinstance(schema, Mapping):
@@ -154,7 +181,7 @@ def _validate_response_format(value: object, lane: LaneConfig) -> Mapping[str, A
     return response_format
 
 
-def _validate_forwarded_params(request: Mapping[str, Any]) -> Mapping[str, Any]:
+def _validate_forwarded_params(request: Mapping[str, Any], lane: LaneConfig) -> Mapping[str, Any]:
     unsupported = sorted(set(request.keys()) - CONTROL_PARAMS - GATEWAY_LOCAL_PARAMS - FORWARDED_CHAT_COMPLETION_PARAMS)
     if unsupported:
         raise GatewayInvalidRequestError(
@@ -165,10 +192,26 @@ def _validate_forwarded_params(request: Mapping[str, Any]) -> Mapping[str, Any]:
     _validate_output_limit_aliases(forwarded)
     if 'prompt_cache_options' in forwarded:
         _validate_prompt_cache_options(forwarded['prompt_cache_options'])
+    if 'service_tier' in forwarded:
+        _validate_service_tier(forwarded['service_tier'], lane)
     for key in ('tools', 'tool_choice', 'stream'):
         if key in request:
             forwarded[key] = request[key]
     return forwarded
+
+
+def _validate_service_tier(value: object, lane: LaneConfig) -> None:
+    if value != 'flex':
+        raise GatewayInvalidRequestError('service_tier must be flex', param='service_tier')
+    if lane.lane_id not in {
+        'omi:auto:memory-conflict-flex',
+        'omi:auto:memory-l2-flex',
+        'omi:auto:x-memory-extraction-flex',
+    }:
+        raise GatewayCapabilityMismatchError(
+            'Flex processing is only enabled for scheduled background memory work',
+            param='service_tier',
+        )
 
 
 def _validate_prompt_cache_options(value: object) -> None:

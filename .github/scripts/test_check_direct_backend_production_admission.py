@@ -118,6 +118,9 @@ class DirectBackendProductionAdmissionTests(unittest.TestCase):
                 root = Path(directory)
                 for relative in CHECKER.WORKFLOWS:
                     source = ROOT / relative
+                    if not source.exists():
+                        # Fork policy: backend deploy workflows are deliberately removed.
+                        continue
                     target = root / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, target)
@@ -160,6 +163,9 @@ class DirectBackendProductionAdmissionTests(unittest.TestCase):
                 root = Path(directory)
                 for relative in CHECKER.WORKFLOWS:
                     source = ROOT / relative
+                    if not source.exists():
+                        # Fork policy: backend deploy workflows are deliberately removed.
+                        continue
                     target = root / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(source, target)

@@ -24,14 +24,18 @@ from utils.subscription import (
     get_basic_plan_limits,
     get_paid_plan_definitions,
     get_plan_type_from_price_id,
+    is_purchasable_price_id,
     get_plan_limits,
     is_paid_plan,
     filter_plans_for_user,
+    desktop_to_consumer_plan_change_error,
     should_show_new_plans,
     adapt_plans_for_legacy_client,
     clear_trial_paywall_cache,
     find_active_paid_subscription_for_user,
+    price_ids_match_plan_and_interval,
 )
+from utils.observability.fallback import record_fallback
 from database.users import (
     get_stripe_connect_account_id,
     set_stripe_connect_account_id,
@@ -66,12 +70,12 @@ router = APIRouter()
 
 
 class CreateCheckoutRequest(BaseModel):
-    price_id: str
+    price_id: str = Field(..., min_length=1, max_length=255)
     promotion_code: Optional[str] = None
 
 
 class UpgradeSubscriptionRequest(BaseModel):
-    price_id: str
+    price_id: str = Field(..., min_length=1, max_length=255)
     promotion_code: Optional[str] = None
 
 
@@ -288,12 +292,32 @@ def _try_reactivate_subscription(uid: str, target_price_id: str) -> dict | None:
     """
     Attempts to reactivate a canceled subscription if possible.
 
+    When the local Firestore row is missing or stale (no ``stripe_subscription_id``),
+    fall back to Stripe as the source of truth so a pending-cancellation
+    subscription Stripe still holds for this user can be reactivated instead of
+    dropping into a fresh-checkout flow.
+
     Returns:
         dict with reactivation details if successful, None otherwise
     """
     current_subscription = users_db.get_user_subscription(uid)
+    recovered_from_stripe = False
     if not current_subscription or not current_subscription.stripe_subscription_id:
-        return None
+        # The local row may be missing/stale (e.g. read-after-write lag or a
+        # sync issue). Stripe is the recovery source of truth: find the active
+        # paid subscription there and use its id to attempt reactivation.
+        current_subscription = find_active_paid_subscription_for_user(uid)
+        recovered_from_stripe = True
+        if not current_subscription or not current_subscription.stripe_subscription_id:
+            record_fallback(
+                component='other',
+                from_mode='firestore_subscription',
+                to_mode='stripe_subscription',
+                reason='local_heal',
+                outcome='exhausted',
+                log=logger,
+            )
+            return None
 
     try:
         # Retrieve current subscription from Stripe to check status
@@ -305,12 +329,24 @@ def _try_reactivate_subscription(uid: str, target_price_id: str) -> dict | None:
             current_price_id = stripe_sub_dict['items']['data'][0]['price']['id']
 
             # If resubscribing to the same plan, just remove cancellation
-            if current_price_id == target_price_id:
+            current_interval = stripe_sub_dict['items']['data'][0]['price'].get('recurring', {}).get('interval')
+            if price_ids_match_plan_and_interval(current_price_id, target_price_id, current_interval):
                 stripe.Subscription.modify(current_subscription.stripe_subscription_id, cancel_at_period_end=False)
 
                 # Update our database
                 current_subscription.cancel_at_period_end = False
                 users_db.update_user_subscription(uid, current_subscription.model_dump())
+                set_credits_invalidation_signal(uid)
+                clear_trial_paywall_cache(uid)
+                if recovered_from_stripe:
+                    record_fallback(
+                        component='other',
+                        from_mode='firestore_subscription',
+                        to_mode='stripe_subscription',
+                        reason='local_heal',
+                        outcome='recovered',
+                        log=logger,
+                    )
 
                 # Calculate next billing date
                 next_billing = datetime.fromtimestamp(stripe_sub_dict['current_period_end'], tz=timezone.utc).strftime(
@@ -324,6 +360,16 @@ def _try_reactivate_subscription(uid: str, target_price_id: str) -> dict | None:
                 }
     except Exception as e:
         logger.error(f"Error checking for reactivation: {e}")
+
+    if recovered_from_stripe:
+        record_fallback(
+            component='other',
+            from_mode='firestore_subscription',
+            to_mode='stripe_subscription',
+            reason='local_heal',
+            outcome='exhausted',
+            log=logger,
+        )
 
     return None
 
@@ -405,11 +451,8 @@ def get_available_plans_endpoint(
                 scheduled_price_id = price_map.get(scheduled_price_id, scheduled_price_id)
 
         current_plan = current_subscription.plan if current_subscription else PlanType.basic
-        ever_purchased = subscription_utils.has_ever_purchased(uid, current_subscription)
         pricing_options: List[PricingOption] = []
-        for definition in filter_plans_for_user(
-            all_definitions, current_plan, platform=x_app_platform, ever_purchased=ever_purchased
-        ):
+        for definition in filter_plans_for_user(all_definitions, current_plan, platform=x_app_platform):
             monthly_price_id = definition["monthly_price_id"]
             annual_price_id = definition["annual_price_id"]
             if monthly_price_id:
@@ -421,7 +464,7 @@ def get_available_plans_endpoint(
                             plan_id=definition["plan_id"],
                             title=f'{definition["title"]} Monthly',
                             price_string=f"${monthly_price.unit_amount / 100:.2f}/mo",
-                            description=None,
+                            description=definition.get("description"),
                             subtitle=definition.get("subtitle"),
                             eyebrow=definition.get("eyebrow"),
                             interval=monthly_price.recurring.interval,
@@ -443,7 +486,7 @@ def get_available_plans_endpoint(
                             plan_id=definition["plan_id"],
                             title=f'{definition["title"]} Annual',
                             price_string=f"${int(annual_price.unit_amount / 100 / 12)}/mo",
-                            description=definition["annual_description"],
+                            description=f'{definition.get("description", "")} {definition["annual_description"]}'.strip(),
                             subtitle=definition.get("subtitle"),
                             eyebrow=definition.get("eyebrow"),
                             interval=annual_price.recurring.interval,
@@ -517,12 +560,28 @@ def get_overage_info_endpoint(uid: str = Depends(auth.get_current_user_uid_no_by
     )
 
 
+def _validate_price_id(price_id: str) -> None:
+    """Reject a blank/whitespace-only or non-purchasable price_id before any Stripe call.
+
+    A valid checkout or upgrade target must be a currently-purchasable plan price. Legacy prices
+    (LEGACY_PRICE_MAP) are intentionally rejected here: they exist for existing subscribers'
+    renewals and webhook/subscription reconciliation, not as new purchase targets, so a caller
+    cannot select a hidden or deprecated price by posting its id directly. This is the boundary
+    check for the checkout and upgrade endpoints.
+    """
+    if not price_id or not price_id.strip():
+        raise HTTPException(status_code=400, detail="price_id is required")
+    if not is_purchasable_price_id(price_id):
+        raise HTTPException(status_code=400, detail="Unknown price_id")
+
+
 @router.post(
     '/v1/payments/checkout-session',
     response_model=PaymentCheckoutSessionResponse,
     response_model_exclude_none=True,
 )
 def create_checkout_session_endpoint(request: CreateCheckoutRequest, uid: str = Depends(auth.get_current_user_uid)):
+    _validate_price_id(request.price_id)
     # Check if user can make a new payment
     can_pay, reason = subscription_utils.can_user_make_payment(uid, request.price_id)
     if not can_pay:
@@ -598,6 +657,7 @@ def upgrade_subscription_endpoint(request: UpgradeSubscriptionRequest, uid: str 
     - Same plan, different interval (e.g. monthly→annual): scheduled via SubscriptionSchedule,
       takes effect at end of current billing period.
     """
+    _validate_price_id(request.price_id)
     current_subscription = users_db.get_user_subscription(uid)
 
     if not current_subscription or not current_subscription.stripe_subscription_id:
@@ -609,6 +669,13 @@ def upgrade_subscription_endpoint(request: UpgradeSubscriptionRequest, uid: str 
     try:
         # Retrieve current subscription to get current price ID
         stripe_sub = stripe.Subscription.retrieve(current_subscription.stripe_subscription_id).to_dict()
+        if stripe_sub.get('cancel_at_period_end') and (
+            not stripe_sub.get('current_period_end') or stripe_sub['current_period_end'] > int(time.time())
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Plan changes are available after the current subscription ends. Reactivate your current plan to keep it.",
+            )
         current_price_id = stripe_sub['items']['data'][0]['price']['id']
         current_item_id = stripe_sub['items']['data'][0]['id']
 
@@ -624,12 +691,9 @@ def upgrade_subscription_endpoint(request: UpgradeSubscriptionRequest, uid: str 
         target_interval = target_price.recurring.interval  # "month" or "year"
         current_plan = get_plan_type_from_price_id(current_price_id)
 
-        # Block downgrades from Architect to Unlimited
-        if current_plan == PlanType.architect and target_plan == PlanType.unlimited:
-            raise HTTPException(
-                status_code=400,
-                detail="Downgrading from Architect to Unlimited is not available. Please contact support if you need to change your plan.",
-            )
+        desktop_change_error = desktop_to_consumer_plan_change_error(current_plan, target_plan)
+        if desktop_change_error:
+            raise HTTPException(status_code=400, detail=desktop_change_error)
 
         # Validate and resolve promotion code if provided
         resolved_promo_id = None

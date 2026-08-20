@@ -19,6 +19,22 @@ def _ordered(text: str, fragments: tuple[str, ...], *, workflow: str) -> list[st
     return []
 
 
+def _step_block(text: str, name: str) -> str | None:
+    """Return one workflow step so its runtime contract cannot be borrowed by another."""
+    start = text.find(f"      - name: {name}\n")
+    if start < 0:
+        return None
+    # Steps are allowed to be unnamed (for example ``- uses:``), so stopping
+    # only at the next named step would let a later peer step satisfy this
+    # step's deployment contract. A step starts at this same indentation level
+    # regardless of which mapping key appears after the dash.
+    lines = text[start:].splitlines(keepends=True)
+    for index, line in enumerate(lines[1:], start=1):
+        if line.startswith("      - "):
+            return "".join(lines[:index])
+    return "".join(lines)
+
+
 def _validate_production_python_runtime(text: str, *, workflow: str) -> list[str]:
     errors: list[str] = []
     retired_desktop_context = "./desktop/macos/" + "Backend" + "-Rust"
@@ -28,12 +44,10 @@ def _validate_production_python_runtime(text: str, *, workflow: str) -> list[str
         "--format='none'",
         "SERVICE_ACCOUNT_JSON",
         "GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase/service-account.json",
+        "USE_VERTEX_AI=true",
+        "GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT_ID }}",
+        "GCP_LOCATION=us-central1",
         "/secrets/firebase/service-account.json=SERVICE_ACCOUNT_JSON:latest",
-        "AGENT_GCS_BUCKET: ${{ vars.AGENT_GCS_BUCKET }}",
-        "AGENT_GCS_BUCKET=${{ env.AGENT_GCS_BUCKET }}",
-        "Build and publish Agent VM image",
-        "backend/agent_vm/Dockerfile",
-        "gs://$AGENT_GCS_BUCKET/startup.sh",
         "GEMINI_API_KEY=DESKTOP_GEMINI_API_KEY:latest",
         "FIREBASE_API_KEY=DESKTOP_FIREBASE_API_KEY:latest",
         "REDIS_DB_PASSWORD=DESKTOP_REDIS_DB_PASSWORD:latest",
@@ -65,11 +79,21 @@ def _validate_production_python_runtime(text: str, *, workflow: str) -> list[str
             (
                 "Preflight production desktop secret resource names",
                 "Build and push immutable Docker image",
-                "Build and publish Agent VM image",
             ),
             workflow=workflow,
         )
     )
+    return errors
+
+def _validate_private_network_egress(text: str, *, workflow: str, request_step: str) -> list[str]:
+    errors: list[str] = []
+    request_block = _step_block(text, request_step)
+    if request_block is None:
+        errors.append(f"{workflow}: missing request service deployment step for private network egress")
+        return errors
+    for fragment in ("--network=default", "--subnet=default", "--vpc-egress=private-ranges-only"):
+        if fragment not in request_block:
+            errors.append(f"{workflow}: request service missing private network egress contract {fragment!r}")
     return errors
 
 
@@ -100,6 +124,7 @@ def validate_deploy_workflow(text: str, *, production: bool) -> list[str]:
         "DESKTOP_BACKEND_TRAFFIC_MUTATION_ATTEMPTED=true",
         "failure() && env.DESKTOP_BACKEND_TRAFFIC_MUTATION_ATTEMPTED == 'true'",
         "rollback verification found",
+        "extract_single_cloud_run_traffic_revision.py",
         "Upload desktop backend acceptance evidence",
     )
     for fragment in required:
@@ -143,7 +168,10 @@ def validate_deploy_workflow(text: str, *, production: bool) -> list[str]:
             workflow=workflow,
         )
     )
-
+    request_step = (
+        "Deploy production candidate at zero traffic" if production else "Deploy desktop-backend to Cloud Run"
+    )
+    errors.extend(_validate_private_network_egress(text, workflow=workflow, request_step=request_step))
     if production:
         for fragment in (
             "on:\n  workflow_dispatch:",
@@ -175,10 +203,17 @@ def validate_deploy_workflow(text: str, *, production: bool) -> list[str]:
             'if [[ "$GITHUB_REF" != "refs/heads/main" ]]',
             'if [[ "$source_sha" != "$main_sha" ]]',
             "EXPECTED_GCP_PROJECT_ID: based-hardware-dev",
+            "FIREBASE_AUTH_PROJECT_ID: based-hardware",
             "DEVELOPMENT_DESKTOP_BACKEND_URL: https://desktop-backend-dt5lrfkkoa-uc.a.run.app",
             'revision_suffix="${image_tag}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"',
-            "GOOGLE_APPLICATION_CREDENTIALS=/secrets/firebase/service-account.json",
+            "FIREBASE_AUTH_CREDENTIALS_PATH=/secrets/firebase/service-account.json",
+            "FIREBASE_AUTH_PROJECT_ID=${{ env.FIREBASE_AUTH_PROJECT_ID }}",
+            "FIREBASE_PROJECT_ID=${{ env.FIREBASE_AUTH_PROJECT_ID }}",
+            "GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT_ID }}",
+            "USE_VERTEX_AI=true",
+            "GCP_LOCATION=us-central1",
             "/secrets/firebase/service-account.json=SERVICE_ACCOUNT_JSON:latest",
+            "FIREBASE_API_KEY=FIREBASE_API_KEY:latest",
             "${{ secrets.GCP_SERVICE_ACCOUNT }}",
             'chmod 600 "$signer_file"',
             "base64 --decode",
@@ -187,37 +222,62 @@ def validate_deploy_workflow(text: str, *, production: bool) -> list[str]:
         ):
             if fragment not in text:
                 errors.append(f"{workflow}: missing development traffic guard {fragment!r}")
-        if any(
-            "--remove-env-vars" in line and "GOOGLE_APPLICATION_CREDENTIALS" in line
-            for line in text.splitlines()
-        ):
-            errors.append(
-                f"{workflow}: mounted Firestore credentials must not be removed from the candidate environment"
-            )
+        desktop_block = _step_block(text, "Deploy desktop-backend to Cloud Run")
+        if desktop_block is not None:
+            for credential_env in ("GOOGLE_APPLICATION_CREDENTIALS", "SERVICE_ACCOUNT_JSON"):
+                if any(line.strip().startswith(f"{credential_env}=") for line in desktop_block.splitlines()):
+                    errors.append(f"{workflow}: candidate must not set {credential_env} while using dev ADC")
+                if not any(
+                    "--remove-env-vars" in line and credential_env in line for line in desktop_block.splitlines()
+                ):
+                    errors.append(f"{workflow}: candidate must remove inherited {credential_env} for dev ADC")
         if "GCP_SERVICE_ACCOUNT:latest" in text or "GCP_SERVICE_ACCOUNT=GCP_SERVICE_ACCOUNT" in text:
             errors.append(
                 f"{workflow}: the Firebase probe signer must never become desktop-backend runtime configuration"
             )
+        if "FIREBASE_AUTH_PROJECT_ID: based-hardware-dev" in text or "FIREBASE_PROJECT_ID=based-hardware-dev" in text:
+            errors.append(f"{workflow}: development serving must retain the production Firebase project")
+        dev_runtime_steps = (
+            "Deploy desktop-backend to Cloud Run",
+        )
+        dev_runtime_env = (
+            "FIREBASE_AUTH_PROJECT_ID=${{ env.FIREBASE_AUTH_PROJECT_ID }}",
+            "FIREBASE_PROJECT_ID=${{ env.FIREBASE_AUTH_PROJECT_ID }}",
+            "GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT_ID }}",
+        )
+        for step in dev_runtime_steps:
+            block = _step_block(text, step)
+            if block is None:
+                errors.append(f"{workflow}: missing development runtime step {step!r}")
+                continue
+            for env_var in dev_runtime_env:
+                # Match complete YAML assignment lines. A comment or an
+                # unrelated value containing the text must never satisfy a
+                # required runtime project binding.
+                if not any(line.strip() == env_var for line in block.splitlines()):
+                    errors.append(f"{workflow}: {step} missing isolated development runtime env {env_var!r}")
+        if desktop_block is not None and not any(
+            line.strip() == "FIREBASE_AUTH_CREDENTIALS_PATH=/secrets/firebase/service-account.json"
+            for line in desktop_block.splitlines()
+        ):
+            errors.append(f"{workflow}: desktop candidate must isolate Firebase auth credentials from dev ADC")
+        if desktop_block is not None:
+            for env_var in ("USE_VERTEX_AI=true", "GCP_LOCATION=us-central1"):
+                if not any(line.strip() == env_var for line in desktop_block.splitlines()):
+                    errors.append(f"{workflow}: desktop candidate missing Vertex PT runtime env {env_var!r}")
     return errors
 
 
-def validate_desktop_release_gates(qualification: str, stable: str) -> list[str]:
+def validate_desktop_release_gates(stable: str) -> list[str]:
     errors: list[str] = []
-    required = (
+    for fragment in (
         "Verify live desktop-backend chat compatibility",
         '.chat_contract_version == "1"',
         "https://desktop-backend-hhibjajaja-uc.a.run.app",
-    )
-    for workflow, text in (
-        ("desktop_qualify_beta.yml", qualification),
-        ("desktop_promote_prod.yml", stable),
     ):
-        for fragment in required:
-            if fragment not in text:
-                errors.append(f"{workflow}: missing desktop-backend compatibility gate {fragment!r}")
-    if qualification.find(required[0]) >= qualification.find("Qualify exact candidate on the M1 Studio"):
-        errors.append("desktop_qualify_beta.yml: backend compatibility must precede candidate qualification")
-    if stable.find(required[0]) >= stable.find("Advance explicit stable pointer"):
+        if fragment not in stable:
+            errors.append(f"desktop_promote_prod.yml: missing desktop-backend compatibility gate {fragment!r}")
+    if stable.find("Verify live desktop-backend chat compatibility") >= stable.find("Advance explicit stable pointer"):
         errors.append("desktop_promote_prod.yml: backend compatibility must precede Stable pointer mutation")
     return errors
 
@@ -229,6 +289,8 @@ def validate_recovery_workflow(text: str) -> list[str]:
         "group: desktop-backend-prod",
         "cancel-in-progress: false",
         "environment: prod",
+        "Checkout recovery controls",
+        "actions/checkout@v7",
         "recover-desktop-backend-prod",
         "serving.knative.dev/service",
         'ready.get("status") != "True"',
@@ -240,6 +302,7 @@ def validate_recovery_workflow(text: str) -> list[str]:
         "recovered-desktop-backend-health.json",
         "jq -e",
         "recovery rollback found",
+        "extract_single_cloud_run_traffic_revision.py",
     ):
         if fragment not in text:
             errors.append(f"desktop_backend_recover_prod.yml: missing recovery guard {fragment!r}")
@@ -272,9 +335,8 @@ def validate_contract_sources(*, dockerfile: str, python_health: str, python_cha
 
 def validate_all(
     *,
-    dev: str,
+    dev: "str | None",
     prod: str,
-    qualification: str,
     stable: str,
     recovery: str,
     dockerfile: str,
@@ -282,9 +344,9 @@ def validate_all(
     python_chat: str,
 ) -> list[str]:
     return [
-        *validate_deploy_workflow(dev, production=False),
+        *(validate_deploy_workflow(dev, production=False) if dev is not None else []),
         *validate_deploy_workflow(prod, production=True),
-        *validate_desktop_release_gates(qualification, stable),
+        *validate_desktop_release_gates(stable),
         *validate_recovery_workflow(recovery),
         *validate_contract_sources(
             dockerfile=dockerfile,
@@ -295,10 +357,13 @@ def validate_all(
 
 
 def main() -> int:
+    # Fork policy: the dev auto-deploy workflow is deliberately removed (this
+    # fork never deploys backends; see AGENTS.md Safety Rules). Validate only
+    # the workflows that exist.
+    dev_workflow = WORKFLOWS / "desktop_backend_auto_dev.yml"
     errors = validate_all(
-        dev=(WORKFLOWS / "desktop_backend_auto_dev.yml").read_text(encoding="utf-8"),
+        dev=dev_workflow.read_text(encoding="utf-8") if dev_workflow.is_file() else None,
         prod=(WORKFLOWS / "desktop_backend_prod.yml").read_text(encoding="utf-8"),
-        qualification=(WORKFLOWS / "desktop_qualify_beta.yml").read_text(encoding="utf-8"),
         stable=(WORKFLOWS / "desktop_promote_prod.yml").read_text(encoding="utf-8"),
         recovery=(WORKFLOWS / "desktop_backend_recover_prod.yml").read_text(encoding="utf-8"),
         dockerfile=(ROOT / "backend/Dockerfile.desktop_backend").read_text(encoding="utf-8"),

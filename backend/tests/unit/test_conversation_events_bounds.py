@@ -99,8 +99,18 @@ def router():
     memory_service = ModuleType("utils.memory.memory_service")
     memory_service.MemoryService = MagicMock()
 
-    surface_routing = ModuleType("utils.memory.surface_routing")
-    surface_routing.pin_memory_system = MagicMock()
+    retraction_scope = ModuleType("utils.memory.retraction_scope")
+    setattr(retraction_scope, "retraction_can_be_skipped", MagicMock(return_value=False))
+
+    # The router imports the typed conflict raised by exhausted cascade-retract
+    # CAS retries (#11726); expose it as a real RuntimeError subclass so the
+    # except-clause in delete_conversation binds to something concrete.
+    canonical_adapter = ModuleType("utils.memory.canonical_memory_adapter")
+
+    class _ConversationReplacementConflictError(RuntimeError):
+        pass
+
+    setattr(canonical_adapter, "ConversationReplacementConflictError", _ConversationReplacementConflictError)
 
     request_validation = ModuleType("utils.request_validation")
     setattr(request_validation, "NonNegativeOffset", int)
@@ -167,7 +177,8 @@ def router():
         "utils.memory.memory_service": memory_service,
         "utils.memory.memory_system": memory_system,
         "utils.memory.canonical_activation": canonical_activation,
-        "utils.memory.surface_routing": surface_routing,
+        "utils.memory.retraction_scope": retraction_scope,
+        "utils.memory.canonical_memory_adapter": canonical_adapter,
         "utils.retrieval": _pkg("utils.retrieval"),
         "utils.retrieval.tools": _pkg("utils.retrieval.tools"),
         "utils.retrieval.tools.calendar_tools": _pkg("utils.retrieval.tools.calendar_tools"),
@@ -237,17 +248,18 @@ def test_valid_index_still_updates(router):
 class _FakeSegment:
     """Minimal transcript segment: assignable (.is_user / .person_id) and model_dump-able."""
 
-    def __init__(self):
+    def __init__(self, segment_id=None):
+        self.id = segment_id
         self.is_user = False
         self.person_id = None
 
     def model_dump(self):
-        return {"is_user": self.is_user, "person_id": self.person_id}
+        return {"id": self.id, "is_user": self.is_user, "person_id": self.person_id}
 
 
-def _fake_conversation_with_segments(count):
-    segments = [_FakeSegment() for _ in range(count)]
-    return SimpleNamespace(transcript_segments=segments), segments
+def _fake_conversation_with_segments(count, status=None, with_ids=False):
+    segments = [_FakeSegment(f"segment-{index}" if with_ids else None) for index in range(count)]
+    return SimpleNamespace(transcript_segments=segments, status=status), segments
 
 
 def _segment_assign_handler(conv):
@@ -298,11 +310,121 @@ def test_segment_assign_valid_index_still_updates(router):
     """Sanity: an in-range index still applies the assignment (fix must not break the happy path)."""
     convo, segments = _fake_conversation_with_segments(2)
     handler = _segment_assign_handler(router.conv)
+    emitted = []
     with patch.object(router.conv, "_get_valid_conversation_by_id", return_value={"id": "c1"}), patch.object(
         router.conv, "deserialize_conversation", return_value=convo
-    ):
+    ), patch.object(router.conv, "emit_product_event", side_effect=lambda **event: emitted.append(event)):
         result = handler("c1", 1, "is_user", value="true", uid="u1")
 
     assert segments[1].is_user is True
     assert segments[0].is_user is False  # untouched
     assert result is convo
+    assert emitted == [
+        {
+            "uid": "u1",
+            "event": "Speaker Identity Confirmed",
+            "properties": {
+                "conversation_id": "c1",
+                "confirmation": "corrected",
+                "assignment": "self",
+                "scope": "segment",
+                "affected_segment_count": 1,
+            },
+        }
+    ]
+
+
+def test_segment_assign_repeating_the_same_identity_is_an_acceptance(router):
+    convo, segments = _fake_conversation_with_segments(1)
+    segments[0].is_user = True
+    handler = _segment_assign_handler(router.conv)
+    emitted = []
+
+    with patch.object(router.conv, "_get_valid_conversation_by_id", return_value={"id": "c1"}), patch.object(
+        router.conv, "deserialize_conversation", return_value=convo
+    ), patch.object(router.conv, "emit_product_event", side_effect=lambda **event: emitted.append(event)):
+        handler("c1", 0, "is_user", value="true", uid="u1")
+
+    assert len(emitted) == 1
+    assert emitted[0]["properties"]["confirmation"] == "accepted"
+
+
+def test_bulk_assign_resolves_legacy_positional_target_and_persists_canonical_id(router):
+    """The desktop's #index fallback must resolve to the same segment the backend persists."""
+    convo, segments = _fake_conversation_with_segments(
+        2,
+        status=router.conv.ConversationStatus.completed,
+        with_ids=True,
+    )
+    background_tasks = router.conv.BackgroundTasks()
+    data = router.conv.BulkAssignSegmentsRequest(
+        segment_ids=["#index:0"],
+        assign_type="person_id",
+        value="person-9",
+    )
+
+    with patch.object(router.conv, "_get_valid_conversation_by_id", return_value={"id": "c1"}), patch.object(
+        router.conv, "deserialize_conversation", return_value=convo
+    ), patch.object(router.conv.conversations_db, "update_conversation_segments"):
+        result = router.conv.assign_segments_bulk("c1", data, background_tasks, uid="u1")
+
+    assert result is convo
+    assert segments[0].person_id == "person-9"
+    assert segments[0].is_user is False
+    assert segments[1].person_id is None
+    assert len(background_tasks.tasks) == 1
+    assert background_tasks.tasks[0].kwargs["segment_ids"] == ["segment-0"]
+
+
+def test_bulk_assign_exact_id_still_supports_user_assignment(router):
+    """Already-shipped clients using persisted IDs retain the existing assignment path."""
+    convo, segments = _fake_conversation_with_segments(
+        2,
+        status=router.conv.ConversationStatus.completed,
+        with_ids=True,
+    )
+    segments[0].person_id = "old-person"
+    background_tasks = router.conv.BackgroundTasks()
+    data = router.conv.BulkAssignSegmentsRequest(
+        segment_ids=["segment-0"],
+        assign_type="is_user",
+        value="true",
+    )
+
+    with patch.object(router.conv, "_get_valid_conversation_by_id", return_value={"id": "c1"}), patch.object(
+        router.conv, "deserialize_conversation", return_value=convo
+    ), patch.object(router.conv.conversations_db, "update_conversation_segments"):
+        router.conv.assign_segments_bulk("c1", data, background_tasks, uid="u1")
+
+    assert segments[0].is_user is True
+    assert segments[0].person_id is None
+    assert segments[1].is_user is False
+    assert background_tasks.tasks == []
+
+
+def test_bulk_assign_rejects_unresolved_target_without_partial_mutation(router):
+    """A stale or malformed target must fail closed instead of reporting a silent no-op."""
+    convo, segments = _fake_conversation_with_segments(
+        2,
+        status=router.conv.ConversationStatus.completed,
+        with_ids=True,
+    )
+    segments[0].person_id = "old-person"
+    background_tasks = router.conv.BackgroundTasks()
+    data = router.conv.BulkAssignSegmentsRequest(
+        segment_ids=["segment-0", "#index:99"],
+        assign_type="person_id",
+        value="person-9",
+    )
+    update = MagicMock()
+
+    with patch.object(router.conv, "_get_valid_conversation_by_id", return_value={"id": "c1"}), patch.object(
+        router.conv, "deserialize_conversation", return_value=convo
+    ), patch.object(router.conv.conversations_db, "update_conversation_segments", update):
+        with pytest.raises(HTTPException) as exc:
+            router.conv.assign_segments_bulk("c1", data, background_tasks, uid="u1")
+
+    assert exc.value.status_code == 409
+    assert segments[0].person_id == "old-person"
+    assert update.call_count == 0
+    assert background_tasks.tasks == []

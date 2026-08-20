@@ -229,8 +229,60 @@ actor AgentRuntimeProcess {
   nonisolated static let requiredRuntimeCapabilities: Set<String> = [
     "journal_import_remote_turn",
     "runtime_adapter_availability",
+    "chat_first_capability_projection",
   ]
   private static let ownerTransitionClientID = "runtime-owner-transition"
+  private var authTokenFileDirectory: URL?
+
+  // Copying the whole app/shell environment can leak local secrets into child
+  // process listings, so the Node runtime gets a small allowlist and every
+  // other key is set explicitly below.
+  private nonisolated static func makeAgentSubprocessEnvironment() -> [String: String] {
+    let allowedKeys = [
+      "HOME",
+      "USER",
+      "LOGNAME",
+      "PATH",
+      "TMPDIR",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "TERM",
+    ]
+    let appEnvironment = ProcessInfo.processInfo.environment
+    var env: [String: String] = [:]
+    for key in allowedKeys {
+      if let value = appEnvironment[key] {
+        env[key] = value
+      }
+    }
+    return env
+  }
+
+  // The Firebase token reaches Node through a private 0600 file instead of the
+  // child environment, so process listings never expose it.
+  private func writeAuthTokenFile(_ token: String) throws -> String {
+    cleanupAuthTokenFile()
+    let directory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("omi-agent-token-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: directory,
+      withIntermediateDirectories: true,
+      attributes: [.posixPermissions: 0o700])
+    let fileURL = directory.appendingPathComponent("token")
+    try token.write(to: fileURL, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
+    authTokenFileDirectory = directory
+    return fileURL.path
+  }
+
+  private func cleanupAuthTokenFile() {
+    if let directory = authTokenFileDirectory {
+      try? FileManager.default.removeItem(at: directory)
+      authTokenFileDirectory = nil
+    }
+  }
 
   struct RuntimeHandshake: Equatable, Sendable {
     let protocolVersion: Int
@@ -330,6 +382,7 @@ actor AgentRuntimeProcess {
       case journalBackendSync
       case journalBackendDelete
       case journalBackendReconcile
+      case chatFirstDeferralDelivery
       case defaultExecutionProfileConfigured
       case surfaceSessionResolved
       case sessionExecutionProfileMigrated
@@ -339,6 +392,7 @@ actor AgentRuntimeProcess {
       case externalSurfaceRunBeginResult
       case externalSurfaceToolResult
       case externalSurfaceRunCompleteResult
+      case chatFirstHarnessExecutorResult
       case ownerRuntimeRevoked
       case unknown(String)
     }
@@ -390,6 +444,7 @@ actor AgentRuntimeProcess {
       case "journal_backend_sync": return .journalBackendSync
       case "journal_backend_delete": return .journalBackendDelete
       case "journal_backend_reconcile": return .journalBackendReconcile
+      case "chat_first_deferral_delivery": return .chatFirstDeferralDelivery
       case "default_execution_profile_configured": return .defaultExecutionProfileConfigured
       case "surface_session_resolved": return .surfaceSessionResolved
       case "session_execution_profile_migrated": return .sessionExecutionProfileMigrated
@@ -399,6 +454,7 @@ actor AgentRuntimeProcess {
       case "external_surface_run_begin_result": return .externalSurfaceRunBeginResult
       case "external_surface_tool_result": return .externalSurfaceToolResult
       case "external_surface_run_complete_result": return .externalSurfaceRunCompleteResult
+      case "chat_first_harness_executor_result": return .chatFirstHarnessExecutorResult
       case "owner_runtime_revoked": return .ownerRuntimeRevoked
       default: return .unknown(type)
       }
@@ -489,17 +545,6 @@ actor AgentRuntimeProcess {
     let operation: String
     let expectedKind: RuntimeMessage.Kind
     let timedOutAtUptime: TimeInterval
-  }
-
-  struct JournalOperationResult: Sendable {
-    let operation: String
-    let conversationId: String
-    let turn: KernelJournalTurn?
-    let turns: [KernelJournalTurn]
-    let clearedCount: Int
-    let highWaterTurnSeq: Int
-    let conversationGeneration: Int
-    let generationBaseTurnSeq: Int
   }
 
   typealias JournalTurnChangedHandler = @Sendable (KernelJournalTurn) -> Void
@@ -827,7 +872,7 @@ actor AgentRuntimeProcess {
     }
   }
 
-  private func assertAuthorization(
+  func assertAuthorization(
     _ snapshot: RuntimeOwnerAuthorizationSnapshot,
     expectedOwnerID: String? = nil
   ) throws {
@@ -891,6 +936,7 @@ actor AgentRuntimeProcess {
     surface: AgentSurfaceReference,
     title: String?,
     creationProfile: AgentSessionCreationProfile?,
+    chatFirstCapability: ChatFirstCapabilityProjection? = nil,
     authorizationSnapshot: RuntimeOwnerAuthorizationSnapshot
   ) async throws -> AgentSurfaceSession {
     try assertAuthorization(authorizationSnapshot)
@@ -900,7 +946,8 @@ actor AgentRuntimeProcess {
       ownerId: authorizationSnapshot.ownerID,
       surface: surface,
       title: title,
-      creationProfile: creationProfile
+      creationProfile: creationProfile,
+      chatFirstCapability: chatFirstCapability
     )
     let result = try await kernelContractRequest(
       payload: payload,
@@ -1400,7 +1447,8 @@ actor AgentRuntimeProcess {
     ownerId: String?,
     surface: AgentSurfaceReference,
     title: String?,
-    creationProfile: AgentSessionCreationProfile? = nil
+    creationProfile: AgentSessionCreationProfile? = nil,
+    chatFirstCapability: ChatFirstCapabilityProjection? = nil
   ) -> [String: Any] {
     var message = protocolEnvelope(
       type: "resolve_surface_session",
@@ -1413,6 +1461,7 @@ actor AgentRuntimeProcess {
     message["externalRefId"] = surface.externalRefId
     if let title { message["title"] = title }
     if let creationProfile { message["creationProfile"] = creationProfile.dictionary }
+    if let chatFirstCapability { message["chatFirstCapability"] = chatFirstCapability.dictionary }
     return message
   }
 
@@ -1576,6 +1625,7 @@ actor AgentRuntimeProcess {
     requestId: String,
     ownerId: String?,
     sessionId: String,
+    surfaceKind: String,
     prompt: String,
     mode: String?,
     imageData: Data?,
@@ -1591,6 +1641,7 @@ actor AgentRuntimeProcess {
       ownerId: ownerId
     )
     message["sessionId"] = sessionId
+    message["surfaceKind"] = surfaceKind
     message["prompt"] = prompt
     if let mode { message["mode"] = mode }
     if let imageData { message["imageBase64"] = imageData.base64EncodedString() }
@@ -1606,7 +1657,7 @@ actor AgentRuntimeProcess {
     return message
   }
 
-  private static func protocolEnvelope(
+  static func protocolEnvelope(
     type: String,
     clientId: String,
     requestId: String,
@@ -1622,7 +1673,7 @@ actor AgentRuntimeProcess {
     return message
   }
 
-  private func kernelContractRequest(
+  func kernelContractRequest(
     payload: [String: Any],
     expectedKind: RuntimeMessage.Kind,
     authorizationSnapshot: RuntimeOwnerAuthorizationSnapshot?,
@@ -1944,7 +1995,10 @@ actor AgentRuntimeProcess {
     ).clearedCount
   }
 
-  private func journalOperation(
+  /// Shared only with the Chat-first journal extension. Its callers must retain
+  /// the capability's main-Chat and generation checks before constructing a
+  /// kernel operation; this low-level transport does not grant authority.
+  func journalOperation(
     type: String,
     operation: String,
     clientId: String,
@@ -2414,6 +2468,7 @@ actor AgentRuntimeProcess {
         requestId: requestId,
         ownerId: authorizationSnapshot.ownerID,
         sessionId: sessionId,
+        surfaceKind: surface.surfaceKind,
         prompt: prompt,
         mode: mode,
         imageData: imageData,
@@ -2535,10 +2590,10 @@ actor AgentRuntimeProcess {
     negotiatedProtocolVersion = nil
     negotiatedRuntimeVersion = nil
 
-    guard let nodePath = findNodeBinary() else {
+    guard let nodePath = Self.findNodeBinary() else {
       throw BridgeError.nodeNotFound
     }
-    guard let bridgePath = findBridgeScript() else {
+    guard let bridgePath = Self.findBridgeScript() else {
       throw BridgeError.bridgeScriptNotFound
     }
 
@@ -2554,22 +2609,32 @@ actor AgentRuntimeProcess {
       "AgentRuntimeProcess: starting node=\(nodePath) (exists=\(nodeExists)), bridge=\(bridgePath) (exists=\(bridgeExists)), package.json=\(pkgJsonExists)"
     )
 
+    // Refuse an incomplete payload here rather than spawning a runtime that exits 1 seconds
+    // after the person has already sent their message. `AgentRuntimePayload` owns the reason.
+    if let refusal = AgentRuntimePayload.startRefusal(bridgeScriptPath: bridgePath) {
+      startupBinaryPresent = false
+      log(refusal.logLine)
+      throw refusal.error
+    }
+
     let proc = Process()
     proc.executableURL = URL(fileURLWithPath: nodePath)
     proc.arguments = ["--max-old-space-size=256", "--max-semi-space-size=16", bridgePath]
 
-    var env = ProcessInfo.processInfo.environment
+    var env = Self.makeAgentSubprocessEnvironment()
+    // The hermetic fault-model token is read from the app's own environment;
+    // the allowlisted child env never carries it.
     let hermeticFaultModelToken = AgentRuntimeCredentialPolicy.hermeticFaultModelToken(
       isNonProduction: AppBuild.isNonProduction,
       bundleIdentifier: AppBuild.bundleIdentifier,
-      environment: env)
+      environment: ProcessInfo.processInfo.environment)
     env.removeValue(forKey: AgentRuntimeCredentialPolicy.hermeticFaultModelTokenEnvironmentKey)
     env["NODE_NO_WARNINGS"] = "1"
     env["HARNESS_MODE"] = preferredHarnessMode
     env["OMI_AGENT_STATE_DIR"] = Self.defaultStateDirectory()
     env["OMI_AGENT_ARTIFACTS_DIR"] = Self.defaultArtifactsDirectory()
     #if DEBUG
-      if AppBuild.isNonProduction {
+      if AppBuild.allowsLocalAutomation {
         env["OMI_AGENT_ALLOW_CONTROL_ONLY"] = "1"
       }
     #endif
@@ -2607,12 +2672,12 @@ actor AgentRuntimeProcess {
       log("AgentRuntimeProcess: pi-mono BYOK active, forwarding \(byok.values.count) usable user keys")
     }
 
+    let shouldFetchManagedToken = AgentRuntimeCredentialPolicy.requiresManagedCredentials(
+      requestedCredentials: requiresCredentials,
+      isNonProduction: AppBuild.isNonProduction,
+      hermeticFaultModelToken: hermeticFaultModelToken)
     let requiresPiMonoCredentials =
-      preferredAdapterId == .piMono
-      && AgentRuntimeCredentialPolicy.requiresManagedCredentials(
-        requestedCredentials: requiresCredentials,
-        isNonProduction: AppBuild.isNonProduction,
-        hermeticFaultModelToken: hermeticFaultModelToken)
+      preferredAdapterId == .piMono && shouldFetchManagedToken
     let authService = await MainActor.run { AuthService.shared }
     let forceRefreshToken =
       preferredAdapterId == .piMono
@@ -2620,7 +2685,7 @@ actor AgentRuntimeProcess {
         isNonProduction: AppBuild.isNonProduction,
         isDesktopLocalProfile: DesktopLocalProfile.isEnabled)
     let authHeader = try? await Self.startupAuthHeader(
-      requiresCredentials: requiresPiMonoCredentials,
+      requiresCredentials: shouldFetchManagedToken,
       fetchAuthHeader: {
         try await authService.getAuthHeader(
           forceRefresh: forceRefreshToken,
@@ -2637,7 +2702,7 @@ actor AgentRuntimeProcess {
     {
       startupPermissionGrantedChecked = requiresPiMonoCredentials
       startupPermissionGranted = requiresPiMonoCredentials
-      env["OMI_AUTH_TOKEN"] = token
+      env["OMI_AUTH_TOKEN_FILE"] = try writeAuthTokenFile(token)
     } else if requiresPiMonoCredentials {
       startupPermissionGrantedChecked = true
       log("AgentRuntimeProcess: pi-mono start refused, Firebase ID token is missing")
@@ -2718,7 +2783,7 @@ actor AgentRuntimeProcess {
       try proc.run()
       markRuntimeOwnerAuthorityDirty()
       let launchedAuthorityEpoch = runtimeOwnerAuthorityEpoch
-      if env["OMI_AUTH_TOKEN"]?.isEmpty == false {
+      if env["OMI_AUTH_TOKEN"]?.isEmpty == false || env["OMI_AUTH_TOKEN_FILE"] != nil {
         synchronizedRuntimeCredentialOwnerID = authorizationSnapshot.ownerID
       }
       startReadingStdout()
@@ -2911,8 +2976,8 @@ actor AgentRuntimeProcess {
       return .exitedDuringStartup
     case .agentError:
       return .incompatibleHandshake
-    case .nodeNotFound, .bridgeScriptNotFound, .notRunning, .encodingError,
-      .failedToStart, .stopped, .restarting, .requestAlreadyActive,
+    case .nodeNotFound, .bridgeScriptNotFound, .agentRuntimePayloadIncomplete, .notRunning,
+      .encodingError, .failedToStart, .stopped, .restarting, .requestAlreadyActive,
       .agentRuntimeFailure, .quotaExceeded, .authMissing:
       return .launchFailed
     }
@@ -2921,7 +2986,9 @@ actor AgentRuntimeProcess {
   /// A terminal kernel turn is a durable replay boundary. Feed the reducer at
   /// the runtime boundary rather than maintaining a second ad-hoc set in each
   /// chat or PTT surface.
-  private func recordLifecycleJournalMutation(_ turn: KernelJournalTurn) {
+  /// Shared only with the Chat-first journal extension so every journal-owned
+  /// mutation reaches the same lifecycle reducer boundary.
+  func recordLifecycleJournalMutation(_ turn: KernelJournalTurn) {
     _ = bridgeLifecycle.reduce(
       .kernelJournalWrite(
         turnID: turn.turnId,
@@ -3006,6 +3073,7 @@ actor AgentRuntimeProcess {
     if let currentProcess = process, currentProcess === failedProcess {
       process = nil
     }
+    cleanupAuthTokenFile()
     closePipes()
     recordBridgeStartFailure(Self.startFailure(for: error))
     await cancelAndDrainAuthorizedToolExecutionTasks()
@@ -3079,6 +3147,7 @@ actor AgentRuntimeProcess {
     }
 
     process = nil
+    cleanupAuthTokenFile()
     closePipes()
     lastExitWasOOM = false
     oomDiagnosticLatch.reset(generation: processGeneration)
@@ -3280,11 +3349,15 @@ actor AgentRuntimeProcess {
     case .journalBackendReconcile:
       if messageOwnerIsCurrentlyAuthorized(message) { handleJournalBackendReconcile(message) }
 
+    case .chatFirstDeferralDelivery:
+      if messageOwnerIsCurrentlyAuthorized(message) { handleChatFirstDeferralDelivery(message) }
+
     case .defaultExecutionProfileConfigured, .surfaceSessionResolved,
       .sessionExecutionProfileMigrated, .contextSourceUpdated, .contextSnapshot,
       .legacyMainChatSessionsImported,
       .externalSurfaceRunBeginResult, .externalSurfaceToolResult,
-      .externalSurfaceRunCompleteResult, .ownerRuntimeRevoked:
+      .externalSurfaceRunCompleteResult, .chatFirstHarnessExecutorResult,
+      .ownerRuntimeRevoked:
       completeKernelContractRequest(message)
 
     case .result:
@@ -3409,7 +3482,11 @@ actor AgentRuntimeProcess {
             ? AgentClientScope.floatingPill
             : nil,
           originatingSurfaceRef: surface,
+          originatingSessionID: command.sessionID,
           originatingRunId: command.runID,
+          originatingAttemptId: command.attemptID,
+          toolCapabilityRef: command.capabilityRef,
+          chatFirstControlGeneration: command.chatFirstControlGeneration,
           originatingUserText: command.originatingUserText,
           isOnboardingSurface: command.surfaceKind == "onboarding",
           expectedOwnerID: command.ownerID,
@@ -3679,7 +3756,20 @@ actor AgentRuntimeProcess {
         clearedCount: message.payload["clearedCount"] as? Int ?? 0,
         highWaterTurnSeq: highWaterTurnSeq,
         conversationGeneration: conversationGeneration,
-        generationBaseTurnSeq: generationBaseTurnSeq
+        generationBaseTurnSeq: generationBaseTurnSeq,
+        accepted: message.payload["accepted"] as? Bool,
+        duplicate: message.payload["duplicate"] as? Bool,
+        continuityKey: message.payload["continuityKey"] as? String,
+        suppressedByTailQuestion: message.payload["suppressedByTailQuestion"] as? Bool ?? false,
+        suppressedByStreamingTail: message.payload["suppressedByStreamingTail"] as? Bool ?? false,
+        materializationStoppedByTail: message.payload["materializationStoppedByTail"] as? Bool ?? false,
+        materializationReceipts: Self.chatFirstMaterializationReceipts(
+          from: message.payload["materializationReceipts"]
+        ),
+        coldStartSequenceTerminalReceipts: Self.chatFirstColdStartSequenceTerminalReceipts(
+          from: message.payload["coldStartSequenceTerminalReceipts"]
+        ),
+        acknowledgedReceiptCount: message.payload["acknowledgedReceiptCount"] as? Int ?? 0
       ))
   }
 
@@ -4028,7 +4118,7 @@ actor AgentRuntimeProcess {
   }
 
   @discardableResult
-  private func sendJson(_ dict: [String: Any]) -> Bool {
+  func sendJson(_ dict: [String: Any]) -> Bool {
     guard let stdinPipe else { return false }
     do {
       let data = try JSONSerialization.data(withJSONObject: dict)
@@ -4220,7 +4310,7 @@ actor AgentRuntimeProcess {
       append(
         bundleURL
           .appendingPathComponent("Contents/Resources")
-          .appendingPathComponent(bundleName)
+          .appendingPathComponent("\(bundleName)/Contents/Resources")
           .appendingPathComponent(resourceName))
       append(
         bundleURL
@@ -4244,7 +4334,7 @@ actor AgentRuntimeProcess {
     return candidates
   }
 
-  private func findNodeBinary() -> String? {
+  static func findNodeBinary() -> String? {
     let bundleURLs =
       [Bundle.main.bundleURL]
       + Bundle.allBundles.map(\.bundleURL)
@@ -4298,7 +4388,7 @@ actor AgentRuntimeProcess {
     return nil
   }
 
-  private func findBridgeScript() -> String? {
+  static func findBridgeScript() -> String? {
     if let bundlePath = Bundle.main.resourcePath {
       let bundledScript = (bundlePath as NSString).appendingPathComponent("agent/dist/index.js")
       if FileManager.default.fileExists(atPath: bundledScript) {

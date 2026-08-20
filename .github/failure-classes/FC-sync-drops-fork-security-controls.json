@@ -1,0 +1,19 @@
+{
+ "schema_version": 1,
+ "id": "FC-sync-drops-fork-security-controls",
+ "violated_contract": "A fork-local security control composed into upstream-owned code (the agent subprocess environment allowlist and the file-based OMI_AUTH_TOKEN delivery) must survive an upstream sync. Resolving a merge by taking upstream's rewritten spawn path wholesale silently reverts the control, and the regression ships if the sync lands without the control's tripwires red-flagging it.",
+ "canonical_prevention": "Keep source-level tripwire tests (PiMonoWiringTests) asserting the forbidden pattern (whole-environment copy, token directly in child env) and the required pattern (allowlist builder, token file) against the current spawn-path file, and re-point them at the new file whenever upstream moves the spawn path. A sync PR is not landable while these tripwires are red, and an unverified auto-merge to main is not a landing path.",
+ "canonical_prevention_artifact": [
+  "desktop/macos/Desktop/Tests/PiMonoWiringTests.swift"
+ ],
+ "evidence_prs": [
+  98,
+  100
+ ],
+ "scope_hints": [
+  "desktop/macos/Desktop/Sources/Chat/AgentRuntimeProcess.swift",
+  "desktop/macos/agent/src/index.ts",
+  "desktop/macos/Desktop/Tests/PiMonoWiringTests.swift"
+ ],
+ "status": "open"
+}

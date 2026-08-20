@@ -2,6 +2,11 @@ import OmiSupport
 import OmiTheme
 import SwiftUI
 
+enum ConversationDetailPane: Equatable {
+  case summary
+  case transcript
+}
+
 /// Full detail view for a single conversation
 struct ConversationDetailView: View {
   let conversation: ServerConversation
@@ -16,17 +21,19 @@ struct ConversationDetailView: View {
   var onFetchPeople: (() async -> Void)?
   var onCreatePerson: ((String) async -> Person?)?
   var onAssignSpeaker: ((String, [String], String?, Bool) async -> Bool)?
+  @ObservedObject private var automation = ConversationDetailAutomationState.shared
 
   @StateObject private var appProvider = AppProvider()
   @State private var showAppSelector = false
   @State private var isReprocessing = false
   @State private var selectedAppForReprocess: OmiApp?
+  /// Locally mirrored preferred summarization app (mobile keeps the same key
+  /// in SharedPreferences; the backend exposes no GET for it).
+  @State private var preferredSummaryAppId: String?
 
-  // Transcript drawer state (replaces tab system)
+  // Transcript presentation state. Summary and transcript are exclusive panes so neither one is
+  // compressed into an unreadable split view at the minimum window width.
   @State private var showTranscriptDrawer = false
-  // When expanded, the transcript drawer fills the window (the summary pane
-  // collapses) for full-width reading; collapsed it's the fixed side drawer.
-  @State private var isTranscriptExpanded = false
 
   // Entry animation
   @State private var hasAppeared = false
@@ -42,7 +49,6 @@ struct ConversationDetailView: View {
   @State private var showEditDialog = false
   @State private var editedTitle = ""
   @State private var isUpdatingTitle = false
-  @State private var isCopyingLink = false
   @State private var isDeleting = false
 
   // Speaker naming state
@@ -114,70 +120,56 @@ struct ConversationDetailView: View {
     return "\(dateStr) at \(startStr)"
   }
 
+  static func visiblePane(transcriptOpen: Bool) -> ConversationDetailPane {
+    transcriptOpen ? .transcript : .summary
+  }
+
   var body: some View {
-    HStack(spacing: 0) {
-      // Main content (always visible)
-      VStack(alignment: .leading, spacing: 0) {
-        headerView
+    Group {
+      switch Self.visiblePane(transcriptOpen: showTranscriptDrawer) {
+      case .summary:
+        VStack(alignment: .leading, spacing: 0) {
+          headerView
 
-        ScrollView {
-          // Card container wrapping summary content
-          VStack(alignment: .leading, spacing: 0) {
-            // Card header bar
-            HStack(spacing: OmiSpacing.sm) {
-              Image(systemName: "doc.text")
-                .scaledFont(size: OmiType.caption)
-                .foregroundColor(OmiColors.textTertiary)
-              Text("Conversation Details")
-                .scaledFont(size: OmiType.body, weight: .medium)
-                .foregroundColor(OmiColors.textSecondary)
-              Spacer()
+          ScrollView {
+            // Card container wrapping summary content
+            VStack(alignment: .leading, spacing: 0) {
+              // Card header bar
+              HStack(spacing: OmiSpacing.sm) {
+                Image(systemName: "doc.text")
+                  .scaledFont(size: OmiType.caption)
+                  .foregroundColor(Ink.secondary)
+                Text("Conversation Details")
+                  .scaledFont(size: OmiType.body, weight: .medium)
+                  .foregroundColor(Ink.secondary)
+                Spacer()
+              }
+              .padding(.horizontal, OmiSpacing.lg)
+              .padding(.vertical, OmiSpacing.sm)
+              .background(Ink.rowFillHover.opacity(0.4))
+
+              VStack(alignment: .leading, spacing: OmiSpacing.xxl) {
+                summaryContent
+              }
+              .padding(OmiSpacing.xxl)
             }
-            .padding(.horizontal, OmiSpacing.lg)
-            .padding(.vertical, OmiSpacing.sm)
-            .background(OmiColors.backgroundTertiary.opacity(0.4))
-
-            VStack(alignment: .leading, spacing: OmiSpacing.xxl) {
-              summaryContent
+            .glassCard(cornerRadius: OmiChrome.controlRadius)
+            .clipShape(RoundedRectangle(cornerRadius: OmiChrome.controlRadius))
+            .overlay(alignment: .top) {
+              if isEnrichingDeferred {
+                deferredProcessingSection
+                  .padding(OmiSpacing.xxl)
+                  .allowsHitTesting(false)
+              }
             }
             .padding(OmiSpacing.xxl)
           }
-          .background(
-            RoundedRectangle(cornerRadius: OmiChrome.controlRadius)
-              .fill(OmiColors.backgroundSecondary.opacity(0.6))
-          )
-          .clipShape(RoundedRectangle(cornerRadius: OmiChrome.controlRadius))
-          .overlay(
-            RoundedRectangle(cornerRadius: OmiChrome.controlRadius)
-              .stroke(OmiColors.backgroundTertiary.opacity(0.3), lineWidth: 1)
-          )
-          .overlay(alignment: .top) {
-            if isEnrichingDeferred {
-              deferredProcessingSection
-                .padding(OmiSpacing.xxl)
-                .allowsHitTesting(false)
-            }
-          }
-          .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 8)
-          .padding(OmiSpacing.xxl)
+          .glassScrollFade()
         }
-      }
-      // Collapses to zero width when the transcript is expanded so the drawer
-      // can fill the window; otherwise it's the greedy main pane.
-      .frame(maxWidth: isTranscriptExpanded ? 0 : .infinity)
-      .opacity(isTranscriptExpanded ? 0 : 1)
-      .clipped()
-
-      // Transcript drawer (slides in from right; expands to fill on demand)
-      if showTranscriptDrawer {
-        if !isTranscriptExpanded {
-          Rectangle()
-            .fill(OmiColors.border)
-            .frame(width: 1)
-        }
-
+        .transition(.move(edge: .leading))
+      case .transcript:
         transcriptDrawerView
-          .frame(maxWidth: isTranscriptExpanded ? .infinity : 450)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
           .transition(.move(edge: .trailing))
       }
     }
@@ -205,7 +197,13 @@ struct ConversationDetailView: View {
       ConversationDetailAutomationState.shared.setTranscriptDrawerOpen(
         newValue, conversationId: conversation.id)
     }
+    .onChange(of: automation.transcriptDrawerOpen) { _, isOpen in
+      guard automation.openConversationId == conversation.id, isOpen else { return }
+      showTranscriptDrawer = true
+    }
     .task {
+      preferredSummaryAppId =
+        UserDefaults.standard.string(forKey: .preferredSummarizationAppId).flatMap { $0.isEmpty ? nil : $0 }
       await appProvider.fetchApps()
       await onFetchPeople?()
       AnalyticsManager.shared.conversationDetailOpened(conversationId: conversation.id)
@@ -251,11 +249,16 @@ struct ConversationDetailView: View {
       AppSelectorSheet(
         apps: appProvider.apps.filter { $0.capabilities.contains("memories") },
         isLoading: isReprocessing,
+        selectedAppId: ConversationSummarySelection.primarySummary(for: displayConversation).appId,
+        preferredAppId: preferredSummaryAppId,
         onSelect: { app in
           selectedAppForReprocess = app
           Task {
             await reprocessWithApp(app)
           }
+        },
+        onSetPreferred: { app in
+          setPreferredSummaryApp(app)
         },
         onDismiss: { showAppSelector = false }
       )
@@ -267,34 +270,31 @@ struct ConversationDetailView: View {
         allSegments: displayConversation.transcriptSegments,
         people: people,
         onSave: { personId, isUser, segmentIndices in
-          Task {
-            let assignment = Self.assignmentMetadata(
-              for: segmentIndices,
-              in: displayConversation.transcriptSegments
-            )
-            let success =
-              await onAssignSpeaker?(
-                conversation.id,
-                assignment.targets,
-                personId,
-                isUser
-              ) ?? false
-            if success {
-              await persistSpeakerAssignment(
-                conversationId: conversation.id,
-                backendSegmentIds: assignment.backendIds,
-                fallbackSegmentOrders: assignment.fallbackOrders,
-                isUser: isUser,
-                personId: personId
-              )
-              updateDisplayedConversation(segmentIndices: segmentIndices, isUser: isUser, personId: personId)
-            }
-            selectedSegmentForNaming = nil
-          }
+          guard let onAssignSpeaker else { return false }
+
+          let assignment = Self.assignmentMetadata(
+            for: segmentIndices,
+            in: displayConversation.transcriptSegments
+          )
+          let success = await onAssignSpeaker(
+            conversation.id,
+            assignment.targets,
+            personId,
+            isUser
+          )
+          guard success else { return false }
+
+          await persistSpeakerAssignment(
+            conversationId: conversation.id,
+            backendSegmentIds: assignment.backendIds,
+            fallbackSegmentOrders: assignment.fallbackOrders,
+            isUser: isUser,
+            personId: personId
+          )
+          updateDisplayedConversation(segmentIndices: segmentIndices, isUser: isUser, personId: personId)
+          return true
         },
-        onCreatePerson: { name in
-          await onCreatePerson?(name)
-        },
+        onCreatePerson: onCreatePerson,
         onDismiss: {
           selectedSegmentForNaming = nil
         }
@@ -307,14 +307,20 @@ struct ConversationDetailView: View {
   private var headerView: some View {
     HStack(spacing: OmiSpacing.md) {
       // Back button
+      // A stadium chip, not blue text. `Ink.accent` is spent on the one link in this system that
+      // is actionable and is not already a button; Back is already a button, and a blue word
+      // floating beside a black headline is the loudest thing on the panel.
       Button(action: onBack) {
         HStack(spacing: OmiSpacing.xs) {
           Image(systemName: "chevron.left")
-            .scaledFont(size: OmiType.body, weight: .medium)
+            .scaledFont(size: OmiType.caption, weight: .semibold)
           Text("Back")
-            .scaledFont(size: OmiType.body, weight: .medium)
+            .scaledFont(size: OmiType.caption, weight: .semibold)
         }
-        .foregroundColor(OmiColors.accent)
+        .foregroundColor(Ink.primary)
+        .padding(.horizontal, OmiSpacing.md)
+        .frame(height: 30)
+        .glassChip()
       }
       .buttonStyle(.plain)
 
@@ -327,7 +333,7 @@ struct ConversationDetailView: View {
         HStack(spacing: OmiSpacing.sm) {
           Text(displayConversation.title)
             .scaledFont(size: OmiType.heading, weight: .semibold)
-            .foregroundColor(OmiColors.textPrimary)
+            .foregroundColor(Ink.primary)
             .lineLimit(1)
 
           // Edit title button (inline with title)
@@ -337,7 +343,7 @@ struct ConversationDetailView: View {
           }) {
             Image(systemName: "pencil")
               .scaledFont(size: OmiType.body)
-              .foregroundColor(OmiColors.textTertiary)
+              .foregroundColor(Ink.secondary)
           }
           .buttonStyle(.plain)
           .help("Edit title")
@@ -345,7 +351,7 @@ struct ConversationDetailView: View {
 
         Text(formattedTimeRange)
           .scaledFont(size: OmiType.caption)
-          .foregroundColor(OmiColors.textTertiary)
+          .foregroundColor(Ink.secondary)
       }
 
       Spacer()
@@ -388,21 +394,21 @@ struct ConversationDetailView: View {
   private var viewTranscriptButton: some View {
     Button(action: {
       OmiMotion.withGated(.easeInOut(duration: 0.25)) {
-        showTranscriptDrawer.toggle()
+        showTranscriptDrawer = true
       }
     }) {
       HStack(spacing: OmiSpacing.xs) {
         Image(systemName: "text.quote")
           .scaledFont(size: OmiType.caption)
-        Text(showTranscriptDrawer ? "Hide Transcript" : "View Transcript")
+        Text("View Transcript")
           .scaledFont(size: OmiType.caption, weight: .medium)
       }
-      .foregroundColor(showTranscriptDrawer ? OmiColors.backgroundPrimary : OmiColors.textSecondary)
+      .foregroundColor(Ink.secondary)
       .padding(.horizontal, OmiSpacing.md)
       .padding(.vertical, OmiSpacing.xs)
       .background(
         Capsule()
-          .fill(showTranscriptDrawer ? OmiColors.accent : OmiColors.backgroundTertiary)
+          .fill(Ink.rowFillHover)
       )
     }
     .buttonStyle(.plain)
@@ -412,30 +418,26 @@ struct ConversationDetailView: View {
 
   private var inlineActionButtons: some View {
     HStack(spacing: OmiSpacing.sm) {
-      // Copy link button
-      Button(action: { Task { await copyLink() } }) {
-        Image(systemName: isCopyingLink ? "arrow.triangle.2.circlepath" : "link")
-          .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
-          .frame(width: 28, height: 28)
-          .background(
-            Circle()
-              .fill(OmiColors.backgroundTertiary)
-          )
-      }
-      .buttonStyle(.plain)
-      .disabled(isCopyingLink)
-      .help("Copy link")
+      // Copy share link (minting flips visibility to shared; the control
+      // discloses and confirms that itself).
+      ConversationShareLinkButton(
+        conversationId: conversation.id,
+        canShare: canShareConversation,
+        onCopied: {
+          AnalyticsManager.shared.shareAction(
+            category: "conversation", properties: ["conversation_id": conversation.id])
+        }
+      )
 
       // Copy transcript button
       Button(action: copyTranscript) {
         Image(systemName: "doc.on.doc")
           .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
           .frame(width: 28, height: 28)
           .background(
             Circle()
-              .fill(OmiColors.backgroundTertiary)
+              .fill(Ink.rowFillHover)
           )
       }
       .buttonStyle(.plain)
@@ -470,13 +472,17 @@ struct ConversationDetailView: View {
         } label: {
           Image(systemName: displayConversation.folderId != nil ? "folder.fill" : "folder")
             .scaledFont(size: OmiType.body)
-            .foregroundColor(displayConversation.folderId != nil ? OmiColors.accent : OmiColors.textSecondary)
+            .foregroundColor(displayConversation.folderId != nil ? Ink.primary : Ink.secondary)
             .frame(width: 28, height: 28)
             .background(
               Circle()
-                .fill(OmiColors.backgroundTertiary)
+                .fill(Ink.rowFillHover)
             )
         }
+        // `.borderlessButton` tints its template label with the *system* accent, which the
+        // `foregroundColor` inside the label does not override — this glyph rendered blue in a
+        // toolbar of neutral glass circles. The tint is the only lever that reaches it.
+        .tint(Ink.primary)
         .menuStyle(.borderlessButton)
         .frame(width: 28)
         .help("Move to folder")
@@ -486,11 +492,11 @@ struct ConversationDetailView: View {
       Button(action: { showDeleteConfirmation = true }) {
         Image(systemName: "trash")
           .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.error)
+          .foregroundColor(Ink.errorRed)
           .frame(width: 28, height: 28)
           .background(
             Circle()
-              .fill(OmiColors.backgroundTertiary)
+              .fill(Ink.rowFillHover)
           )
       }
       .buttonStyle(.plain)
@@ -500,6 +506,14 @@ struct ConversationDetailView: View {
 
   private var canCopyTranscript: Bool {
     displayConversation.transcriptPresenceState != .lockedOrRedacted
+  }
+
+  /// Sharing publishes the conversation (visibility flips to "shared"), so it
+  /// honors the same lock/redaction gate as copying the transcript: content
+  /// this surface refuses to put on the pasteboard must not be publishable to
+  /// an unauthenticated share URL from the same toolbar.
+  private var canShareConversation: Bool {
+    canCopyTranscript
   }
 
   // MARK: - Actions
@@ -522,22 +536,6 @@ struct ConversationDetailView: View {
 
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(transcript, forType: .string)
-  }
-
-  private func copyLink() async {
-    isCopyingLink = true
-    defer { isCopyingLink = false }
-
-    do {
-      let shareableUrl = try await APIClient.shared.getConversationShareLink(id: conversation.id)
-      await MainActor.run {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(shareableUrl, forType: .string)
-      }
-      AnalyticsManager.shared.shareAction(category: "conversation", properties: ["conversation_id": conversation.id])
-    } catch {
-      logError("Failed to get share link", error: error)
-    }
   }
 
   private func updateTitle() async {
@@ -578,13 +576,15 @@ struct ConversationDetailView: View {
   private var statusColor: Color {
     switch displayConversation.status {
     case .completed:
-      return OmiColors.success
+      return Ink.listeningGreen
     case .processing, .merging:
-      return OmiColors.info
+      // Neutral: "working" is not a state with something to do about it, and the accent is
+      // already spent. Green/orange/red carry the states that are.
+      return Ink.secondary
     case .inProgress:
-      return OmiColors.warning
+      return PageGlass.warning
     case .failed:
-      return OmiColors.error
+      return Ink.errorRed
     }
   }
 
@@ -592,16 +592,18 @@ struct ConversationDetailView: View {
 
   @ViewBuilder
   private var summaryContent: some View {
-    // Overview section
-    if !displayConversation.overview.isEmpty {
+    let selection = ConversationSummarySelection.primarySummary(for: displayConversation)
+
+    // Overview section (selected app result, or the structured fallback)
+    if !selection.content.isEmpty {
       overviewSection
     }
 
     // Metadata chips
     metadataSection
 
-    // App Results section
-    if !displayConversation.appsResults.isEmpty {
+    // App Results section (insights beyond the promoted primary summary)
+    if !ConversationSummarySelection.secondaryResults(for: displayConversation).isEmpty {
       appResultsSection
     }
 
@@ -623,52 +625,34 @@ struct ConversationDetailView: View {
       HStack(spacing: OmiSpacing.sm) {
         Image(systemName: "text.quote")
           .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
 
         Text("Transcript")
           .scaledFont(size: OmiType.subheading, weight: .semibold)
-          .foregroundColor(OmiColors.textPrimary)
+          .foregroundColor(Ink.primary)
 
         // Segment count badge
         Text("\(displayConversation.transcriptSegments.count)")
           .scaledFont(size: OmiType.caption, weight: .medium)
-          .foregroundColor(OmiColors.accent)
+          .foregroundColor(Ink.secondary)
           .padding(.horizontal, OmiSpacing.sm)
           .padding(.vertical, OmiSpacing.hairline)
           .background(
             Capsule()
-              .fill(OmiColors.accent.opacity(0.15))
+              .fill(Ink.rowFillHover)
           )
 
         Spacer()
-
-        // Expand / collapse the drawer to fill the window for full-width reading
-        Button(action: {
-          OmiMotion.withGated(.easeInOut(duration: 0.25)) {
-            isTranscriptExpanded.toggle()
-          }
-        }) {
-          Image(
-            systemName: isTranscriptExpanded
-              ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
-          )
-          .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
-          .frame(width: 28, height: 28)
-          .background(Circle().fill(OmiColors.backgroundTertiary))
-        }
-        .buttonStyle(.plain)
-        .help(isTranscriptExpanded ? "Collapse transcript" : "Expand transcript")
 
         // Copy button
         Button(action: copyTranscript) {
           Image(systemName: "doc.on.doc")
             .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textSecondary)
+            .foregroundColor(Ink.secondary)
             .frame(width: 28, height: 28)
             .background(
               Circle()
-                .fill(OmiColors.backgroundTertiary)
+                .fill(Ink.rowFillHover)
             )
         }
         .buttonStyle(.plain)
@@ -678,16 +662,15 @@ struct ConversationDetailView: View {
         Button(action: {
           OmiMotion.withGated(.easeInOut(duration: 0.25)) {
             showTranscriptDrawer = false
-            isTranscriptExpanded = false
           }
         }) {
           Image(systemName: "xmark")
             .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textSecondary)
+            .foregroundColor(Ink.secondary)
             .frame(width: 28, height: 28)
             .background(
               Circle()
-                .fill(OmiColors.backgroundTertiary)
+                .fill(Ink.rowFillHover)
             )
         }
         .buttonStyle(.plain)
@@ -695,18 +678,18 @@ struct ConversationDetailView: View {
       }
       .padding(.horizontal, OmiSpacing.xl)
       .padding(.vertical, OmiSpacing.md)
-      .background(OmiColors.backgroundTertiary.opacity(0.5))
+      .background(Ink.rowFillHover.opacity(0.5))
 
       // Drawer content
       if displayConversation.transcriptPresenceState == .lockedOrRedacted && !isLoadingConversation {
         VStack(spacing: OmiSpacing.md) {
           Image(systemName: "lock")
             .scaledFont(size: OmiType.hero)
-            .foregroundColor(OmiColors.textTertiary.opacity(0.5))
+            .foregroundColor(Ink.secondary)
 
           Text("Transcript locked")
             .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textTertiary)
+            .foregroundColor(Ink.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else if displayConversation.transcriptSegments.isEmpty && !isLoadingConversation {
@@ -714,11 +697,11 @@ struct ConversationDetailView: View {
         VStack(spacing: OmiSpacing.md) {
           Image(systemName: "text.quote")
             .scaledFont(size: OmiType.hero)
-            .foregroundColor(OmiColors.textTertiary.opacity(0.5))
+            .foregroundColor(Ink.secondary)
 
           Text("No transcript available")
             .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textTertiary)
+            .foregroundColor(Ink.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else if isLoadingConversation {
@@ -729,21 +712,30 @@ struct ConversationDetailView: View {
 
           Text("Loading transcript...")
             .scaledFont(size: OmiType.body)
-            .foregroundColor(OmiColors.textTertiary)
+            .foregroundColor(Ink.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
-        // LazyVStack is a DIRECT child of ScrollView so it gets bounded proposed height
-        // and only materializes visible children.
-        ScrollView {
-          LazyVStack(alignment: .leading, spacing: OmiSpacing.md) {
-            transcriptBubblesContent
+        ScrollViewReader { proxy in
+          // LazyVStack is a DIRECT child of ScrollView so it gets bounded proposed height
+          // and only materializes visible children.
+          ScrollView {
+            LazyVStack(alignment: .leading, spacing: OmiSpacing.md) {
+              transcriptBubblesContent
+            }
+            .padding(OmiSpacing.lg)
           }
-          .padding(OmiSpacing.lg)
+          .glassScrollFade()
+          .onAppear { focusTranscript(using: proxy) }
+          .onChange(of: automation.focusedTranscriptSegmentIds) { _, _ in
+            focusTranscript(using: proxy)
+          }
+          .onChange(of: displayConversation.transcriptSegments.count) { _, _ in
+            focusTranscript(using: proxy)
+          }
         }
       }
     }
-    .background(OmiColors.backgroundPrimary)
   }
 
   // MARK: - Transcript Bubbles (shared)
@@ -758,13 +750,34 @@ struct ConversationDetailView: View {
         segment: segment,
         isUser: segment.isUser,
         personName: segment.personId.flatMap { peopleDict[$0]?.name },
-        onSpeakerTapped: segment.isUser
+        onSpeakerTapped: segment.isUser || onAssignSpeaker == nil
           ? nil
           : {
             selectedSegmentForNaming = segment
           }
       )
       .padding(.horizontal, OmiSpacing.lg)
+      .padding(.vertical, OmiSpacing.xs)
+      .background(
+        RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
+          .fill(
+            automation.focusedTranscriptSegmentIds.contains(segment.backendId ?? segment.id)
+              ? Ink.rowFillHover : Color.clear
+          )
+      )
+      .id(segment.backendId ?? segment.id)
+    }
+  }
+
+  private func focusTranscript(using proxy: ScrollViewProxy) {
+    guard showTranscriptDrawer,
+      let segmentID = automation.focusedTranscriptSegmentIds.first,
+      displayConversation.transcriptSegments.contains(where: { ($0.backendId ?? $0.id) == segmentID })
+    else { return }
+    DispatchQueue.main.async {
+      OmiMotion.withGated(.easeInOut(duration: 0.25)) {
+        proxy.scrollTo(segmentID, anchor: .center)
+      }
     }
   }
 
@@ -819,36 +832,71 @@ struct ConversationDetailView: View {
       VStack(alignment: .leading, spacing: OmiSpacing.hairline) {
         Text("Processing conversation…")
           .scaledFont(size: OmiType.body, weight: .semibold)
-          .foregroundColor(OmiColors.textPrimary)
+          .foregroundColor(Ink.primary)
         Text("Generating summary and action items")
           .scaledFont(size: OmiType.caption)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
       }
       Spacer()
     }
     .padding(OmiSpacing.lg)
     .frame(maxWidth: .infinity, alignment: .leading)
-    .background(OmiColors.backgroundTertiary.opacity(0.5))
+    .background(Ink.rowFillHover.opacity(0.5))
     .cornerRadius(OmiChrome.smallControlRadius)
   }
 
   // MARK: - Overview Section
 
   private var overviewSection: some View {
-    VStack(alignment: .leading, spacing: OmiSpacing.sm) {
+    let selection = ConversationSummarySelection.primarySummary(for: displayConversation)
+    let primaryApp = selection.appId.flatMap { id in appProvider.apps.first { $0.id == id } }
+
+    return VStack(alignment: .leading, spacing: OmiSpacing.sm) {
       HStack(spacing: OmiSpacing.xs) {
         Image(systemName: "star.fill")
           .scaledFont(size: OmiType.body)
-          .foregroundColor(Color(red: 0.95, green: 0.75, blue: 0.15))
+          .foregroundColor(PageGlass.starred)
 
         Text("Summary")
           .scaledFont(size: OmiType.body, weight: .semibold)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
+
+        // The selected summarization app owns this section; say which one.
+        if let primaryApp {
+          Text(primaryApp.name)
+            .scaledFont(size: OmiType.caption, weight: .medium)
+            .foregroundColor(Ink.secondary)
+            .padding(.horizontal, OmiSpacing.sm)
+            .padding(.vertical, OmiSpacing.xxs)
+            .background(
+              Capsule()
+                .fill(Ink.rowFillHover)
+            )
+        }
+
+        Spacer()
+
+        Button(action: { showAppSelector = true }) {
+          HStack(spacing: OmiSpacing.xxs) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+              .scaledFont(size: OmiType.caption)
+            Text(primaryApp == nil ? "Summary App" : "Change")
+              .scaledFont(size: OmiType.caption, weight: .medium)
+          }
+          .foregroundColor(Ink.secondary)
+        }
+        .buttonStyle(.plain)
+        .disabled(isReprocessing)
+        .help("Choose the app that summarizes this conversation")
       }
 
-      OmiMarkdown(text: displayConversation.overview, sender: .ai)
+      // No `colorScheme` override here. This section used to force `.dark` so the markdown would
+      // resolve light-on-dark for the old near-black page; on the glass panel that renders the
+      // whole summary — the longest prose in the app — in near-white on a near-white ground. The
+      // page is `glassContent()`, which already pins the panel's light appearance, and the markdown
+      // inherits it.
+      OmiMarkdown(text: selection.content, sender: .ai)
         .textSelection(.enabled)
-        .environment(\.colorScheme, .dark)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
   }
@@ -898,17 +946,17 @@ struct ConversationDetailView: View {
     HStack(spacing: OmiSpacing.xs) {
       Image(systemName: icon)
         .scaledFont(size: OmiType.caption)
-        .foregroundColor(OmiColors.textTertiary)
+        .foregroundColor(Ink.secondary)
 
       Text(text)
         .scaledFont(size: OmiType.caption)
-        .foregroundColor(OmiColors.textSecondary)
+        .foregroundColor(Ink.secondary)
     }
     .padding(.horizontal, OmiSpacing.sm)
     .padding(.vertical, OmiSpacing.xs)
     .background(
       Capsule()
-        .fill(OmiColors.backgroundTertiary)
+        .fill(Ink.rowFillHover)
     )
   }
 
@@ -919,7 +967,7 @@ struct ConversationDetailView: View {
       HStack {
         Text("App Insights")
           .scaledFont(size: OmiType.body, weight: .semibold)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
 
         Spacer()
 
@@ -930,13 +978,13 @@ struct ConversationDetailView: View {
             Text("Reprocess")
               .scaledFont(size: OmiType.caption)
           }
-          .foregroundColor(OmiColors.accent)
+          .foregroundColor(Ink.secondary)
         }
         .buttonStyle(.plain)
         .disabled(isReprocessing)
       }
 
-      ForEach(displayConversation.appsResults) { result in
+      ForEach(ConversationSummarySelection.secondaryResults(for: displayConversation)) { result in
         AppResultCard(
           result: result,
           app: appProvider.apps.first { $0.id == result.appId }
@@ -952,30 +1000,26 @@ struct ConversationDetailView: View {
       HStack {
         Text("Try with Apps")
           .scaledFont(size: OmiType.body, weight: .semibold)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
 
         Spacer()
       }
 
-      let memoryApps = appProvider.apps.filter { app in
-        // Name the outer element: inside the inner closure a bare `$0`
-        // shadows it, so `$0.appId == $0.id` compared an appsResults entry
-        // to itself (always true for any entry with a non-nil app_id, since
-        // AppResponse.id == appId ?? uuid), which excluded every app and
-        // left this section perpetually empty.
-        app.capabilities.contains("memories")
-          && !displayConversation.appsResults.contains(where: { $0.appId == app.id })
-      }.prefix(4)
+      // The $0-shadow exclusion that kept this section empty now lives (and is
+      // tested) in ConversationSummarySelection.suggestedApps.
+      let memoryApps = ConversationSummarySelection.suggestedApps(
+        appProvider.apps, results: displayConversation.appsResults
+      ).prefix(4)
 
       if memoryApps.isEmpty && !appProvider.isLoading {
         Text("Enable apps with memory capability to get additional insights")
           .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textTertiary)
+          .foregroundColor(Ink.secondary)
           .padding()
           .frame(maxWidth: .infinity)
           .background(
             RoundedRectangle(cornerRadius: OmiChrome.elementRadius)
-              .fill(OmiColors.backgroundSecondary)
+              .fill(Ink.rowFill)
           )
       } else {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -1011,13 +1055,37 @@ struct ConversationDetailView: View {
     // Track reprocess
     AnalyticsManager.shared.conversationReprocessed(conversationId: conversation.id, appId: app.id)
 
+    // Mobile parity: the backend resolves reprocess targets from the enabled
+    // slice (plus defaults), so a not-yet-enabled pick is enabled first —
+    // otherwise it silently clears apps_results and produces no summary.
+    if !app.enabled {
+      await appProvider.enableApp(app)
+    }
+
     do {
-      try await APIClient.shared.reprocessConversation(
+      // The route returns the updated conversation; adopting it repaints the
+      // summary pane with the selected app as primary.
+      let updated = try await APIClient.shared.reprocessConversation(
         conversationId: conversation.id,
         appId: app.id
       )
+      loadedConversation = updated
     } catch {
       logError("Failed to reprocess conversation", error: error)
+    }
+  }
+
+  /// Persists the preferred summarization app locally (the backend has no GET
+  /// for it) and server-side, where future conversation processing keys on it.
+  private func setPreferredSummaryApp(_ app: OmiApp) {
+    preferredSummaryAppId = app.id
+    UserDefaults.standard.set(app.id, forKey: .preferredSummarizationAppId)
+    Task {
+      do {
+        try await APIClient.shared.setPreferredSummarizationApp(appId: app.id)
+      } catch {
+        logError("Failed to set preferred summarization app", error: error)
+      }
     }
   }
 
@@ -1029,21 +1097,21 @@ struct ConversationDetailView: View {
       HStack(spacing: OmiSpacing.sm) {
         Image(systemName: "checklist")
           .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
 
         Text("Action Items")
           .scaledFont(size: OmiType.subheading, weight: .semibold)
-          .foregroundColor(OmiColors.textSecondary)
+          .foregroundColor(Ink.secondary)
 
         // Count badge
         Text("\(activeItems.count)")
           .scaledFont(size: OmiType.caption, weight: .medium)
-          .foregroundColor(OmiColors.accent)
+          .foregroundColor(Ink.secondary)
           .padding(.horizontal, OmiSpacing.sm)
           .padding(.vertical, OmiSpacing.hairline)
           .background(
             Capsule()
-              .fill(OmiColors.accent.opacity(0.15))
+              .fill(Ink.rowFillHover)
           )
 
         Spacer()
@@ -1054,23 +1122,42 @@ struct ConversationDetailView: View {
           HStack(alignment: .top, spacing: OmiSpacing.sm) {
             Image(systemName: item.completed ? "checkmark.circle.fill" : "circle")
               .scaledFont(size: OmiType.subheading)
-              .foregroundColor(item.completed ? OmiColors.success : OmiColors.textTertiary)
+              .foregroundColor(item.completed ? Ink.listeningGreen : Ink.secondary)
 
             Text(item.description)
               .scaledFont(size: OmiType.body)
-              .foregroundColor(item.completed ? OmiColors.textTertiary : OmiColors.textPrimary)
+              .foregroundColor(item.completed ? Ink.secondary : Ink.primary)
               .textSelection(.enabled)
-              .strikethrough(item.completed, color: OmiColors.textTertiary)
+              .strikethrough(item.completed, color: Ink.secondary)
+
+            Spacer(minLength: OmiSpacing.sm)
+
+            Button {
+              ConversationDetailAutomationState.shared.requestOpen(
+                conversationId: displayConversation.id,
+                showTranscript: true,
+                transcriptSegmentIds: item.sourceSegmentIDs
+              )
+            } label: {
+              HStack(spacing: OmiSpacing.xxs) {
+                Image(systemName: "text.quote")
+                Text(item.sourceSegmentIDs.isEmpty ? "Transcript" : "Source")
+              }
+              .scaledFont(size: OmiType.caption)
+              .foregroundColor(Ink.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Open the full transcript")
           }
           .padding(OmiSpacing.md)
           .frame(maxWidth: .infinity, alignment: .leading)
           .background(
             RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-              .fill(OmiColors.backgroundTertiary)
+              .fill(Ink.rowFillHover)
           )
           .overlay(
             RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-              .stroke(OmiColors.backgroundTertiary.opacity(0.3), lineWidth: 1)
+              .stroke(Ink.rowFillHover.opacity(0.3), lineWidth: 1)
           )
         }
       }
@@ -1085,7 +1172,7 @@ struct ConversationDetailView: View {
       onBack: {}
     )
     .frame(width: 600, height: 800)
-    .background(OmiColors.backgroundPrimary)
+    .background(Ink.surface)
   }
 #endif
 
@@ -1119,7 +1206,7 @@ struct AppResultCard: View {
                 .aspectRatio(contentMode: .fill)
             default:
               RoundedRectangle(cornerRadius: OmiChrome.elementRadius)
-                .fill(OmiColors.backgroundTertiary)
+                .fill(Ink.rowFillHover)
             }
           }
           .frame(width: 32, height: 32)
@@ -1128,23 +1215,23 @@ struct AppResultCard: View {
           VStack(alignment: .leading, spacing: OmiSpacing.hairline) {
             Text(app.name)
               .scaledFont(size: OmiType.body, weight: .medium)
-              .foregroundColor(OmiColors.textPrimary)
+              .foregroundColor(Ink.primary)
 
             Text(app.author)
               .scaledFont(size: OmiType.caption)
-              .foregroundColor(OmiColors.textTertiary)
+              .foregroundColor(Ink.secondary)
           }
         } else {
           Image(systemName: "app.fill")
             .scaledFont(size: OmiType.subheading)
-            .foregroundColor(OmiColors.textTertiary)
+            .foregroundColor(Ink.secondary)
             .frame(width: 32, height: 32)
-            .background(OmiColors.backgroundTertiary)
+            .background(Ink.rowFillHover)
             .clipShape(RoundedRectangle(cornerRadius: OmiChrome.elementRadius))
 
           Text("App")
             .scaledFont(size: OmiType.body, weight: .medium)
-            .foregroundColor(OmiColors.textPrimary)
+            .foregroundColor(Ink.primary)
         }
 
         Spacer()
@@ -1152,24 +1239,20 @@ struct AppResultCard: View {
         Button(action: { OmiMotion.withGated { isExpanded.toggle() } }) {
           Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
             .scaledFont(size: OmiType.caption)
-            .foregroundColor(OmiColors.textTertiary)
+            .foregroundColor(Ink.secondary)
         }
         .buttonStyle(.plain)
       }
 
       // Content
       if isExpanded || result.content.count < 200 {
-        Text(result.content)
-          .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
+        OmiMarkdown(text: result.content, sender: .ai)
           .textSelection(.enabled)
-          .lineSpacing(4)
+          .frame(maxWidth: .infinity, alignment: .leading)
       } else {
-        Text(result.content.prefix(200) + "...")
-          .scaledFont(size: OmiType.body)
-          .foregroundColor(OmiColors.textSecondary)
+        OmiMarkdown(text: String(result.content.prefix(200)) + "\u{2026}", sender: .ai)
           .textSelection(.enabled)
-          .lineSpacing(4)
+          .frame(maxWidth: .infinity, alignment: .leading)
       }
 
       // "Generated by" footer
@@ -1183,7 +1266,7 @@ struct AppResultCard: View {
                 .aspectRatio(contentMode: .fill)
             default:
               RoundedRectangle(cornerRadius: OmiChrome.stripRadius)
-                .fill(OmiColors.backgroundTertiary)
+                .fill(Ink.rowFillHover)
             }
           }
           .frame(width: 16, height: 16)
@@ -1191,20 +1274,20 @@ struct AppResultCard: View {
 
           Text("Generated by \(app.name)")
             .scaledFont(size: OmiType.caption)
-            .foregroundColor(OmiColors.textTertiary)
+            .foregroundColor(Ink.secondary)
         }
         .padding(.horizontal, OmiSpacing.sm)
         .padding(.vertical, OmiSpacing.xxs)
         .background(
           Capsule()
-            .fill(OmiColors.backgroundTertiary.opacity(0.6))
+            .fill(Ink.rowFillHover.opacity(0.6))
         )
       }
     }
     .padding(OmiSpacing.md)
     .background(
       RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-        .fill(OmiColors.backgroundSecondary)
+        .fill(Ink.rowFill)
     )
   }
 }
@@ -1230,7 +1313,7 @@ struct SuggestedAppCard: View {
                 .aspectRatio(contentMode: .fill)
             default:
               RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-                .fill(OmiColors.backgroundTertiary)
+                .fill(Ink.rowFillHover)
             }
           }
           .frame(width: 56, height: 56)
@@ -1243,13 +1326,13 @@ struct SuggestedAppCard: View {
 
             ProgressView()
               .scaleEffect(0.7)
-              .tint(.white)
+              .tint(Ink.surface)
           }
         }
 
         Text(app.name)
           .scaledFont(size: OmiType.caption, weight: .medium)
-          .foregroundColor(OmiColors.textPrimary)
+          .foregroundColor(Ink.primary)
           .lineLimit(1)
       }
       .frame(width: 80)
@@ -1257,140 +1340,7 @@ struct SuggestedAppCard: View {
       .padding(.horizontal, OmiSpacing.sm)
       .background(
         RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-          .fill(isHovering ? OmiColors.backgroundTertiary : OmiColors.backgroundSecondary)
-      )
-    }
-    .buttonStyle(.plain)
-    .disabled(isLoading)
-    .onHover { isHovering = $0 }
-  }
-}
-
-// MARK: - App Selector Sheet
-
-struct AppSelectorSheet: View {
-  let apps: [OmiApp]
-  let isLoading: Bool
-  let onSelect: (OmiApp) -> Void
-  let onDismiss: () -> Void
-
-  @State private var selectedAppId: String?
-
-  var body: some View {
-    VStack(spacing: 0) {
-      // Header
-      HStack {
-        Text("Select App")
-          .scaledFont(size: OmiType.subheading, weight: .semibold)
-          .foregroundColor(OmiColors.textPrimary)
-
-        Spacer()
-
-        Button(action: onDismiss) {
-          Image(systemName: "xmark.circle.fill")
-            .scaledFont(size: OmiType.heading)
-            .foregroundColor(OmiColors.textTertiary)
-        }
-        .buttonStyle(.plain)
-      }
-      .padding()
-
-      Divider()
-        .background(OmiColors.backgroundTertiary)
-
-      // Apps list
-      if apps.isEmpty {
-        VStack(spacing: OmiSpacing.md) {
-          Image(systemName: "square.grid.2x2")
-            .scaledFont(size: OmiType.hero)
-            .foregroundColor(OmiColors.textTertiary)
-
-          Text("No Apps Available")
-            .scaledFont(size: OmiType.body, weight: .medium)
-            .foregroundColor(OmiColors.textSecondary)
-
-          Text("Enable apps with memory capability to reprocess conversations")
-            .scaledFont(size: OmiType.caption)
-            .foregroundColor(OmiColors.textTertiary)
-            .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-      } else {
-        ScrollView {
-          LazyVStack(spacing: OmiSpacing.hairline) {
-            ForEach(apps) { app in
-              AppSelectorRow(
-                app: app,
-                isSelected: selectedAppId == app.id,
-                isLoading: isLoading && selectedAppId == app.id
-              ) {
-                selectedAppId = app.id
-                onSelect(app)
-              }
-            }
-          }
-          .padding(.horizontal, OmiSpacing.sm)
-          .padding(.vertical, OmiSpacing.sm)
-        }
-      }
-    }
-    .frame(width: 320, height: 400)
-    .background(OmiColors.backgroundPrimary)
-  }
-}
-
-struct AppSelectorRow: View {
-  let app: OmiApp
-  let isSelected: Bool
-  let isLoading: Bool
-  let onSelect: () -> Void
-
-  @State private var isHovering = false
-
-  var body: some View {
-    Button(action: onSelect) {
-      HStack(spacing: OmiSpacing.md) {
-        AsyncImage(url: URL(string: app.image)) { phase in
-          switch phase {
-          case .success(let image):
-            image
-              .resizable()
-              .aspectRatio(contentMode: .fill)
-          default:
-            RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-              .fill(OmiColors.backgroundTertiary)
-          }
-        }
-        .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius))
-
-        VStack(alignment: .leading, spacing: OmiSpacing.hairline) {
-          Text(app.name)
-            .scaledFont(size: OmiType.body, weight: .medium)
-            .foregroundColor(OmiColors.textPrimary)
-
-          Text(app.author)
-            .scaledFont(size: OmiType.caption)
-            .foregroundColor(OmiColors.textTertiary)
-        }
-
-        Spacer()
-
-        if isLoading {
-          ProgressView()
-            .scaleEffect(0.7)
-        } else if isSelected {
-          Image(systemName: "checkmark.circle.fill")
-            .scaledFont(size: OmiType.heading)
-            .foregroundColor(OmiColors.accent)
-        }
-      }
-      .padding(.horizontal, OmiSpacing.md)
-      .padding(.vertical, OmiSpacing.sm)
-      .background(
-        RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
-          .fill(isSelected || isHovering ? OmiColors.backgroundTertiary : Color.clear)
+          .fill(isHovering ? Ink.rowFillHover : Ink.rowFill)
       )
     }
     .buttonStyle(.plain)

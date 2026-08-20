@@ -26,19 +26,23 @@ def _gcloud_live_index(index, *, state='READY'):
     }
 
 
-def test_reconcile_deploys_generated_manifest_and_waits_for_every_index():
+def test_reconcile_provisions_missing_indexes_and_waits_for_every_index():
     commands = []
     list_calls = 0
     sleeps = []
+    target = firebase_index_manifest()['indexes'][-1]
 
     def runner(command, **_kwargs):
         nonlocal list_calls
         commands.append(command)
-        if command[:3] == ['npx', '--no-install', 'firebase']:
-            return SimpleNamespace(returncode=0)
+        if command[:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'create']:
+            return SimpleNamespace(returncode=0, stdout='')
         list_calls += 1
-        indexes = _ready_indexes()
-        indexes[0]['state'] = 'CREATING' if list_calls == 1 else 'READY'
+        indexes = [_gcloud_live_index(index) for index in firebase_index_manifest()['indexes']]
+        if list_calls == 1:
+            indexes.pop()
+        else:
+            indexes[-1] = _gcloud_live_index(target, state='CREATING' if list_calls == 2 else 'READY')
         return SimpleNamespace(returncode=0, stdout=json.dumps(indexes))
 
     reconcile_firestore_indexes.reconcile(
@@ -47,13 +51,15 @@ def test_reconcile_deploys_generated_manifest_and_waits_for_every_index():
         manifest_path=Path(__file__).resolve().parents[3] / 'firestore.indexes.json',
         timeout_seconds=30,
         poll_interval_seconds=1,
+        provision_missing=True,
         runner=runner,
         sleep=sleeps.append,
         monotonic=iter((0, 0, 1, 1)).__next__,
     )
 
-    assert commands[0][:6] == ['npx', '--no-install', 'firebase', 'deploy', '--only', 'firestore:indexes']
-    assert all(command[:4] == ['gcloud', 'firestore', 'indexes', 'composite'] for command in commands[1:])
+    assert commands[0][:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'list']
+    assert commands[1][:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'create']
+    assert commands[-1][:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'list']
     assert sleeps == [1]
 
 
@@ -519,8 +525,8 @@ def test_writer_and_check_only_share_exact_signature_matching(monkeypatch, check
     )
 
     def runner(command, **_kwargs):
-        if command[:3] == ['npx', '--no-install', 'firebase']:
-            return SimpleNamespace(returncode=0)
+        if command[:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'create']:
+            return SimpleNamespace(returncode=0, stdout='')
         return SimpleNamespace(returncode=0, stdout=json.dumps([live_index]))
 
     proposal_kwargs = (
@@ -623,7 +629,6 @@ def test_provisioning_dry_run_only_lists_indexes_and_does_not_write(capsys):
         manifest_path=Path(__file__).resolve().parents[3] / 'firestore.indexes.json',
         timeout_seconds=30,
         poll_interval_seconds=1,
-        provision_missing=True,
         dry_run=True,
         runner=runner,
     )
@@ -663,8 +668,8 @@ def test_provisioning_fails_closed_when_gcloud_cannot_create_a_missing_index():
 
 def test_reconcile_fails_when_a_required_index_never_becomes_ready():
     def runner(command, **_kwargs):
-        if command[:3] == ['npx', '--no-install', 'firebase']:
-            return SimpleNamespace(returncode=0)
+        if command[:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'create']:
+            return SimpleNamespace(returncode=0, stdout='')
         return SimpleNamespace(returncode=0, stdout='[]')
 
     with pytest.raises(RuntimeError, match='did not become READY'):
@@ -674,6 +679,7 @@ def test_reconcile_fails_when_a_required_index_never_becomes_ready():
             manifest_path=Path(__file__).resolve().parents[3] / 'firestore.indexes.json',
             timeout_seconds=1,
             poll_interval_seconds=1,
+            provision_missing=True,
             runner=runner,
             sleep=lambda _seconds: None,
             monotonic=iter((0, 2)).__next__,
@@ -688,3 +694,95 @@ def test_reconcile_rejects_a_manifest_that_drifted_from_the_registry(tmp_path):
 
     with pytest.raises(ValueError, match='not generated'):
         reconcile_firestore_indexes.verify_manifest_source(path)
+
+
+def _unmanaged_live_index(collection_group='ghost_collection'):
+    return {
+        'name': (f'projects/dev-project/databases/(default)/collectionGroups/{collection_group}/indexes/hand-made-id'),
+        'queryScope': 'COLLECTION',
+        'fields': [
+            {'fieldPath': 'updated_at', 'order': 'DESCENDING'},
+            {'fieldPath': '__name__', 'order': 'ASCENDING'},
+        ],
+        'state': 'READY',
+    }
+
+
+def test_check_only_reports_live_indexes_the_manifest_does_not_declare(capsys, tmp_path):
+    # Reconciliation is create-only, so an index dropped from the manifest or
+    # created by hand in the console during an incident survives with nothing
+    # pointing at it. Deleting it automatically would break a still-serving
+    # older revision, so the readiness gate reports the drift instead.
+    def runner(command, **_kwargs):
+        assert command[:5] == ['gcloud', 'firestore', 'indexes', 'composite', 'list']
+        return SimpleNamespace(returncode=0, stdout=json.dumps([*_ready_indexes(), _unmanaged_live_index()]))
+
+    reconcile_firestore_indexes.reconcile(
+        project='dev-project',
+        database='(default)',
+        manifest_path=Path(__file__).resolve().parents[3] / 'firestore.indexes.json',
+        timeout_seconds=30,
+        poll_interval_seconds=1,
+        check_only=True,
+        proposal_output=tmp_path / 'proposal.json',
+        source_commit=SOURCE_COMMIT,
+        runner=runner,
+    )
+
+    output = capsys.readouterr().out
+    assert '::warning title=Unmanaged Firestore index::' in output
+    assert 'ghost_collection' in output
+    # Drift is reported, never blocking: readiness still passed.
+    assert 'Firestore index readiness passed' in output
+    assert not (tmp_path / 'proposal.json').exists()
+
+
+def test_manifest_declared_indexes_are_never_reported_as_unmanaged(capsys):
+    def runner(command, **_kwargs):
+        return SimpleNamespace(returncode=0, stdout=json.dumps(_ready_indexes()))
+
+    reconcile_firestore_indexes.reconcile(
+        project='dev-project',
+        database='(default)',
+        manifest_path=Path(__file__).resolve().parents[3] / 'firestore.indexes.json',
+        timeout_seconds=30,
+        poll_interval_seconds=1,
+        dry_run=True,
+        runner=runner,
+    )
+
+    assert 'Unmanaged Firestore index' not in capsys.readouterr().out
+
+
+def test_implicit_terminal_document_id_alias_is_not_reported_as_unmanaged():
+    manifest_entry = {
+        'collectionGroup': 'memories',
+        'queryScope': 'COLLECTION',
+        'fields': [
+            {'fieldPath': 'uid', 'order': 'ASCENDING'},
+            {'fieldPath': 'created_at', 'order': 'DESCENDING'},
+        ],
+    }
+    expected = reconcile_firestore_indexes.expected_index_signatures({'indexes': [manifest_entry]})
+    live = reconcile_firestore_indexes.LiveIndex(
+        resource_name='projects/p/databases/(default)/collectionGroups/memories/indexes/id',
+        signature=(
+            'memories',
+            'COLLECTION',
+            (('uid', 'ASCENDING'), ('created_at', 'DESCENDING'), ('__name__', 'DESCENDING')),
+        ),
+        state='READY',
+    )
+
+    assert reconcile_firestore_indexes.unmanaged_live_indexes(expected=expected, live_indexes=[live]) == []
+
+
+def test_datastore_mode_indexes_are_not_reported_as_unmanaged_native_drift():
+    live = reconcile_firestore_indexes.LiveIndex(
+        resource_name='projects/p/databases/(default)/collectionGroups/legacy/indexes/id',
+        signature=('legacy', 'COLLECTION', (('a', 'ASCENDING'), ('b', 'ASCENDING'))),
+        state='READY',
+        api_scope='DATASTORE_MODE_API',
+    )
+
+    assert reconcile_firestore_indexes.unmanaged_live_indexes(expected=set(), live_indexes=[live]) == []

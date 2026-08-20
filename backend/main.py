@@ -3,7 +3,8 @@ import json
 import logging
 import os
 
-from utils.env_loader import load_backend_env
+from utils.env_loader import firebase_admin_options, load_backend_env
+from config.chat_first_e2e_fixture import is_chat_first_e2e_harness_runtime
 
 load_backend_env()  # No-op if no env files exist (production); stage + local overrides otherwise
 
@@ -41,7 +42,10 @@ from routers import (
     oauth,
     auth,
     action_items,
+    account_cutover,
     candidates,
+    chat_first,
+    chat_first_e2e,
     task_integrations,
     integrations,
     x_connector,
@@ -67,6 +71,7 @@ from routers import (
     focus_sessions,
     advice,
     chat_sessions,
+    chat_generation,
     desktop_agent_vm,
     desktop_chat,
     desktop_core,
@@ -75,6 +80,7 @@ from routers import (
     desktop_screen_crisp,
     desktop_tts_updates,
     scores,
+    stt,
     tts,
     memory_admin,
     memory_product,
@@ -106,8 +112,9 @@ log_langsmith_status()
 validate_stripe_price_ids()
 
 _auth_emulator_host = os.environ.get("FIREBASE_AUTH_EMULATOR_HOST", "").strip()
+_firebase_admin_options = firebase_admin_options()
 if _auth_emulator_host:
-    for _adc_key in ("GOOGLE_APPLICATION_CREDENTIALS", "SERVICE_ACCOUNT_JSON"):
+    for _adc_key in ("GOOGLE_APPLICATION_CREDENTIALS", "SERVICE_ACCOUNT_JSON", "FIREBASE_AUTH_CREDENTIALS_PATH"):
         os.environ.pop(_adc_key, None)
     _firebase_project_id = (
         os.environ.get("FIREBASE_AUTH_PROJECT_ID") or os.environ.get("FIREBASE_PROJECT_ID") or "demo-omi-local"
@@ -116,9 +123,9 @@ if _auth_emulator_host:
 elif os.environ.get("SERVICE_ACCOUNT_JSON"):
     service_account_info = json.loads(os.environ["SERVICE_ACCOUNT_JSON"])
     credentials = firebase_admin.credentials.Certificate(service_account_info)
-    firebase_admin.initialize_app(credentials)  # type: ignore[reportUnknownMemberType]  # firebase_admin untyped
+    firebase_admin.initialize_app(credentials, options=_firebase_admin_options)  # type: ignore[reportUnknownMemberType]  # firebase_admin untyped
 else:
-    firebase_admin.initialize_app()  # type: ignore[reportUnknownMemberType]  # firebase_admin untyped
+    firebase_admin.initialize_app(options=_firebase_admin_options)  # type: ignore[reportUnknownMemberType]  # firebase_admin untyped
 
 app = FastAPI()
 
@@ -145,7 +152,13 @@ app.include_router(auto_model.router)
 app.include_router(conversations.router)
 app.include_router(public_shared_conversation_chat.router)
 app.include_router(action_items.router)
+app.include_router(account_cutover.router)
 app.include_router(candidates.router)
+app.include_router(chat_first.router)
+if is_chat_first_e2e_harness_runtime():
+    # The fixture router has its own runtime check as defense in depth.  It is
+    # intentionally absent from dev/prod route tables, not merely disabled.
+    app.include_router(chat_first_e2e.router)
 app.include_router(task_integrations.router)
 app.include_router(integrations.router)
 app.include_router(x_connector.router)
@@ -196,7 +209,9 @@ app.include_router(staged_tasks.router)
 app.include_router(focus_sessions.router)
 app.include_router(advice.router)
 app.include_router(chat_sessions.router)
+app.include_router(chat_generation.router)
 app.include_router(scores.router)
+app.include_router(stt.router)
 app.include_router(tts.router)
 app.include_router(memory_admin.router)
 app.include_router(memory_product.router)
@@ -226,6 +241,10 @@ paths_timeout = {
     "/v2/audio-merge-jobs/run": os.environ.get('HTTP_AUDIO_MERGE_RUN_TIMEOUT', 600),
     "/v1/users/account-deletion-wipes/run": os.environ.get('HTTP_ACCOUNT_DELETION_WIPE_RUN_TIMEOUT', 1500),
     "/v1/conversation-finalization-jobs/run": os.environ.get('HTTP_LISTEN_FINALIZATION_RUN_TIMEOUT', 1500),
+    # STT proxy: 30s slot wait + 300s parakeet client budget (get_stt_proxy_client)
+    # + headroom for auth and the multipart spool read; the default POST timeout
+    # would cut long files off mid-transcription.
+    "/v1/stt/transcribe": os.environ.get('HTTP_STT_TRANSCRIBE_TIMEOUT', 350),
 }
 
 app.add_middleware(TimeoutMiddleware, methods_timeout=methods_timeout, paths_timeout=paths_timeout)

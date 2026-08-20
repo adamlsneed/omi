@@ -293,13 +293,17 @@ extension KernelJournalTurn {
       sender: role == "user" ? .user : .ai,
       isStreaming: status == .pending || status == .streaming,
       isSynced: remoteId != nil,
-      contentBlocks: ChatContentBlockCodec.decode(contentBlocksJSON) ?? [],
+      contentBlocks: ChatContentBlockCodec.mergingCitationBackup(
+        ChatContentBlockCodec.decode(contentBlocksJSON) ?? [],
+        backup: ChatContentBlockCodec.decodeFromMessageMetadata(metadataJSON)
+      ),
       notificationContext: metadata["notificationContext"] as? String,
       resources: ChatResource.hydrateFileStates(
         ChatResource.decodeResourcesFromPersistence(resourcesJSON)
       ),
       turnOwner: owner,
-      journalStatus: status
+      journalStatus: status,
+      hidesEmptyStreamingPlaceholder: metadata["hiddenUntilOutput"] as? Bool ?? false
     )
   }
 
@@ -330,13 +334,19 @@ extension ChatMessage {
     if let sessionId { metadata["sessionId"] = sessionId }
     if let messageSource { metadata["messageSource"] = messageSource }
     let metadataJSON: String
+    let encodedMetadata: String
     if let data = try? JSONSerialization.data(withJSONObject: metadata),
       let encoded = String(data: data, encoding: .utf8)
     {
-      metadataJSON = encoded
+      encodedMetadata = encoded
     } else {
-      metadataJSON = "{}"
+      encodedMetadata = "{}"
     }
+    metadataJSON =
+      ChatContentBlockCodec.mergeIntoMessageMetadata(
+        encodedMetadata,
+        contentBlocks: ChatContentBlockCodec.citationBlocks(in: contentBlocks)
+      ) ?? encodedMetadata
     return KernelJournalTurnWrite(
       turnId: id,
       role: sender == .user ? "user" : "assistant",

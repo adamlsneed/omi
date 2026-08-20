@@ -321,7 +321,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get searchApps => 'অ্যাপস খুঁজুন...';
 
   @override
-  String get myApps => 'আমার অ্যাপস';
+  String get myApps => 'আমার তৈরি';
 
   @override
   String get installedApps => 'ইনস্টল করা অ্যাপস';
@@ -752,11 +752,6 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String cancelAtPeriodEnd(String date) {
     return 'আপনার প্ল্যান $date এ বাতিল হবে।';
-  }
-
-  @override
-  String renewsOn(String date) {
-    return 'আপনার প্ল্যান $date এ নবায়ন হয়।';
   }
 
   @override
@@ -2135,16 +2130,16 @@ class AppLocalizationsBn extends AppLocalizations {
   String get editMemory => '✏️ স্মৃতি সম্পাদনা করুন';
 
   @override
-  String get pinAsBaseline => 'Pin as Baseline';
+  String get pinAsBaseline => 'বেসলাইন হিসেবে পিন করুন';
 
   @override
-  String get unpinAsBaseline => 'Unpin from Baseline';
+  String get unpinAsBaseline => 'বেসলাইন থেকে আনপিন করুন';
 
   @override
-  String get baselineMemory => 'Baseline Memory';
+  String get baselineMemory => 'বেসলাইন মেমরি';
 
   @override
-  String get alwaysInContext => 'Always in context';
+  String get alwaysInContext => 'সর্বদা প্রসঙ্গে';
 
   @override
   String get memoryContentHint => 'আমি আইসক্রিম খেতে পছন্দ করি...';
@@ -10005,4 +10000,90 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String get rayBanMetaMicPickerConnectError =>
       'ওই মাইক্রোফোনে সংযোগ করা যায়নি। iPhone সেটিংসে এটি সংযুক্ত আছে কিনা নিশ্চিত করুন।';
+
+  @override
+  String get syncStatusTooOld => 'সিঙ্ক করার জন্য খুব পুরনো — Omi এটি গ্রহণ করতে পারে না';
+
+  @override
+  String get planSheetChooseYourPlan => 'সীমাহীন Omi আনলক করতে আপনার প্ল্যান বেছে নিন।';
+
+  @override
+  String get availableOnMacMobileWeb => 'Mac, মোবাইল এবং ওয়েবে উপলব্ধ';
+
+  @override
+  String get popularBadge => 'জনপ্রিয়';
+
+  @override
+  String get worksOnDesktop => 'ডেস্কটপে কাজ করে';
+
+  @override
+  String get noDesktopAccess => 'ডেস্কটপে কাজ করে না';
+
+  @override
+  String annualBillingSummary(int months, String price) {
+    return '$months মাস / $price';
+  }
+
+  @override
+  String monthsFreeBadge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count মাস ফ্রি',
+      one: '১ মাস ফ্রি',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get freemiumLimitsIntro => 'Omi ফ্রি, তবে ফ্রি সংস্করণে কিছু সীমাবদ্ধতা আছে যা আপনার অভিজ্ঞতাকে প্রভাবিত করে:';
+
+  @override
+  String get downgradeLimitDelayNotRealTime => '৫-৭ সেকেন্ড বিলম্ব (রিয়েল-টাইম নয়)';
+
+  @override
+  String get downgradeToFreemiumAction => 'ফ্রি সংস্করণে নেমে যান';
+
+  @override
+  String get getFreeUnlimitedAccess => 'ফ্রি আনলিমিটেড অ্যাক্সেস পান';
+
+  @override
+  String get shareDataForTraining => 'প্রশিক্ষণের জন্য ডেটা শেয়ার করুন';
+
+  @override
+  String get yourRequestUnderReview => 'আপনার অনুরোধ পর্যালোচনাধীন';
+
+  @override
+  String get accountCutoverUpdateRequiredTitle => 'अपडेट आवश्यक';
+
+  @override
+  String get accountCutoverUpdateRequiredMessage =>
+      'खाता माइग्रेशन के बाद जारी रखने के लिए नवीनतम Omi ऐप इंस्टॉल करें।';
+
+  @override
+  String get accountCutoverMigrationInProgressTitle => 'माइग्रेशन जारी है';
+
+  @override
+  String get accountCutoverMigrationInProgressMessage =>
+      'आपका खाता माइग्रेट हो रहा है। माइग्रेशन पूरा होने तक उत्पाद सुविधाएँ रुकी रहेंगी।';
+
+  @override
+  String get accountCutoverMigrationRollbackMessage =>
+      'माइग्रेशन रोलबैक के बाद आपका खाता रखरखाव में है। कुछ नए डेटा अलग रह सकते हैं।';
+
+  @override
+  String get accountCutoverOpenStore => 'स्टोर खोलें';
+
+  @override
+  String get sendRawAudioToOmi => 'Omi-তে কাঁচা অডিও পাঠান';
+
+  @override
+  String get sendRawAudioToOmiDescription =>
+      'Omi-তে কাঁচা অডিও পাঠানো বন্ধ করতে এটি বন্ধ করুন। ট্রান্সক্রিপ্ট ও ক্লাউড ফিচারের প্রয়োজনীয় ডেটা এখনও Omi-তে পাঠানো হতে পারে।';
+
+  @override
+  String get findDevice => 'খুঁজুন';
+
+  @override
+  String get diagnosticsShareFailed => 'ডায়াগনস্টিকস শেয়ার করা যায়নি। আবার চেষ্টা করুন।';
 }

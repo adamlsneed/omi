@@ -46,7 +46,9 @@ static bool storage_full_warned = false;
 #endif
 
 extern bool is_connected;
+#ifdef CONFIG_OMI_ENABLE_BATTERY
 extern bool is_charging;
+#endif
 static atomic_t pusher_stop_flag;
 
 struct bt_conn *current_connection = NULL;
@@ -100,9 +102,7 @@ static ssize_t settings_charging_status_read_handler(struct bt_conn *conn,
                                                      void *buf,
                                                      uint16_t len,
                                                      uint16_t offset);
-#ifdef CONFIG_OMI_ENABLE_BATTERY
 static int notify_charging_status(struct bt_conn *conn, bool force_notify);
-#endif
 static ssize_t
 features_read_handler(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf, uint16_t len, uint16_t offset);
 
@@ -325,11 +325,9 @@ static void charging_status_ccc_config_changed_handler(const struct bt_gatt_attr
 
     if (value == BT_GATT_CCC_NOTIFY) {
         LOG_INF("Client subscribed for charging status notifications");
-#ifdef CONFIG_OMI_ENABLE_BATTERY
         if (current_connection != NULL) {
             (void) notify_charging_status(current_connection, true);
         }
-#endif
     } else if (value == 0) {
         LOG_INF("Client unsubscribed from charging status notifications");
     } else {
@@ -697,9 +695,7 @@ static void _transport_disconnected(struct bt_conn *conn, uint8_t err)
         current_connection = NULL;
     }
     current_mtu = 0;
-#ifdef CONFIG_OMI_ENABLE_BATTERY
     charging_status_last_notified = -1;
-#endif
 
     // Restore full audio-TX credit for the next connection. Must NOT use
     // k_sem_init here: k_sem_init re-inits the wait queue WITHOUT waking a
@@ -707,8 +703,7 @@ static void _transport_disconnected(struct bt_conn *conn, uint8_t err)
     // would be orphaned forever (live audio dead until reboot). Drain then
     // refill via k_sem_give, which does wake a waiter; push_to_gatt re-checks
     // is_connected after acquiring, so a woken pusher drops its frame safely.
-    while (k_sem_take(&audio_tx_sem, K_NO_WAIT) == 0) {
-    }
+    while (k_sem_take(&audio_tx_sem, K_NO_WAIT) == 0) {}
     for (int i = 0; i < CONFIG_BT_CONN_TX_MAX - AUDIO_TX_RESERVED_SLOTS; i++) {
         k_sem_give(&audio_tx_sem);
     }
@@ -1389,13 +1384,10 @@ int transport_start()
         register_accel_service(current_connection);
     }
 #endif
-#ifdef CONFIG_OMI_ENABLE_BUTTON
-    register_button_service();
-#endif
-
     //  Enable button
-#ifdef CONFIG_OMI_ENABLE_BUTTON_INPUT
+#ifdef CONFIG_OMI_ENABLE_BUTTON
     button_init();
+    register_button_service();
     activate_button_work();
 #endif
 
