@@ -21,6 +21,7 @@ import 'package:omi/models/custom_stt_config.dart';
 import 'package:omi/models/stt_provider.dart';
 import 'package:omi/providers/capture_provider.dart';
 import 'package:omi/services/capture/capture_external_actions.dart';
+import 'package:omi/services/capture/conversation_location_capture.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/services/sockets/transcription_service.dart';
 import 'package:omi/utils/enums.dart';
@@ -117,6 +118,48 @@ class _GatedSocketCaptureProvider extends CaptureProvider {
   }
 }
 
+class _NullSocketCaptureProvider extends CaptureProvider {
+  @override
+  Future<TranscriptSegmentSocketService?> openConversationSocket({
+    required BleAudioCodec codec,
+    required int sampleRate,
+    required String language,
+    required bool force,
+    String? source,
+    CustomSttConfig? customSttConfig,
+  }) async =>
+      null;
+}
+
+class _CountingSocketCaptureProvider extends CaptureProvider {
+  _CountingSocketCaptureProvider({super.audioCodecLoader});
+
+  int openCalls = 0;
+
+  @override
+  Future<TranscriptSegmentSocketService?> openConversationSocket({
+    required BleAudioCodec codec,
+    required int sampleRate,
+    required String language,
+    required bool force,
+    String? source,
+    CustomSttConfig? customSttConfig,
+  }) async {
+    openCalls++;
+    return null;
+  }
+}
+
+class _CountingConversationLocationCapture extends ConversationLocationCapture {
+  int calls = 0;
+
+  @override
+  Future<bool> captureAndUpload() async {
+    calls++;
+    return true;
+  }
+}
+
 /// Minimal EnvFields stub so Env-backed code paths (e.g. native BLE stream
 /// config reading Env.apiBaseUrl) don't hit a LateInitializationError.
 class _TestEnvFields implements EnvFields {
@@ -193,6 +236,20 @@ void main() {
     expect(provider.suggestionsBySegmentId.containsKey('a'), false);
     expect(provider.taggingSegmentIds.contains('a'), false);
     expect(provider.hasTranscripts, true);
+  });
+
+  test('first transcript refreshes conversation location without a foreground task', () async {
+    final locationCapture = _CountingConversationLocationCapture();
+    final provider = CaptureProvider(
+      conversationLocationCapture: locationCapture,
+      inProgressConversationLoader: () async {},
+    );
+
+    provider.onSegmentReceived([_segment('first', 'hello')]);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(locationCapture.calls, 1);
+    provider.dispose();
   });
 
   test('active capture identity survives deletion of the first segment', () {
@@ -298,6 +355,25 @@ void main() {
       expect(pauseRequests, [true]);
       expect(provider.recordingState, RecordingState.stop);
       provider.dispose();
+    });
+
+    test('stopStreamDeviceRecording keeps a user mute in sync with the pref', () async {
+      final provider = CaptureProvider();
+      provider.updateRecordingDevice(BtDevice(id: 'cv1-device', name: 'Omi CV1', type: DeviceType.omi, rssi: -50));
+      provider.updateRecordingState(RecordingState.deviceRecord);
+      await provider.pauseDeviceRecording();
+
+      await provider.stopStreamDeviceRecording();
+
+      // The in-memory flag and the persisted pref are one mute, not two. A stop
+      // that cleared only the flag left the reconnect path un-pausing firmware
+      // the user had muted, while a restart resurrected the mute from the pref.
+      expect(provider.isPaused, isTrue);
+      expect(SharedPreferencesUtil().deviceMuted, isTrue);
+      provider.dispose();
+      // The pref outlives the provider, and CaptureProvider's constructor reads it,
+      // so leaving it set would mute every provider a later test builds.
+      SharedPreferencesUtil().deviceMuted = false;
     });
   });
 
@@ -740,6 +816,47 @@ void main() {
       provider.onClosed();
 
       expect(provider.recordingState, RecordingState.stop);
+      expect(provider.keepAliveScheduledForTesting, isFalse);
+      provider.dispose();
+    });
+
+    test('schedules reconnect only for an active device capture', () {
+      final provider = CaptureProvider();
+      provider.updateRecordingDevice(_device(id: 'AA:BB:CC:DD:EE:FF', type: DeviceType.omi));
+      provider.updateRecordingState(RecordingState.deviceRecord);
+
+      provider.onClosed();
+
+      expect(provider.keepAliveScheduledForTesting, isTrue);
+      provider.updateRecordingState(RecordingState.stop);
+      provider.onClosed();
+      expect(provider.keepAliveScheduledForTesting, isFalse);
+      provider.dispose();
+    });
+
+    test('does not reconnect after device capture stops while codec lookup is pending', () async {
+      final codec = Completer<BleAudioCodec>();
+      final provider = _CountingSocketCaptureProvider(audioCodecLoader: (_) => codec.future);
+      provider.updateRecordingDevice(_device(id: 'AA:BB:CC:DD:EE:FF', type: DeviceType.omi));
+      provider.updateRecordingState(RecordingState.deviceRecord);
+
+      final reconnect = provider.reconnectActiveCaptureForTesting();
+      await Future<void>.delayed(Duration.zero);
+      provider.updateRecordingState(RecordingState.stop);
+      codec.complete(BleAudioCodec.opus);
+      await reconnect;
+
+      expect(provider.openCalls, 0);
+      provider.dispose();
+    });
+
+    test('system audio capture remains eligible for websocket reconnect', () async {
+      final provider = _CountingSocketCaptureProvider();
+      provider.updateRecordingState(RecordingState.systemAudioRecord);
+
+      await provider.reconnectActiveCaptureForTesting();
+
+      expect(provider.openCalls, 1);
       provider.dispose();
     });
 
@@ -997,10 +1114,7 @@ void main() {
 
     test('keeps native Omi background audio disabled when Custom STT raw forwarding is off', () async {
       await SharedPreferencesUtil().saveCustomSttConfig(
-        const CustomSttConfig(
-          provider: SttProvider.onDeviceWhisper,
-          sendRawAudioToOmi: false,
-        ),
+        const CustomSttConfig(provider: SttProvider.onDeviceWhisper, sendRawAudioToOmi: false),
       );
       final provider = CaptureProvider();
       provider.updateRecordingDevice(_device(id: 'AA:BB:CC:DD:EE:FF', type: DeviceType.omi));
@@ -1104,10 +1218,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       await SharedPreferencesUtil.init();
       await SharedPreferencesUtil().saveCustomSttConfig(
-        const CustomSttConfig(
-          provider: SttProvider.onDeviceWhisper,
-          sendRawAudioToOmi: false,
-        ),
+        const CustomSttConfig(provider: SttProvider.onDeviceWhisper, sendRawAudioToOmi: false),
       );
       await SharedPreferencesUtil().saveBool('nativeBleStreamingEnabled', true);
     });
@@ -1118,7 +1229,9 @@ void main() {
 
     test('disables native Omi audio and schedules a websocket retry', () {
       fakeAsync((async) {
-        final provider = CaptureProvider();
+        final provider = _NullSocketCaptureProvider();
+        provider.updateRecordingDevice(_device(id: 'AA:BB:CC:DD:EE:FF', type: DeviceType.omi));
+        provider.updateRecordingState(RecordingState.deviceRecord);
         final timersBefore = async.pendingTimers.length;
         var completed = false;
 
@@ -1128,6 +1241,19 @@ void main() {
         expect(completed, isTrue);
         expect(SharedPreferencesUtil().getBool('nativeBleStreamingEnabled'), isFalse);
         expect(async.pendingTimers.length, timersBefore + 1);
+        provider.dispose();
+      });
+    });
+
+    test('does not schedule a websocket retry when capture is idle', () {
+      fakeAsync((async) {
+        final provider = CaptureProvider();
+        final timersBefore = async.pendingTimers.length;
+
+        provider.changeAudioRecordProfile(audioCodec: BleAudioCodec.lc3FS1030);
+        async.flushMicrotasks();
+
+        expect(async.pendingTimers.length, timersBefore);
         provider.dispose();
       });
     });

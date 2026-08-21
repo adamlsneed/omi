@@ -11,6 +11,7 @@ covers:
   - desktop/macos/Desktop/Sources/Audio/PreferredMicrophoneReconnect.swift
   - desktop/macos/Desktop/Sources/AppState/SharedCaptureSilentMicRecoveryPolicy.swift
   - desktop/macos/Desktop/Sources/AppState/AppState+ListenEvents.swift
+  - desktop/macos/Desktop/Sources/FloatingControlBar/VoiceBargeInPolicy.swift
   - desktop/macos/Desktop/Sources/AppState/LocalTranscriptionDuplicatePolicy.swift
   - desktop/macos/Desktop/Sources/AppState/STTSessionState.swift
   - desktop/macos/Desktop/Sources/LocalTranscriptionService.swift
@@ -20,6 +21,7 @@ covers:
   - desktop/macos/Desktop/Sources/ConversationFinalizationService.swift
   - desktop/macos/Desktop/Sources/ConversationReconciliationPolicy.swift
   - desktop/macos/Desktop/Sources/MainWindow/Components/ConversationRowView.swift
+  - desktop/macos/Desktop/Sources/MainWindow/Components/ConversationStatusBadge.swift
   - desktop/macos/Desktop/Sources/MainWindow/Conversations/ConversationRepository.swift
   - desktop/macos/Desktop/Sources/MainWindow/Pages/ConversationDetailView.swift
   - desktop/macos/Desktop/Sources/Rewind/Core/RewindDatabase.swift

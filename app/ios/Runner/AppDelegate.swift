@@ -6,6 +6,7 @@ import WatchConnectivity
 import AVFoundation
 import Speech
 import WidgetKit
+import BackgroundTasks
 
 extension FlutterError: Error {}
 
@@ -81,6 +82,18 @@ final class QuickActionsIconPatcher: NSObject {
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
+  private static let unusedForegroundTaskRefreshIdentifier = "com.pravera.flutter_foreground_task.refresh"
+
+  /// The App Group the battery widget shares, resolved the same way the widget
+  /// resolves it (`BatteryWidget/SharedDefaults.swift`).
+  ///
+  /// Hardcoding the upstream group wrote to a suite a locally-signed build is not
+  /// entitled to — iOS silently redirects that to a private container — while the
+  /// widget read `$(APP_GROUP_IDENTIFIER)`, so the widget never saw an update on
+  /// exactly the builds this fork installs on a phone.
+  static let appGroupIdentifier =
+    Bundle.main.object(forInfoDictionaryKey: "OmiAppGroupIdentifier") as? String
+    ?? "group.com.friend-app-with-wearable.ios12"
   private var methodChannel: FlutterMethodChannel?
   private var appleRemindersChannel: FlutterMethodChannel?
   private var appleHealthChannel: FlutterMethodChannel?
@@ -124,7 +137,15 @@ final class QuickActionsIconPatcher: NSObject {
       UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     }
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    if #available(iOS 13.0, *) {
+      // flutter_foreground_task registers an otherwise unused 25-second
+      // refresh. Clear requests left by older releases after plugin dispatch.
+      BGTaskScheduler.shared.cancel(
+        taskRequestWithIdentifier: AppDelegate.unusedForegroundTaskRefreshIdentifier
+      )
+    }
+    return launched
   }
 
   /// Registers every native bridge that needs the Flutter binary messenger.
@@ -247,7 +268,7 @@ final class QuickActionsIconPatcher: NSObject {
     // so the WidgetKit extension can read it.
     let batteryWidgetChannel = FlutterMethodChannel(name: "com.omi.battery_widget", binaryMessenger: controller.binaryMessenger)
     batteryWidgetChannel.setMethodCallHandler { (call, result) in
-      let defaults = UserDefaults(suiteName: "group.com.friend-app-with-wearable.ios12")
+      let defaults = UserDefaults(suiteName: AppDelegate.appGroupIdentifier)
       guard let args = call.arguments as? [String: Any] else {
         result(FlutterMethodNotImplemented)
         return
@@ -275,6 +296,39 @@ final class QuickActionsIconPatcher: NSObject {
       }
       result(nil)
     }
+  }
+
+  override func applicationDidEnterBackground(_ application: UIApplication) {
+    super.applicationDidEnterBackground(application)
+    handleDidEnterBackground()
+  }
+
+  /// Backgrounding work shared with the scene delegate.
+  ///
+  /// UIKit stops calling `applicationDidEnterBackground(_:)` once UIScene is adopted, and this
+  /// starts the BLE background-energy telemetry window and clears the unused foreground-task
+  /// refresh, so the scene delegate forwards `sceneDidEnterBackground(_:)` here.
+  @objc func handleDidEnterBackground() {
+    OmiBleManager.shared.markBackgroundTelemetryStart()
+    if #available(iOS 13.0, *) {
+      // The plugin delegate schedules this request from the super call above;
+      // cancel it after delegate dispatch so an idle app is not woken for an
+      // empty 25-second operation.
+      BGTaskScheduler.shared.cancel(
+        taskRequestWithIdentifier: AppDelegate.unusedForegroundTaskRefreshIdentifier
+      )
+    }
+  }
+
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+    handleDidBecomeActive()
+    super.applicationDidBecomeActive(application)
+  }
+
+  /// Activation work shared with the scene delegate, for the same reason as
+  /// `handleDidEnterBackground`: UIKit routes this to the scene under UIScene.
+  @objc func handleDidBecomeActive() {
+    OmiBleManager.shared.markBackgroundTelemetryEnd()
   }
 
   // Meta AI app calls back into this app to finish Ray-Ban Meta registration

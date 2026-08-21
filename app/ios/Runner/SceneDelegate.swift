@@ -49,4 +49,14 @@ class SceneDelegate: FlutterSceneDelegate {
     super.sceneWillEnterForeground(scene)
     omiAppDelegate?.handleWillEnterForeground()
   }
+
+  override func sceneDidEnterBackground(_ scene: UIScene) {
+    super.sceneDidEnterBackground(scene)
+    omiAppDelegate?.handleDidEnterBackground()
+  }
+
+  override func sceneDidBecomeActive(_ scene: UIScene) {
+    super.sceneDidBecomeActive(scene)
+    omiAppDelegate?.handleDidBecomeActive()
+  }
 }

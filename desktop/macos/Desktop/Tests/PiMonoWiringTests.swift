@@ -320,4 +320,26 @@ final class PiMonoWiringTests: XCTestCase {
       "AgentRuntimeProcess should pass the Firebase token to Node through a private token file")
   }
 
+  func testAgentRuntimeClearsAuthTokenFileWhenTheChildDiesUnexpectedly() throws {
+    let runtimePath = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()  // Tests/
+      .deletingLastPathComponent()  // Desktop/
+      .appendingPathComponent("Sources/Chat/AgentRuntimeProcess.swift")
+
+    // The graceful paths (stopProcess, cleanupFailedStart) already cleared the token file; a crash
+    // or OOM goes through handleTermination, which did not, stranding a readable Firebase token on
+    // disk with no child left to consume it.
+    // omi-test-quality: source-inspection -- static contract: required-pattern tripwire that the unexpected-termination path clears the auth token file
+    let src = try String(contentsOf: runtimePath, encoding: .utf8)
+    guard let start = src.range(of: "private func handleTermination(") else {
+      return XCTFail("handleTermination moved; re-point this tripwire at its new home")
+    }
+    let rest = src[start.upperBound...]
+    let end = rest.range(of: "\n  private func ") ?? rest.range(of: "\n  func ")
+    let body = end.map { String(rest[..<$0.lowerBound]) } ?? String(rest)
+    XCTAssert(
+      body.contains("cleanupAuthTokenFile()"),
+      "handleTermination must clear the auth token file; a crashed child leaves the token readable on disk")
+  }
+
 }

@@ -1,0 +1,3 @@
+{
+  "change": "Synced with upstream: Rewind's timeline now shows and follows the live edge with live frame previews, voice playback stops when you start speaking, conversations detect multi-party calls and meetings from speaker context, and processing or locked conversations are labelled instead of showing as 'Untitled'. Includes upstream's iOS background-energy work, rewired so it still runs under this fork's UIScene lifecycle."
+}

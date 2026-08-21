@@ -59,6 +59,8 @@ from utils.observability.fallback import record_fallback
 from utils.product_telemetry import emit_product_event
 from utils.task_intelligence.workstream_association import associate_canonical_evidence
 from utils.subscription import is_trial_paywalled, should_defer_desktop_processing
+from utils.byok import get_byok_key
+from utils.transcribe_decisions import should_skip_custom_stt_postprocessing
 from models.other import Person
 from models.structured import Structured  # type: ignore[reportAttributeAccessIssue]  # SDK/fallback export is runtime-complete.
 from utils.notifications import send_important_conversation_message
@@ -119,7 +121,11 @@ from utils.conversations.calendar_linking import (
     get_overlapping_calendar_event,
     write_conversation_link_to_calendar_event,
 )
-from utils.conversations.meeting_treatment import is_meeting_treatment_eligible
+from utils.conversations.meeting_treatment import (
+    MIN_MEETING_DURATION_SECONDS,
+    MIN_TRANSCRIBED_SPEECH_SECONDS,
+    deduplicated_transcribed_speech_seconds,
+)
 from utils.conversations.meeting_context import (
     MAX_SCREEN_CONTEXT_ROWS,
     MEETING_SEARCH_TOLERANCE_MINUTES,
@@ -161,6 +167,14 @@ class SummaryPipelineMode(str, Enum):
 
     LEGACY_APP_PRIMARY = 'legacy_app_primary'
     NOTES_V2_APPS_OPT_IN = 'notes_v2_primary_apps_opt_in'
+
+
+class AppUsageAttribution(str, Enum):
+    """Why an app execution is eligible (or ineligible) for usage history."""
+
+    AUTOMATIC_PROCESSING = 'automatic_processing'
+    EXPLICIT_SELECTION = 'explicit_selection'
+    NON_USER_REPROCESS = 'non_user_reprocess'
 
 
 def summary_pipeline_mode() -> SummaryPipelineMode:
@@ -563,9 +577,16 @@ def _trigger_apps(
     conversation: Conversation,
     is_reprocess: bool = False,
     app_id: Optional[str] = None,
+    explicit_app: Optional[App] = None,
+    usage_attribution: Optional[AppUsageAttribution] = None,
     language_code: str = 'en',
     people: Optional[List[Person]] = None,
 ) -> None:
+    if usage_attribution is None:
+        usage_attribution = (
+            AppUsageAttribution.NON_USER_REPROCESS if is_reprocess else AppUsageAttribution.AUTOMATIC_PROCESSING
+        )
+
     # Get default apps for auto-selection
     opt_in_only = _conversation_apps_opt_in_only()
     default_apps = [] if opt_in_only else get_default_conversation_summarized_apps()
@@ -586,11 +607,9 @@ def _trigger_apps(
 
     # If a specific app_id is provided (for reprocessing), find and use it.
     if app_id:
-        app_to_run = all_apps_dict.get(app_id)
-        if app_to_run is None:
-            candidate = get_available_app_model_by_id(app_id, uid)
-            if candidate and candidate.works_with_memories():
-                app_to_run = candidate
+        if explicit_app is None or explicit_app.id != app_id:
+            raise ValueError('explicit app selection must be validated before conversation processing')
+        app_to_run = explicit_app
     else:
         # Check preferred app first — skip the suggestion LLM call if user has one
         preferred_app_id = redis_db.get_user_preferred_app(uid)
@@ -663,7 +682,10 @@ def _trigger_apps(
                 prompt_prefix=prompt_prefix,
             ).strip()
         conversation.apps_results.append(AppResult(app_id=app.id, content=result))
-        if not is_reprocess:
+        if usage_attribution in {
+            AppUsageAttribution.AUTOMATIC_PROCESSING,
+            AppUsageAttribution.EXPLICIT_SELECTION,
+        }:
             record_app_usage(uid, app.id, UsageHistoryType.memory_created_prompt, conversation_id=conversation.id)
 
     futures = [submit_with_context(llm_executor, execute_app, app) for app in filtered_apps]
@@ -1680,21 +1702,6 @@ def _meeting_context_from_time_overlap(
         return None
 
 
-def _is_desktop_meeting_role(conversation: Any) -> bool:
-    """Whether the finalization-time meeting policy is the authority for this conversation.
-
-    Only desktop conversations opened in the meeting role are covered by
-    `is_meeting_treatment_eligible`; every other source keeps its prior enrichment behaviour.
-    """
-    source = getattr(conversation, 'source', None)
-    if getattr(source, 'value', source) != 'desktop':
-        return False
-    external_data = getattr(conversation, 'external_data', None) or {}
-    if not isinstance(external_data, Mapping):
-        return False
-    return external_data.get('conversation_role') == 'meeting'
-
-
 def _enrich_meeting_context(uid: str, conversation: Any) -> None:
     """Read identity context before summarization without mutating calendar providers.
 
@@ -1711,17 +1718,24 @@ def _enrich_meeting_context(uid: str, conversation: Any) -> None:
     finished_at = getattr(conversation, 'finished_at', None)
     has_window = bool(started_at and finished_at)
 
-    # conversation_role is open-time identity, not the treatment decision (#11832). A short or
-    # mostly-silent call still opens as a meeting, so gating enrichment on the role alone would
-    # spend a Google Calendar read and a screen-activity query on conversations that the
-    # authoritative finalization policy has already ruled out. Defer to that policy where it
-    # applies — desktop meeting-role conversations — and leave every other source untouched.
-    if _is_desktop_meeting_role(conversation) and not is_meeting_treatment_eligible(conversation):
-        logger.info(
-            'Skipping meeting-context enrichment for conversation %s: not meeting-treatment eligible',
-            getattr(conversation, 'id', None),
-        )
-        return
+    # This is a pre-finalization cost gate, not a treatment verdict: discard is
+    # not known until summarization completes. Keep expensive provider reads off
+    # short/silent desktop meeting-role captures without writing or consuming the
+    # durable final verdict owned by the finalization-job receipt.
+    source = getattr(conversation, 'source', None)
+    external_data = getattr(conversation, 'external_data', None) or {}
+    if (
+        getattr(source, 'value', source) == 'desktop'
+        and isinstance(external_data, Mapping)
+        and external_data.get('conversation_role') == 'meeting'
+    ):
+        try:
+            duration_s = (finished_at - started_at).total_seconds() if has_window else 0.0
+        except TypeError:
+            duration_s = 0.0
+        speech_s = deduplicated_transcribed_speech_seconds(getattr(conversation, 'transcript_segments', None) or [])
+        if duration_s < MIN_MEETING_DURATION_SECONDS or speech_s < MIN_TRANSCRIBED_SPEECH_SECONDS:
+            return
 
     def _stored() -> Optional[CalendarMeetingContext]:
         mapped = _meeting_context_from_redis_mapping(uid, conversation)
@@ -1762,11 +1776,18 @@ def process_conversation(
     force_process: bool = False,
     is_reprocess: bool = False,
     app_id: Optional[str] = None,
+    explicit_app: Optional[App] = None,
+    app_usage_attribution: Optional[AppUsageAttribution] = None,
     persistence_observer: Callable[[bool], None] | None = None,
     defer_memory_extraction: bool = False,
     defer_derived_effects: bool = False,
     derived_effects_observer: Callable[[Callable[[], None]], None] | None = None,
 ) -> Conversation:
+    if app_usage_attribution is None:
+        app_usage_attribution = (
+            AppUsageAttribution.NON_USER_REPROCESS if is_reprocess else AppUsageAttribution.AUTOMATIC_PROCESSING
+        )
+
     def report_persistence(current: bool) -> None:
         if persistence_observer is not None:
             persistence_observer(current)
@@ -1799,6 +1820,50 @@ def process_conversation(
             except Exception:
                 pass
         report_persistence(False)
+        return cast(Conversation, conversation)
+
+    # Custom-STT conversations are transcribed on the user's own provider, so no
+    # Omi transcription credits were consumed. Their LLM post-processing still
+    # runs on Omi's infrastructure; without a cap that is unbounded Omi spend.
+    # Skip the Omi-paid enrichment unless the request carries an LLM BYOK key
+    # (the user then pays their own LLM bill — the same discriminator
+    # enforce_chat_quota uses). Mirrors the trial-paywall gate: keep the
+    # conversation valid and completed, but do no LLM / Pinecone / app work.
+    # The BYOK lookup is deferred until after the custom-STT check so the hot
+    # Omi-STT path never pays for the uncached users/... document read.
+    uses_custom_stt = getattr(conversation, 'uses_custom_stt', False) is True
+    if uses_custom_stt:
+        # Deferred: users_db.is_byok_active does an uncached Firestore read, so
+        # it only runs for custom-STT conversations, not every finalization.
+        has_llm_byok_key = bool(users_db.is_byok_active(uid) and (get_byok_key('openai') or get_byok_key('anthropic')))
+    else:
+        has_llm_byok_key = False
+    if uses_custom_stt and should_skip_custom_stt_postprocessing(
+        uses_custom_stt=True,
+        has_llm_byok_key=has_llm_byok_key,
+    ):
+        logger.info(
+            "custom STT: skipping Omi-paid post-processing for uid=%s conv=%s",
+            uid,
+            getattr(conversation, 'id', '?'),
+        )
+        if isinstance(conversation, Conversation):
+            try:
+                conversation.status = ConversationStatus.completed
+                # Durably persist the completed status so the conversation is not
+                # left stuck in `processing` (the finalizer is told nothing more
+                # will be persisted). A fresh listen creation is written through
+                # the completed-lifecycle path; existing conversations go through
+                # the processing-result persist path.
+                if is_initial_creation:
+                    lifecycle_service.create_completed_conversation(uid, conversation.dict(), idempotent=True)
+                else:
+                    lifecycle_service.persist_processed_conversation(uid, conversation.dict())
+                report_persistence(True)
+            except Exception:
+                report_persistence(False)
+        else:
+            report_persistence(False)
         return cast(Conversation, conversation)
 
     # Lazy desktop processing (freemium cost cut): desktop users without a desktop-entitled
@@ -1950,7 +2015,14 @@ def process_conversation(
                 record_usage(uid, insights_gained=insights_gained)
 
             _trigger_apps(
-                uid, conversation, is_reprocess=is_reprocess, app_id=app_id, language_code=language_code, people=people
+                uid,
+                conversation,
+                is_reprocess=is_reprocess,
+                app_id=app_id,
+                explicit_app=explicit_app,
+                usage_attribution=app_usage_attribution,
+                language_code=language_code,
+                people=people,
             )
             # _trigger_apps only mutates the in-memory conversation and the durable write above already
             # happened, so persist its output the same way the calendar_event/folder_id/audio_files

@@ -17,6 +17,7 @@ These rules apply to every AI agent working in this repository. This file is **h
 | Desktop macOS (`desktop/macos/`) | `desktop/macos/AGENTS.md` — build/run, named bundles, self-testing, release pipeline, changelog |
 | GitHub Actions (`.github/`) | `.github/AGENTS.md` — deploy concurrency, immutable image tags, rollout waits, secret ordering |
 | Admin dashboard (`web/admin/`) | `web/admin/AGENTS.md` — stack, data sources, conventions |
+| Web app (`web/app/`) | `web/app/AGENTS.md` — setup, quality gates, tests, desktop-parity limits |
 | Firmware (`omi/firmware/`) | `omi/firmware/AGENTS.md` — release workflow |
 | Product behavior | `PRODUCT.md` + `docs/product/invariants/` — locked invariants and guard tests |
 | A rule shared across app/macOS/Windows (buckets, day grouping, wire decode) | `contracts/parity/README.md` — shared fixtures, per-platform conformance suites, divergence register |
