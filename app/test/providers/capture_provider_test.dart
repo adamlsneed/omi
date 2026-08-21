@@ -356,6 +356,25 @@ void main() {
       expect(provider.recordingState, RecordingState.stop);
       provider.dispose();
     });
+
+    test('stopStreamDeviceRecording keeps a user mute in sync with the pref', () async {
+      final provider = CaptureProvider();
+      provider.updateRecordingDevice(BtDevice(id: 'cv1-device', name: 'Omi CV1', type: DeviceType.omi, rssi: -50));
+      provider.updateRecordingState(RecordingState.deviceRecord);
+      await provider.pauseDeviceRecording();
+
+      await provider.stopStreamDeviceRecording();
+
+      // The in-memory flag and the persisted pref are one mute, not two. A stop
+      // that cleared only the flag left the reconnect path un-pausing firmware
+      // the user had muted, while a restart resurrected the mute from the pref.
+      expect(provider.isPaused, isTrue);
+      expect(SharedPreferencesUtil().deviceMuted, isTrue);
+      provider.dispose();
+      // The pref outlives the provider, and CaptureProvider's constructor reads it,
+      // so leaving it set would mute every provider a later test builds.
+      SharedPreferencesUtil().deviceMuted = false;
+    });
   });
 
   group('segmentsPhotosVersion', () {

@@ -1914,7 +1914,10 @@ class CaptureController extends ChangeNotifier
     // Stopping the app-side stream should leave CV1 firmware in its low-audio
     // paused state until the next explicit recording start resumes it.
     await _setDeviceRecordingPaused(true);
-    _isPaused = false;
+    // Deliberately leave _isPaused alone. It mirrors the persisted `deviceMuted`
+    // pref, so clearing it here would strand the two out of sync: the reconnect
+    // path reads _isPaused and would un-pause firmware the user muted, undoing
+    // the pause requested one line above.
     await _cleanupCurrentState(disableNativeBackground: true);
     if (cleanDevice) {
       _updateRecordingDevice(null);
