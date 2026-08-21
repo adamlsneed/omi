@@ -83,6 +83,17 @@ final class QuickActionsIconPatcher: NSObject {
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private static let unusedForegroundTaskRefreshIdentifier = "com.pravera.flutter_foreground_task.refresh"
+
+  /// The App Group the battery widget shares, resolved the same way the widget
+  /// resolves it (`BatteryWidget/SharedDefaults.swift`).
+  ///
+  /// Hardcoding the upstream group wrote to a suite a locally-signed build is not
+  /// entitled to — iOS silently redirects that to a private container — while the
+  /// widget read `$(APP_GROUP_IDENTIFIER)`, so the widget never saw an update on
+  /// exactly the builds this fork installs on a phone.
+  static let appGroupIdentifier =
+    Bundle.main.object(forInfoDictionaryKey: "OmiAppGroupIdentifier") as? String
+    ?? "group.com.friend-app-with-wearable.ios12"
   private var methodChannel: FlutterMethodChannel?
   private var appleRemindersChannel: FlutterMethodChannel?
   private var appleHealthChannel: FlutterMethodChannel?
@@ -257,7 +268,7 @@ final class QuickActionsIconPatcher: NSObject {
     // so the WidgetKit extension can read it.
     let batteryWidgetChannel = FlutterMethodChannel(name: "com.omi.battery_widget", binaryMessenger: controller.binaryMessenger)
     batteryWidgetChannel.setMethodCallHandler { (call, result) in
-      let defaults = UserDefaults(suiteName: "group.com.friend-app-with-wearable.ios12")
+      let defaults = UserDefaults(suiteName: AppDelegate.appGroupIdentifier)
       guard let args = call.arguments as? [String: Any] else {
         result(FlutterMethodNotImplemented)
         return
