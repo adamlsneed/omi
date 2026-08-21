@@ -4187,6 +4187,10 @@ actor AgentRuntimeProcess {
     runtimeAdapterIDs.removeAll()
     negotiatedProtocolVersion = nil
     negotiatedRuntimeVersion = nil
+    // The child is gone, so the token file it was reading is now a secret sitting
+    // on disk with nothing to consume it. cleanupFailedStart and stopProcess both
+    // clear it; this is the path a crash or OOM takes, where nothing else will.
+    cleanupAuthTokenFile()
     closePipes()
     resumeAllRequests(throwing: error)
     resumeInitContinuations(throwing: error)
