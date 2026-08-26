@@ -6,6 +6,7 @@ app: non-prod
 covers:
   - desktop/macos/Desktop/Sources/MainWindow/Pages/ConversationDetailView.swift
   - desktop/macos/Desktop/Sources/MainWindow/Components/ConversationShareLink.swift
+  - desktop/macos/Desktop/Sources/FloatingControlBar/MeetingSummaryShareActions.swift
   - desktop/macos/Desktop/Sources/APIClient.swift
   - desktop/macos/Desktop/Sources/Services/APIClient/APIClient+ChatSessions.swift
   - desktop/macos/Desktop/Sources/Services/APIClient/APIClient+ConversationModels.swift

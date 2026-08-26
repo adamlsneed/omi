@@ -179,6 +179,28 @@ final class FloatingBarUsageLimiterTests: XCTestCase {
     XCTAssertFalse(limiter.hasPaidPlan)
   }
 
+  func testApplyPlanUnknownIsNotPaidAndPreservesIdentityInCache() {
+    let cacheKey = DefaultsKey.floatingBarCachedPlan
+    let previousValue = UserDefaults.standard.object(forKey: cacheKey)
+    defer {
+      if let previousValue {
+        UserDefaults.standard.set(previousValue, forKey: cacheKey)
+      } else {
+        UserDefaults.standard.removeObject(forKey: cacheKey)
+      }
+    }
+
+    let limiter = FloatingBarUsageLimiter()
+    let unknownPlan = SubscriptionPlanType(rawValue: "future_plan_123")
+    limiter.applyPlan(plan: unknownPlan, status: .active)
+
+    XCTAssertFalse(limiter.hasPaidPlan)
+    XCTAssertEqual(
+      UserDefaults.standard.string(forKey: cacheKey),
+      unknownPlan.rawValue,
+      "an unknown plan must not be persisted as Basic")
+  }
+
   func testApplyPlanOperatorActiveIsPaid() {
     let limiter = FloatingBarUsageLimiter()
     limiter.applyPlan(plan: .operator, status: .active)
@@ -202,23 +224,6 @@ final class FloatingBarUsageLimiterTests: XCTestCase {
   func testApplyPlanInactiveIsNotPaid() {
     let limiter = FloatingBarUsageLimiter()
     limiter.applyPlan(plan: .operator, status: .inactive)
-    XCTAssertFalse(limiter.hasPaidPlan)
-  }
-
-  // An active plan this build cannot decode is a newer plan id, not a free account (the
-  // free plan is the known id "basic"). Treat it as paid so a hosted-backend plan rename
-  // never snaps a paying user to free-tier limits; the server still enforces real quotas.
-  // Matches hasPaidSubscription in SettingsContentView+BillingHelpers and the limiter's
-  // own cached-plan restore in init.
-  func testApplyPlanUnknownActiveIsPaid() {
-    let limiter = FloatingBarUsageLimiter()
-    limiter.applyPlan(plan: .unknown, status: .active)
-    XCTAssertTrue(limiter.hasPaidPlan)
-  }
-
-  func testApplyPlanUnknownInactiveIsNotPaid() {
-    let limiter = FloatingBarUsageLimiter()
-    limiter.applyPlan(plan: .unknown, status: .inactive)
     XCTAssertFalse(limiter.hasPaidPlan)
   }
 

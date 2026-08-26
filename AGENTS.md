@@ -15,6 +15,7 @@ These rules apply to every AI agent working in this repository. This file is **h
 | Backend Python (`backend/`) | `backend/AGENTS.md` — setup, async/executors, WebSocket rules, service map, logging security, testing |
 | Flutter app (`app/`) | `app/AGENTS.md` — build flavors, l10n, native bridge, tests, agent-flutter UI verification |
 | Desktop macOS (`desktop/macos/`) | `desktop/macos/AGENTS.md` — build/run, named bundles, self-testing, release pipeline, changelog |
+| Desktop Windows/Linux (`desktop/windows/`) | `desktop/windows/AGENTS.md` — pnpm pin, build/test, CI shape, Linux/Wayland dev env, release pipeline |
 | GitHub Actions (`.github/`) | `.github/AGENTS.md` — deploy concurrency, immutable image tags, rollout waits, secret ordering |
 | Admin dashboard (`web/admin/`) | `web/admin/AGENTS.md` — stack, data sources, conventions |
 | Web app (`web/app/`) | `web/app/AGENTS.md` — setup, quality gates, tests, desktop-parity limits |

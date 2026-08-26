@@ -13,6 +13,7 @@ Disabled automatic deployment workflows:
 - `gcp_backend_listen_helm.yml`
 - `gcp_backend_pusher_auto_deploy.yml`
 - `gcp_backend_agent_proxy_auto_deploy.yml`
+- `gcp_cloud_run_metrics_egress.yml`
 
 Local desktop builds should use:
 
