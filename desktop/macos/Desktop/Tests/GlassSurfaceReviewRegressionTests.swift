@@ -35,12 +35,8 @@ final class GlassSurfaceReviewRegressionTests: XCTestCase {
 
     var missingGround: [String] = []
     for relative in titledGlassContentRoots {
-      // omi-test-quality: source-inspection -- static contract: required-pattern tripwire that a
-      // transparent titled window's content root lays a ground. The defect is only visible as
-      // rendered pixels in a real window, and these roots carry live dependencies (ChatLabView needs
-      // a ChatProvider), so there is no seam a behavioral test can drive them through.
-      let source = try String(
-        contentsOf: sourcesRoot.appendingPathComponent(relative), encoding: .utf8)
+      // omi-test-quality: source-inspection -- static contract: required-pattern tripwire that a transparent titled window's content root lays a ground; the defect is only visible as rendered pixels in a real window and these roots carry live dependencies (ChatLabView needs a ChatProvider), so there is no seam a behavioral test can drive them through
+      let source = try String(contentsOf: sourcesRoot.appendingPathComponent(relative), encoding: .utf8)
       if !source.contains("inkGlassPanel") {
         missingGround.append(relative)
       }
