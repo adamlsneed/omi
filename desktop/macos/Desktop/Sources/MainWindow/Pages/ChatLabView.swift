@@ -578,9 +578,13 @@ struct ChatLabView: View {
       .padding(OmiSpacing.xxl)
     }
     .frame(minWidth: 900, minHeight: 600)
-    // No ground of its own: the glass window owns it. `glassContent()` also pins the panel's light
-    // appearance, without which `Ink`'s ladder resolves up on a Dark Mac and the page goes blank.
-    .glassContent()
+    // The window is transparent (`WindowGlass.wear` is `isOpaque = false` plus a clear
+    // `backgroundColor`) and installs no ground of its own, so the content root has to lay the glass
+    // down or the window renders fully see-through onto whatever is behind it. Same call the other
+    // titled glass windows make (`FeedbackView`, `TaskPromptEditorView`, `InsightPromptEditorView`);
+    // it also pins the panel's light appearance, without which `Ink`'s ladder resolves up on a Dark
+    // Mac and the page goes blank.
+    .inkGlassPanel(cornerRadius: 0, shadow: nil)
   }
 
   // MARK: - Production Prompt History

@@ -8,6 +8,50 @@ import XCTest
 @MainActor
 final class GlassSurfaceReviewRegressionTests: XCTestCase {
 
+  /// Chat Prompt Lab opened as a fully see-through window: Settings and the desktop behind it read
+  /// straight through the page. `WindowGlass.wear` is `isOpaque = false` plus a clear
+  /// `backgroundColor` and installs no ground, so the ground is the content root's job — every other
+  /// titled glass window ends its root in `inkGlassPanel`. `ChatLabView` ended in `glassContent()`,
+  /// which is only `environment(\.colorScheme, .light)` and paints nothing, so nothing anywhere laid
+  /// a surface down.
+  ///
+  /// Nothing failed when this shipped: the view hierarchy is valid, every subview draws, and the
+  /// window is the right size in the right place. Only a human looking at the screen can see that the
+  /// page has no ground, which is why the pairing is guarded here rather than left to review.
+  func testEveryTitledGlassWindowContentRootPaintsItsOwnGround() throws {
+    let sourcesRoot = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .appendingPathComponent("Sources", isDirectory: true)
+
+    // The root view each titled `WindowGlass.wear` call site hosts. A new titled glass window adds its
+    // root here; the tripwire below fails until it does, so the pairing cannot be forgotten silently.
+    let titledGlassContentRoots = [
+      "FeedbackView.swift",
+      "MainWindow/Pages/ChatLabView.swift",
+      "ProactiveAssistants/UI/TaskPromptEditorWindow.swift",
+      "ProactiveAssistants/UI/InsightPromptEditorWindow.swift",
+    ]
+
+    var missingGround: [String] = []
+    for relative in titledGlassContentRoots {
+      // omi-test-quality: source-inspection -- static contract: required-pattern tripwire that a
+      // transparent titled window's content root lays a ground. The defect is only visible as
+      // rendered pixels in a real window, and these roots carry live dependencies (ChatLabView needs
+      // a ChatProvider), so there is no seam a behavioral test can drive them through.
+      let source = try String(
+        contentsOf: sourcesRoot.appendingPathComponent(relative), encoding: .utf8)
+      if !source.contains("inkGlassPanel") {
+        missingGround.append(relative)
+      }
+    }
+
+    XCTAssertEqual(
+      missingGround, [],
+      "a window handed to WindowGlass.wear is transparent and paints no ground of its own, so its content root must call inkGlassPanel or the window renders see-through"
+    )
+  }
+
   func testReduceTransparencyObserverRefreshesMountedSurfaceImmediately() {
     let notificationCenter = NotificationCenter()
     let state = MutableAccessibilityState()
