@@ -33,6 +33,7 @@ BUDGETS: dict[str, tuple[int, int]] = {
     # main grew this with Codemagic release-pipeline detail after the budget was
     # first set from a stale base; recalibrated to current main + headroom.
     "desktop/macos/AGENTS.md": (560, 47_000),
+    "desktop/windows/AGENTS.md": (127, 6_950),
     "omi/firmware/AGENTS.md": (30, 1_500),
     # Fork-authored firmware guide (commit hygiene, feature-flag contract).
     "omi/AGENTS.md": (40, 2_200),

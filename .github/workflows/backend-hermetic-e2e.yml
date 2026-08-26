@@ -18,7 +18,13 @@ jobs:
   scope:
     name: Detect Hermetic Backend Scope
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    # The full-history fetch (fetch-depth: 0, required to resolve the PR base
+    # live for the scope diff) can exceed two minutes on hosted runners for
+    # large merge refs; the old 2-minute job cap killed the fetch mid-transfer
+    # and the merge gate correctly failed closed on "scope cancelled" with no
+    # code failure. Bound generously like the apt steps below: the cap is a
+    # hang backstop, not a budget the legitimate path must fit under.
+    timeout-minutes: 10
     outputs:
       applies: ${{ steps.scope.outputs.applies }}
     steps:
@@ -32,11 +38,14 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          # Resolve the PR base live against the checkout (matching
+          # detect-changes) rather than the event-payload base.sha, which can be
+          # stale for a queued run (FC-stale-event-payload-diff-base, #10785).
+          PR_BASE_REF: origin/${{ github.base_ref }}
           MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
         run: |
           case "$EVENT_NAME" in
-            pull_request) base_sha="$PR_BASE_SHA" ;;
+            pull_request) base_sha="$PR_BASE_REF" ;;
             merge_group) base_sha="$MERGE_GROUP_BASE_SHA" ;;
             workflow_dispatch)
               echo "applies=true" >> "$GITHUB_OUTPUT"

@@ -496,8 +496,17 @@ extension AppState {
     // AXUIElement/CGEvent calls can synchronously cross the WindowServer. Keep
     // the fire-and-forget API non-blocking for legacy callers; callers that
     // need the answer must await `refreshAccessibilityPermission()`.
+    //
+    // Coalesced, like `checkAutomationPermission`. This is fire-and-forget, so a
+    // repeating caller gets no backpressure from it: the probe crosses into other
+    // processes and blocks for the AX messaging timeout when one of them is wedged,
+    // so unguarded polling stacks probes against exactly the app that cannot answer.
+    // Skipping a tick is free — the next one re-reads the same state.
+    guard !isCheckingAccessibilityPermission else { return }
+    isCheckingAccessibilityPermission = true
     Task { [weak self] in
       _ = await self?.refreshAccessibilityPermission()
+      self?.isCheckingAccessibilityPermission = false
     }
   }
 
@@ -825,11 +834,7 @@ extension AppState {
 
   /// Open Accessibility preferences in System Settings
   func openAccessibilityPreferences() {
-    if let url = URL(
-      string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-    {
-      NSWorkspace.shared.open(url)
-    }
+    PermissionDragGuidance.openAccessibilitySettings()
   }
 
   /// Reset accessibility permission (requires terminal command)
