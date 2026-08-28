@@ -2048,6 +2048,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memoryDeleted => 'Memory Deleted.';
 
   @override
+  String get memoryHistoryPartial => 'Some memory history is unavailable. Showing the history received so far.';
+
+  @override
   String get undo => 'Undo';
 
   @override
@@ -10118,4 +10121,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String appDisabledLastError(String error) {
     return 'Last error: $error.';
   }
+
+  @override
+  String get prerecordedTranscript => 'Prerecorded';
+
+  @override
+  String get pendantRecordingSyncBlocked =>
+      'Your Pendant is still recording, so its stored audio can\'t be transferred. Press the Pendant\'s button to stop recording, then sync again.';
+
+  @override
+  String get pendantFullSyncBlocked =>
+      'Your Pendant\'s storage is full and it\'s still in recording mode, so its stored audio can\'t be transferred. Press the Pendant\'s button to stop recording, then sync again.';
 }

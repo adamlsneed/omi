@@ -2055,6 +2055,9 @@ class AppLocalizationsUk extends AppLocalizations {
   String get memoryDeleted => 'Спогад видалено.';
 
   @override
+  String get memoryHistoryPartial => 'Some memory history is unavailable. Showing the history received so far.';
+
+  @override
   String get undo => 'Скасувати';
 
   @override
@@ -10149,4 +10152,15 @@ class AppLocalizationsUk extends AppLocalizations {
   String appDisabledLastError(String error) {
     return 'Остання помилка: $error.';
   }
+
+  @override
+  String get prerecordedTranscript => 'Попередній запис';
+
+  @override
+  String get pendantRecordingSyncBlocked =>
+      'Pendant усе ще записує, тому збережене аудіо не можна передати. Натисніть кнопку Pendant, щоб зупинити запис, а потім синхронізуйте знову.';
+
+  @override
+  String get pendantFullSyncBlocked =>
+      'Пам\'ять Pendant заповнена, і він досі в режимі запису, тому збережене аудіо не можна передати. Натисніть кнопку Pendant, щоб зупинити запис, а потім синхронізуйте знову.';
 }

@@ -2051,6 +2051,9 @@ class AppLocalizationsSl extends AppLocalizations {
   String get memoryDeleted => 'Spomin je izbrisan.';
 
   @override
+  String get memoryHistoryPartial => 'Some memory history is unavailable. Showing the history received so far.';
+
+  @override
   String get undo => 'Razveljavi';
 
   @override
@@ -10158,4 +10161,15 @@ class AppLocalizationsSl extends AppLocalizations {
   String appDisabledLastError(String error) {
     return 'Zadnja napaka: $error.';
   }
+
+  @override
+  String get prerecordedTranscript => 'Vnaprej posneto';
+
+  @override
+  String get pendantRecordingSyncBlocked =>
+      'Pendant še vedno snema, zato shranjenega zvoka ni mogoče prenesti. Pritisnite gumb na Pendantu, da ustavite snemanje, nato znova sinhronizirajte.';
+
+  @override
+  String get pendantFullSyncBlocked =>
+      'Pomnilnik Pendanta je poln in je še vedno v načinu snemanja, zato shranjenega zvoka ni mogoče prenesti. Pritisnite gumb na Pendantu, da ustavite snemanje, nato znova sinhronizirajte.';
 }

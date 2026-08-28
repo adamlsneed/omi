@@ -106,7 +106,18 @@ The unit of work is the violated contract, not only the line where the symptom a
 
 ## Formatting
 
-The `make setup` pre-commit hook auto-formats staged files, so this is usually automatic. Per-language commands, and the generated files you must never format by hand: `docs/agents/formatting.md`.
+The pre-commit hook (installed by `make setup`) auto-formats staged files. Verify: `test -x "$(git rev-parse --git-path hooks)/pre-commit" && echo OK`. It refuses to format rather than reformat with an unpinned toolchain: web needs the installed Prettier and its resolved plugins to match the versions in `package-lock.json` (run `npm ci` in the changed web dir), Dart needs the pinned Flutter and its sibling `dart`. Hatches: `OMI_SKIP_WEB_FORMAT=1`, `OMI_SKIP_DART_FORMAT=1`. Manual commands:
+
+| Language | Manual command |
+|----------|----------------|
+| Dart (`app/`) | `dart format --line-length 120 <files>` |
+| Python (`backend/`) | `black --line-length 120 --skip-string-normalization <files>` |
+| ARB (`app/lib/l10n/`) | `jq --indent 4 '.' <file> > tmp && mv tmp <file>` |
+| C/C++ (firmware) | `clang-format -i <files>` |
+| Swift (`desktop/macos/Desktop/`) | `desktop/macos/scripts/swift-format-wrapper.sh format -i <files>` |
+| Web (`web/`) | `npx prettier --write <files>` |
+
+Files ending in `.gen.dart` or `.g.dart` are auto-generated — don't format manually. Swift files under `Desktop/Sources/Generated/` are excluded from the formatter scope.
 
 ## Computer Control
 

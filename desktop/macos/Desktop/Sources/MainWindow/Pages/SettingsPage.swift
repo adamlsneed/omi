@@ -587,7 +587,9 @@ struct SettingsContentView: View {
   @AppStorage("dev_gemini_api_key") var devGeminiKey: String = ""
   @AppStorage("dev_anthropic_api_key") var devAnthropicKey: String = ""
   @AppStorage("dev_openai_api_key") var devOpenAIKey: String = ""
+  @AppStorage("dev_openrouter_api_key") var devOpenRouterKey: String = ""
   @AppStorage("dev_deepgram_api_key") var devDeepgramKey: String = ""
+  @AppStorage(DefaultsKey.byokLLMProvider.rawValue) var devBYOKLLMProvider: String = ""
   @State var byokKeyStatuses: [BYOKProvider: BYOKValidator.Status] = [:]
   @State var byokActivationError: String?
 
@@ -788,9 +790,17 @@ struct SettingsContentView: View {
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: .navigateToTaskSettings)) { _ in
+      // The whole transition is data from SettingsDeepLinkTransition, so the test
+      // that pins it drives this exact production value. While the Task Assistant
+      // pane is hidden the highlight is nil — a highlight that targets a card that
+      // does not render scrolls to nothing, which is how the pane got "fixed back"
+      // once before.
+      let transition = SettingsDeepLinkTransition.taskSettings()
       selectedSection = .advanced
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-        highlightedSettingId = "advanced.taskassistant"
+      if let target = transition.highlight {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+          highlightedSettingId = target
+        }
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: .navigateToFloatingBarSettings)) { _ in
