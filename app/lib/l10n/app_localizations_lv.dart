@@ -2056,6 +2056,9 @@ class AppLocalizationsLv extends AppLocalizations {
   String get memoryDeleted => 'Atmiņa izdzēsta.';
 
   @override
+  String get memoryHistoryPartial => 'Some memory history is unavailable. Showing the history received so far.';
+
+  @override
   String get undo => 'Atsaukt';
 
   @override
@@ -10150,4 +10153,15 @@ class AppLocalizationsLv extends AppLocalizations {
   String appDisabledLastError(String error) {
     return 'Pēdējā kļūda: $error.';
   }
+
+  @override
+  String get prerecordedTranscript => 'Iepriekš ierakstīts';
+
+  @override
+  String get pendantRecordingSyncBlocked =>
+      'Pendant joprojām ieraksta, tāpēc saglabāto audio nevar pārsūtīt. Nospiediet Pendant pogu, lai apturētu ierakstīšanu, un pēc tam sinhronizējiet vēlreiz.';
+
+  @override
+  String get pendantFullSyncBlocked =>
+      'Pendant atmiņa ir pilna, un tas joprojām ir ierakstīšanas režīmā, tāpēc saglabāto audio nevar pārsūtīt. Nospiediet Pendant pogu, lai apturētu ierakstīšanu, un pēc tam sinhronizējiet vēlreiz.';
 }

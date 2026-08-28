@@ -1,22 +1,13 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 
 import 'package:omi/backend/schema/conversation.dart';
+import 'package:omi/widgets/conversation_photo_image.dart';
 import 'package:omi/widgets/media_viewer_page.dart';
 
 class PhotosGridComponent extends StatelessWidget {
   final List<ConversationPhoto> photos;
-  const PhotosGridComponent({super.key, required this.photos});
-
-  static Uint8List? _decodedBytes(ConversationPhoto photo) {
-    try {
-      return base64Decode(photo.base64);
-    } on FormatException {
-      return null;
-    }
-  }
+  final String? conversationId;
+  const PhotosGridComponent({super.key, required this.photos, this.conversationId});
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +18,13 @@ class PhotosGridComponent extends StatelessWidget {
       itemBuilder: (context, idx) {
         final photo = photos[idx];
         final isProcessing = !photo.discarded && photo.description == null;
-        final imageBytes = _decodedBytes(photo);
 
         return GestureDetector(
           key: ValueKey(photo.id),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => MediaViewerPage(items: _mediaItemsFor(photos), initialIndex: idx),
+                builder: (context) => MediaViewerPage(items: _mediaItemsFor(photos, conversationId), initialIndex: idx),
               ),
             );
           },
@@ -45,23 +35,13 @@ class PhotosGridComponent extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (imageBytes == null)
-                    Container(
-                      color: Colors.black26,
-                      child: const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 28),
-                    )
-                  else
-                    Image.memory(
-                      imageBytes,
-                      fit: BoxFit.cover,
-                      gaplessPlayback: true,
-                      color: photo.discarded ? const Color(0xFF35343B) : null,
-                      colorBlendMode: photo.discarded ? BlendMode.saturation : null,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.black26,
-                        child: const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 28),
-                      ),
-                    ),
+                  ConversationPhotoImage(
+                    photo: photo,
+                    conversationId: conversationId,
+                    fit: BoxFit.cover,
+                    color: photo.discarded ? const Color(0xFF35343B) : null,
+                    colorBlendMode: photo.discarded ? BlendMode.saturation : null,
+                  ),
                   if (photo.discarded)
                     Container(
                       color: Colors.black.withValues(alpha: 0.5),
@@ -97,10 +77,13 @@ class PhotosGridComponent extends StatelessWidget {
   }
 }
 
-List<MediaViewerItem> _mediaItemsFor(List<ConversationPhoto> photos) {
+List<MediaViewerItem> _mediaItemsFor(List<ConversationPhoto> photos, String? conversationId) {
   return photos.map((photo) {
+    final hasInlineBytes = photo.base64.isNotEmpty;
     return MediaViewerItem(
-      base64: photo.base64,
+      base64: hasInlineBytes ? photo.base64 : null,
+      bytesLoader: hasInlineBytes ? null : () => loadConversationPhotoBytes(photo, conversationId),
+      mimeType: photo.contentType,
       heroTag: photo.id,
       showCaptionStrip: true,
       caption: photo.description,

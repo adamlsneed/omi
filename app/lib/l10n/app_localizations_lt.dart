@@ -2051,6 +2051,9 @@ class AppLocalizationsLt extends AppLocalizations {
   String get memoryDeleted => 'Prisiminimas ištrintas.';
 
   @override
+  String get memoryHistoryPartial => 'Some memory history is unavailable. Showing the history received so far.';
+
+  @override
   String get undo => 'Atšaukti';
 
   @override
@@ -10147,4 +10150,15 @@ class AppLocalizationsLt extends AppLocalizations {
   String appDisabledLastError(String error) {
     return 'Paskutinė klaida: $error.';
   }
+
+  @override
+  String get prerecordedTranscript => 'Išankstinis įrašas';
+
+  @override
+  String get pendantRecordingSyncBlocked =>
+      'Pendant vis dar įrašinėja, todėl išsaugoto garso perkelti negalima. Paspauskite Pendant mygtuką, kad sustabdytumėte įrašymą, tada sinchronizuokite dar kartą.';
+
+  @override
+  String get pendantFullSyncBlocked =>
+      'Pendant atmintis pilna ir jis vis dar įrašymo režime, todėl išsaugoto garso perkelti negalima. Paspauskite Pendant mygtuką, kad sustabdytumėte įrašymą, tada sinchronizuokite iš naujo.';
 }
