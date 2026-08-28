@@ -1,0 +1,12 @@
+# Fork-local merge policy (adamlsneed/omi).
+#
+# The guardrail pulse history is appended independently by this fork's and
+# upstream's scheduled pulses, and the counts are tree-specific, so upstream's
+# entries are never correct here. Every upstream sync resolves this file with
+# --ours; the "ours" driver automates that resolution.
+#
+# The driver must be defined once per clone (make setup does not manage it):
+#   git config merge.ours.driver true
+# Without that config, git falls back to a normal merge and the file conflicts
+# exactly as before, so this attribute is safe on fresh clones.
+.github/guardrail-pulse-history.jsonl merge=ours
