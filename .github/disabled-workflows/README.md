@@ -15,6 +15,7 @@ Disabled automatic deployment workflows:
 - `gcp_backend_agent_proxy_auto_deploy.yml`
 - `gcp_cloud_run_metrics_egress.yml`
 - `gcp_daily_memory_sweep_job_auto_dev.yml`
+- `gcp_day3_reengagement_email_job_auto_dev.yml`
 
 Local desktop builds should use:
 

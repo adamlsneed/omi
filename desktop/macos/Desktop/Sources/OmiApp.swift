@@ -480,6 +480,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Initialize analytics (PostHog)
     AnalyticsManager.shared.initialize()
     AnalyticsManager.shared.detectAndReportCrash()
+    AnalyticsManager.shared.recoverMonitoringSessionIfNeeded()
     if let attempt = pendingUpdateRelaunch?.attempt {
       let installedVersion =
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString")
@@ -1204,7 +1205,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
 
   @MainActor @objc private func signOut() {
     AnalyticsManager.shared.menuBarActionClicked(action: "sign_out")
-    ProactiveAssistantsPlugin.shared.stopMonitoring()
+    ProactiveAssistantsPlugin.shared.stopMonitoring(reason: .signOut)
     Task { @MainActor in
       try? await AuthService.shared.signOut()
     }
@@ -1380,6 +1381,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     // Mark clean exit so crash detection works on next launch
     UserDefaults.standard.set(true, forKey: "lastSessionCleanExit")
 
+    // Cheap synchronous disk stamp so a monitoring session in progress is
+    // recoverable as a clean `app_quit` at next launch instead of looking
+    // like a crash. No PostHog flush is available at terminate time, so the
+    // event itself is emitted later by AnalyticsManager.recoverMonitoringSessionIfNeeded().
+    ProactiveAssistantsPlugin.shared.stampMonitoringSessionAppQuit()
+
     // Remove window observers
     for observer in windowObservers {
       NotificationCenter.default.removeObserver(observer)
@@ -1459,7 +1466,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     NSLog("OMI AppDelegate: Received URL event: %@", urlString)
 
     Task { @MainActor in
-      AuthService.shared.handleOAuthCallback(url: url)
+      if !ThreeDoorsDemoPage.handleReturnURL(url) { AuthService.shared.handleOAuthCallback(url: url) }
       // Bring app to foreground after OAuth redirect — Safari stays in front otherwise.
       // NSApp.activate() alone doesn't switch macOS Spaces; ordering a window front does.
       NSApp.activate()

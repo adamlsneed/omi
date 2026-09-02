@@ -10074,12 +10074,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get accountCutoverOpenStore => 'فتح المتجر';
 
   @override
-  String get chatScopeToday => 'امروز';
-
-  @override
-  String get chatScopeThisWeek => 'این هفته';
-
-  @override
   String chatScopeAbout(String title) {
     return 'درباره: $title';
   }
@@ -10142,4 +10136,15 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get pendantFullSyncBlocked =>
       'حافظه Pendant پر است و همچنان در حالت ضبط قرار دارد، بنابراین صدای ذخیره‌شده قابل انتقال نیست. دکمه Pendant را فشار دهید تا ضبط متوقف شود، سپس دوباره همگام‌سازی کنید.';
+
+  @override
+  String conversationsNotCapturedCount(int count) {
+    return 'ثبت نشده ($count)';
+  }
+
+  @override
+  String get transcriptionNoAudio => 'رونویسی صدا دریافت نمی‌کند';
+
+  @override
+  String get tapPlusToStartRecording => 'Tap + to start recording';
 }

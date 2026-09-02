@@ -1116,6 +1116,7 @@ actor AgentRuntimeProcess {
     sessionID: String,
     turnID: String,
     prompt: String,
+    promptIsSynthetic: Bool = false,
     mode: ExternalSurfaceRunMode
   ) async throws -> ExternalSurfaceRunBinding {
     guard
@@ -1158,6 +1159,7 @@ actor AgentRuntimeProcess {
         sessionId: sessionID,
         turnId: turnID,
         prompt: prompt,
+        promptIsSynthetic: promptIsSynthetic,
         mode: mode
       ),
       expectedKind: .externalSurfaceRunBeginResult,
@@ -1529,6 +1531,7 @@ actor AgentRuntimeProcess {
     sessionId: String,
     turnId: String,
     prompt: String,
+    promptIsSynthetic: Bool = false,
     mode: ExternalSurfaceRunMode
   ) -> [String: Any] {
     var message = protocolEnvelope(
@@ -1540,6 +1543,7 @@ actor AgentRuntimeProcess {
     message["sessionId"] = sessionId
     message["turnId"] = turnId
     message["prompt"] = prompt
+    if promptIsSynthetic { message["promptIsSynthetic"] = true }
     message["mode"] = mode.rawValue
     return message
   }
@@ -1600,7 +1604,8 @@ actor AgentRuntimeProcess {
     attachments: [AgentQueryAttachment],
     producingTurnId: String?,
     expectedContext: AgentContextFreshness?,
-    reasoningEffort: String? = nil
+    reasoningEffort: String? = nil,
+    jitKnowledgeToolsEnabled: Bool = false
   ) -> [String: Any] {
     var message = protocolEnvelope(
       type: "query",
@@ -1616,6 +1621,11 @@ actor AgentRuntimeProcess {
     if !attachments.isEmpty { message["attachments"] = attachments.map(\.dictionary) }
     if let producingTurnId, !producingTurnId.isEmpty { message["producingTurnId"] = producingTurnId }
     if let reasoningEffort, !reasoningEffort.isEmpty { message["reasoningEffort"] = reasoningEffort }
+    // UX gate only: the backend independently re-checks JIT entitlement on
+    // every /v1/agent/execute-tool call. Omitted (not `false`) when the
+    // rollout verdict isn't `enabled`, matching how the runtime treats an
+    // absent field as false.
+    if jitKnowledgeToolsEnabled { message["jitKnowledgeToolsEnabled"] = true }
     if let expectedContext {
       message["expectedContextSnapshotVersion"] = expectedContext.version
       message["expectedContextSnapshotGeneration"] = expectedContext.generation
@@ -2411,6 +2421,10 @@ actor AgentRuntimeProcess {
     guard isBridgeReady else { throw BridgeError.stopped }
     try assertAuthorization(authorizationSnapshot)
 
+    // See AgentRuntimeProcess+JITKnowledgeToolsGate.swift: fail-closed UX gate only.
+    let jitKnowledgeToolsEnabled = await Self.resolvedJitKnowledgeToolsEnabled(
+      authorizationSnapshot: authorizationSnapshot)
+
     return try await withCheckedThrowingContinuation { continuation in
       let surfaceRef = surface
       let request = ActiveRequest(
@@ -2445,7 +2459,8 @@ actor AgentRuntimeProcess {
         attachments: attachments,
         producingTurnId: producingTurnId,
         expectedContext: expectedContext,
-        reasoningEffort: reasoningEffort
+        reasoningEffort: reasoningEffort,
+        jitKnowledgeToolsEnabled: jitKnowledgeToolsEnabled
       )
       sendJson(queryDict)
     }
@@ -4061,32 +4076,6 @@ actor AgentRuntimeProcess {
       log("AgentRuntimeProcess: agent error (raw): \(raw)")
     }
     request.continuation.resume(throwing: bridgeError)
-  }
-
-  private func queryResult(from message: RuntimeMessage) -> AgentBridge.QueryResult {
-    let payload = message.payload
-    let omiSessionId = payload["sessionId"] as? String ?? ""
-    let adapterSessionId = payload["adapterSessionId"] as? String
-    return AgentBridge.QueryResult(
-      text: payload["text"] as? String ?? "",
-      costUsd: payload["costUsd"] as? Double ?? 0,
-      omiSessionId: omiSessionId,
-      runId: payload["runId"] as? String ?? "",
-      attemptId: payload["attemptId"] as? String ?? "",
-      adapterSessionId: adapterSessionId,
-      terminalStatus: payload["terminalStatus"] as? String,
-      failure: AgentRuntimeFailure.parse(from: payload["failure"]),
-      inputTokens: payload["inputTokens"] as? Int ?? 0,
-      outputTokens: payload["outputTokens"] as? Int ?? 0,
-      cacheReadTokens: payload["cacheReadTokens"] as? Int ?? 0,
-      cacheWriteTokens: payload["cacheWriteTokens"] as? Int ?? 0,
-      artifacts: AgentArtifactProjection.parseList(
-        fromJSONArray: payload["artifacts"] as? [[String: Any]] ?? []
-      ),
-      completionDeltaArtifacts: AgentArtifactProjection.parseList(
-        fromJSONArray: payload["completionDeltaArtifacts"] as? [[String: Any]] ?? []
-      )
-    )
   }
 
   @discardableResult

@@ -1,0 +1,1 @@
+{"change":"Rewind keeps the previous session's crash marker when database initialization has to retry, so the post-crash integrity check still runs."}

@@ -10095,12 +10095,6 @@ class AppLocalizationsLv extends AppLocalizations {
   String get accountCutoverOpenStore => 'Otwórz sklep';
 
   @override
-  String get chatScopeToday => 'Šodien';
-
-  @override
-  String get chatScopeThisWeek => 'Šonedēļ';
-
-  @override
   String chatScopeAbout(String title) {
     return 'Par: $title';
   }
@@ -10164,4 +10158,15 @@ class AppLocalizationsLv extends AppLocalizations {
   @override
   String get pendantFullSyncBlocked =>
       'Pendant atmiņa ir pilna, un tas joprojām ir ierakstīšanas režīmā, tāpēc saglabāto audio nevar pārsūtīt. Nospiediet Pendant pogu, lai apturētu ierakstīšanu, un pēc tam sinhronizējiet vēlreiz.';
+
+  @override
+  String conversationsNotCapturedCount(int count) {
+    return 'Nav ierakstīts ($count)';
+  }
+
+  @override
+  String get transcriptionNoAudio => 'Transkripcija nesaņem audio';
+
+  @override
+  String get tapPlusToStartRecording => 'Tap + to start recording';
 }

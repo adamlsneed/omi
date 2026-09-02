@@ -13,6 +13,18 @@ struct JITPlannedExecution: Equatable, Sendable {
   let candidateID: String
   let accountGeneration: Int
   let policy: JITTriggerRuntimePolicy
+  /// Standing intent the ambient context matched at admission. Grounds the
+  /// full turn and is recorded in local provenance; planned turns carry none.
+  var derivedIntent: JITDerivedIntentMatch = .none
+}
+
+struct JITAmbientNanoClaimRequest: Equatable, Sendable {
+  let contextID: String
+  let semanticFingerprint: String
+  let budgetDay: String
+  let snapshotRevision: String
+  let budget: Int
+  let now: Date
 }
 
 struct JITPlannedExecutionAuthority: Equatable, Sendable {
@@ -65,6 +77,11 @@ actor JITProactivityRuntime {
   typealias AuthorizationCurrent = @Sendable (RuntimeOwnerAuthorizationSnapshot) -> Bool
   typealias Reserve =
     @Sendable (JITProactivityReservation, RuntimeOwnerAuthorizationSnapshot) async -> Bool
+  typealias DerivedIntentResolver =
+    @Sendable (KnowledgeLedgerTriggerObservation, RuntimeOwnerAuthorizationSnapshot) async ->
+    JITDerivedIntentMatch
+  typealias AmbientNanoUsageReader = @Sendable (String, Date) async throws -> JITAmbientNanoUsage
+  typealias ClaimAmbientNano = @Sendable (JITAmbientNanoClaimRequest) async throws -> JITTriggerWakeupClaim?
   private let flags: FlagResolver
   private let snapshots: SnapshotResolver
   private let mirror: JITTriggerMirror
@@ -76,12 +93,22 @@ actor JITProactivityRuntime {
   private let beginPlannedExecution: BeginPlannedExecution?
   private let authorizationCurrent: AuthorizationCurrent
   private let reserve: Reserve
+  private let derivedIntent: DerivedIntentResolver
+  private let ambientNanoUsage: AmbientNanoUsageReader?
+  private let claimAmbientNano: ClaimAmbientNano?
   private var pending: [String: JITPlannedExecution] = [:]
   private struct ExecutionHeartbeat {
     let leaseToken: String
     let task: Task<Void, Never>
   }
   private var executionHeartbeats: [String: ExecutionHeartbeat] = [:]
+  /// Last server-side nano reservation denial per budget day. The server's
+  /// budget is shared across devices, so a denial means the day is exhausted
+  /// somewhere; retrying on every qualifying visit was a request storm (238
+  /// denied attempts on one dogfood day). Process-local on purpose: the
+  /// authoritative counter lives on the server.
+  private var ambientServerDenials: [String: Date] = [:]
+  static let ambientServerDenialBackoff: TimeInterval = 30 * 60
   /// Budget-day formatting runs on every context-visit admission; formatter
   /// construction is too expensive to repeat there. Actor-isolated, rebuilt
   /// only when the system timezone changes.
@@ -137,9 +164,18 @@ actor JITProactivityRuntime {
     },
     authorizationCurrent: @escaping AuthorizationCurrent = { snapshot in
       RuntimeOwnerIdentity.isAuthorizationCurrent(snapshot)
-    }
+    },
+    derivedIntent: @escaping DerivedIntentResolver = { observation, snapshot in
+      await JITDerivedWatchlistSource.shared.match(
+        observation: observation, ownerID: snapshot.ownerID, now: observation.occurredAt ?? Date())
+    },
+    ambientNanoUsage: AmbientNanoUsageReader? = nil,
+    claimAmbientNano: ClaimAmbientNano? = nil
   ) {
     self.flags = flags
+    self.derivedIntent = derivedIntent
+    self.ambientNanoUsage = ambientNanoUsage
+    self.claimAmbientNano = claimAmbientNano
     self.snapshots = snapshots
     self.nanoTriage = nanoTriage
     self.mirror = mirror
@@ -183,13 +219,16 @@ actor JITProactivityRuntime {
       let allTriggers = try await compiledSnapshot(
         receipt: receipt, authorizationSnapshot: authorizationSnapshot)
       let now = observation.occurredAt ?? Date()
-      let triggers = allTriggers.filter { trigger in
+      // Snooze eligibility is evaluated inside the watchlist runtime so a
+      // snoozed-only snapshot stays a standing watchlist (ambient after miss),
+      // not an empty one. Wakeup counters still skip ineligible IDs.
+      let eligibleTriggers = allTriggers.filter { trigger in
         guard let snoozedUntil = trigger.snoozedUntil else { return true }
         return now >= snoozedUntil
       }
       let day = day(for: now)
       let counts = try await wakeupCounts(
-        triggerIDs: triggers.map(\.id), budgetDay: day, now: now)
+        triggerIDs: eligibleTriggers.map(\.id), budgetDay: day, now: now)
       let receiptMatchesSnapshot =
         snapshot.complete
         && receipt.ownerID == snapshot.ownerID
@@ -209,7 +248,7 @@ actor JITProactivityRuntime {
         snapshotIsAuthoritative: receiptMatchesSnapshot,
         authorizationIsCurrent: authorizationCurrent(authorizationSnapshot))
       let runtimeResult = KnowledgeLedgerTriggerWatchlistRuntime.evaluate(
-        projection: .init(entries: triggers, quarantined: []),
+        projection: .init(entries: allTriggers, quarantined: []),
         observation: observation,
         day: day,
         authority: authority,
@@ -236,6 +275,16 @@ actor JITProactivityRuntime {
         else { return .suppressed(reason: "planned_match_ambiguous") }
         winner = ambiguous
       case .none:
+        if allTriggers.isEmpty {
+          // Defensive: the watchlist runtime already routes a complete empty
+          // watchlist to ambient. An account with no standing trigger is the
+          // common case, not a reason for silence.
+          return await admitAmbient(
+            context: ambient,
+            observation: observation,
+            receipt: receipt,
+            authorizationSnapshot: authorizationSnapshot)
+        }
         return .suppressed(reason: "planned_runtime_rejected")
       case .plannedTrigger:
         guard let matched = runtimeResult.matches.first else {
@@ -243,7 +292,7 @@ actor JITProactivityRuntime {
         }
         winner = matched
       }
-      guard let trigger = triggers.first(where: { $0.id == winner.triggerID }),
+      guard let trigger = allTriggers.first(where: { $0.id == winner.triggerID }),
         let triggerRow = snapshot.rows.first(where: { $0.memoryID == winner.triggerID }),
         let action = trigger.action,
         action.isValid
@@ -309,7 +358,12 @@ actor JITProactivityRuntime {
   /// by the next owner change or launch.
   func syncTriggerSnapshot(authorizationSnapshot: RuntimeOwnerAuthorizationSnapshot) async {
     let resolved = await flags(authorizationSnapshot)
-    guard resolved.permitsNewLane else { return }
+    // Publish the handoff before the first context visit so the legacy focus
+    // assistant and the JIT lane never overlap for an admitted owner.
+    let ownerID = authorizationSnapshot.ownerID
+    let permits = resolved.permitsNewLane
+    await MainActor.run { JITProactivityLaneState.update(ownerID: ownerID, active: permits) }
+    guard permits else { return }
     do {
       let snapshot = try await snapshots(authorizationSnapshot)
       _ = try await reconcile(snapshot, authorizationSnapshot: authorizationSnapshot)
@@ -416,16 +470,49 @@ actor JITProactivityRuntime {
       semanticFingerprint: opaqueSemanticFingerprint,
       locallyRelevant: context.locallyRelevant,
       boundedEvidence: context.boundedEvidence)
-    let day = day(for: observation.occurredAt ?? Date())
+    let now = observation.occurredAt ?? Date()
+    let day = day(for: now)
+    if let deniedAt = ambientServerDenials[day],
+      now.timeIntervalSince(deniedAt) < Self.ambientServerDenialBackoff
+    {
+      return .suppressed(reason: "ambient_server_denied")
+    }
+    // Standing intent is resolved before any spend decision so the pacing
+    // policy can prioritise it. It reads local tables only.
+    let derived = await derivedIntent(observation, authorizationSnapshot)
+    let usage: JITAmbientNanoUsage
+    do {
+      usage = try await readAmbientNanoUsage(budgetDay: day, now: now)
+    } catch {
+      return .suppressed(reason: "ambient_nano_receipt_unavailable")
+    }
+    switch JITAmbientPacingPolicy.decide(
+      JITAmbientPacingInput(
+        usedToday: usage.used,
+        budget: receipt.policy.ambiguousNanoTriagesPerDay,
+        lastSpentAt: usage.lastSpentAt,
+        now: now,
+        derivedIntentMatched: !derived.isEmpty))
+    {
+    case .spend:
+      break
+    case .exhausted:
+      return .suppressed(reason: "ambient_nano_budget")
+    case .deferred(let reason):
+      // The context is not consumed: its fingerprint stays unrecorded, so the
+      // same change can be triaged at a later delivery moment.
+      return .suppressed(reason: reason)
+    }
     let nanoClaim: JITTriggerWakeupClaim?
     do {
-      nanoClaim = try await mirror.claimAmbientNanoChange(
-        contextID: retainedContext.id,
-        semanticFingerprint: retainedContext.semanticFingerprint,
-        budgetDay: day,
-        snapshotRevision: receipt.snapshotRevision,
-        budget: receipt.policy.ambiguousNanoTriagesPerDay,
-        now: observation.occurredAt ?? Date())
+      nanoClaim = try await claimNano(
+        JITAmbientNanoClaimRequest(
+          contextID: retainedContext.id,
+          semanticFingerprint: retainedContext.semanticFingerprint,
+          budgetDay: day,
+          snapshotRevision: receipt.snapshotRevision,
+          budget: receipt.policy.ambiguousNanoTriagesPerDay,
+          now: now))
     } catch {
       return .suppressed(reason: "ambient_nano_receipt_unavailable")
     }
@@ -442,6 +529,7 @@ actor JITProactivityRuntime {
         authorizationSnapshot)
     else {
       await mirror.finishWakeup(nanoClaim, delivered: false)
+      ambientServerDenials[day] = now
       return .suppressed(reason: "ambient_nano_budget")
     }
     let triage = await nanoTriage(retainedContext, authorizationSnapshot)
@@ -472,7 +560,7 @@ actor JITProactivityRuntime {
         // One ambient full turn per stable semantic context/day. Planned
         // triggers retain their explicit ledger budget and always arbitrate first.
         budget: receipt.policy.fullAgentTurnsPerCandidate,
-        now: observation.occurredAt ?? Date())
+        now: now)
     } catch {
       return .suppressed(reason: "ambient_receipt_unavailable")
     }
@@ -490,8 +578,25 @@ actor JITProactivityRuntime {
       plannedAuthority: nil,
       candidateID: candidateID,
       accountGeneration: receipt.accountGeneration,
-      policy: receipt.policy)
+      policy: receipt.policy,
+      derivedIntent: derived)
     return .deliver(lane: .ambient, id: context.id, continuityKey: continuityKey)
+  }
+
+  private func claimNano(_ request: JITAmbientNanoClaimRequest) async throws -> JITTriggerWakeupClaim? {
+    if let claimAmbientNano { return try await claimAmbientNano(request) }
+    return try await mirror.claimAmbientNanoChange(
+      contextID: request.contextID,
+      semanticFingerprint: request.semanticFingerprint,
+      budgetDay: request.budgetDay,
+      snapshotRevision: request.snapshotRevision,
+      budget: request.budget,
+      now: request.now)
+  }
+
+  private func readAmbientNanoUsage(budgetDay: String, now: Date) async throws -> JITAmbientNanoUsage {
+    if let ambientNanoUsage { return try await ambientNanoUsage(budgetDay, now) }
+    return try await mirror.ambientNanoUsage(budgetDay: budgetDay, now: now)
   }
 
   func takeExecution(continuityKey: String) -> JITPlannedExecution? {

@@ -9,6 +9,10 @@ final class RealtimeHubController: NSObject, RealtimeHubSessionDelegate {
   static let shared = RealtimeHubController()
 
   var session: RealtimeHubSession?
+  /// Copy of the Interject classification instruction so a replacement session
+  /// can be armed before `beginInputTurn`. The inject often hits the old idle
+  /// socket, which is then discarded.
+  var pendingTrustedTurnInstruction: String?
   var voiceSessionID: VoiceSessionID?
   /// Shared with the screen-evidence receipt extension to fence image dispatch to one response.
   var voiceResponseID: VoiceResponseID?
@@ -83,6 +87,8 @@ final class RealtimeHubController: NSObject, RealtimeHubSessionDelegate {
   /// image before the model can ask for it.
   var screenEvidenceSpeechEndedAt: Date?
   var screenEvidence: RealtimeScreenEvidence?
+  /// `evidenceID|session` of the PTT-down frame already attached to the live turn.
+  var attachedTurnScreenFrameKey: String?
   var screenEvidenceReadiness: RealtimeScreenEvidenceReadiness?
   var screenGroundingState: RealtimeScreenGroundingState = .inactive
   /// Latest safe protocol disposition, surfaced only through the non-production automation
@@ -102,6 +108,7 @@ final class RealtimeHubController: NSObject, RealtimeHubSessionDelegate {
   /// Authoritative owner is the kernel journal / voice-context turn IDs; restore
   /// through `RealtimeHubContinuityRestore` + `RealtimeTurnJournalAuthority`.
   var acceptedSpawnJournalReceiptByContinuityKey: [String: AcceptedSpawnJournalReceipt] = [:]
+  var screenContextByContinuityKey: [String: String] = [:]  // accepted screen observation per voice turn
   /// One bounded same-turn recovery after a failed spawn. The first failure
   /// returns typed guidance to the provider; a repeat closes the turn.
   var spawnFailureContinuationPolicy = RealtimeSpawnFailureContinuationPolicy()
@@ -1519,5 +1526,4 @@ final class RealtimeHubController: NSObject, RealtimeHubSessionDelegate {
     fallbackProvider = nil
     pendingFailoverReason = nil
   }
-
 }

@@ -10084,12 +10084,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get accountCutoverOpenStore => 'Mağazayı aç';
 
   @override
-  String get chatScopeToday => 'Bugün';
-
-  @override
-  String get chatScopeThisWeek => 'Bu hafta';
-
-  @override
   String chatScopeAbout(String title) {
     return 'Hakkında: $title';
   }
@@ -10153,4 +10147,15 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get pendantFullSyncBlocked =>
       'Pendant\'ın depolama alanı dolu ve hâlâ kayıt modunda olduğu için kayıtlı ses aktarılamıyor. Kaydı durdurmak için Pendant\'ın düğmesine basın, ardından yeniden senkronize edin.';
+
+  @override
+  String conversationsNotCapturedCount(int count) {
+    return 'Kaydedilmedi ($count)';
+  }
+
+  @override
+  String get transcriptionNoAudio => 'Transkripsiyon ses almıyor';
+
+  @override
+  String get tapPlusToStartRecording => 'Tap + to start recording';
 }
