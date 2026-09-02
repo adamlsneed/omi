@@ -17,13 +17,13 @@ NODE
 chmod +x "$BUNDLE_RESOURCES/node"
 printf 'console.log("agent")\n' > "$RESOURCES/agent/dist/index.js"
 cat > "$RESOURCES/.env" <<'ENV'
-OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app
-OMI_PYTHON_API_URL=https://api.omi.me
+OMI_DESKTOP_API_URL=https://desktop-backend-dt5lrfkkoa-uc.a.run.app
+OMI_PYTHON_API_URL=https://api.omiapi.com
 ENV
 
 OMI_DEV_APP_PATH="$APP" OMI_DEV_SMOKE_SKIP_CODESIGN=1 bash "$SCRIPT_DIR/omi-dev-smoke.sh" >/dev/null
 
-perl -0pi -e 's#OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app#OMI_DESKTOP_API_URL=http://localhost:8080#' "$RESOURCES/.env"
+perl -0pi -e 's#OMI_DESKTOP_API_URL=https://desktop-backend-dt5lrfkkoa-uc.a.run.app#OMI_DESKTOP_API_URL=http://localhost:8080#' "$RESOURCES/.env"
 if OMI_DEV_APP_PATH="$APP" OMI_DEV_SMOKE_SKIP_CODESIGN=1 bash "$SCRIPT_DIR/omi-dev-smoke.sh" >/dev/null 2>&1; then
   echo "Expected smoke script to reject non-BasedHardware desktop backend" >&2
   exit 1

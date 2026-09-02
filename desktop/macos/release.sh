@@ -75,8 +75,8 @@ TAP_REPO="${TAP_REPO:-adamlsneed/homebrew-omi}"
 TAG="desktop-fork-v${VERSION}"
 
 # Production hosted backends (BasedHardware) — same endpoints run.sh --yolo uses.
-OMI_DESKTOP_API_URL="${OMI_DESKTOP_API_URL:-https://desktop-backend-hhibjajaja-uc.a.run.app}"
-OMI_PYTHON_API_URL="${OMI_PYTHON_API_URL:-https://api.omi.me}"
+OMI_DESKTOP_API_URL="${OMI_DESKTOP_API_URL:-https://desktop-backend-dt5lrfkkoa-uc.a.run.app}"
+OMI_PYTHON_API_URL="${OMI_PYTHON_API_URL:-https://api.omiapi.com}"
 
 AGENT_DIR="agent"
 PI_MONO_EXT_DIR="pi-mono-extension"

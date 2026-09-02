@@ -35,9 +35,9 @@ check_executable "$NODE" "bundled Node.js"
 check_file "$AGENT_SCRIPT" "agent runtime"
 check_file "$ENV_FILE" "backend environment"
 
-grep -Eq '^OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc\.a\.run\.app/?$' "$ENV_FILE" \
+grep -Eq '^OMI_DESKTOP_API_URL=https://desktop-backend-dt5lrfkkoa-uc\.a\.run\.app/?$' "$ENV_FILE" \
   || fail "OMI_DESKTOP_API_URL must point at BasedHardware desktop backend"
-grep -Eq '^OMI_PYTHON_API_URL=https://api\.omi\.me/?$' "$ENV_FILE" \
+grep -Eq '^OMI_PYTHON_API_URL=https://api\.omiapi\.com/?$' "$ENV_FILE" \
   || fail "OMI_PYTHON_API_URL must point at BasedHardware Python API"
 echo "ok: BasedHardware hosted backend URLs"
 
