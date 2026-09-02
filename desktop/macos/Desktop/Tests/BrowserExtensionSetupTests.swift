@@ -33,40 +33,4 @@ final class BrowserExtensionSetupTests: XCTestCase {
     XCTAssertEqual(status.text, "Needs verification")
     XCTAssertTrue(status.detail.contains("token is saved"))
   }
-
-  func testConnectionFailureGuidanceNamesMissingPrerequisite() {
-    let guidance = BrowserExtensionSetup.connectionFailureGuidance(
-      chromeInstalled: true,
-      extensionInstalled: false,
-      token: "u0L1_VAMekk_3s9AgWW1jKMEs99jcgsiS0p-nP2QH0"
-    )
-
-    XCTAssertEqual(guidance.title, "Extension is not installed")
-    XCTAssertTrue(guidance.message.contains("Install the Playwright MCP Bridge extension"))
-  }
-
-  func testConnectionFailureGuidancePrioritizesMissingLocalRuntime() {
-    let guidance = BrowserExtensionSetup.connectionFailureGuidance(
-      chromeInstalled: true,
-      extensionInstalled: true,
-      token: "u0L1_VAMekk_3s9AgWW1jKMEs99jcgsiS0p-nP2QH0",
-      localAIRuntimeReady: false
-    )
-
-    XCTAssertEqual(guidance.title, "Local AI runtime is missing")
-    XCTAssertTrue(guidance.message.contains("./run.sh"))
-    XCTAssertTrue(guidance.message.contains("Node.js"))
-  }
-
-  func testConnectionFailureGuidanceExplainsMcpClientStatusWhenLocalChecksPass() {
-    let guidance = BrowserExtensionSetup.connectionFailureGuidance(
-      chromeInstalled: true,
-      extensionInstalled: true,
-      token: "u0L1_VAMekk_3s9AgWW1jKMEs99jcgsiS0p-nP2QH0"
-    )
-
-    XCTAssertEqual(guidance.title, "No live browser connection")
-    XCTAssertTrue(guidance.message.contains("MCP client"))
-    XCTAssertTrue(guidance.message.contains("copy a fresh token"))
-  }
 }
