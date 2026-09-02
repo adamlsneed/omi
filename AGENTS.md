@@ -69,9 +69,7 @@ The unit of work is the violated contract, not only the line where the symptom a
 - **Verify before proposing to land.** Default to a local build + run (desktop: a named `omi-*` bundle) and exercise the real user-facing path. "It compiles" is not verification.
 - **Production writes are never implied.** Deploys, traffic shifts, release-pointer moves, secret and schema changes, and data deletion each need their own explicit go-ahead. An approval for one action never carries to the next.
 - **Landing conventions belong to the user, not this file.** Whether to commit locally, push, open a PR, or merge follows the user's own workflow and your judgment in context. This repo asks only for the mechanics in Git below.
-- **Fork: never deploy backends.** Never deploy fork-owned Python, Rust, pusher, agent-proxy, or GKE backends; this fork uses BasedHardware's hosted backend services.
-- **Fork: adamlsneed remotes only.** Never push, merge, or open PRs against BasedHardware repos. Upstream sync is one-way: fetch/merge `BasedHardware/Omi` into `adamlsneed/omi`, never the reverse.
-- **Fork: landing.** Never push directly to `main`; land through a PR and a regular merge. Merging to `main` of the `adamlsneed` fork needs no per-change approval once work is verified.
+- **Fork rules.** Never deploy fork-owned backends (Python, Rust, pusher, agent-proxy, GKE); this fork uses BasedHardware's hosted services. Push, merge, and open PRs only against `adamlsneed` remotes, never BasedHardware; upstream sync is one-way, `BasedHardware/Omi` into `adamlsneed/omi`. Never push directly to `main`; land through a PR with a regular merge, which needs no per-change approval once verified.
 
 ## Git
 
@@ -81,7 +79,6 @@ The unit of work is the violated contract, not only the line where the symptom a
 - Make individual commits per feature or testable surface, not per file or unrelated bulk changes.
 - **Merge, never squash.** Keeping merge commits is what makes a change cleanly revertible with `git revert -m 1` later.
 - If push fails (remote ahead): `git pull --rebase && git push`.
-- Pushes, PRs, and merges go to `adamlsneed` remotes only, never BasedHardware (see Safety Rules).
 - **RELEASE command:** branch from `main`, individual commits, push, open PR, merge without squash, switch back to `main` and pull. **RELEASEWITHBACKEND:** unavailable in this fork (hosted backend services only).
 
 ## Issues
