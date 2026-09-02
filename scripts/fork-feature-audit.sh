@@ -22,11 +22,31 @@ check() {
   fi
 }
 
+# A feature is only alive if something outside its defining file calls it. The
+# 2026-08-01 sync kept IdeaCaptureToast.swift and RecordingControlCopy.swift but
+# dropped every caller, and the presence check above kept reporting "ok".
+check_call_site() {
+  local symbol="$1" dir="$2" defining_file="$3" label="$4"
+  local count
+  count=$( (grep -rl "$symbol" "$dir" 2>/dev/null | grep -v "/$defining_file\$" || true) | wc -l | tr -d ' ')
+  if [ "$count" -eq 0 ]; then
+    echo "MISSING: $label ($symbol has no caller outside $defining_file in $dir)"
+    failures=$((failures + 1))
+  else
+    echo "ok: $label ($count calling files)"
+  fi
+}
+
 check ideaFolderId app/lib "app idea capture filing"
 check FrontendTemplateRouter app/lib "app template routing"
 check appleRemindersAutoExport app/lib "app Apple Reminders auto-export"
 check _isManagedByNative app/lib "app BLE re-discover/reconnect"
 check IdeaCapture desktop/macos/Desktop/Sources "desktop idea capture"
+check_call_site "IdeaCaptureToast.shared" desktop/macos/Desktop/Sources IdeaCaptureToast.swift "desktop idea capture toast wired"
+check_call_site "toggleIdeaCapture" desktop/macos/Desktop/Sources "AppState+IdeaCapture.swift" "desktop idea capture UI wired"
+check_call_site "IdeaCaptureSidebarAction" desktop/macos/Desktop/Sources RecordingControlCopy.swift "desktop idea capture sidebar wired"
+check_call_site "showForVoiceSession" desktop/macos/Desktop/Sources FloatingControlBarWindow.swift "desktop PTT bar reveal wired"
+check_call_site "warmupCoreAudio" desktop/macos/Desktop/Sources AudioCaptureService.swift "desktop CoreAudio pre-warm wired"
 check TaskPromotionService desktop/macos/Desktop/Sources "desktop task auto-promote"
 check DockIconVisibility desktop/macos/Desktop/Sources "desktop Dock icon toggle"
 check AudioChannel desktop/macos/Desktop/Sources "desktop multi-channel transcription"
