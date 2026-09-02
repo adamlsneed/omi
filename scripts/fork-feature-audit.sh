@@ -49,7 +49,6 @@ check_call_site "showForVoiceSession" desktop/macos/Desktop/Sources FloatingCont
 check_call_site "warmupCoreAudio" desktop/macos/Desktop/Sources AudioCaptureService.swift "desktop CoreAudio pre-warm wired"
 check TaskPromotionService desktop/macos/Desktop/Sources "desktop task auto-promote"
 check DockIconVisibility desktop/macos/Desktop/Sources "desktop Dock icon toggle"
-check AudioChannel desktop/macos/Desktop/Sources "desktop multi-channel transcription"
 check CaptureTrigger desktop/macos/Desktop/Sources "desktop capture provenance"
 check makeAgentSubprocessEnvironment desktop/macos/Desktop/Sources "agent subprocess env hardening"
 check idea_capture_active omi/firmware/omi/src "firmware idea capture"

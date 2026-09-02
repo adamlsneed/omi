@@ -32,11 +32,6 @@ struct BrowserExtensionSetup: View {
     let detail: String
   }
 
-  struct ConnectionFailureGuidance: Equatable {
-    let title: String
-    let message: String
-  }
-
   @State private var phase: Phase = .welcome
   @State private var tokenInput: String = ""
   @State private var tokenError: String? = nil
@@ -577,51 +572,6 @@ struct BrowserExtensionSetup: View {
       text: "Needs verification",
       detail: "The token is saved, but Chrome has not passed a live connection test yet."
     )
-  }
-
-  nonisolated static func connectionFailureGuidance(
-    chromeInstalled: Bool,
-    extensionInstalled: Bool,
-    token: String,
-    localAIRuntimeReady: Bool = true
-  ) -> ConnectionFailureGuidance {
-    let parsedToken = parseToken(token)
-    if validateToken(parsedToken) != nil {
-      return ConnectionFailureGuidance(
-        title: "Token needs attention",
-        message: "Copy the full auth token from the extension status page, then paste it here again."
-      )
-    }
-    if !chromeInstalled {
-      return ConnectionFailureGuidance(
-        title: "Chrome is not installed",
-        message: "Install Google Chrome, then reopen this setup flow and try the connection test again."
-      )
-    }
-    if !extensionInstalled {
-      return ConnectionFailureGuidance(
-        title: "Extension is not installed",
-        message: "Install the Playwright MCP Bridge extension from the Chrome Web Store, then retry the test."
-      )
-    }
-    if !localAIRuntimeReady {
-      return ConnectionFailureGuidance(
-        title: "Local AI runtime is missing",
-        message:
-          "Node.js or the bundled agent runtime is not available, so the browser MCP client cannot start. Run ./run.sh from the desktop folder to package the local AI components, then reopen Omi Dev and try again."
-      )
-    }
-    return ConnectionFailureGuidance(
-      title: "No live browser connection",
-      message:
-        "Chrome and the extension are present, but the MCP client did not connect. Keep Chrome open, open the extension status page, and confirm it shows an MCP client during the test. If it still says no MCP clients are connected, copy a fresh token and try again."
-    )
-  }
-
-  // Delegates to the launcher's own discovery so this readiness probe can
-  // never disagree with what AgentRuntimeProcess.startProcess would find.
-  static var isLocalAIRuntimeReady: Bool {
-    AgentRuntimeProcess.findNodeBinary() != nil && AgentRuntimeProcess.findBridgeScript() != nil
   }
 
   private func resetConnectionStateForSelectedBrowser() {
