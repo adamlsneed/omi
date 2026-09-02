@@ -52,7 +52,7 @@ Provider/mode switches and fail-open paths must call `DesktopDiagnosticsManager.
 
 ## Repository
 - This is the `desktop/macos/` subfolder of the **OMI monorepo** (`BasedHardware/omi`)
-- macOS Swift app + Rust backend live here
+- The macOS Swift app lives here; it talks to BasedHardware's hosted Python and desktop backends over HTTP
 
 ## Release Pipeline (fork)
 
@@ -256,7 +256,7 @@ This rebuilds and replaces `/Applications/Omi Dev.app` (bundle ID: `com.omi.desk
 **Rules:**
 - **NEVER use `OMI_APP_NAME` for local deploys** — do not create named bundles (`omi-<feature>` etc.); always deploy as "Omi Dev" over the existing install
 - To connect agent-swift: `agent-swift connect --bundle-id com.omi.desktop-dev`- **Jump to a screen without clicking:** the automation bridge auto-enables on non-prod bundles — `./scripts/omi-ctl navigate <screen>` (e.g. `rewind`, `memories`, `settings rewind`). See "Fast-Path for Local Iteration" in `e2e/SKILL.md`.
-- Named/dev bundles default to the development Python and Rust backends unless
+- Named/dev bundles default to the development Python and desktop backends unless
   an explicit launch URL overrides them. Before QA, run
   `./scripts/omi-ctl health`; its unauthenticated identity payload reports the
   resolved backend environment/URLs plus the agent-runtime handshake state,
@@ -264,7 +264,7 @@ This rebuilds and replaces `/Applications/Omi Dev.app` (bundle ID: `com.omi.desk
   A protocol-compatible runtime that omits a required capability is rejected at
   startup; health never reports the expected protocol as if it were negotiated.
 - Run `./scripts/agent-logic-harness.sh --cross-surface-smoke` before building a
-  QA bundle. This is the compact Swift/Node/Rust contract gate; reserve full
+  QA bundle. This is the compact Swift/Node contract gate; reserve full
   component suites and the live continuity gauntlet for PR readiness.
 
 ### Run Variants & Parallel Worktrees
@@ -287,8 +287,7 @@ Fast path (skips web login and sidebar click-through):
    - `agent-swift` only for UI the bridge can't reach yet (`click` moves the cursor).
 3. **Read logs to confirm behavior:** app + chat bridge in the exact path from
    `./scripts/omi-ctl log-path` (named dev bundles) or `/private/tmp/omi.log`
-   (production); `./run.sh` prints the isolated local Rust backend log path at
-   launch; per-user issues in Sentry/PostHog.
+   (production); per-user issues in Sentry/PostHog.
 4. **Verify the actual behavior**, not just that the app launched — exercise the feature and check the logs/UI reflect the change.
 
 ### Default agent development loop
@@ -305,7 +304,7 @@ Never ask a user to test an unexercised path. A fast named-bundle launch plus a 
 ### After Implementing Changes
 
 - `xcrun swift build` is for **compile checks only** — it does NOT start the backend
-- To actually test, ALWAYS use `./run.sh` (deploys as "Omi Dev") — it starts Rust backend + Cloudflare tunnel + Swift app together
+- To actually test, ALWAYS use `./run.sh --yolo` (deploys as "Omi Dev" against the hosted backends)
 - Voice-path verification means a natural authenticated PTT turn — signed-out, forced-transcript, or reducer-only runs do not count; provider mint or payload changes must also show the deploy-inline provider probe.
 - **When the user says "test it"**, use the `test-local` skill to build, run, and verify via macOS automation
 

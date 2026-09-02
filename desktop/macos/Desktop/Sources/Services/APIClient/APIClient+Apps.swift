@@ -168,33 +168,6 @@ struct OmiAppDetails: Codable, Identifiable {
   }
 }
 
-struct AppUpdateRequest: Encodable {
-  let id: String
-  let uid: String?
-  let name: String
-  let author: String
-  let category: String
-  let description: String
-  let isPrivate: Bool
-  let capabilities: [String]
-  let chatPrompt: String?
-  let memoryPrompt: String?
-  let personaPrompt: String?
-  let isPaid: Bool?
-  let price: Double?
-  let paymentPlan: String?
-
-  enum CodingKeys: String, CodingKey {
-    case id, uid, name, author, category, description, capabilities, price
-    case isPrivate = "private"
-    case chatPrompt = "chat_prompt"
-    case memoryPrompt = "memory_prompt"
-    case personaPrompt = "persona_prompt"
-    case isPaid = "is_paid"
-    case paymentPlan = "payment_plan"
-  }
-}
-
 /// App category
 struct OmiAppCategory: Codable, Identifiable, Sendable {
   let id: String
@@ -433,62 +406,6 @@ extension APIClient {
       let detail: String?
     }
     let _: ToggleResponse = try await post("v1/apps/disable?app_id=\(appId)")
-  }
-
-  /// Updates an app owned by the current user.
-  func updateApp(_ update: AppUpdateRequest) async throws {
-    struct UpdateResponse: Decodable {
-      let status: String?
-    }
-
-    guard
-      let appData = try String(
-        data: JSONEncoder().encode(update),
-        encoding: .utf8
-      )
-    else {
-      throw APIError.invalidResponse
-    }
-    let encodedAppId = update.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? update.id
-
-    let _: UpdateResponse = try await multipartForm(
-      "v1/apps/\(encodedAppId)",
-      method: "PATCH",
-      fields: ["app_data": appData]
-    )
-  }
-
-  /// Multipart form-data request helper for routes that reject JSON bodies.
-  func multipartForm<T: Decodable>(
-    _ endpoint: String,
-    method: String = "POST",
-    fields: [String: String],
-    requireAuth: Bool = true,
-    customBaseURL: String? = nil
-  ) async throws -> T {
-    let base = customBaseURL ?? baseURL
-    guard let url = URL(string: base + endpoint) else {
-      throw APIError.invalidResponse
-    }
-    let boundary = "Boundary-\(UUID().uuidString)"
-
-    var request = URLRequest(url: url)
-    request.httpMethod = method
-
-    var headers = try await buildHeaders(requireAuth: requireAuth)
-    headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
-    request.allHTTPHeaderFields = headers
-
-    var body = Data()
-    for (name, value) in fields {
-      body.append(Data("--\(boundary)\r\n".utf8))
-      body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
-      body.append(Data("\(value)\r\n".utf8))
-    }
-    body.append(Data("--\(boundary)--\r\n".utf8))
-    request.httpBody = body
-
-    return try await performRequest(request)
   }
 
   /// Sets the current user's preferred summary app using the hosted Omi backend.

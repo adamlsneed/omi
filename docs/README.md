@@ -27,7 +27,7 @@ mintlify dev
 
 ## Maintenance Rules
 
-- Keep Adam's normal local builds on BasedHardware hosted services: `https://api.omi.me/` for the Python API and `https://desktop-backend-hhibjajaja-uc.a.run.app` for the hosted desktop backend.
+- Keep Adam's normal local builds on BasedHardware hosted services: `https://api.omiapi.com` for the Python API and `https://desktop-backend-dt5lrfkkoa-uc.a.run.app` for the hosted desktop backend (the pair `desktop/macos/run.sh --yolo` exports).
 - Update setup docs when changing scripts, required environment variables, signing, or Firebase assumptions.
 - Update backend pipeline docs when changing audio streaming, transcription, conversation lifecycle, pusher/listen behavior, VAD, diarization, or speaker identification.
 - Update hardware docs when changing firmware protocol, BLE characteristics, storage layout, or flashing behavior.

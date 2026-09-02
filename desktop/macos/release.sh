@@ -75,12 +75,11 @@ TAP_REPO="${TAP_REPO:-adamlsneed/homebrew-omi}"
 TAG="desktop-fork-v${VERSION}"
 
 # Production hosted backends (BasedHardware) — same endpoints run.sh --yolo uses.
-OMI_DESKTOP_API_URL="${OMI_DESKTOP_API_URL:-https://desktop-backend-hhibjajaja-uc.a.run.app}"
-OMI_PYTHON_API_URL="${OMI_PYTHON_API_URL:-https://api.omi.me}"
+OMI_DESKTOP_API_URL="${OMI_DESKTOP_API_URL:-https://desktop-backend-dt5lrfkkoa-uc.a.run.app}"
+OMI_PYTHON_API_URL="${OMI_PYTHON_API_URL:-https://api.omiapi.com}"
 
 AGENT_DIR="agent"
 PI_MONO_EXT_DIR="pi-mono-extension"
-BACKEND_DIR="Backend-Rust"
 STAGING="$(pwd)/.build/release-stage"
 APP_BUNDLE="$STAGING/$APP_NAME.app"
 DIST_DIR="$(pwd)/.build/dist"
@@ -184,7 +183,7 @@ step "Writing bundled .env (hosted backends)"
 ENV_OUT="$APP_BUNDLE/Contents/Resources/.env"
 # Fall back to the proven .env from the currently-installed build so the release
 # inherits working auth config (same bundle id) when the gitignored source
-# .env.app* / Backend-Rust/.env aren't present.
+# .env.app* files aren't present.
 INSTALLED_ENV="/Applications/$APP_NAME.app/Contents/Resources/.env"
 if [ -f ".env.app.dev" ]; then cp -f .env.app.dev "$ENV_OUT"
 elif [ -f ".env.app" ]; then cp -f .env.app "$ENV_OUT"
@@ -197,7 +196,6 @@ set_env OMI_DESKTOP_API_URL "$OMI_DESKTOP_API_URL"
 set_env OMI_PYTHON_API_URL "$OMI_PYTHON_API_URL"
 if ! grep -q "^FIREBASE_API_KEY=" "$ENV_OUT"; then
   KEY="${FIREBASE_API_KEY:-}"
-  [ -z "$KEY" ] && [ -f "$BACKEND_DIR/.env" ] && KEY=$(grep "^FIREBASE_API_KEY=" "$BACKEND_DIR/.env" | head -1 | cut -d= -f2-)
   [ -z "$KEY" ] && [ -f "$INSTALLED_ENV" ] && KEY=$(grep "^FIREBASE_API_KEY=" "$INSTALLED_ENV" | head -1 | cut -d= -f2-)
   [ -n "$KEY" ] && echo "FIREBASE_API_KEY=$KEY" >> "$ENV_OUT" || echo "WARNING: FIREBASE_API_KEY not found — auth may fail" >&2
 fi

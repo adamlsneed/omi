@@ -6,18 +6,15 @@
 flowchart LR
   Wearable["Omi wearable over BLE"] --> Swift["Swift macOS app"]
   Mac["macOS TCC, audio, screen, menu bar, login item"] --> Swift
-  Swift --> PythonCloud["Python cloud backend api.omi.me"]
-  Swift --> Rust["Rust desktop backend hosted or local"]
+  Swift --> PythonCloud["Python cloud backend api.omiapi.com"]
+  Swift --> DesktopBackend["Hosted desktop backend (Cloud Run)"]
   Swift --> Agent["TypeScript agent runtime"]
-  Rust --> Firestore["Firestore"]
-  Rust --> Redis["Redis"]
-  Rust --> LLM["LLM, TTS, integrations"]
   PythonCloud --> Firebase["Firebase Auth"]
 ```
 
 The Swift app is the user-facing host. It owns windows, menu bar state, permissions, local capture, BLE, local persistence, and Sparkle update checks.
 
-The Rust backend is an HTTP service, not an in-process library. Swift reaches it through `OMI_DESKTOP_API_URL` for desktop-specific routes such as API key config, agent VM provisioning, Crisp, TTS proxy, and update metadata. In normal local desktop development, `./run.sh --yolo` points this URL at Omi's hosted desktop backend instead of starting `Backend-Rust/`.
+The desktop backend is BasedHardware's hosted HTTP service. Swift reaches it through `OMI_DESKTOP_API_URL` for desktop-specific routes such as API key config, agent VM provisioning, Crisp, TTS proxy, and update metadata. This fork has no local copy of it: `./run.sh --yolo` points the URL at the hosted service.
 
 The Python cloud backend is the source of truth for auth, conversation, user data, subscriptions, payments, and transcription APIs used by desktop. Swift reaches it through `OMI_PYTHON_API_URL`, including OAuth routes, `/v4/listen`, and `/v2/voice-message/*`.
 
@@ -27,7 +24,7 @@ Primary entry points:
 
 - `Desktop/Sources/OmiApp.swift` - `@main` app, `AppDelegate`, menu bar, launch, URL callbacks, Sparkle initialization, legacy bundle cleanup.
 - `Desktop/Sources/AppState.swift` - recording lifecycle, audio capture, transcription wiring, device coordination, permission state.
-- `Desktop/Sources/APIClient.swift` - HTTP client for Python and Rust backends.
+- `Desktop/Sources/Services/APIClient/` - HTTP client for the Python and desktop backends.
 - `Desktop/Sources/AuthService.swift` - OAuth browser flow, Firebase custom token exchange, token persistence, auth state.
 - `Desktop/Sources/TranscriptionService.swift` - WebSocket and REST transcription calls to the Python backend.
 - `Desktop/Sources/ScreenCaptureService.swift` - ScreenCaptureKit, CoreGraphics TCC preflight/request, AX window lookup, recovery paths.
@@ -35,13 +32,13 @@ Primary entry points:
 - `Desktop/Sources/FloatingControlBar/` - floating bar, PTT, screenshots, voice playback, notifications.
 - `Desktop/Sources/Rewind/` - local timeline database, screenshots, indexing, and timeline UI.
 
-## Swift To Rust Boundary
+## Swift To Desktop Backend Boundary
 
-There is no Swift-to-Rust FFI boundary in the inspected desktop code. The boundary is HTTP:
+The boundary is HTTP:
 
 - Swift reads `OMI_DESKTOP_API_URL`.
-- `APIClient.rustBackendURL` normalizes that URL.
-- Rust exposes Axum routes under `Backend-Rust/src/routes/`.
+- `APIClient.rustBackendURL` normalizes that URL (the property keeps its historical name).
+- The hosted service owns the routes; the fork does not carry its source.
 
 Do not change route paths, request bodies, response bodies, or auth requirements without treating it as an IPC contract change.
 
@@ -81,7 +78,7 @@ Python backend (`OMI_PYTHON_API_URL`):
 - `/v2/voice-message/transcribe` REST for PTT batch transcription.
 - User data, conversations, memories, tasks, goals, subscriptions, payments, and usage APIs.
 
-Rust desktop backend (`OMI_DESKTOP_API_URL`):
+Hosted desktop backend (`OMI_DESKTOP_API_URL`):
 
 - `/v1/config/api-keys`
 - `/v1/tts/synthesize`
@@ -94,11 +91,11 @@ Rust desktop backend (`OMI_DESKTOP_API_URL`):
 
 Sparkle is configured in `Desktop/Info.plist` with `SUFeedURL` and `SUPublicEDKey`. Runtime channel logic lives in `AppBuild.swift` and `UpdaterViewModel.swift`.
 
-Release metadata lives in Firestore via the Rust update routes:
+Release metadata lives in Firestore via the desktop backend's update routes:
 
 1. CI builds, signs, notarizes, and uploads the app artifacts.
 2. CI registers release metadata with `POST /updates/releases` and `X-Release-Secret`.
-3. Rust emits Sparkle appcast XML from live release metadata.
+3. The desktop backend emits Sparkle appcast XML from live release metadata.
 4. Sparkle validates the EdDSA signature and installs eligible updates.
 5. Channel promotion uses `PATCH /updates/releases/promote`.
 
