@@ -810,6 +810,26 @@ final class DesktopAutomationActionRegistry {
       return nil
     }
 
+    // idea-capture (fork): mirror the menu-bar "Capture Idea" command (finish this
+    // device's recording and file it under "Ideas"). Returns the resulting Ideas folder
+    // so a caller can verify the conversation was filed.
+    register(
+      name: "capture_idea",
+      summary: "Finish the current recording and file it under the \"Ideas\" folder"
+    ) { _ in
+      guard let state = AppState.current else { return ["error": "no AppState"] }
+      await state.captureCurrentConversationAsIdea(notify: false)
+      let folderId = UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey) ?? ""
+      var result = ["ideaFolderId": folderId]
+      if !folderId.isEmpty, let folders = try? await APIClient.shared.getFolders(),
+        let ideas = folders.first(where: { $0.id == folderId })
+      {
+        result["ideaFolderName"] = ideas.name
+        result["ideaFolderConversationCount"] = String(ideas.conversationCount)
+      }
+      return result
+    }
+
     // Posts a real keyDown+keyUp pair through the app's own event queue, so local
     // NSEvent monitors and SwiftUI key equivalents see it exactly like a physical
     // keypress — lets a headless harness drive keyboard navigation without

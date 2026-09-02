@@ -563,6 +563,18 @@ class AppState: ObservableObject {
   }
 
   var currentSessionId: Int64?
+
+  // idea-capture (fork): session state; transitions live in AppState+IdeaCapture.swift.
+  /// True while a start/stop idea-capture session is recording. Drives the menu-bar
+  /// "Stop Idea Capture" row and the sidebar "Stop Idea" row.
+  @Published var isIdeaCaptureActive = false
+  var ideaCaptureBusy = false
+  var ideaCaptureDesiredActive: Bool?
+  var ideaCaptureTransitionRunning = false
+  var audioRecordingModeBeforeIdeaCapture: AssistantSettings.AudioRecordingMode?
+  var ideaCaptureMicControl = IdeaCaptureMicControl.live
+  static let ideaFolderIdKey = "desktop_ideaFolderId"
+
   /// Serializes segment persistence so a local duplicate replacement cannot race
   /// the original mic segment's upsert in SQLite.
   var transcriptPersistenceTail: Task<Void, Never>?
@@ -1049,6 +1061,8 @@ extension Notification.Name {
   static let refreshAllData = Notification.Name("refreshAllData")
   /// Posted after a conversation is deleted so dependent views can prune local state.
   static let conversationDeleted = Notification.Name("conversationDeleted")
+  /// idea-capture (fork): posted when `AppState.isIdeaCaptureActive` flips.
+  static let ideaCaptureStateChanged = Notification.Name("ideaCaptureStateChanged")
   /// Posted by the local desktop automation bridge to request semantic navigation.
   static let desktopAutomationNavigateRequested = Notification.Name(
     "desktopAutomationNavigateRequested")
