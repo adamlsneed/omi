@@ -7,7 +7,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 APP="$TMP_DIR/Omi Dev.app"
 RESOURCES="$APP/Contents/Resources"
-BUNDLE_RESOURCES="$RESOURCES/Omi Computer_Omi Computer.bundle"
+BUNDLE_RESOURCES="$RESOURCES/Omi Computer_Omi Computer.bundle/Contents/Resources"
 
 mkdir -p "$BUNDLE_RESOURCES" "$RESOURCES/agent/dist"
 cat > "$BUNDLE_RESOURCES/node" <<'NODE'

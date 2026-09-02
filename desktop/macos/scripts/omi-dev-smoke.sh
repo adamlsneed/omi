@@ -4,7 +4,7 @@ set -euo pipefail
 APP_PATH="${OMI_DEV_APP_PATH:-/Applications/Omi Dev.app}"
 RESOURCES="$APP_PATH/Contents/Resources"
 RESOURCE_BUNDLE="$RESOURCES/Omi Computer_Omi Computer.bundle"
-NODE="$RESOURCE_BUNDLE/node"
+NODE="$RESOURCE_BUNDLE/Contents/Resources/node"
 AGENT_SCRIPT="$RESOURCES/agent/dist/index.js"
 ENV_FILE="$RESOURCES/.env"
 
