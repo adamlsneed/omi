@@ -540,7 +540,7 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       return;
     }
 
-    if (!config.hasRequiredPrompts) {
+    if (config.promptFor(profile).isEmpty) {
       _setRoutedSummaryIdle(error: routedSummaryMissingPromptsError);
       return;
     }
@@ -624,7 +624,7 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     final eligible = !current.discarded &&
         current.status == ConversationStatus.completed &&
         (autoRunOnOpen || force) &&
-        getSummarizedApp()?.appId != appId;
+        !current.appResults.any((r) => r.appId == appId);
     if (!eligible) {
       if (hadOverlay) notifyListeners();
       return;

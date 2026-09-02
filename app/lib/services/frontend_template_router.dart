@@ -100,8 +100,6 @@ class FrontendTemplateRoutingConfig {
     return parsed;
   }
 
-  bool get hasRequiredPrompts => workPrompt.trim().isNotEmpty && personalPrompt.trim().isNotEmpty;
-
   String promptFor(FrontendTemplateProfile profile) {
     return profile == FrontendTemplateProfile.work ? workPrompt.trim() : personalPrompt.trim();
   }
