@@ -333,6 +333,9 @@ class PushToTalkManager: ObservableObject {
     hasMicPermission = AudioCaptureService.checkPermission()
     warmPTTInputRouting()
     installEventMonitors()
+    // Wake coreaudiod before the first PTT press so short holds do not lose their
+    // audio while HAL device enumeration is still starting up.
+    AudioCaptureService.warmupCoreAudio()
     // Realtime hub: wire it to the bar and warm the WS if it's enabled + BYOK-keyed,
     // so the persistent socket is ready before the first PTT (and stays warm after).
     RealtimeHubController.shared.setup()
