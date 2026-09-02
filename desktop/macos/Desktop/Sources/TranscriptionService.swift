@@ -26,11 +26,6 @@ class TranscriptionService: @unchecked Sendable {
     }
   }
 
-  enum AudioChannel: UInt8 {
-    case mic = 0x01
-    case systemAudio = 0x02
-  }
-
   /// Translation from backend (lang code + translated text)
   struct BackendTranslation: Decodable {
     let lang: String
@@ -115,7 +110,7 @@ class TranscriptionService: @unchecked Sendable {
   private let language: String
   private let sampleRate = 16000
   private let encoding = "linear16"
-  private let channels: Int
+  private let channels = 1  // Always mono for Python backend streaming
   private let streamingMode: StreamingMode
   private let contextKeywords: [String]
   private let clientConversationId: String?
@@ -173,8 +168,6 @@ class TranscriptionService: @unchecked Sendable {
   let maxReconnectAttempts = 10
   private var reconnectTask: Task<Void, Never>?
 
-  var configuredChannels: Int { channels }
-
   // Watchdog: detect stale connections where WebSocket dies silently
   private var watchdogTask: Task<Void, Never>?
   private var lastDataReceivedAt: Date?
@@ -195,24 +188,21 @@ class TranscriptionService: @unchecked Sendable {
   /// - Parameters:
   ///   - language: Language code for transcription (e.g., "en", "uk", "ru", "multi" for auto-detect)
   ///   - mode: Streaming mode — `.conversation` for `/v4/listen` (default), `.ptt` for `/v2/voice-message/transcribe-stream`
-  ///   - channels: Number of backend audio channels. Conversation mode uses 2 when mic and system audio are streamed separately.
   init(
     language: String = "en",
     mode: StreamingMode = .conversation,
-    channels: Int = 1,
     contextKeywords: [String] = [],
     clientConversationId: String? = nil,
     conversationRole: MeetingConversationBoundaryPolicy.Role = .ambient
   ) throws {
     self.apiKey = ""  // Not needed — Python backend uses Firebase auth
     self.language = language
-    self.channels = max(1, channels)
     self.streamingMode = mode
     self.contextKeywords = Self.sanitizedContextKeywords(contextKeywords)
     self.clientConversationId = clientConversationId?.trimmingCharacters(in: .whitespacesAndNewlines)
     self.conversationRole = conversationRole
     log(
-      "TranscriptionService: Initialized for \(mode == .conversation ? "/v4/listen" : "/v2/voice-message/transcribe-stream"), language=\(language), channels=\(self.channels), contextKeywords=\(self.contextKeywords.count)"
+      "TranscriptionService: Initialized for \(mode == .conversation ? "/v4/listen" : "/v2/voice-message/transcribe-stream"), language=\(language), contextKeywords=\(self.contextKeywords.count)"
     )
   }
 
@@ -228,7 +218,6 @@ class TranscriptionService: @unchecked Sendable {
     // Batch mode uses Firebase auth + Python backend — no DG key needed
     self.apiKey = ""
     self.language = language
-    self.channels = 1
     self.streamingMode = .ptt  // Batch doesn't stream, but PTT is the correct context
     self.contextKeywords = []
     self.clientConversationId = nil
@@ -241,7 +230,7 @@ class TranscriptionService: @unchecked Sendable {
   /// Legacy init with channels parameter — used by PushToTalkManager for PTT live mode.
   /// Routes to `/v2/voice-message/transcribe-stream` (PTT-only transcription).
   convenience init(language: String = "en", channels: Int, contextKeywords: [String] = []) throws {
-    try self.init(language: language, mode: .ptt, channels: channels, contextKeywords: contextKeywords)
+    try self.init(language: language, mode: .ptt, contextKeywords: contextKeywords)
   }
 
   /// Flush remaining audio and (for PTT mode) tell the backend to finalize transcription.
@@ -354,23 +343,6 @@ class TranscriptionService: @unchecked Sendable {
     } else {
       audioBufferLock.unlock()
     }
-  }
-
-  /// Send one already-demuxed audio chunk to a specific `/v4/listen` channel.
-  ///
-  /// The backend multi-channel protocol expects each binary message to start with
-  /// a channel-id byte followed by linear16 PCM. We intentionally do not mix this
-  /// path with the mono coalescing buffer because mic and system audio callbacks
-  /// arrive on independent cadences.
-  func sendAudio(_ data: Data, channel: AudioChannel) {
-    guard isConnected else { return }
-    sendAudioChunk(Self.framedAudioPayload(data, channel: channel))
-  }
-
-  static func framedAudioPayload(_ data: Data, channel: AudioChannel) -> Data {
-    var payload = Data([channel.rawValue])
-    payload.append(data)
-    return payload
   }
 
   /// Flush any remaining audio in the buffer
