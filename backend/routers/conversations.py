@@ -30,16 +30,17 @@ from models.conversation import (
     SearchRequest,
     SetConversationActionItemsStateRequest,
     SetConversationEventsStateRequest,
+    SharedConversationResponse,
     TestPromptRequest,
     TranscriptMatchSnippet,
     UpdateActionItemDescriptionRequest,
     UpdateSegmentTextRequest,
     UpdateSummaryRequest,
+    project_shared_conversation,
 )
 from utils.conversations.factory import deserialize_conversation
 from utils.conversations.analytics import build_conversation_analytics
 from utils.conversations.render import redact_conversations_for_list
-from utils.conversations.render import conversation_to_dict
 from utils.conversations.mcp_transcript_search import (
     attach_match_snippets_to_conversations,
     merge_typesense_page_with_transcript_hits,
@@ -98,7 +99,8 @@ from utils.conversations.calendar_linking import (
 from utils.conversations.calendar_utils import extract_attendees, parse_event_times
 from utils.retrieval.tools.calendar_tools import get_google_calendar_event
 from utils.retrieval.tools.google_utils import refresh_google_token
-from utils.conversations.location import get_google_maps_location
+from utils.conversations.location import resolve_geolocation
+from utils.observability.fallback import record_fallback
 import logging
 
 logger = logging.getLogger(__name__)
@@ -200,10 +202,19 @@ def _enrich_deferred_conversation(uid: str, conversation: dict) -> dict:
         except Exception as e:
             logger.error(f"lazy enrich failed uid={uid} conv={conversation_id}: {e}")
             try:
-                conversations_db.update_conversation(uid, conversation_id, {'deferred': True})
-                lifecycle_service.complete(uid, conversation_id)
+                recovered = lifecycle_service.recover_deferred_processing_failure(uid, conversation_id)
+                if not recovered:
+                    logger.warning(
+                        'lazy enrich recovery lost ownership uid=%s conv=%s',
+                        uid,
+                        conversation_id,
+                    )
             except Exception:
-                pass
+                logger.exception(
+                    'lazy enrich recovery failed uid=%s conv=%s',
+                    uid,
+                    conversation_id,
+                )
 
     submit_with_context(postprocess_executor, _run_enrichment)
     # Return immediately — still status=processing, no summary yet; the client polls for completion.
@@ -275,12 +286,6 @@ class ConversationRecordingResponse(BaseModel):
     has_recording: bool
 
 
-class SharedConversationResponse(Conversation):
-    model_config = {"extra": "allow"}
-
-    people: List[Person] = []
-
-
 class ConversationSuggestedAppsResponse(BaseModel):
     suggested_apps: List[App]
     conversation_id: str
@@ -308,10 +313,20 @@ def process_in_progress_conversation(
         conversation.external_data['calendar_meeting_context'] = request.calendar_meeting_context.model_dump()
 
     # Geolocation
-    geolocation = redis_db.get_cached_user_geolocation(uid)
-    if geolocation:
-        geolocation = Geolocation(**geolocation)
-        conversation.geolocation = get_google_maps_location(geolocation.latitude, geolocation.longitude)
+    if conversation.geolocation:
+        conversation.geolocation = resolve_geolocation(conversation.geolocation)
+    else:
+        geolocation = redis_db.get_cached_user_geolocation(uid)
+        if geolocation:
+            record_fallback(
+                component='conversation_finalization',
+                from_mode='conversation_snapshot',
+                to_mode='redis_user_cache',
+                reason='other',
+                outcome='degraded',
+                log=logger,
+            )
+            conversation.geolocation = resolve_geolocation(Geolocation(**geolocation))
 
     if not lifecycle_service.admit_processing(uid, conversation.id):
         latest = _get_valid_conversation_by_id(uid, conversation.id)
@@ -483,6 +498,7 @@ def reprocess_conversation(
         conversation,
         force_process=True,
         is_reprocess=True,
+        bypass_jit_first_open=True,
         app_id=app_id,
         explicit_app=explicit_app,
         app_usage_attribution=(
@@ -950,7 +966,7 @@ def delete_conversation(
     background_tasks: BackgroundTasks,
     # TODO(Q8-gated): ratified default is cascade=true — NOT flipped; needs explicit owner sign-off
     # before changing production behavior for all users. See test_ws_j_delete_privacy.py +
-    # docs/memory/domain_model.md §Delete/privacy matrix.
+    # backend/docs/memory/domain_model.md §Delete/privacy matrix.
     cascade: bool = Query(False),
     uid: str = Depends(auth.get_current_user_uid),
 ):
@@ -1613,14 +1629,6 @@ def get_shared_conversation_by_id(conversation_id: str):
     if not visibility or visibility == ConversationVisibility.private:
         raise HTTPException(status_code=404, detail="Conversation is private")
     conversation = deserialize_conversation(conversation)
-    # This endpoint is public and unauthenticated. Strip fields that are internal
-    # to the owner and never part of the shared transcript/summary the user chose
-    # to publish: precise geolocation, the server-side encryption tier, and
-    # external_data (which carries merge provenance — other conversation ids — and
-    # integration metadata).
-    conversation.geolocation = None
-    conversation.data_protection_level = None
-    conversation.external_data = None
 
     # Fetch people data for speaker names
     person_ids = conversation.get_person_ids()
@@ -1629,10 +1637,10 @@ def get_shared_conversation_by_id(conversation_id: str):
         people_data = users_db.get_people_by_ids(uid, person_ids)
         people = [Person(**p) for p in people_data]
 
-    # Return conversation with people data
-    response_dict = conversation_to_dict(conversation)
-    response_dict['people'] = [p.model_dump() for p in people]
-    return response_dict
+    # Public unauthenticated surface: return only the explicit allowlist.
+    # SharedConversationResponse does not inherit Conversation and ignores extras,
+    # so new Conversation fields and stored-document keys stay off this response.
+    return project_shared_conversation(conversation, people)
 
 
 class ConversationTopicRequest(BaseModel):

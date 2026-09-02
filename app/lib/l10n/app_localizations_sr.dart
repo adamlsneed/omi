@@ -10088,12 +10088,6 @@ class AppLocalizationsSr extends AppLocalizations {
   String get accountCutoverOpenStore => 'Otevřít obchod';
 
   @override
-  String get chatScopeToday => 'Данас';
-
-  @override
-  String get chatScopeThisWeek => 'Ове недеље';
-
-  @override
   String chatScopeAbout(String title) {
     return 'О: $title';
   }
@@ -10157,4 +10151,15 @@ class AppLocalizationsSr extends AppLocalizations {
   @override
   String get pendantFullSyncBlocked =>
       'Меморија Pendant-а је пуна и он је и даље у режиму снимања, па сачувани звук не може да се пренесе. Притисните дугме на Pendant-у да зауставите снимање, а затим поново синхронизујте.';
+
+  @override
+  String conversationsNotCapturedCount(int count) {
+    return 'Није снимљено ($count)';
+  }
+
+  @override
+  String get transcriptionNoAudio => 'Транскрипција не прима аудио';
+
+  @override
+  String get tapPlusToStartRecording => 'Tap + to start recording';
 }

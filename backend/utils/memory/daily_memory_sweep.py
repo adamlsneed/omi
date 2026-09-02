@@ -34,12 +34,15 @@ from enum import Enum
 from dataclasses import dataclass, field
 import atexit
 import importlib
+import logging
 import os
 import re
 import threading
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence, Tuple, cast
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+logger = logging.getLogger(__name__)
 
 from google.cloud.firestore_v1 import FieldFilter
 from google.cloud import firestore
@@ -58,7 +61,7 @@ from database.firestore_index_registry import (
 )
 from database.memory_collections import MemoryCollections
 from database.memory_apply_store import cleanup_expired_memory_deletion_receipts
-from models.memory_apply import MemoryControlState
+from models.memory_apply import MemoryControlState, WriterMode
 from models.memory_contracts import deterministic_contract_id
 from models.product_memory import (
     LedgerWriteReason,
@@ -73,6 +76,7 @@ from utils.memory.knowledge_ledger import (
     LedgerProvenance,
     LedgerWrite,
     amend_fact,
+    evidence_id_for_ledger_provenance,
     save_ledger_write,
 )
 from utils.memory.memory_system import ensure_canonical_apply_control_state
@@ -104,6 +108,12 @@ MAX_ONBOARDING_SCAN_PAGES = 16
 MAX_ONBOARDING_INPUT_CHARACTERS = 24_000
 MAX_ONBOARDING_RECEIPT_KEYS = 4_096
 MAX_LEGACY_COMPAT_OCCUPANTS = 64
+# The compatibility occupant proof pages through the complete cohort; a real
+# long-tenured account holds hundreds of active unslotted facts per subject,
+# so completeness must come from draining a cursor, not from one bounded page.
+# The ceiling still fails closed on a pathological cohort.
+LEGACY_COMPAT_OCCUPANT_PAGE_SIZE = 300
+MAX_LEGACY_COMPAT_OCCUPANT_SCAN = 5000
 MODEL_COST_PER_1K_INPUT_CHARACTERS_USD = 0.002
 ONBOARDING_CONSUMED_STATE_PATH = "memory_control/daily_memory_sweep_onboarding"
 ONBOARDING_PERMANENT_RECEIPT_PREFIX = "onboarding_source_"
@@ -2605,13 +2615,26 @@ def _find_active_slot_or_subject(
                 field_filter_factory=FieldFilter,
             )
             # Legacy rows predate ``normalized_content_key``.  Prove the
-            # complete bounded compatibility cohort before deciding that no
-            # duplicate exists; two rows is not a safe global cap for a user
-            # who accumulated several historical unslotted facts.
-            snapshots = list(legacy_query.limit(MAX_LEGACY_COMPAT_OCCUPANTS + 1).stream())
+            # complete compatibility cohort before deciding that no duplicate
+            # exists. One bounded page is not that proof: a long-tenured
+            # account holds far more than 64 active unslotted facts per
+            # subject, and the old single-page cap made every such account's
+            # sweep day fail closed forever (dev, hourly, since 2026-08-30).
+            # Drain the cursor in bounded pages instead; the scan ceiling
+            # below still fails closed on a pathological cohort.
+            snapshots = []
+            cursor_query = legacy_query
+            while True:
+                page = list(cursor_query.limit(LEGACY_COMPAT_OCCUPANT_PAGE_SIZE).stream())
+                snapshots.extend(page)
+                if len(snapshots) > MAX_LEGACY_COMPAT_OCCUPANT_SCAN:
+                    break
+                if len(page) < LEGACY_COMPAT_OCCUPANT_PAGE_SIZE:
+                    break
+                cursor_query = legacy_query.start_after(page[-1])
     except Exception as exc:
         raise SweepAuthoritativeQueryUnavailable("canonical occupant query failed") from exc
-    proof_limit = MAX_LEGACY_COMPAT_OCCUPANTS if used_legacy_compatibility else MAX_AUTHORITATIVE_OCCUPANTS
+    proof_limit = MAX_LEGACY_COMPAT_OCCUPANT_SCAN if used_legacy_compatibility else MAX_AUTHORITATIVE_OCCUPANTS
     if len(snapshots) > proof_limit:
         raise SweepAuthoritativeQueryUnavailable("canonical occupant query exceeded proof budget")
     items: List[MemoryItem] = []
@@ -2652,6 +2675,29 @@ def _apply_candidate(
     if candidate.operation == "add":
         occupant = _find_active_slot_or_subject(uid, candidate, db_client=db_client)
         if occupant is not None:
+            # Crash-replay recognition: if the occupant already carries this
+            # exact plan/candidate's evidence identity, the canonical write for
+            # this receipt landed before a crash prevented receipt
+            # finalization. Re-applying would supersede our own row with a
+            # duplicate; recognize the landed effect and complete as a skip.
+            # A next-day sweep derives a different ``_plan_id`` and therefore a
+            # different evidence identity, so legitimate same-slot refreshes
+            # are unaffected.
+            replay_evidence_id = evidence_id_for_ledger_provenance(
+                uid,
+                LedgerProvenance(
+                    source_id=candidate.source_id,
+                    source_type=candidate.source_type,
+                    source_version=candidate.source_version,
+                    action_id=f"{_plan_id(uid, local_date)}:{candidate.source_key}",
+                ),
+            )
+            # An occupant without readable evidence cannot be proven to be our
+            # own replay, so fall through to the ordinary authority rules
+            # rather than suppressing a write we cannot account for.
+            occupant_evidence = getattr(occupant, "evidence", None) or ()
+            if any(getattr(item, "evidence_id", None) == replay_evidence_id for item in occupant_evidence):
+                return occupant.memory_id, "existing_active_slot" if candidate.slot else "existing_active_subject"
             occupant_rank = _target_authority(occupant)
             # A slot is a standing attribute the daily run maintains: a
             # sweep-authored occupant may be refreshed by an equal-rank sweep
@@ -2712,39 +2758,49 @@ def _apply_candidate(
         reason = candidate.authority.ledger_reason
     if effective_operation == "amend":
         assert target is not None
-        memory_id = amend_fact(
-            uid,
-            target.memory_id,
-            candidate.content,
-            provenance=provenance,
-            write_reason=reason,
-            slot=candidate.slot,
-            subject_scope=candidate.subject_scope,
-            subject_entity_id=candidate.subject_entity_id,
-            valid_from=datetime.combine(local_date, time.min, tzinfo=timezone.utc),
-            db_client=db_client,
-            required_source_item=target,
-        )
+        try:
+            memory_id = amend_fact(
+                uid,
+                target.memory_id,
+                candidate.content,
+                provenance=provenance,
+                write_reason=reason,
+                slot=candidate.slot,
+                subject_scope=candidate.subject_scope,
+                subject_entity_id=candidate.subject_entity_id,
+                valid_from=datetime.combine(local_date, time.min, tzinfo=timezone.utc),
+                db_client=db_client,
+                required_source_item=target,
+            )
+        except ValueError as exc:
+            if "unsupported knowledge ledger slot" not in str(exc):
+                raise
+            return None, "unknown_slot"
         return memory_id, None
 
-    write = LedgerWrite(
-        kind=MemoryKind.trigger if candidate.kind == "trigger" else MemoryKind.fact,
-        content=candidate.content,
-        provenance=provenance,
-        write_reason=reason,
-        subject_scope=candidate.subject_scope,
-        subject_entity_id=candidate.subject_entity_id,
-        slot=candidate.slot,
-        trigger_condition=candidate.trigger_condition,
-        # A completed-day replay must derive identical mutation metadata.  The
-        # ledger otherwise defaults ``valid_from`` to wall-clock ``now`` and a
-        # crash after canonical apply would produce a different operation ID.
-        valid_from=datetime.combine(local_date, time.min, tzinfo=timezone.utc),
-        # Inference-backed rows stay out of the user-asserted profile path.
-        user_asserted=candidate.authority == SweepAuthority.direct_user_statement,
-        supersedes=([target.memory_id] if effective_operation == "repair" and target is not None else []),
-    )
-    return save_ledger_write(uid, write, db_client=db_client, required_source_item=target), None
+    try:
+        write = LedgerWrite(
+            kind=MemoryKind.trigger if candidate.kind == "trigger" else MemoryKind.fact,
+            content=candidate.content,
+            provenance=provenance,
+            write_reason=reason,
+            subject_scope=candidate.subject_scope,
+            subject_entity_id=candidate.subject_entity_id,
+            slot=candidate.slot,
+            trigger_condition=candidate.trigger_condition,
+            # A completed-day replay must derive identical mutation metadata.  The
+            # ledger otherwise defaults ``valid_from`` to wall-clock ``now`` and a
+            # crash after canonical apply would produce a different operation ID.
+            valid_from=datetime.combine(local_date, time.min, tzinfo=timezone.utc),
+            # Inference-backed rows stay out of the user-asserted profile path.
+            user_asserted=candidate.authority == SweepAuthority.direct_user_statement,
+            supersedes=([target.memory_id] if effective_operation == "repair" and target is not None else []),
+        )
+        return save_ledger_write(uid, write, db_client=db_client, required_source_item=target), None
+    except ValueError as exc:
+        if "unsupported knowledge ledger slot" not in str(exc):
+            raise
+        return None, "unknown_slot"
 
 
 def _blocked_output(
@@ -2917,6 +2973,10 @@ def run_daily_memory_sweep(
                 )
             except SweepAuthoritativeQueryUnavailable:
                 return _blocked_output(normalized_uid, "canonical_occupant_query_unavailable")
+            except ValueError as exc:
+                if "unsupported knowledge ledger slot" not in str(exc):
+                    raise
+                memory_id, skip_reason = None, "unknown_slot"
             if skip_reason:
                 skipped_count += 1
                 try:
@@ -4824,6 +4884,24 @@ def run_daily_memory_sweep_scheduler(
                 errors.append(f"uid={uid}:cohort_unavailable")
                 continue
             control = ensure_canonical_apply_control_state(uid, db_client=db_client)
+            if control.writer_mode is not WriterMode.ledger:
+                # An enrolled account that has not completed ledger cutover
+                # cannot commit ordinary ledger writes (require_writer_admitted
+                # refuses them in compatibility mode), so claiming its day only
+                # burns receipt leases and fails the whole hourly job with
+                # WriterAdmissionError. Pre-drain is an expected rollout state:
+                # skip quietly and retry after the maintenance drain moves the
+                # account to ledger mode. The account's day cursor does not
+                # advance, so no day is lost — pending days catch up in
+                # bounded windows once the account drains.
+                logger.info(
+                    "daily-memory-sweep skipping uid=%s: writer_mode=%s awaits ledger cutover",
+                    uid,
+                    control.writer_mode.value,
+                )
+                blocked_users += 1
+                completed_uids.append(uid)
+                continue
             timezone_name = str(timezone_resolver(uid) or "UTC")
             cursor = _read_cursor(db_client, uid, control)
             if cursor.last_completed_local_date is not None and cursor.timezone_name != timezone_name:

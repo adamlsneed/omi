@@ -869,7 +869,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                               },
                             ),
                             if (home.selectedIndex == 0)
-                              Positioned(left: 16, right: 16, bottom: 78, child: _buildChatBar(context)),
+                              Positioned(
+                                left: 16,
+                                right: 16,
+                                bottom: 78,
+                                child: Row(
+                                  children: [
+                                    Expanded(child: _buildChatBar(context)),
+                                    const SizedBox(width: 10),
+                                    const HomeRecordButton(),
+                                  ],
+                                ),
+                              ),
                           ],
                         );
                       },
@@ -895,7 +906,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
       onTap: () {
         HapticFeedback.lightImpact();
         PlatformManager.instance.analytics.bottomNavigationTabClicked('Chat');
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatPage(isPivotBottom: false)));
+        Navigator.push(context,
+            MaterialPageRoute(fullscreenDialog: true, builder: (context) => const ChatPage(isPivotBottom: false)));
       },
       child: Container(
         height: 62,
@@ -935,7 +947,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
                 PlatformManager.instance.analytics.bottomNavigationTabClicked('Chat Voice');
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ChatPage(isPivotBottom: false, autoStartVoice: true)),
+                  MaterialPageRoute(
+                      fullscreenDialog: true,
+                      builder: (context) => const ChatPage(isPivotBottom: false, autoStartVoice: true)),
                 );
               },
               child: Container(

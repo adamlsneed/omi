@@ -10016,12 +10016,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get accountCutoverOpenStore => 'เปิดสโตร์';
 
   @override
-  String get chatScopeToday => 'วันนี้';
-
-  @override
-  String get chatScopeThisWeek => 'สัปดาห์นี้';
-
-  @override
   String chatScopeAbout(String title) {
     return 'เกี่ยวกับ: $title';
   }
@@ -10083,4 +10077,15 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get pendantFullSyncBlocked =>
       'พื้นที่จัดเก็บของ Pendant เต็มและยังอยู่ในโหมดบันทึกเสียง จึงไม่สามารถถ่ายโอนเสียงที่บันทึกไว้ได้ กดปุ่มของ Pendant เพื่อหยุดการบันทึก แล้วซิงค์อีกครั้ง';
+
+  @override
+  String conversationsNotCapturedCount(int count) {
+    return 'ไม่ได้บันทึก ($count)';
+  }
+
+  @override
+  String get transcriptionNoAudio => 'การถอดเสียงไม่ได้รับเสียง';
+
+  @override
+  String get tapPlusToStartRecording => 'Tap + to start recording';
 }

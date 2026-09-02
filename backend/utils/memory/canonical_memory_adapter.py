@@ -42,7 +42,11 @@ from database.memory_apply_store import (
     tombstone_memory_items_firestore,
     privacy_deletion_receipt_id,
 )
-from database.legal_holds import current_destructive_operation_token, destructive_operation_gate
+from database.legal_holds import (
+    LegalHoldAuthorityUnavailable,
+    current_destructive_operation_token,
+    destructive_operation_gate,
+)
 from database.memory_vector_repair_outbox import build_vector_repair_purge_outbox_records
 from database.memory_vector_metadata import canonical_memory_provider_id
 from database.account_deletion_projection_fence import read_account_deletion_projection_fence
@@ -61,6 +65,7 @@ from models.memory_evidence import (
 )
 from models.memories import Evidence, MemoryDB, MemoryCategory, SubjectAttribution, decide_initial_memory_tier
 from models.memory_apply import (
+    ApplyResult,
     ApplyStatus,
     MemoryControlState,
     MemoryWriterClass,
@@ -1397,6 +1402,42 @@ def _canonical_extraction_apply_write(
     )
 
 
+_DUPLICATE_ADD_ROW_REASON = "add patch new_memory_id already exists"
+
+
+def _existing_identical_add_row(
+    uid: str,
+    *,
+    result: ApplyResult,
+    memory_id: str,
+    data: Dict[str, Any],
+    db_client: Any,
+) -> Optional[MemoryItem]:
+    """Resolve an add collision against an already-committed identical row.
+
+    Operation identity folds the observed head commit into the operation id, so
+    a duplicate submission is only replay-idempotent while the account head has
+    not moved. Re-sending the same memory after any other ledger write proposes
+    a fresh operation whose add then collides with the deterministically derived
+    row id. The requested row already exists with the same content, so the write
+    is complete rather than failed. A collision with different content — a
+    client-supplied id reused for new text — is still an error, and a row that
+    is no longer active keeps failing so a resurrected id can never masquerade
+    as a fresh create.
+    """
+    if result.status != ApplyStatus.invalid_patch or result.reason != _DUPLICATE_ADD_ROW_REASON:
+        return None
+    snapshot = db_client.document(f"{MemoryCollections(uid=uid).memory_items}/{memory_id}").get()
+    if not getattr(snapshot, "exists", False):
+        return None
+    item = MemoryItem(**_snapshot_payload(snapshot))
+    if item.status != MemoryItemStatus.active:
+        return None
+    if (item.content or "").strip() != (data.get("content") or "").strip():
+        return None
+    return item
+
+
 def write_canonical_extraction_memory(
     uid: str,
     data: Dict[str, Any],
@@ -1451,7 +1492,26 @@ def write_canonical_extraction_memory(
             break
     assert result is not None
     if result.status not in {ApplyStatus.committed, ApplyStatus.idempotent_skip}:
-        raise RuntimeError(f"canonical write failed: {result.status} ({result.reason})")
+        duplicate_row = _existing_identical_add_row(
+            uid,
+            result=result,
+            memory_id=memory_id,
+            data=data,
+            db_client=client,
+        )
+        if duplicate_row is None:
+            raise RuntimeError(f"canonical write failed: {result.status} ({result.reason})")
+        logger.info(
+            "canonical duplicate add resolved to existing row uid=%s memory_id=%s",
+            uid,
+            duplicate_row.memory_id,
+        )
+        assert_legal_state(
+            DomainMemoryLayer(duplicate_row.tier.value),
+            physical_status_to_record_status(duplicate_row.status.value),
+            MemoryProcessingState(duplicate_row.processing_state.value),
+        )
+        return duplicate_row.memory_id
 
     committed_id = memory_id
     if result.memory_items:
@@ -1530,7 +1590,11 @@ def write_canonical_external_memory(
     db_client: Any = None,
     review_resolution: Optional[CanonicalReviewResolution] = None,
 ) -> str:
-    """Persist a manual/API/integration memory via the canonical apply path."""
+    """Persist a manual/API/integration memory via the canonical apply path.
+
+    After writer-mode cutover these creates stay admitted as user writes so
+    POST /v3/memories and desktop create_memory do not 503 in ledger mode.
+    """
     if data.get("ledger_schema_version") is not None:
         raise ValueError("knowledge ledger writes require the dedicated ledger authority")
     client = db_client if db_client is not None else default_db_client
@@ -1574,6 +1638,7 @@ def write_canonical_external_memory(
         db_client=client,
         evidence_items=reissued_evidence,
         review_resolution=review_resolution,
+        _direct_user_authority=_DIRECT_USER_LEDGER_WRITE_AUTHORITY,
     )
 
 
@@ -1912,6 +1977,7 @@ def replace_conversation_sourced_memories(
     *,
     db_client: Any = None,
     conflict_backoff_seconds: Sequence[float] = _REPLACEMENT_CONFLICT_BACKOFF_SECONDS,
+    empty_set_intent: str = "retraction",
 ) -> Dict[str, Any]:
     """Atomically replace one conversation's complete canonical memory set.
 
@@ -1919,7 +1985,19 @@ def replace_conversation_sourced_memories(
     a conflicted round must re-plan against the control the peer left behind.
     ``conflict_backoff_seconds`` bounds those rounds: one entry per retry, and
     the number of attempts is ``len(...) + 1``.
+
+    ``empty_set_intent`` states what an empty ``items`` means for this caller
+    (FC-destructive-gate-keyed-on-proxy-for-intent: emptiness alone cannot
+    carry intent). ``"retraction"`` — the default, and the only meaning before
+    this parameter existed — treats it as "remove this conversation's rows",
+    which demands ``explicit_memory_deletion`` authority whenever rows exist.
+    ``"extraction"`` declares the empty set an extraction outcome: when the
+    conversation already has rows and no deletion gate is held, the existing
+    rows are kept and the call resolves as a no-op instead of failing —
+    extraction variance is not permission to destroy knowledge.
     """
+    if empty_set_intent not in {"retraction", "extraction"}:
+        raise ValueError(f"unknown empty_set_intent: {empty_set_intent!r}")
     client = db_client if db_client is not None else default_db_client
     replacement_digest = _conversation_replacement_digest(uid, conversation_id, items)
     replacement_id = f"replace_{replacement_digest[:32]}"
@@ -1950,6 +2028,71 @@ def replace_conversation_sourced_memories(
             )
             if item.source_state == SourceState.active and not _item_sourced_from_conversation(item, conversation_id)
         ]
+        if not items and not expected_source_items:
+            # Nothing extracted, and nothing of this conversation's already in
+            # the ledger. Falling through sends an empty write set into
+            # ``replace_conversation_source_firestore``, whose empty-replacement
+            # branch demands an ``explicit_memory_deletion`` token -- a
+            # deliberate rule, because emptying a conversation normally
+            # *retracts* its rows.
+            #
+            # Emptiness alone cannot tell the two callers apart. An explicit
+            # retraction that happens to remove nothing must still be recorded,
+            # advancing the source generation (WS-J delete-privacy contract).
+            # Conversation finalization that simply extracted nothing is an
+            # ordinary outcome owing no record, and holds no gate -- so it died
+            # here with LegalHoldAuthorityUnavailable.
+            #
+            # The gate itself is what distinguishes them, so ask it without
+            # letting the answer be fatal. Holding it means a deliberate
+            # deletion: fall through and record. Not holding it means there is
+            # provably nothing to do and no authority is required.
+            #
+            # This never relaxes the rule: an empty replacement that would
+            # genuinely retract rows has a non-empty ``expected_source_items``,
+            # never reaches here, and is still refused without authority.
+            # ``expected_reactivation_items`` derives from
+            # ``terminal_source_ids``, itself derived from
+            # ``expected_source_items``, so it is necessarily empty here too.
+            try:
+                current_destructive_operation_token(uid, kind="explicit_memory_deletion")
+            except LegalHoldAuthorityUnavailable:
+                return {
+                    "retracted_memory_ids": [],
+                    "committed_memory_ids": [],
+                    "reactivated_memory_ids": [],
+                    "vector_delete_ids": [],
+                    "tombstoned_evidence_ids": [],
+                    "source_generation": observed_control.source_generation,
+                }
+        if not items and expected_source_items and empty_set_intent == "extraction":
+            # An extraction that produced nothing over a conversation that
+            # already has canonical rows. Falling through would retract those
+            # rows, and the retraction branch rightly demands an
+            # ``explicit_memory_deletion`` token the extraction path never
+            # holds — the residual LegalHoldAuthorityUnavailable 500s on
+            # conversation reprocess after #12410. Extraction emptiness is
+            # model variance, not deletion intent: keep the rows and resolve
+            # as a no-op. A caller that genuinely holds the deletion gate is
+            # performing a deliberate deletion and still falls through so the
+            # retraction is recorded.
+            try:
+                current_destructive_operation_token(uid, kind="explicit_memory_deletion")
+            except LegalHoldAuthorityUnavailable:
+                logger.info(
+                    "conversation extraction was empty; keeping %d existing canonical rows uid=%s conversation_id=%s",
+                    len(expected_source_items),
+                    uid,
+                    conversation_id,
+                )
+                return {
+                    "retracted_memory_ids": [],
+                    "committed_memory_ids": [],
+                    "reactivated_memory_ids": [],
+                    "vector_delete_ids": [],
+                    "tombstoned_evidence_ids": [],
+                    "source_generation": observed_control.source_generation,
+                }
         confirmed_control = _read_replacement_control(uid, db_client=client)
         if (
             observed_control.head_commit_id != confirmed_control.head_commit_id

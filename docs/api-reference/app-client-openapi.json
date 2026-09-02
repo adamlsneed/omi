@@ -4961,6 +4961,53 @@
         "title": "BulkMoveConversationsResponse",
         "type": "object"
       },
+      "CalendarCaptureGap": {
+        "description": "An accepted calendar event with no overlapping kept conversation.",
+        "properties": {
+          "coverage": {
+            "default": "not_captured",
+            "description": "Capture coverage verdict",
+            "title": "Coverage",
+            "type": "string"
+          },
+          "end_time": {
+            "description": "Event end time",
+            "format": "date-time",
+            "title": "End Time",
+            "type": "string"
+          },
+          "event_id": {
+            "description": "Google Calendar event ID",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Event start time",
+            "format": "date-time",
+            "title": "Start Time",
+            "type": "string"
+          },
+          "status": {
+            "default": "confirmed",
+            "description": "Calendar event status",
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "description": "Event title/summary",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "title",
+          "start_time",
+          "end_time"
+        ],
+        "title": "CalendarCaptureGap",
+        "type": "object"
+      },
       "CalendarEventLink": {
         "description": "Links a conversation to a Google Calendar event.",
         "properties": {
@@ -7675,6 +7722,18 @@
             "title": "Attempt Count",
             "type": "integer"
           },
+          "fanout_status": {
+            "default": "unknown",
+            "enum": [
+              "pending",
+              "leased",
+              "completed",
+              "fenced",
+              "unknown"
+            ],
+            "title": "Fanout Status",
+            "type": "string"
+          },
           "job_id": {
             "title": "Job Id",
             "type": "string"
@@ -7699,6 +7758,17 @@
           "terminal": {
             "title": "Terminal",
             "type": "boolean"
+          },
+          "terminal_outcome": {
+            "default": "unknown",
+            "enum": [
+              "success",
+              "failure",
+              "stale",
+              "unknown"
+            ],
+            "title": "Terminal Outcome",
+            "type": "string"
           }
         },
         "required": [
@@ -13454,6 +13524,18 @@
       },
       "Geolocation": {
         "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
           "address": {
             "anyOf": [
               {
@@ -13464,6 +13546,46 @@
               }
             ],
             "title": "Address"
+          },
+          "altitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Altitude"
+          },
+          "capture_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "current_position",
+                  "last_known_position",
+                  "manual",
+                  "integration"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Source"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
           },
           "google_place_id": {
             "anyOf": [
@@ -13510,6 +13632,18 @@
       "GeolocationInput": {
         "description": "Released wire contract for coordinates accepted at legacy API boundaries.\n\nBounds are enforced before any value is cached, geocoded, or persisted. Keeping\nthis transport shape broad preserves clients released before the bound contract\nexisted, while ``Geolocation`` remains the only usable server-side value.",
         "properties": {
+          "accuracy": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy"
+          },
           "address": {
             "anyOf": [
               {
@@ -13520,6 +13654,46 @@
               }
             ],
             "title": "Address"
+          },
+          "altitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Altitude"
+          },
+          "capture_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "current_position",
+                  "last_known_position",
+                  "manual",
+                  "integration"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Source"
+          },
+          "captured_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Captured At"
           },
           "google_place_id": {
             "anyOf": [
@@ -14474,6 +14648,12 @@
       "GoogleCalendarEvent": {
         "description": "Response model for a Google Calendar event.",
         "properties": {
+          "all_day": {
+            "default": false,
+            "description": "True when the event has a date but no time",
+            "title": "All Day",
+            "type": "boolean"
+          },
           "attendee_emails": {
             "default": [],
             "description": "List of attendee email addresses",
@@ -14491,6 +14671,12 @@
             },
             "title": "Attendees",
             "type": "array"
+          },
+          "description": {
+            "default": "",
+            "description": "Event description, truncated for transport",
+            "title": "Description",
+            "type": "string"
           },
           "end_time": {
             "description": "Event end time",
@@ -14514,6 +14700,12 @@
             ],
             "description": "Link to open event in Google Calendar",
             "title": "Html Link"
+          },
+          "location": {
+            "default": "",
+            "description": "Event location",
+            "title": "Location",
+            "type": "string"
           },
           "start_time": {
             "description": "Event start time",
@@ -21864,6 +22056,25 @@
         "title": "ShareTasksRequest",
         "type": "object"
       },
+      "SharedActionItem": {
+        "description": "Public share projection of an action item.",
+        "properties": {
+          "completed": {
+            "default": false,
+            "title": "Completed",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "SharedActionItem",
+        "type": "object"
+      },
       "SharedActionItemPreview": {
         "properties": {
           "description": {
@@ -21913,6 +22124,31 @@
           "count"
         ],
         "title": "SharedActionItemsResponse",
+        "type": "object"
+      },
+      "SharedAppResult": {
+        "properties": {
+          "app_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Id"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app_id",
+          "content"
+        ],
+        "title": "SharedAppResult",
         "type": "object"
       },
       "SharedAssistantSettings": {
@@ -22026,126 +22262,19 @@
         "type": "object"
       },
       "SharedConversationResponse": {
-        "additionalProperties": true,
+        "description": "Public unauthenticated shared-conversation payload. Only declared fields are returned.",
         "properties": {
-          "app_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "App Id"
-          },
           "apps_results": {
-            "default": [],
             "items": {
-              "$ref": "#/components/schemas/AppResult"
+              "$ref": "#/components/schemas/SharedAppResult"
             },
             "title": "Apps Results",
             "type": "array"
-          },
-          "audio_files": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/AudioFile"
-            },
-            "title": "Audio Files",
-            "type": "array"
-          },
-          "calendar_event": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CalendarEventLink"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "call_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Twilio call SID for phone call conversations",
-            "title": "Call Id"
-          },
-          "client_device_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Client Device Id"
-          },
-          "client_platform": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Client Platform"
-          },
-          "conversation_audio": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ConversationAudio"
-              },
-              {
-                "type": "null"
-              }
-            ]
           },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
-          },
-          "data_protection_level": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data Protection Level"
-          },
-          "deferred": {
-            "default": false,
-            "title": "Deferred",
-            "type": "boolean"
-          },
-          "discarded": {
-            "default": false,
-            "title": "Discarded",
-            "type": "boolean"
-          },
-          "external_data": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "External Data"
           },
           "finished_at": {
             "anyOf": [
@@ -22159,41 +22288,9 @@
             ],
             "title": "Finished At"
           },
-          "folder_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "ID of the folder this conversation belongs to",
-            "title": "Folder Id"
-          },
-          "geolocation": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Geolocation"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "id": {
             "title": "Id",
             "type": "string"
-          },
-          "imported": {
-            "default": false,
-            "title": "Imported",
-            "type": "boolean"
-          },
-          "is_locked": {
-            "default": false,
-            "title": "Is Locked",
-            "type": "boolean"
           },
           "language": {
             "anyOf": [
@@ -22206,99 +22303,19 @@
             ],
             "title": "Language"
           },
-          "meeting_dedup_speech_s": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meeting Dedup Speech S"
-          },
-          "meeting_duration_s": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meeting Duration S"
-          },
-          "meeting_treatment_eligible": {
-            "default": false,
-            "title": "Meeting Treatment Eligible",
-            "type": "boolean"
-          },
-          "meeting_treatment_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meeting Treatment Reason"
-          },
           "people": {
-            "default": [],
             "items": {
-              "$ref": "#/components/schemas/Person"
+              "$ref": "#/components/schemas/SharedPerson"
             },
             "title": "People",
             "type": "array"
           },
-          "photos": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/ConversationPhoto"
-            },
-            "title": "Photos",
-            "type": "array"
-          },
           "plugins_results": {
-            "default": [],
             "items": {
-              "$ref": "#/components/schemas/PluginResult"
+              "$ref": "#/components/schemas/SharedPluginResult"
             },
             "title": "Plugins Results",
             "type": "array"
-          },
-          "private_cloud_sync_enabled": {
-            "default": false,
-            "title": "Private Cloud Sync Enabled",
-            "type": "boolean"
-          },
-          "processing_conversation_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Processing Conversation Id"
-          },
-          "processing_memory_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Processing Memory Id"
-          },
-          "screenshot_sharing_enabled": {
-            "default": true,
-            "title": "Screenshot Sharing Enabled",
-            "type": "boolean"
           },
           "source": {
             "anyOf": [
@@ -22310,11 +22327,6 @@
               }
             ],
             "default": "omi"
-          },
-          "starred": {
-            "default": false,
-            "title": "Starred",
-            "type": "boolean"
           },
           "started_at": {
             "anyOf": [
@@ -22340,52 +22352,14 @@
             "default": "completed"
           },
           "structured": {
-            "$ref": "#/components/schemas/Structured"
-          },
-          "suggested_summarization_apps": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Suggested Summarization Apps",
-            "type": "array"
+            "$ref": "#/components/schemas/SharedStructured"
           },
           "transcript_segments": {
-            "default": [],
             "items": {
-              "$ref": "#/components/schemas/TranscriptSegment"
+              "$ref": "#/components/schemas/SharedTranscriptSegment"
             },
             "title": "Transcript Segments",
             "type": "array"
-          },
-          "transcript_segments_compressed": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": false,
-            "title": "Transcript Segments Compressed"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated At"
-          },
-          "uses_custom_stt": {
-            "default": false,
-            "title": "Uses Custom Stt",
-            "type": "boolean"
           },
           "visibility": {
             "$ref": "#/components/schemas/ConversationVisibility",
@@ -22400,6 +22374,199 @@
           "structured"
         ],
         "title": "SharedConversationResponse",
+        "type": "object"
+      },
+      "SharedEvent": {
+        "description": "Public share projection of a structured event.",
+        "properties": {
+          "created": {
+            "default": false,
+            "title": "Created",
+            "type": "boolean"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "duration": {
+            "default": 30,
+            "title": "Duration",
+            "type": "integer"
+          },
+          "start": {
+            "format": "date-time",
+            "title": "Start",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "start"
+        ],
+        "title": "SharedEvent",
+        "type": "object"
+      },
+      "SharedPerson": {
+        "description": "Speaker-label projection for a shared conversation.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "SharedPerson",
+        "type": "object"
+      },
+      "SharedPluginResult": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "plugin_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plugin Id"
+          }
+        },
+        "required": [
+          "plugin_id",
+          "content"
+        ],
+        "title": "SharedPluginResult",
+        "type": "object"
+      },
+      "SharedStructured": {
+        "description": "Public share projection of conversation structure.",
+        "properties": {
+          "action_items": {
+            "items": {
+              "$ref": "#/components/schemas/SharedActionItem"
+            },
+            "title": "Action Items",
+            "type": "array"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryEnum",
+            "default": "other"
+          },
+          "emoji": {
+            "default": "🧠",
+            "title": "Emoji",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/SharedEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "overview": {
+            "default": "",
+            "title": "Overview",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "SharedStructured",
+        "type": "object"
+      },
+      "SharedTranscriptSegment": {
+        "description": "Public share projection of a transcript turn.",
+        "properties": {
+          "end": {
+            "title": "End",
+            "type": "number"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "is_user": {
+            "title": "Is User",
+            "type": "boolean"
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Id"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "SPEAKER_00",
+            "title": "Speaker"
+          },
+          "speaker_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Id"
+          },
+          "start": {
+            "title": "Start",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "is_user",
+          "start",
+          "end"
+        ],
+        "title": "SharedTranscriptSegment",
         "type": "object"
       },
       "ShortlistEligibility": {
@@ -34546,6 +34713,112 @@
         "summary": "Get App Subscription"
       }
     },
+    "/v1/calendar/capture-gaps": {
+      "get": {
+        "description": "Accepted calendar events in [start, end] with no overlapping non-discarded conversation.\n\nThe honesty surface for the Conversations list (SCA-381): what was booked\nbut never recorded. Read-only against Google Calendar; it never creates or\nmutates conversations. Declined, cancelled, tentative, and all-day / >8h\nblocks are excluded by ``select_capture_gaps``.",
+        "operationId": "get_calendar_capture_gaps_v1_calendar_capture_gaps_get",
+        "parameters": [
+          {
+            "description": "Window start (ISO format, inclusive)",
+            "in": "query",
+            "name": "start",
+            "required": true,
+            "schema": {
+              "description": "Window start (ISO format, inclusive)",
+              "format": "date-time",
+              "title": "Start",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Window end (ISO format, inclusive)",
+            "in": "query",
+            "name": "end",
+            "required": true,
+            "schema": {
+              "description": "Window end (ISO format, inclusive)",
+              "format": "date-time",
+              "title": "End",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarCaptureGap"
+                  },
+                  "title": "Response Get Calendar Capture Gaps V1 Calendar Capture Gaps Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Get Calendar Capture Gaps",
+        "tags": [
+          "google_calendar"
+        ]
+      }
+    },
     "/v1/calendar/google/events": {
       "get": {
         "description": "List Google Calendar events within a time range.\n\nUsed by the event picker UI when manually linking a conversation to a calendar event.",
@@ -34615,7 +34888,7 @@
             "schema": {
               "default": 20,
               "description": "Maximum number of events to return",
-              "maximum": 100,
+              "maximum": 500,
               "minimum": 1,
               "title": "Max Results",
               "type": "integer"
@@ -64117,6 +64390,22 @@
                 }
               ],
               "title": "X-Omi-Sync-Capture-Manifest"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Omi-Conversation-Geolocation",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Omi-Conversation-Geolocation"
             }
           },
           {

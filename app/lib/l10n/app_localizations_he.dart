@@ -9993,12 +9993,6 @@ class AppLocalizationsHe extends AppLocalizations {
   String get accountCutoverOpenStore => 'פתחו חנות';
 
   @override
-  String get chatScopeToday => 'היום';
-
-  @override
-  String get chatScopeThisWeek => 'השבוע הזה';
-
-  @override
   String chatScopeAbout(String title) {
     return 'אודות: $title';
   }
@@ -10060,4 +10054,15 @@ class AppLocalizationsHe extends AppLocalizations {
   @override
   String get pendantFullSyncBlocked =>
       'האחסון של ה-Pendant מלא והוא עדיין במצב הקלטה, ולכן לא ניתן להעביר את השמע השמור. לחצו על כפתור ה-Pendant כדי לעצור את ההקלטה, ולאחר מכן סנכרנו שוב.';
+
+  @override
+  String conversationsNotCapturedCount(int count) {
+    return 'לא הוקלט ($count)';
+  }
+
+  @override
+  String get transcriptionNoAudio => 'התמליל אינו מקבל שמע';
+
+  @override
+  String get tapPlusToStartRecording => 'Tap + to start recording';
 }
