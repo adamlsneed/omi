@@ -201,6 +201,43 @@ final class RewindDatabaseLifecycleTests: XCTestCase {
     RewindDatabase.currentUserId = nil
   }
 
+  func testInitRetryKeepsThePreviousSessionCrashMarker() async throws {
+    // Regression: the init-retry loop closes the database between attempts, and
+    // close() removed the file at runningFlagPath. That path was assigned before
+    // this session's flag was written, so it still named the previous session's
+    // crash marker. The retry then saw a clean shutdown, skipped the post-crash
+    // integrity check, and reported no unclean shutdown for a crashed launch.
+    struct InjectedFailure: Error {}
+    let testUserId = "rewind-db-init-retry-crash-\(UUID().uuidString)"
+    let applicationSupportDirectory = try XCTUnwrap(
+      FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+    )
+    let userDir =
+      applicationSupportDirectory
+      .appendingPathComponent("Omi", isDirectory: true)
+      .appendingPathComponent("users", isDirectory: true)
+      .appendingPathComponent(testUserId, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: userDir) }
+
+    try FileManager.default.createDirectory(at: userDir, withIntermediateDirectories: true)
+    FileManager.default.createFile(
+      atPath: userDir.appendingPathComponent(".omi_running").path, contents: nil)
+
+    await RewindDatabase.shared.close()
+    RewindDatabase.currentUserId = testUserId
+    await RewindDatabase.shared.configure(userId: testUserId)
+    // The first attempt publishes the pool, then fails; the retry loop closes it
+    // and opens again.
+    await RewindDatabase.shared.injectPostPublishInitFailureForTesting(InjectedFailure())
+    try await RewindDatabase.shared.initialize()
+
+    let verdict = await RewindDatabase.shared.hadUncleanShutdown()
+    XCTAssertTrue(verdict, "a retried initialization must still report the previous session's crash")
+
+    await RewindDatabase.shared.close()
+    RewindDatabase.currentUserId = nil
+  }
+
   func testPoolGenerationAdvancesAcrossReopen() async throws {
     let testUserId = "rewind-db-pool-generation-\(UUID().uuidString)"
     let applicationSupportDirectory = try XCTUnwrap(

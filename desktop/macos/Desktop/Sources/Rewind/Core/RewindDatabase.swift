@@ -27,6 +27,13 @@ actor RewindDatabase {
 
   /// Path to the running flag file (used to detect unclean shutdown)
   private var runningFlagPath: String?
+  /// Test seam: thrown once from performInitialization() right after the pool is
+  /// published, which is the only path on which the init-retry loop calls close().
+  private var postPublishInitFailureForTesting: Error?
+
+  func injectPostPublishInitFailureForTesting(_ error: Error) {
+    postPublishInitFailureForTesting = error
+  }
 
   /// Whether the *previous* session ended uncleanly, latched at the first
   /// observation in this process. `.omi_running` is created at the end of
@@ -540,7 +547,6 @@ actor RewindDatabase {
 
     let dbPath = omiDir.appendingPathComponent("omi.db").path
     let flagPath = omiDir.appendingPathComponent(".omi_running").path
-    runningFlagPath = flagPath
     log("RewindDatabase: Opening database at \(dbPath)")
 
     // Detect unclean shutdown: if the running flag file exists, the previous launch
@@ -678,6 +684,10 @@ actor RewindDatabase {
     poolEpoch += 1
     openedForUserId = expectedUserId
     consecutiveQueryIOErrors = 0
+    if let injected = postPublishInitFailureForTesting {
+      postPublishInitFailureForTesting = nil
+      throw injected
+    }
 
     // After unclean shutdown, do a cheap schema sanity check (not a full DB scan).
     // PRAGMA quick_check scans the ENTIRE database regardless of the (N) argument
@@ -693,8 +703,12 @@ actor RewindDatabase {
       }
     }
 
-    // Set running flag — will be cleared on clean shutdown
+    // Set running flag — will be cleared on clean shutdown. `runningFlagPath` is
+    // only remembered once this session's flag exists: until then the file at
+    // `flagPath` is the previous session's crash marker, and a `close()` from the
+    // init-retry loop must not erase the evidence the next attempt re-reads.
     FileManager.default.createFile(atPath: flagPath, contents: nil)
+    runningFlagPath = flagPath
 
     log("RewindDatabase: Initialized successfully")
   }
