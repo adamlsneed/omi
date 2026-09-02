@@ -50,8 +50,6 @@ class AppleHealthService {
             hasPermission(result: result)
         case "requestPermission":
             requestPermission(result: result)
-        case "probeAccess":
-            probeAccess(result: result)
         case "getHealthSummary":
             getHealthSummary(call: call, result: result)
         case "getStepCount":
@@ -92,49 +90,6 @@ class AppleHealthService {
                 }
                 result(success)
             }
-        }
-    }
-
-    // Apple does not reveal read-authorization status for privacy reasons. This is only a
-    // best-effort sample probe: a positive result confirms readable data exists, but a negative
-    // result may also mean there is no recent data for these categories.
-    private func probeAccess(result: @escaping FlutterResult) {
-        let endDate = Date()
-        let startDate = Calendar.current.date(byAdding: .day, value: -90, to: endDate)!
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-
-        var probeTypes: [HKSampleType] = []
-        if let t = HKQuantityType.quantityType(forIdentifier: .stepCount) { probeTypes.append(t) }
-        if let t = HKQuantityType.quantityType(forIdentifier: .heartRate) { probeTypes.append(t) }
-        if let t = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) { probeTypes.append(t) }
-        if let t = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) { probeTypes.append(t) }
-        if let t = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis) { probeTypes.append(t) }
-        probeTypes.append(HKWorkoutType.workoutType())
-
-        var hasAnyData = false
-        let group = DispatchGroup()
-        let lock = NSLock()
-
-        for sampleType in probeTypes {
-            group.enter()
-            let query = HKSampleQuery(
-                sampleType: sampleType,
-                predicate: predicate,
-                limit: 1,
-                sortDescriptors: nil
-            ) { _, samples, _ in
-                if let samples = samples, !samples.isEmpty {
-                    lock.lock()
-                    hasAnyData = true
-                    lock.unlock()
-                }
-                group.leave()
-            }
-            healthStore.execute(query)
-        }
-
-        group.notify(queue: .main) {
-            result(hasAnyData)
         }
     }
 
