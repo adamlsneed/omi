@@ -230,7 +230,8 @@ class _ImportHistoryPageState extends State<ImportHistoryPage> {
       if (mounted) {
         setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.importErrorGeneric(readableError(e))), backgroundColor: Colors.red.shade700),
+          SnackBar(
+              content: Text(context.l10n.importErrorGeneric(readableError(e))), backgroundColor: Colors.red.shade700),
         );
       }
     }

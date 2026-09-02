@@ -1939,7 +1939,8 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
             _modelDownloadStatus = context.l10n.errorWithMessage(readableError(e));
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.l10n.downloadErrorWithMessage(readableError(e))), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text(context.l10n.downloadErrorWithMessage(readableError(e))), backgroundColor: Colors.red),
           );
         }
       }
