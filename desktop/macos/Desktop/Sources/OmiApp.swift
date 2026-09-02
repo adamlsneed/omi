@@ -236,6 +236,96 @@ struct OMIApp: App {
   }
 }
 
+/// idea-capture (fork): a full-width, clickable menu row for "Capture Idea". A stock
+/// NSMenuItem dismisses the whole menu on click, so the recording-state restyle was
+/// never seen on the click that started it. This control handles the click in place so
+/// the menu stays open and the row flips to its red "Stop Idea Capture" state under the
+/// cursor. `isActive` is set from AppState.isIdeaCaptureActive, so a session started or
+/// stopped elsewhere stays in sync.
+final class IdeaCaptureItemControl: NSControl {
+  var isActive: Bool = false {
+    didSet {
+      guard isActive != oldValue else { return }
+      setAccessibilityLabel(title)
+      needsDisplay = true
+    }
+  }
+
+  private var isHovering = false {
+    didSet {
+      guard isHovering != oldValue else { return }
+      needsDisplay = true
+    }
+  }
+
+  private var title: String { isActive ? "Stop Idea Capture" : "Capture Idea" }
+
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+    wantsLayer = true
+    setAccessibilityRole(.button)
+    setAccessibilityLabel(title)
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  override var intrinsicContentSize: NSSize { NSSize(width: 260, height: 36) }
+
+  // Menu vibrancy would desaturate the red recording state.
+  override var allowsVibrancy: Bool { false }
+
+  override func updateTrackingAreas() {
+    super.updateTrackingAreas()
+    for area in trackingAreas { removeTrackingArea(area) }
+    addTrackingArea(
+      NSTrackingArea(
+        rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+        owner: self, userInfo: nil))
+  }
+
+  override func mouseEntered(with event: NSEvent) { isHovering = true }
+  override func mouseExited(with event: NSEvent) { isHovering = false }
+
+  override func draw(_ dirtyRect: NSRect) {
+    if isHovering {
+      let r = bounds.insetBy(dx: 5, dy: 1)
+      NSColor.selectedContentBackgroundColor.setFill()
+      NSBezierPath(roundedRect: r, xRadius: 4, yRadius: 4).fill()
+    }
+
+    let contentColor: NSColor =
+      isHovering
+      ? .alternateSelectedControlTextColor : (isActive ? .systemRed : .secondaryLabelColor)
+    let textColor: NSColor =
+      isHovering ? .alternateSelectedControlTextColor : (isActive ? .systemRed : .labelColor)
+
+    let iconName = isActive ? "stop.circle.fill" : "lightbulb"
+    let cfg = NSImage.SymbolConfiguration(pointSize: 13, weight: isActive ? .semibold : .medium)
+      .applying(NSImage.SymbolConfiguration(paletteColors: [contentColor]))
+    if let img = NSImage(systemSymbolName: iconName, accessibilityDescription: title)?
+      .withSymbolConfiguration(cfg)
+    {
+      img.isTemplate = false
+      let s = img.size
+      let ix = 16 + (18 - s.width) / 2
+      let iy = (bounds.height - s.height) / 2
+      img.draw(in: NSRect(x: ix, y: iy, width: s.width, height: s.height))
+    }
+
+    let font = NSFont.systemFont(ofSize: 13, weight: isActive ? .semibold : .regular)
+    let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: textColor, .font: font]
+    let str = NSAttributedString(string: title, attributes: attrs)
+    let textY = (bounds.height - str.size().height) / 2
+    str.draw(in: NSRect(x: 42, y: textY, width: bounds.width - 58, height: str.size().height))
+  }
+
+  override func mouseDown(with event: NSEvent) {
+    if let action = action, let target = target {
+      NSApp.sendAction(action, to: target, from: self)
+    }
+  }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked Sendable {
   /// The live AppDelegate instance. SwiftUI's `@NSApplicationDelegateAdaptor` does
   /// NOT make `NSApp.delegate` our `AppDelegate` — on macOS 14+ it installs an
@@ -265,6 +355,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
   private var statusBarItem: NSStatusItem?
   private var screenCaptureSwitch: NSSwitch?
   private var audioRecordingSwitch: NSSwitch?
+  private weak var captureIdeaControl: IdeaCaptureItemControl?
+  private var ideaCaptureObserver: NSObjectProtocol?
   private var relaunchOnLoginSuppressedForOnboarding = false
   private var apiKeyFetchTask: Task<Void, Never>?
   private var floatingBarPlanFetchTask: Task<Void, Never>?
@@ -609,6 +701,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       MainActor.assumeIsolated {
         self?.applyDockIconVisibilityPolicy(reason: "preference_changed")
       }
+    }
+    // idea-capture (fork): keep the menu row in sync the moment a session starts or
+    // stops from the sidebar or the automation bridge.
+    ideaCaptureObserver = NotificationCenter.default.addObserver(
+      forName: .ideaCaptureStateChanged, object: nil, queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated { self?.updateCaptureIdeaMenuItem() }
     }
 
     // Register for Apple Events to handle URL scheme
@@ -1004,6 +1103,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     audioRecordingItem.view = audioRecordingView
     menu.addItem(audioRecordingItem)
 
+    // idea-capture (fork): start/stop quick capture and file it under "Ideas". Only
+    // useful when signed in, since it hits the hosted backend. A custom control (not a
+    // stock NSMenuItem) so the click flips the row in place and keeps the menu open.
+    if AuthState.shared.isSignedIn {
+      let captureIdeaItem = NSMenuItem()
+      // Not drawn with a custom view, but VoiceOver/automation read it as the label.
+      captureIdeaItem.title = "Capture Idea"
+      let control = IdeaCaptureItemControl(frame: NSRect(x: 0, y: 0, width: 260, height: 36))
+      control.target = self
+      control.action = #selector(captureIdeaFromMenu)
+      captureIdeaItem.view = control
+      captureIdeaItem.toolTip =
+        "Start recording an idea; click again to stop and save it to your Ideas folder"
+      menu.addItem(captureIdeaItem)
+      captureIdeaControl = control
+      updateCaptureIdeaMenuItem()
+    }
+
     menu.addItem(NSMenuItem.separator())
 
     // Open app item
@@ -1295,6 +1412,39 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
     sender.state = outcome.resultingIsOn ? .on : .off
   }
 
+  // idea-capture (fork): first click starts recording an idea (turns the mic on if
+  // needed); second click stops and files it under "Ideas".
+  @MainActor @objc private func captureIdeaFromMenu() {
+    guard let state = AppState.current else { return }
+    let starting = !state.isIdeaCaptureActive
+    log("AppDelegate: [MENUBAR] Idea capture toggle (\(starting ? "start" : "stop"))")
+    AnalyticsManager.shared.menuBarActionClicked(
+      action: starting ? "idea_capture_start" : "idea_capture_stop")
+    Task { await state.toggleIdeaCapture() }
+  }
+
+  @MainActor private func updateCaptureIdeaMenuItem() {
+    captureIdeaControl?.isActive = AppState.current?.isIdeaCaptureActive ?? false
+  }
+
+  /// idea-capture (fork): reveal the Ideas folder in the main window. Invoked when the
+  /// user taps the capture confirmation toast.
+  @MainActor func revealIdeaFolder() {
+    log("AppDelegate: [MENUBAR] Reveal Ideas folder requested")
+    openMainAppWindow()
+    // Delay slightly so a freshly opened window's view hierarchy is mounted and
+    // listening before we post.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+      NotificationCenter.default.post(
+        name: .navigateToSidebarItem, object: nil,
+        userInfo: ["rawValue": SidebarNavItem.conversations.rawValue])
+      let folderId = UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey) ?? ""
+      if let state = AppState.current {
+        Task { await state.setFolderFilter(folderId.isEmpty ? nil : folderId) }
+      }
+    }
+  }
+
   // MARK: - NSMenuDelegate
   func menuWillOpen(_ menu: NSMenu) {
     log("AppDelegate: [MENUBAR] Menu opened by user")
@@ -1306,6 +1456,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, @unchecked S
       (!paywalled && ProactiveAssistantsPlugin.shared.isMonitoring) ? .on : .off
     audioRecordingSwitch?.state =
       (!paywalled && AssistantSettings.shared.audioRecordingMode != .off) ? .on : .off
+    updateCaptureIdeaMenuItem()
   }
 
   func menuDidClose(_ menu: NSMenu) {

@@ -405,12 +405,17 @@ struct SidebarView: View {
     appState.hasMicrophonePermission || !appState.hasMicrophonePermission
   }
 
+  private var shouldShowIdeaCaptureStatus: Bool {
+    authState.isSignedIn
+  }
+
   private var shouldShowAccessibilityStatus: Bool {
     !appState.hasAccessibilityPermission || appState.isAccessibilityBroken
   }
 
   private var hasVisibleSidebarStatuses: Bool {
-    shouldShowScreenRecordingStatus || shouldShowMicrophoneStatus || shouldShowAccessibilityStatus
+    shouldShowScreenRecordingStatus || shouldShowMicrophoneStatus || shouldShowIdeaCaptureStatus
+      || shouldShowAccessibilityStatus
   }
 
   private var profileDisplayName: String {
@@ -513,6 +518,10 @@ struct SidebarView: View {
 
       if shouldShowMicrophoneStatus {
         microphonePermissionRow(isExpanded: !isCollapsed)
+      }
+
+      if shouldShowIdeaCaptureStatus {
+        ideaCaptureRow(isExpanded: !isCollapsed)
       }
 
       if shouldShowAccessibilityStatus {
@@ -702,6 +711,64 @@ struct SidebarView: View {
       .buttonStyle(.plain)
     } else {
       row
+    }
+  }
+
+  // idea-capture (fork): start/stop a focused idea recording that files under "Ideas".
+  private func ideaCaptureRow(isExpanded: Bool) -> some View {
+    let action = IdeaCaptureSidebarAction.current(isActive: appState.isIdeaCaptureActive)
+    let isActive = appState.isIdeaCaptureActive
+    let color: Color = isActive ? Ink.listeningGreen : Ink.secondary
+
+    return Button(action: {
+      toggleIdeaCaptureFromSidebar()
+    }) {
+      HStack(spacing: OmiSpacing.sm) {
+        Image(systemName: action.systemImage)
+          .scaledFont(size: OmiType.subheading)
+          .foregroundColor(color)
+          .frame(width: iconWidth)
+
+        if isExpanded {
+          Text(action.title)
+            .scaledFont(size: OmiType.body, weight: .medium)
+            .foregroundColor(color)
+            .lineLimit(1)
+
+          Spacer()
+
+          if isActive {
+            Text("Recording")
+              .scaledFont(size: OmiType.micro, weight: .semibold)
+              .foregroundColor(Ink.listeningGreen)
+              .padding(.horizontal, OmiSpacing.sm)
+              .padding(.vertical, OmiSpacing.hairline)
+              .background(Capsule().fill(Ink.listeningGreen.opacity(0.16)))
+          }
+        }
+      }
+      .padding(.horizontal, OmiSpacing.sm)
+      .padding(.vertical, OmiSpacing.xs)
+      .frame(minHeight: 40)
+      .background(
+        RoundedRectangle(cornerRadius: OmiChrome.smallControlRadius)
+          .fill(isActive ? Ink.listeningGreen.opacity(0.10) : Color.clear)
+      )
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .help(action.helpText)
+    .accessibilityLabel(action.accessibilityLabel)
+    .accessibilityValue(isActive ? "Recording" : "Idle")
+    .accessibilityIdentifier("sidebar_capture_idea")
+  }
+
+  private func toggleIdeaCaptureFromSidebar() {
+    let starting = !appState.isIdeaCaptureActive
+    AnalyticsManager.shared.menuBarActionClicked(
+      action: starting ? "idea_capture_start_sidebar" : "idea_capture_stop_sidebar")
+    Task { @MainActor in
+      await appState.toggleIdeaCapture()
     }
   }
 
