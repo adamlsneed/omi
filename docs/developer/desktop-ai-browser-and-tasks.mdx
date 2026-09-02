@@ -17,7 +17,7 @@ OMI_DESKTOP_API_URL=https://desktop-backend-hhibjajaja-uc.a.run.app
 OMI_PYTHON_API_URL=https://api.omi.me
 ```
 
-`OMI_PYTHON_API_URL` is the primary Python API for auth, transcription, subscription state, conversations, tasks, and most user data. `OMI_DESKTOP_API_URL` points at the desktop Rust backend service and is used for desktop-only proxy routes such as config keys, agent status, and `/v2/chat/completions`.
+`OMI_PYTHON_API_URL` is the primary Python API for auth, transcription, subscription state, conversations, tasks, and most user data. `OMI_DESKTOP_API_URL` points at the hosted desktop backend service and is used for desktop-only proxy routes such as config keys, agent status, and `/v2/chat/completions`.
 
 Do not route Adam's normal local build to a personal backend, tunnel, or fork backend unless the task is explicitly backend development.
 
