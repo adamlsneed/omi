@@ -461,6 +461,7 @@ class PushToTalkManager: ObservableObject {
       performTerminalCleanup(
         discardBufferedAudio: record.reason == .ownerChanged,
         parkWarm: Self.terminalReasonKeepsWarmCapture(record.reason))
+      hideBarIfDisabledAfterSession(reason: record.reason)
     case .scheduleDeadline, .cancelDeadline, .cancelAllDeadlines,
       .staleEventDropped, .invalidTransition:
       break
@@ -551,12 +552,44 @@ class PushToTalkManager: ObservableObject {
     // Let the first shortcut press reveal the compact bar instead of requiring it
     // to already be visible. This keeps onboarding step 3 quiet on entry while
     // still allowing the user to trigger the bar by pressing the key.
-    if !FloatingControlBarManager.shared.isVisible {
-      FloatingControlBarManager.shared.show()
-    }
+    revealBarForShortcutPress()
 
     guard FloatingControlBarManager.shared.isVisible else { return }
     handleShortcutDown()
+  }
+
+  /// Reveal a hidden bar for the voice session without persisting the enable
+  /// preference: an accidental chord press must not permanently undo the user's
+  /// "Show floating bar" off setting.
+  func revealBarForShortcutPress() {
+    guard !FloatingControlBarManager.shared.isVisible else { return }
+    FloatingControlBarManager.shared.showForVoiceSession()
+  }
+
+  /// A session that ends without opening a conversation must put the bar away
+  /// again for users who keep it hidden. Sessions that did open a conversation
+  /// are re-hidden by closeAIConversation's collapse path.
+  static func shouldHideBarAfterSession(
+    reason: VoiceTurnTerminalReason, barEnabled: Bool, showingAIConversation: Bool, showingNotification: Bool
+  ) -> Bool {
+    guard !barEnabled, !showingAIConversation, !showingNotification else { return false }
+    switch reason {
+    case .tooShort, .silentRejected:
+      return true
+    default:
+      return false
+    }
+  }
+
+  func hideBarIfDisabledAfterSession(reason: VoiceTurnTerminalReason) {
+    guard let barState,
+      Self.shouldHideBarAfterSession(
+        reason: reason,
+        barEnabled: FloatingControlBarManager.shared.isEnabled,
+        showingAIConversation: barState.showingAIConversation,
+        showingNotification: barState.currentNotification != nil)
+    else { return }
+    FloatingControlBarManager.shared.hideTemporarily()
   }
 
   private func handleShortcutDown() {
