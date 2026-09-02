@@ -22,7 +22,16 @@ final class IdeaCaptureSessionTests: XCTestCase {
   }
 
   private var savedPaywalled: Any?
-  private var stateChanges = 0
+  /// Counted off the observer's queue, so the closure captures nothing main-actor bound.
+  private final class StateChangeCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var value: Int { lock.withLock { count } }
+    func increment() { lock.withLock { count += 1 } }
+  }
+
+  private let stateChangeCounter = StateChangeCounter()
+  private var stateChanges: Int { stateChangeCounter.value }
   private var stateObserver: NSObjectProtocol?
 
   override func setUp() async throws {
@@ -30,7 +39,7 @@ final class IdeaCaptureSessionTests: XCTestCase {
     UserDefaults.standard.removeObject(forKey: .desktopIsPaywalled)
     stateObserver = NotificationCenter.default.addObserver(
       forName: .ideaCaptureStateChanged, object: nil, queue: nil
-    ) { [weak self] _ in self?.stateChanges += 1 }
+    ) { [stateChangeCounter] _ in stateChangeCounter.increment() }
   }
 
   override func tearDown() async throws {
