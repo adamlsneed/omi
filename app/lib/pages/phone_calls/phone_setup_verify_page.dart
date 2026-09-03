@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:omi/pages/phone_calls/phone_calls_page.dart';
 import 'package:omi/providers/phone_call_provider.dart';
 import 'package:omi/utils/l10n_extensions.dart';
+import 'package:omi/utils/logger.dart';
 
 enum _VerifyStatus { calling, inProgress, missedCall, verified, timedOut }
 
@@ -87,7 +88,7 @@ class _PhoneSetupVerifyPageState extends State<PhoneSetupVerifyPage> with Single
       try {
         verified = await provider.checkVerification(widget.phoneNumber);
       } catch (e) {
-        debugPrint('Phone verification check failed: $e');
+        Logger.debug('Phone verification check failed: $e');
         verified = false;
       } finally {
         if (runId == _pollingRunId) {
