@@ -66,7 +66,7 @@ The unit of work is the violated contract, not only the line where the symptom a
 ## Safety Rules
 
 - Never kill, stop, or restart the production macOS apps (`/Applications/Omi.app` / `Omi Beta.app`, bundle ids `com.omi.computer-macos` and `com.omi.computer-macos.beta`). Dev commands target only dev or `omi-*` named test bundles.
-- **Verify before proposing to land.** Default to a local build + run (desktop: a named `omi-*` bundle) and exercise the real user-facing path. "It compiles" is not verification.
+- **Verify before proposing to land.** Default to a local build + run (desktop: `desktop/macos/run.sh`, deployed as Omi Dev) and exercise the real user-facing path. "It compiles" is not verification.
 - **Production writes are never implied.** Deploys, traffic shifts, release-pointer moves, secret and schema changes, and data deletion each need their own explicit go-ahead. An approval for one action never carries to the next.
 - **Landing conventions belong to the user, not this file.** Whether to commit locally, push, open a PR, or merge follows the user's own workflow and your judgment in context. This repo asks only for the mechanics in Git below.
 - **Fork rules.** Never deploy fork-owned backends (Python, Rust, pusher, agent-proxy, GKE); this fork uses BasedHardware's hosted services. Push, merge, and open PRs only against `adamlsneed` remotes, never BasedHardware; upstream sync is one-way, `BasedHardware/Omi` into `adamlsneed/omi`. Never push directly to `main`; land through a PR with a regular merge, which needs no per-change approval once verified.

@@ -231,6 +231,7 @@ CLAUDE.md
 web/app/next-env.d.ts
 web/app/tsconfig.tsbuildinfo
 .claude/settings.local.json
+.claude/backups/
 .claude/worktrees/
 .mcp.json
 LOCAL_DEV_SETUP.md
