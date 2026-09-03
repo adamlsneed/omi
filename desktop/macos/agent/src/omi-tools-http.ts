@@ -75,7 +75,7 @@ const TOOLS = [
 Supports: SELECT, INSERT, UPDATE, DELETE.
 SELECT auto-limits to 200 rows. UPDATE/DELETE require WHERE. DROP/ALTER/CREATE blocked.
 Use for: app usage stats, time queries, task management, aggregations, anything structured.
-The screenshots table includes captureTrigger and textSource so agents can distinguish timer captures, future event captures, OCR text, accessibility text, and deferred OCR.`,
+The screenshots table includes captureTrigger (why the frame was captured) and textSource (where its text came from: ocr, accessibility, hybrid, or none).`,
     inputSchema: {
       type: "object",
       properties: {

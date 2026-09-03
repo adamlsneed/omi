@@ -674,8 +674,8 @@ struct BrowserExtensionSetup: View {
         tokenError = error
         return
       }
-      UserDefaults.standard.set(token, forKey: "playwrightExtensionToken")
-      UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
+      UserDefaults.standard.set(token, forKey: .playwrightExtensionToken)
+      UserDefaults.standard.set(false, forKey: .playwrightExtensionVerified)
       log("BrowserExtensionSetup: Token saved (\(token.prefix(8))...)")
 
       if chatProvider != nil {
@@ -718,10 +718,10 @@ struct BrowserExtensionSetup: View {
           isVerifying = false
           if connected {
             verifySuccess = true
-            UserDefaults.standard.set(true, forKey: "playwrightExtensionVerified")
+            UserDefaults.standard.set(true, forKey: .playwrightExtensionVerified)
             log("BrowserExtensionSetup: Connection test succeeded")
           } else {
-            UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
+            UserDefaults.standard.set(false, forKey: .playwrightExtensionVerified)
             verifyError = "Could not connect to the extension. Make sure \(selectedTarget.name) is open and try again."
             log("BrowserExtensionSetup: Connection test returned false")
           }
@@ -729,7 +729,7 @@ struct BrowserExtensionSetup: View {
       } catch {
         await MainActor.run {
           isVerifying = false
-          UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
+          UserDefaults.standard.set(false, forKey: .playwrightExtensionVerified)
           let msg = error.localizedDescription
           if msg.contains("timeout") || msg.contains("Extension connection timeout") {
             verifyError =

@@ -605,7 +605,7 @@ extension SettingsContentView {
                 Circle()
                   .fill(browserExtensionStatusColor)
                   .frame(width: 6, height: 6)
-                Text(browserExtensionStatusText)
+                Text(browserExtensionStatus.text)
                   .scaledFont(size: OmiType.caption)
                   .foregroundColor(Ink.secondary)
               }

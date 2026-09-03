@@ -67,8 +67,6 @@ Releases are cut manually and distributed via Homebrew. **Full guide: [`RELEASE.
 - Install/update on a Mac: `brew install --cask adamlsneed/omi/omi` then `brew upgrade`.
 - This dev Mac keeps using `./run.sh` (debug build) for development.
 
-`release.sh` mirrors `run.sh`'s bundle assembly; keep them in sync if `run.sh`'s
-assembly changes on an upstream pull.
 ## Firebase Connection
 Use the `/firebase` command if your agent provides it.
 
@@ -255,7 +253,8 @@ This rebuilds and replaces `/Applications/Omi Dev.app` (bundle ID: `com.omi.desk
 
 **Rules:**
 - **NEVER use `OMI_APP_NAME` for local deploys** — do not create named bundles (`omi-<feature>` etc.); always deploy as "Omi Dev" over the existing install
-- To connect agent-swift: `agent-swift connect --bundle-id com.omi.desktop-dev`- **Jump to a screen without clicking:** the automation bridge auto-enables on non-prod bundles — `./scripts/omi-ctl navigate <screen>` (e.g. `rewind`, `memories`, `settings rewind`). See "Fast-Path for Local Iteration" in `e2e/SKILL.md`.
+- To connect agent-swift: `agent-swift connect --bundle-id com.omi.desktop-dev`
+- **Jump to a screen without clicking:** the automation bridge auto-enables on non-prod bundles — `./scripts/omi-ctl navigate <screen>` (e.g. `rewind`, `memories`, `settings rewind`). See "Fast-Path for Local Iteration" in `e2e/SKILL.md`.
 - Named/dev bundles default to the development Python and desktop backends unless
   an explicit launch URL overrides them. Before QA, run
   `./scripts/omi-ctl health`; its unauthenticated identity payload reports the

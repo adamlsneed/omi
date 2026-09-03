@@ -2620,7 +2620,7 @@ class AuthService {
 
     // Browser automation token binds the app to the user's Chrome session.
     // Clear it on sign-out so the next signed-in user cannot reuse it.
-    UserDefaults.standard.removeObject(forKey: "playwrightExtensionToken")
+    UserDefaults.standard.removeObject(forKey: .playwrightExtensionToken)
 
     NSLog("OMI AUTH: Signed out and cleared saved state + onboarding")
   }

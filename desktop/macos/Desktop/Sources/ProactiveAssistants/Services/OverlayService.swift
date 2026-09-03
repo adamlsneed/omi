@@ -145,7 +145,7 @@ class OverlayService {
     guard CFGetTypeID(windowElementRef) == AXUIElementGetTypeID() else {
       return nil
     }
-    let windowElement = windowElementRef as! AXUIElement
+    let windowElement = unsafeDowncast(windowElementRef, to: AXUIElement.self)
 
     // Get window position
     var positionValue: CFTypeRef?
@@ -157,7 +157,7 @@ class OverlayService {
     else {
       return nil
     }
-    let axPosition = posRef as! AXValue
+    let axPosition = unsafeDowncast(posRef, to: AXValue.self)
 
     var position = CGPoint.zero
     if !AXValueGetValue(axPosition, .cgPoint, &position) {
@@ -174,7 +174,7 @@ class OverlayService {
     else {
       return nil
     }
-    let axSize = sizeRef as! AXValue
+    let axSize = unsafeDowncast(sizeRef, to: AXValue.self)
 
     var size = CGSize.zero
     if !AXValueGetValue(axSize, .cgSize, &size) {

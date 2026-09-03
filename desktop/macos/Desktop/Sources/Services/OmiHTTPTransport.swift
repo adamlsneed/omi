@@ -304,7 +304,6 @@ enum APIError: LocalizedError {
   case unauthorized
   case httpError(statusCode: Int, detail: String? = nil)
   case decodingError(Error)
-  case invalidURL(String)
   case unsupportedTierScopedBulkMutation(String)
   case syncRateLimited(retryAfterSeconds: Int?)
   case syncUploadRejected(reason: String)
@@ -332,8 +331,6 @@ enum APIError: LocalizedError {
       return "HTTP error: \(statusCode)"
     case .decodingError(let error):
       return "Failed to decode response: \(error.localizedDescription)"
-    case .invalidURL(let url):
-      return "Invalid URL: \(url)"
     case .unsupportedTierScopedBulkMutation(let operation):
       return "Layer-scoped bulk memory \(operation) is not supported yet."
     case .syncRateLimited(let retryAfterSeconds):

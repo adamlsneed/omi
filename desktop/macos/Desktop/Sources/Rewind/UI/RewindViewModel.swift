@@ -272,7 +272,7 @@ class RewindViewModel: ObservableObject {
       // Without this, the capture indexer can open the DB for "anonymous",
       // then ViewModelContainer.loadAllData() detects the user mismatch, closes
       // the DB, and re-opens — leaving us with a nil dbQueue mid-use.
-      let userId = UserDefaults.standard.string(forKey: "auth_userId")
+      let userId = UserDefaults.standard.string(forKey: .authUserId)
       await RewindDatabase.shared.configure(userId: userId)
       guard ownerSnapshot.isCurrent() else { return }
 
