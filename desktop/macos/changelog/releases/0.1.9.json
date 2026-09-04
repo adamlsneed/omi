@@ -1,0 +1,28 @@
+{
+  "version": "0.1.9",
+  "date": "2026-09-04",
+  "changes": [
+    "Synced with upstream: the app moves to the new Ink glass design (chat-first Home, glass panels on every surface, Open Runde type), adds an Activity tab, clickable source citations, EventKit meeting context, a push-to-talk button in chat, wider notch notifications, and interface sounds. Fork features (idea capture, task auto-promote, Haiku model defaults, recording controls) are preserved, and the agent subprocess again runs with an allowlisted environment and file-based auth token.",
+    "Synced with upstream: Rewind's timeline now shows and follows the live edge with live frame previews, voice playback stops when you start speaking, conversations detect multi-party calls and meetings from speaker context, and processing or locked conversations are labelled instead of showing as 'Untitled'. Includes upstream's iOS background-energy work, rewired so it still runs under this fork's UIScene lifecycle.",
+    "Fixed being signed out after updating the app by migrating saved sign-in tokens from the previous storage location",
+    "Fixed the idea-capture toast registering taps in the invisible margin around the card",
+    "Fixed the recording status label to use a proper ellipsis",
+    "Polished the app-detail editor to use proper ellipses in its placeholders and saving state",
+    "Conversation durations over an hour now show as hours and minutes (e.g. 1h 16m) instead of 76m",
+    "Synced upstream improvements: faster Memory Graph loading with cached layouts, more reliable Bluetooth connections, safer sign-out handling, and voice/chat telemetry fixes",
+    "Sync upstream BasedHardware/omi: Second Brain desktop redesign (chat-first home, floating top bar, conversational onboarding with Back navigation, Notion-style Tasks board, expandable transcript drawer), one-continuous-chat model, PTT microphone picker and legible PTT failure UX, live Notion/ChatGPT connections over hosted MCP, memory batch delete, plan tier updates, and many stability fixes.",
+    "Fixed the Chat Prompt Lab window opening fully see-through, with the desktop and other windows readable straight through the page",
+    "Sync upstream BasedHardware/omi: meeting-note screenshots end to end with a per-account egress gate, persistent meeting-summary share card with send-to-participant, a notice when Omi starts taking meeting notes, retrieval-grounded answers delivered to a question you are still typing (with the citation attributed), Activity renamed to Brain with working back navigation from every page it opens, Integration Suggestions as a fifth notification type, desktop referral links, a rating prompt after the third question, cached Anthropic prompt prefix and tighter dwell-refresh pacing for faster answers, and many stability fixes. An active subscription on a plan this build does not recognize is now treated as unpaid until its capabilities are known, replacing the fork's earlier treat-as-paid behavior.",
+    "Sync upstream BasedHardware/Omi: presence-gated realtime hub re-warm, non-blocking alert queue, speaker naming from every surface, BYOK provider setup simplification, Soniox STT support, and assorted desktop fixes.",
+    "Sync upstream BasedHardware changes (2026-08-29): voice escalation now runs through the typed-chat lane, settings and memories page updates.",
+    "Rewind keeps the previous session's crash marker when database initialization has to retry, so the post-crash integrity check still runs.",
+    "Sync upstream BasedHardware/Omi (2026-09-01): Interject voice replies on proactive notifications, JIT knowledge-ledger tools in the agent runtime, conversation playback and references in chat, cross-device memory deletion, timezone-correct chat timestamps, and the onboarding doors demo.",
+    "Onboarding door 3 hint asks the question directly instead of telling Omi to check screen history, which is not searchable yet that early in onboarding",
+    "Removed never-wired fork staging code: the local session uploader (upstream's finalization service covers it), the multi-channel audio framing helpers, and the browser-extension guidance helpers that only tests called.",
+    "Restored desktop idea capture (menu bar, sidebar, omi-ctl capture_idea), the non-persisting floating-bar reveal around push-to-talk sessions, and the CoreAudio pre-warm on PTT setup",
+    "Removed the orphaned desktop app-editing API helpers, fixed the Omi Dev smoke script's bundled-node path, and corrected fork docs and release.sh to name the hosted backends run.sh --yolo uses.",
+    "Internal: reworded fork-authored source comments; no behavior change.",
+    "Retired the one-time keychain token migration from pre-July fork builds.",
+    "Removed dead desktop code left by the slop audit: an unused MCP server builder, an unconstructed API error case, and a constant battery-skip flag in the Rewind indexer."
+  ]
+}

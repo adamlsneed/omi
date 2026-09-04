@@ -1,3 +1,0 @@
-{
-  "change": "Synced with upstream: the app moves to the new Ink glass design (chat-first Home, glass panels on every surface, Open Runde type), adds an Activity tab, clickable source citations, EventKit meeting context, a push-to-talk button in chat, wider notch notifications, and interface sounds. Fork features (idea capture, task auto-promote, Haiku model defaults, recording controls) are preserved, and the agent subprocess again runs with an allowlisted environment and file-based auth token."
-}
