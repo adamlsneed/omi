@@ -482,12 +482,8 @@ checks:
     reason: "backend production Python changes must retain import-time purity"
   # Fork policy: backend images are never built or deployed from this fork
   # (hosted BasedHardware backend only), and the fork deletes the auto-deploy
-  # workflows this contract requires to exist. Check disabled fork-side.
-  # - id: backend-runtime-image-source-closure
-  #   command: ["python3", "backend/scripts/runtime_image_contracts.py", "check"]
-  #   triggers: ["backend/**/*.py", "backend/**/Dockerfile*", "backend/runtime_images.json", "backend/scripts/runtime_image_contracts.py", ".github/workflows/runtime_image_contracts.yml", ".github/workflows/gcp_backend*.yml", ".github/workflows/gcp_diarizer.yml", ".github/workflows/gcp_models.yml", ".github/workflows/gcp_parakeet.yml", ".github/workflows/gcp_nllb_translation.yml", ".github/workflows/gcp_memory_maintenance_job*.yml", ".github/workflows/gcp_notifications_job.yml", ".github/workflows/gcp_plugins.yml", "plugins/**/*.py", "plugins/Dockerfile"]
-  #   lanes: ["local", "ci"]
-  #   reason: "#9857: deployable Python images must contain the transitive first-party imports of their runtime entrypoints"
+  # workflows this contract requires to exist. backend-runtime-image-source-closure
+  # is removed here.
   - id: backend-module-isolation
     command: ["python3", "backend/scripts/check_module_stub_pollution.py", "--files", "{changed_files}", "--check-allowlist-monotonic", "{base}"]
     triggers: ["backend/tests/**/*.py", "backend/testing/**/*.py", "backend/tests/.module_stub_legacy_allowlist", "backend/scripts/check_module_stub_pollution.py"]
@@ -514,12 +510,8 @@ checks:
     lanes: ["local", "ci"]
     reason: "workflow boundary sources changed"
   # Fork policy: pusher is never deployed from this fork and the auto-deploy
-  # workflow this budget audits is deleted. Check disabled fork-side.
-  # - id: pusher-rollout-readiness-budget
-  #   command: ["python3", "backend/scripts/verify_pusher_rollout_budget.py"]
-  #   triggers: ["backend/charts/pusher/**", ".github/workflows/gcp_backend_pusher.yml", ".github/workflows/gcp_backend_pusher_auto_deploy.yml", "backend/scripts/verify_pusher_rollout_budget.py", "backend/tests/unit/test_verify_pusher_rollout_budget.py", ".github/checks-manifest.yaml"]
-  #   lanes: ["local", "ci"]
-  #   reason: "#9988: Pusher's Kubernetes deadline and workflow wait must cover chart-derived availability at the HPA ceiling"
+  # workflow this budget audits is deleted. pusher-rollout-readiness-budget is
+  # removed here.
   - id: pusher-rollout-quality-gate
     command: ["python3", "backend/scripts/verify_pusher_rollout_gate.py"]
     triggers: ["backend/charts/pusher/**", "backend/utils/metrics.py", "backend/routers/pusher.py", "backend/utils/readiness.py", ".github/workflows/gcp_backend_pusher.yml", ".github/workflows/gcp_backend_pusher_auto_deploy.yml", "backend/scripts/verify_pusher_rollout_gate.py", "backend/scripts/verify_pusher_source_closure.py", "backend/pusher/Dockerfile", "backend/tests/unit/test_verify_pusher_rollout_gate.py", "backend/tests/unit/test_pusher_deployment_control_workflow.py", ".github/checks-manifest.yaml"]

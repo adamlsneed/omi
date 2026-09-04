@@ -1,3 +1,4 @@
+// Static checker: asserts on source text of app and web files, not on behavior.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

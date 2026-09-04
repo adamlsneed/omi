@@ -5,8 +5,8 @@ Device firmware: Zephyr, C/C++. The board this fork builds is `omi/firmware/omi/
 keep fork divergence minimal so upstream pulls stay clean.
 
 ## Committing firmware: use --no-verify
-The repo's `scripts/pre-commit` hook (symlinked into `.git/hooks/pre-commit`, and
-identical to upstream's) runs `clang-format -i` on staged firmware files under
+The repo's `scripts/pre-commit` hook (installed as a wrapper in `.git/hooks/pre-commit`
+by `make setup`, and identical to upstream's) runs `clang-format -i` on staged firmware files under
 `omi/` and `omiGlass/`. Two consequences:
 
 1. If `clang-format` isn't installed, the hook **fails and blocks the commit**.

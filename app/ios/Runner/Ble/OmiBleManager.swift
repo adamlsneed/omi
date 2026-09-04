@@ -158,22 +158,26 @@ final class OmiBleManager: NSObject {
 
     // MARK: - Connection
 
+    /// For a peripheral that is already connected (BLE state restoration on
+    /// relaunch) didConnect will not fire again, so service discovery has to be
+    /// re-run by hand. Otherwise the characteristic notify subscriptions (audio)
+    /// are never re-established: "connected but no recordings".
+    private func rediscoverServices(of peripheral: CBPeripheral, uuid: String) {
+        peripheral.delegate = self
+        everConnected.insert(uuid)
+        if connectionStartTimes[uuid] == nil {
+            connectionStartTimes[uuid] = Int64(Date().timeIntervalSince1970 * 1000)
+        }
+        peripheral.discoverServices(nil)
+    }
+
     func connectPeripheral(uuid: String) {
         manuallyDisconnected.remove(uuid)
 
         if let peripheral = peripherals[uuid] {
             if peripheral.state == .connected {
-                // Already connected (e.g. BLE state restoration on relaunch): didConnect
-                // will NOT fire again, so re-run service discovery here. Otherwise the
-                // characteristic notify subscriptions (audio) are never re-established and
-                // no audio streams — i.e. "connected but no recordings".
                 NSLog("[OmiBle] connectPeripheral: \(uuid) already connected, re-discovering services")
-                peripheral.delegate = self
-                everConnected.insert(uuid)
-                if connectionStartTimes[uuid] == nil {
-                    connectionStartTimes[uuid] = Int64(Date().timeIntervalSince1970 * 1000)
-                }
-                peripheral.discoverServices(nil)
+                rediscoverServices(of: peripheral, uuid: uuid)
                 return
             }
             centralManager.connect(peripheral, options: nil)
@@ -688,14 +692,7 @@ extension OmiBleManager: CBCentralManagerDelegate {
                 if peripheral.state != .connected {
                     central.connect(peripheral, options: nil)
                 } else {
-                    // Restored already-connected: didConnect won't fire, so kick off
-                    // service discovery directly to re-establish characteristic (audio)
-                    // subscriptions — otherwise no audio streams after relaunch.
-                    everConnected.insert(uuid)
-                    if connectionStartTimes[uuid] == nil {
-                        connectionStartTimes[uuid] = Int64(Date().timeIntervalSince1970 * 1000)
-                    }
-                    peripheral.discoverServices(nil)
+                    rediscoverServices(of: peripheral, uuid: uuid)
                 }
             }
             flutterApi?.onStateRestored(peripheralUuids: uuids) { _ in }

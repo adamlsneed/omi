@@ -223,12 +223,9 @@ actor RewindIndexer {
     lastEncodedFrameTimestamp = timestamp
   }
 
-  private func textSource(ocrText: String?, skippedForBattery: Bool) -> String {
+  private func textSource(ocrText: String?) -> String {
     if let ocrText, !ocrText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
       return CapturedTextSource.ocr.rawValue
-    }
-    if skippedForBattery {
-      return CapturedTextSource.deferred.rawValue
     }
     return CapturedTextSource.none.rawValue
   }
@@ -281,10 +278,6 @@ actor RewindIndexer {
       var ocrText: String?
       var ocrDataJson: String?
       var isIndexed = false
-      // Legacy flag: battery handling now uses adaptive capture cadence, so frames
-      // are never skipped for battery here. Kept for the existing DB column/textSource.
-      let skippedForBattery = false
-
       framesSinceLastOCR += 1
       if framesSinceLastOCR < ocrEveryNthFrame {
         recordOCROutcome(.skippedFrequency)
@@ -326,9 +319,8 @@ actor RewindIndexer {
         ocrText: ocrText,
         ocrDataJson: ocrDataJson,
         isIndexed: isIndexed,
-        skippedForBattery: skippedForBattery,
         captureTrigger: frame.captureTrigger.rawValue,
-        textSource: textSource(ocrText: ocrText, skippedForBattery: skippedForBattery),
+        textSource: textSource(ocrText: ocrText),
         deviceName: currentComputerName,
         clientDeviceId: currentClientDeviceId
       )
@@ -412,10 +404,6 @@ actor RewindIndexer {
       var ocrText: String?
       var ocrDataJson: String?
       var isIndexed = false
-      // Legacy flag: battery handling now uses adaptive capture cadence, so frames
-      // are never skipped for battery here. Kept for the existing DB column/textSource.
-      let skippedForBattery = false
-
       framesSinceLastOCR += 1
       if framesSinceLastOCR < ocrEveryNthFrame {
         recordOCROutcome(.skippedFrequency)
@@ -454,9 +442,8 @@ actor RewindIndexer {
         ocrText: ocrText,
         ocrDataJson: ocrDataJson,
         isIndexed: isIndexed,
-        skippedForBattery: skippedForBattery,
         captureTrigger: captureTrigger.rawValue,
-        textSource: textSource(ocrText: ocrText, skippedForBattery: skippedForBattery),
+        textSource: textSource(ocrText: ocrText),
         deviceName: currentComputerName,
         clientDeviceId: currentClientDeviceId
       )

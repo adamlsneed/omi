@@ -80,7 +80,7 @@ enum UserFacingErrorPresentation {
         default:
           return fallback(for: context)
         }
-      case .invalidResponse, .decodingError, .invalidURL:
+      case .invalidResponse, .decodingError:
         return "Omi received an unexpected response. Try again."
       case .syncRateLimited:
         return "Omi is busy right now. Try again in a moment."

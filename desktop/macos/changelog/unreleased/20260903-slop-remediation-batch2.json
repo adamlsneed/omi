@@ -1,0 +1,1 @@
+{"change":"Removed dead desktop code left by the slop audit: an unused MCP server builder, an unconstructed API error case, and a constant battery-skip flag in the Rewind indexer."}

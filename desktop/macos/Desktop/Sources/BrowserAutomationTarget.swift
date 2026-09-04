@@ -36,7 +36,7 @@ struct BrowserAutomationTarget: Equatable, Hashable, Identifiable, Sendable {
 enum BrowserAutomationTargetStore {
   private static let selectedBundleIdentifierKey = "playwrightBrowserBundleIdentifier"
   private static let userSelectedBundleIdentifierKey = "playwrightBrowserBundleIdentifierUserSelected"
-  private static let extensionTokenKey = "playwrightExtensionToken"
+  private static let extensionTokenKey = DefaultsKey.playwrightExtensionToken
 
   static var selectedBundleIdentifier: String? {
     get {

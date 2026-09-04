@@ -163,7 +163,7 @@ final class QuickActionsIconPatcher: NSObject {
           session?.delegate = self
           session?.activate();
 
-                      flutterWatchAPI = WatchRecorderFlutterAPI(binaryMessenger: controller.binaryMessenger)
+            flutterWatchAPI = WatchRecorderFlutterAPI(binaryMessenger: controller.binaryMessenger)
             let api: WatchRecorderHostAPI = RecorderHostApiImpl(session: session!, flutterWatchAPI: flutterWatchAPI)
 
             WatchRecorderHostAPISetup.setUp(binaryMessenger: controller.binaryMessenger, api: api)
@@ -171,15 +171,13 @@ final class QuickActionsIconPatcher: NSObject {
 
       // Native BLE module — register Pigeon APIs
       NSLog("[OmiBle] Registering BLE Pigeon APIs")
-      let bleController: FlutterViewController? = controller
-      if let messenger = bleController?.binaryMessenger {
+      do {
+          let messenger = controller.binaryMessenger
           let bleFlutterApi = BleFlutterApi(binaryMessenger: messenger)
           OmiBleManager.shared.setFlutterApi(bleFlutterApi)
           let bleHostApi = BleHostApiImpl(bleManager: OmiBleManager.shared)
           BleHostApiSetup.setUp(binaryMessenger: messenger, api: bleHostApi)
           NSLog("[OmiBle] BLE Pigeon APIs registered successfully")
-      } else {
-          NSLog("[OmiBle] ERROR: Could not get FlutterBinaryMessenger")
       }
 
       // Ray-Ban Meta (Meta Wearables DAT camera + Bluetooth HFP mic) — Pigeon APIs.
@@ -205,7 +203,7 @@ final class QuickActionsIconPatcher: NSObject {
       }
 
     //Creates a method channel to handle notifications on kill
-        methodChannel = FlutterMethodChannel(name: "com.friend.ios/notifyOnKill", binaryMessenger: controller.binaryMessenger)
+    methodChannel = FlutterMethodChannel(name: "com.friend.ios/notifyOnKill", binaryMessenger: controller.binaryMessenger)
     methodChannel?.setMethodCallHandler { [weak self] (call, result) in
       self?.handleMethodCall(call, result: result)
     }

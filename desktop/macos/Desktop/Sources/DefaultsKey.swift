@@ -114,6 +114,9 @@ enum DefaultsKey: String {
   /// Shared token the browser extension presents to the local Playwright MCP
   /// bridge. Also read through `@AppStorage` under the same raw name.
   case playwrightExtensionToken = "playwrightExtensionToken"
+  /// Whether the last extension connection test succeeded; `@AppStorage` in
+  /// SettingsPage reads it under the same raw name.
+  case playwrightExtensionVerified = "playwrightExtensionVerified"
 }
 
 /// Compile-checked owner-scoped defaults keys whose final storage key is

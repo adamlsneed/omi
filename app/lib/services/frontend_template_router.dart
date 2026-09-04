@@ -312,14 +312,12 @@ class FrontendTemplateRoutingStore {
 
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) {
-        return FrontendTemplateRoutingConfig.fromJson(decoded);
-      }
+      return decoded is Map<String, dynamic>
+          ? FrontendTemplateRoutingConfig.fromJson(decoded)
+          : FrontendTemplateRoutingConfig.defaults();
     } catch (_) {
       return FrontendTemplateRoutingConfig.defaults();
     }
-
-    return FrontendTemplateRoutingConfig.defaults();
   }
 
   Future<bool> saveConfig(FrontendTemplateRoutingConfig config) {

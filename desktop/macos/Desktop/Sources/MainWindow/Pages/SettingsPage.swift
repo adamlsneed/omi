@@ -413,7 +413,7 @@ struct SettingsContentView: View {
 
   // Browser Extension settings
   @AppStorage("playwrightUseExtension") var playwrightUseExtension = true
-  @AppStorage("playwrightExtensionVerified") var playwrightExtensionVerified = false
+  @AppStorage(DefaultsKey.playwrightExtensionVerified.rawValue) var playwrightExtensionVerified = false
   @State var playwrightExtensionToken: String = ""
   @State var showBrowserSetup = false
 
@@ -640,10 +640,6 @@ struct SettingsContentView: View {
       bannersDisabled: appState.isNotificationBannerDisabled)
   }
 
-  var browserExtensionStatusText: String {
-    browserExtensionStatus.text
-  }
-
   var browserExtensionStatus: BrowserExtensionSetup.SettingsStatus {
     BrowserExtensionSetup.settingsStatus(
       enabled: playwrightUseExtension,
@@ -670,7 +666,7 @@ struct SettingsContentView: View {
   }
 
   func refreshBrowserExtensionState() {
-    let token = UserDefaults.standard.string(forKey: "playwrightExtensionToken") ?? ""
+    let token = UserDefaults.standard.string(forKey: .playwrightExtensionToken) ?? ""
     playwrightExtensionToken = token
     if token.isEmpty {
       playwrightExtensionVerified = false
@@ -680,8 +676,8 @@ struct SettingsContentView: View {
   func resetBrowserExtensionState() {
     playwrightExtensionToken = ""
     playwrightExtensionVerified = false
-    UserDefaults.standard.set("", forKey: "playwrightExtensionToken")
-    UserDefaults.standard.set(false, forKey: "playwrightExtensionVerified")
+    UserDefaults.standard.set("", forKey: .playwrightExtensionToken)
+    UserDefaults.standard.set(false, forKey: .playwrightExtensionVerified)
   }
 
   /// Divider header used when two legacy sections are stacked on one merged

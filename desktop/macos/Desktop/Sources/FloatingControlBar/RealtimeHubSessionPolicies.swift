@@ -782,7 +782,7 @@ enum RealtimeHubToolFailureKind: String, Equatable {
         return .backendUnauthorized
       case .syncRateLimited:
         return .backendRateLimited
-      case .invalidResponse, .decodingError, .invalidURL:
+      case .invalidResponse, .decodingError:
         return .responseDecode
       case .httpError(let statusCode, _):
         switch statusCode {
