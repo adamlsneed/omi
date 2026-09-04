@@ -50,8 +50,15 @@ brew upgrade                                  # pulls new versions
 Schedule `brew upgrade` via launchd if you want hands-off updates.
 
 ## Notes
-- Auto-update via Sparkle stays off for this bundle (upstream's dev-build policy);
-  Homebrew is the update path. No upstream source was modified.
+- Installed fork builds auto-update through Sparkle: `release.sh` points the bundle at
+  `https://raw.githubusercontent.com/adamlsneed/homebrew-omi/main/appcast.xml`, signs
+  the zip with the fork's EdDSA key (private half in this Mac's login keychain, public
+  half in `release.sh`), and prepends the item to `appcast.xml` in the tap repo next
+  to the cask. Builds before 0.1.10 still carry upstream's feed and key, so that one
+  hop needs `brew upgrade`; after it, the app downloads and installs on quit by itself.
+  The cask sets `auto_updates true`, so `brew upgrade` leaves it alone unless `--greedy`.
+- Lost the signing key? Run `Desktop/.build/artifacts/sparkle/Sparkle/bin/generate_keys`,
+  put the new public key in `release.sh`, and ship one release via `brew upgrade` again.
 - `release.sh` mirrors `run.sh`'s bundle assembly; keep them in sync if `run.sh`'s
   assembly changes on an upstream pull.
 - The bundled `.env` is inherited from the installed app when the gitignored
