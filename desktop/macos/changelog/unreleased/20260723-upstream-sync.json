@@ -1,3 +1,0 @@
-{
-    "change": "Sync upstream BasedHardware/omi: Second Brain desktop redesign (chat-first home, floating top bar, conversational onboarding with Back navigation, Notion-style Tasks board, expandable transcript drawer), one-continuous-chat model, PTT microphone picker and legible PTT failure UX, live Notion/ChatGPT connections over hosted MCP, memory batch delete, plan tier updates, and many stability fixes."
-}
