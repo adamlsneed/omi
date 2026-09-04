@@ -10,9 +10,6 @@ import 'package:omi/pages/settings/change_name_widget.dart';
 import 'package:omi/pages/settings/language_settings_page.dart';
 import 'package:omi/pages/settings/custom_vocabulary_page.dart';
 import 'package:omi/pages/settings/people.dart';
-import 'package:omi/pages/payments/payments_page.dart';
-import 'package:omi/pages/settings/conversation_display_settings.dart';
-import 'package:omi/pages/settings/data_privacy_page.dart';
 import 'package:omi/pages/settings/frontend_template_routing_settings_page.dart';
 import 'package:omi/pages/speech_profile/page.dart';
 
@@ -590,38 +587,14 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 32),
 
-            // PAYMENT & PRIVACY SECTION
+            // TEMPLATE ROUTING SECTION (fork)
             _buildSectionContainer(
               children: [
-                _buildProfileItem(
-                  title: context.l10n.paymentMethods,
-                  icon: const FaIcon(FontAwesomeIcons.solidCreditCard, color: Color(0xFF8E8E93), size: 20),
-                  onTap: () {
-                    routeToPage(context, const PaymentsPage());
-                  },
-                ),
-                const Divider(height: 1, color: Color(0xFF3C3C43)),
-                _buildProfileItem(
-                  title: context.l10n.conversationDisplay,
-                  icon: const FaIcon(FontAwesomeIcons.list, color: Color(0xFF8E8E93), size: 20),
-                  onTap: () {
-                    routeToPage(context, const ConversationDisplaySettings());
-                  },
-                ),
-                const Divider(height: 1, color: Color(0xFF3C3C43)),
                 _buildProfileItem(
                   title: context.l10n.templateRouting,
                   icon: const Icon(Icons.route_outlined, color: Color(0xFF8E8E93), size: 22),
                   onTap: () {
                     routeToPage(context, const FrontendTemplateRoutingSettingsPage());
-                  },
-                ),
-                const Divider(height: 1, color: Color(0xFF3C3C43)),
-                _buildProfileItem(
-                  title: context.l10n.dataPrivacy,
-                  icon: const FaIcon(FontAwesomeIcons.shield, color: Color(0xFF8E8E93), size: 20),
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const DataPrivacyPage()));
                   },
                 ),
               ],

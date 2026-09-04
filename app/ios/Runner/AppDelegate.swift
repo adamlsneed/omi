@@ -88,7 +88,7 @@ final class QuickActionsIconPatcher: NSObject {
   /// resolves it (`BatteryWidget/SharedDefaults.swift`).
   ///
   /// Hardcoding the upstream group wrote to a suite a locally-signed build is not
-  /// entitled to — iOS silently redirects that to a private container — while the
+  /// entitled to (iOS silently redirects that to a private container) while the
   /// widget read `$(APP_GROUP_IDENTIFIER)`, so the widget never saw an update on
   /// exactly the builds this fork installs on a phone.
   static let appGroupIdentifier =

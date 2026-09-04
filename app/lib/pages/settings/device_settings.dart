@@ -782,7 +782,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
             onTap: _showDoubleTapActionSheet,
           ),
           // idea-capture: Press & hold (~1s). Firmware hardwires this gesture to
-          // idea-capture, so this row is informational (no picker) — see
+          // idea-capture, so this row is informational (no picker); see
           // docs/developer/upstream-sync-and-backend-policy.mdx.
           const Divider(height: 1, color: Color(0xFF3C3C43)),
           _buildProfileStyleItem(
