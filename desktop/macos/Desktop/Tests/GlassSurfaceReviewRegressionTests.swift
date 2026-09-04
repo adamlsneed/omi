@@ -10,7 +10,7 @@ final class GlassSurfaceReviewRegressionTests: XCTestCase {
 
   /// Chat Prompt Lab opened as a fully see-through window: Settings and the desktop behind it read
   /// straight through the page. `WindowGlass.wear` is `isOpaque = false` plus a clear
-  /// `backgroundColor` and installs no ground, so the ground is the content root's job — every other
+  /// `backgroundColor` and installs no ground, so the ground is the content root's job; every other
   /// titled glass window ends its root in `inkGlassPanel`. `ChatLabView` ended in `glassContent()`,
   /// which is only `environment(\.colorScheme, .light)` and paints nothing, so nothing anywhere laid
   /// a surface down.

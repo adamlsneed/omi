@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// App-drawn rather than a system notification, so it is reliably visible regardless
 /// of the user's Focus/Do-Not-Disturb state, notification permissions, or which
-/// display/Space is active — the failure modes that made the NotificationService
+/// display/Space is active: the failure modes that made the NotificationService
 /// banner (and the floating-bar preview) effectively invisible for a menu-bar action.
 @MainActor
 final class IdeaCaptureToast {
@@ -24,8 +24,8 @@ final class IdeaCaptureToast {
   private var clickMonitors: [Any] = []
 
   /// Show a toast top-center on the active display. `onTap`, when set, runs if the
-  /// user clicks the toast (and dismisses it) — used to jump to the Ideas folder.
-  /// Fixed window size — avoids any auto-sizing path. Letting AppKit resize a
+  /// user clicks the toast (and dismisses it); used to jump to the Ideas folder.
+  /// Fixed window size, which avoids any auto-sizing path. Letting AppKit resize a
   /// borderless panel to SwiftUI's content (via fittingSize or .preferredContentSize)
   /// triggers a constraint feedback loop that recurses until the stack overflows.
   private static let toastSize = NSSize(width: 384, height: 104)

@@ -703,7 +703,7 @@ actor RewindDatabase {
       }
     }
 
-    // Set running flag — will be cleared on clean shutdown. `runningFlagPath` is
+    // Set running flag; it will be cleared on clean shutdown. `runningFlagPath` is
     // only remembered once this session's flag exists: until then the file at
     // `flagPath` is the previous session's crash marker, and a `close()` from the
     // init-retry loop must not erase the evidence the next attempt re-reads.
