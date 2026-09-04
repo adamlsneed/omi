@@ -52,6 +52,7 @@ scripts/*
 !scripts/prepare-agent-runtime.sh
 !scripts/omi-dev-smoke.sh
 !scripts/test-omi-dev-smoke.sh
+!scripts/release-appcast.sh
 
 # Swift compiler diagnostics cache
 *.dia

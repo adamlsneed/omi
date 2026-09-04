@@ -3,6 +3,17 @@ import XCTest
 @testable import Omi_Computer
 
 final class UpdaterViewModelTests: XCTestCase {
+  func testForkReleaseBundleTakesManagedUpdatesWhileOtherDevBuildsStayManual() {
+    XCTAssertTrue(
+      UpdaterViewModel.usesManagedUpdates(allowsSparkleUpdates: true, isDevBuild: true, isForkRelease: true))
+    XCTAssertFalse(
+      UpdaterViewModel.usesManagedUpdates(allowsSparkleUpdates: true, isDevBuild: true, isForkRelease: false))
+    XCTAssertTrue(
+      UpdaterViewModel.usesManagedUpdates(allowsSparkleUpdates: true, isDevBuild: false, isForkRelease: false))
+    XCTAssertFalse(
+      UpdaterViewModel.usesManagedUpdates(allowsSparkleUpdates: false, isDevBuild: true, isForkRelease: true))
+  }
+
   private func analyticsContext(channel: String = "stable") -> UpdateAnalyticsContext {
     UpdateAnalyticsContext(
       sourceAppVersion: "0.12.0",

@@ -677,7 +677,7 @@ final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
     let version = item.displayVersionString
     logSync("Sparkle: Update v\(version) scheduled for install on quit")
 
-    guard !AnalyticsManager.isDevBuild else {
+    guard !AnalyticsManager.isDevBuild || AppBuild.isForkRelease else {
       logSync("Sparkle: Leaving update scheduled for quit because this is a development build")
       return false
     }
@@ -828,7 +828,21 @@ final class UpdaterViewModel: ObservableObject {
   private var isInitialized = false
 
   var usesManagedUpdatePolicy: Bool {
-    AppBuild.allowsSparkleUpdates && !AnalyticsManager.isDevBuild
+    Self.usesManagedUpdates(
+      allowsSparkleUpdates: AppBuild.allowsSparkleUpdates,
+      isDevBuild: AnalyticsManager.isDevBuild,
+      isForkRelease: AppBuild.isForkRelease
+    )
+  }
+
+  /// Fork: a release.sh build is a dev bundle id on the fork's own feed, so it takes
+  /// the managed auto-update policy; every other dev build stays manual.
+  nonisolated static func usesManagedUpdates(
+    allowsSparkleUpdates: Bool,
+    isDevBuild: Bool,
+    isForkRelease: Bool
+  ) -> Bool {
+    allowsSparkleUpdates && (!isDevBuild || isForkRelease)
   }
 
   /// Whether automatic update checks are enabled
@@ -1001,7 +1015,7 @@ final class UpdaterViewModel: ObservableObject {
   /// - release builds: always auto-check + auto-install
   /// - dev builds: keep both disabled to avoid replacing the local app
   func applyManagedUpdatePolicy() {
-    let shouldAutoUpdate = AppBuild.allowsSparkleUpdates && !AnalyticsManager.isDevBuild
+    let shouldAutoUpdate = usesManagedUpdatePolicy
     automaticallyChecksForUpdates = shouldAutoUpdate
     automaticallyDownloadsUpdates = shouldAutoUpdate
     updaterController.updater.automaticallyChecksForUpdates = shouldAutoUpdate

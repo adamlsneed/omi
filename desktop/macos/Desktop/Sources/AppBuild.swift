@@ -119,6 +119,13 @@ enum AppBuild {
     buildConfiguration.isExternalPreview
   }
 
+  /// Fork: release.sh stamps `OmiForkRelease` into Info.plist next to the fork's own
+  /// Sparkle feed and key, so those builds auto-update even though the bundle id is
+  /// non-production. run.sh dev builds carry no marker and keep the dev policy.
+  static var isForkRelease: Bool {
+    Bundle.main.object(forInfoDictionaryKey: "OmiForkRelease") as? Bool ?? false
+  }
+
   /// Legacy "Omi Computer.app" cleanup force-terminates running
   /// `com.omi.computer-macos` processes and deletes the old bundle — strictly
   /// stable-lineage housekeeping. Only the stable identity may run it: Omi Beta
