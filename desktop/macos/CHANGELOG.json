@@ -2,6 +2,13 @@
   "unreleased": [],
   "releases": [
     {
+      "version": "0.1.10",
+      "date": "2026-09-04",
+      "changes": [
+        "Fork builds now update themselves: the app follows the fork's own Sparkle feed and installs new releases on quit, instead of waiting for brew upgrade."
+      ]
+    },
+    {
       "version": "0.1.9",
       "date": "2026-09-04",
       "changes": [
