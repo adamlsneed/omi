@@ -2873,7 +2873,7 @@ class CaptureController extends ChangeNotifier
     _isPaused = true;
     // Persist so the mute survives an app kill/restart, not just a reconnect.
     SharedPreferencesUtil().deviceMuted = true;
-    // Phone haptic for mute confirmation — the pendant motor is the only device
+    // Phone haptic for mute confirmation: the pendant motor is the only device
     // feedback channel and it's non-functional on some units, so confirm on the
     // phone (the device-side buzz is still requested below for units that have it).
     HapticFeedback.mediumImpact();

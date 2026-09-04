@@ -116,7 +116,7 @@ class FrontendTemplateRoutingConfig {
   /// A profile is usable if it has either a backend template or a free-text prompt.
   bool isConfiguredFor(FrontendTemplateProfile profile) => usesTemplateFor(profile) || promptFor(profile).isNotEmpty;
 
-  /// Both profiles have at least one of (template, prompt) — required to enable.
+  /// Both profiles have at least one of (template, prompt), which is required to enable.
   bool get isFullyConfigured =>
       isConfiguredFor(FrontendTemplateProfile.work) && isConfiguredFor(FrontendTemplateProfile.personal);
 
