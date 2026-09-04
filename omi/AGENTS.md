@@ -1,4 +1,4 @@
-# Firmware (omi/) — agent guide (fork)
+# Firmware (omi/): agent guide (fork)
 
 Device firmware: Zephyr, C/C++. The board this fork builds is `omi/firmware/omi/`
 (the `devkit/` and `omiGlass/` trees are separate). Most code here is upstream's;
