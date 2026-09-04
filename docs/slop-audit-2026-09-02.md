@@ -29,7 +29,8 @@ Severity legend: cosmetic < maintainability < correctness-risk.
 - PR #112: A1 app-editing helpers, A2, B6, E1 (Q5: settings-level disable is the mechanism), E2 (Q4: the `run.sh --yolo` pair), plus the Omi Dev smoke script node path.
 - Batch 2 (this PR): A3, B1, B2, B4, B5, B7 (`firebase_options_local.dart` only; the other three are re-wrapped by the pinned formatter either way), B8 (label only), C2 (case deleted), C3, C4, C5, C6, C7, C8, C9, C10, D1, D2, E3, E4, E5, E7.
 - E6 landed on `main` in `644094a50c`.
-- Still open, owner call: B3/Q3, B9, B10 (policy: edit-adjacent only), Q2, Q6, Q7, and the `web/` half of B8.
+- Batch 3 (owner calls, decided 2026-09-03): B3/Q3 (sync pre-load removed; the async path loads the same cache first), B9 (switch restyled), Q6 (legacy keychain migration retired), Q7 (`deep-review-2026-06-09.md` and `slop-audit-2026-07-02.md` deleted; `code-review-2026-08-19.md` keeps its two open items; the `superpowers/` design notes are not remediation records and stay), and the `web/` half of B8 (moved to `web/frontend/src/__tests__/hosted-api-defaults.test.mjs`).
+- Still open: B10 (policy: normalize only on lines already being edited) and Q2 (unanswered).
 
 ## Status of the 2026-08-20 findings
 

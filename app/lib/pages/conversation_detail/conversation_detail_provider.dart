@@ -331,7 +331,6 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
       precacheConversationAudio(conversation.id);
     }
 
-    loadCachedRoutedSummary();
     unawaited(loadOrGenerateRoutedSummary());
 
     if (!conversation.discarded) {
@@ -456,45 +455,6 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     routedSummaryLoading = false;
     routedSummaryError = error;
     notifyListeners();
-  }
-
-  void loadCachedRoutedSummary() {
-    final currentConversation = conversationOrNull;
-    if (currentConversation == null) return;
-
-    final store = FrontendTemplateRoutingStore();
-    final config = store.loadConfig();
-    if (!config.enabled) {
-      _clearRoutedSummary();
-      return;
-    }
-
-    final localTime = FrontendTemplateRouter.conversationLocalTime(
-      startedAt: currentConversation.startedAt,
-      createdAt: currentConversation.createdAt,
-    );
-    final profile = FrontendTemplateRouter.selectProfile(localTime, config);
-    if (config.usesTemplateFor(profile)) {
-      // Template mode: the backend summary (reprocessed with the chosen app) is the
-      // source of truth — no local overlay to load.
-      routedSummary = null;
-      return;
-    }
-    final promptHash = FrontendTemplateRouter.expectedPromptHash(
-      config: config,
-      profile: profile,
-      conversationLocalTime: localTime,
-      sourceName: currentConversation.source?.name,
-    );
-    final cached = store.resultForConversation(currentConversation.id);
-
-    if (cached != null &&
-        cached.isFreshFor(profile: profile, promptHash: promptHash, conversationStartedAt: localTime)) {
-      routedSummary = cached;
-      routedSummaryError = null;
-    } else {
-      routedSummary = null;
-    }
   }
 
   Future<void> loadOrGenerateRoutedSummary({bool force = false}) async {

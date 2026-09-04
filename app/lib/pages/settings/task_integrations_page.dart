@@ -508,7 +508,9 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
             onChanged: (value) {
               provider.setAppleRemindersAutoExportEnabled(value);
             },
-            activeThumbColor: const Color(0xFF007AFF),
+            activeThumbColor: Colors.black,
+            activeTrackColor: Colors.white,
+            inactiveThumbColor: const Color(0xFF8E8E93),
           ),
         ],
       ),

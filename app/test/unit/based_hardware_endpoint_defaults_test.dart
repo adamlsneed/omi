@@ -1,4 +1,4 @@
-// Static checker: asserts on source text of app and web files, not on behavior.
+// Static checker: asserts on source text of app files, not on behavior.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -46,34 +46,6 @@ void main() {
         isTrue,
         reason: 'the production profile default must be https://api.omi.me/',
       );
-    });
-
-    test('web marketplace frontend defaults to the hosted BasedHardware API', () {
-      final disallowed = <String>[
-        'http://localhost:8000',
-        'http://127.0.0.1:8787',
-      ];
-
-      final files = <String>[
-        '../web/frontend/.env.template',
-        '../web/frontend/src/constants/envConfig.ts',
-        '../web/frontend/src/actions/apps/get-app-initialization-data.ts',
-        '../web/frontend/src/actions/apps/submit-app.ts',
-        '../web/frontend/src/actions/apps/generate-description.ts',
-        '../web/frontend/src/actions/apps/upload-thumbnail.ts',
-        '../web/frontend/src/app/my-apps/page.tsx',
-      ];
-
-      for (final relativePath in files) {
-        final contents = File(relativePath).readAsStringSync();
-        for (final needle in disallowed) {
-          expect(
-            contents.contains(needle),
-            isFalse,
-            reason: '$relativePath must not default to $needle',
-          );
-        }
-      }
     });
   });
 }
