@@ -15,6 +15,7 @@ import 'package:omi/utils/analytics/analytics_adapter.dart';
 import 'package:omi/utils/analytics/intercom.dart';
 import 'package:omi/utils/device.dart';
 import 'package:omi/utils/platform/platform_service.dart';
+import 'package:omi/utils/speech_profile_enroll_events.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AnalyticsManager {
@@ -576,18 +577,21 @@ class AnalyticsManager {
     required int durationSeconds,
     String? reason,
   }) =>
-      track('Phone Call Transcript Session', properties: {
-        'ws_accepted': wsAccepted,
-        'audio_frames_sent': audioFramesSent,
-        'audio_bytes_sent': audioBytesSent,
-        'audio_channel_1_frames': audioChannel1Frames,
-        'audio_channel_2_frames': audioChannel2Frames,
-        'event_channel_errors': eventChannelErrors,
-        'event_channel_coerced': eventChannelCoerced,
-        'transcription_status_final': transcriptionStatusFinal,
-        'duration_seconds': durationSeconds,
-        if (reason != null) 'reason': reason,
-      });
+      track(
+        'Phone Call Transcript Session',
+        properties: {
+          'ws_accepted': wsAccepted,
+          'audio_frames_sent': audioFramesSent,
+          'audio_bytes_sent': audioBytesSent,
+          'audio_channel_1_frames': audioChannel1Frames,
+          'audio_channel_2_frames': audioChannel2Frames,
+          'event_channel_errors': eventChannelErrors,
+          'event_channel_coerced': eventChannelCoerced,
+          'transcription_status_final': transcriptionStatusFinal,
+          'duration_seconds': durationSeconds,
+          if (reason != null) 'reason': reason,
+        },
+      );
 
   void phoneCallFailed({String? error}) => track('Phone Call Failed', properties: {'error': error ?? 'unknown'});
 
@@ -761,6 +765,37 @@ class AnalyticsManager {
     );
   }
 
+  /// "Things I learned today" card became visible. Counts only — the card's
+  /// content and memory ids never leave the device through analytics.
+  void memoryReviewCardShown({required int itemCount, required String source}) {
+    track('memory_review_card_shown', properties: {'item_count': itemCount, 'source': source});
+  }
+
+  /// One accept / reject / edit verdict on a learned memory.
+  ///
+  /// [action] is accept|reject|edit, [outcome] is ok|error, [source] is
+  /// chat_block|daily_summary_detail. `memory_category` is the coarse category
+  /// label; no memory content and no raw memory id are ever attached.
+  void memoryReviewAction({
+    required String source,
+    required String action,
+    required String outcome,
+    required String memoryCategory,
+  }) {
+    track(
+      'memory_review_action',
+      properties: {'source': source, 'action': action, 'outcome': outcome, 'memory_category': memoryCategory},
+    );
+  }
+
+  /// The one grounded follow-up chip under an answer was tapped.
+  ///
+  /// Mobile has no `question_asked` event to attribute to, so the origin is
+  /// carried by this event instead of as a property on a send event.
+  void followUpChipTapped({required String source}) {
+    track('followup_chip_tapped', properties: {'source': source});
+  }
+
   void memoriesAllVisibilityChanged(MemoryVisibility newVisibility, int count) {
     track('All Facts Visibility Changed', properties: {'new_visibility': newVisibility.name, 'facts_count': count});
   }
@@ -861,6 +896,22 @@ class AnalyticsManager {
   }
 
   void speechProfileCapturePageClicked() => track('Speech Profile Capture Page Clicked');
+
+  void speechProfileSkipped() => track(speechProfileEnrollEventName(SpeechProfileEnrollEvent.skipped));
+
+  void speechProfileUploadSucceeded() => track(speechProfileEnrollEventName(SpeechProfileEnrollEvent.uploadSucceeded));
+
+  void speechProfileUploadFailed({String? reason, int? statusCode}) => track(
+        speechProfileEnrollEventName(SpeechProfileEnrollEvent.uploadFailed),
+        properties: {
+          if (reason != null) 'reason': reason,
+          if (statusCode != null) 'status_code': statusCode,
+        },
+      );
+
+  void speechProfileEmbeddingStored() => track(speechProfileEnrollEventName(SpeechProfileEnrollEvent.embeddingStored));
+
+  void speechProfileContinued() => track(speechProfileContinuedEventName);
 
   void showDiscardedMemoriesToggled(bool showDiscarded) =>
       track('Show Discarded Memories Toggled', properties: {'show_discarded': showDiscarded});

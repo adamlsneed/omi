@@ -24,6 +24,14 @@ class SceneDelegate: FlutterSceneDelegate {
   ) {
     super.scene(scene, willConnectTo: session, options: connectionOptions)
 
+    // The launch probe found no Flutter engine (debug build opened without
+    // Flutter tooling): the storyboard controller has no binaryMessenger to
+    // wire, so show the notice instead.
+    if omiAppDelegate?.isFlutterEngineUnavailable == true {
+      omiAppDelegate?.showFlutterEngineUnavailableNotice(in: window)
+      return
+    }
+
     if let controller = window?.rootViewController as? FlutterViewController {
       omiAppDelegate?.registerFlutterBridges(with: controller)
     } else {

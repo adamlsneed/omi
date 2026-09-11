@@ -140,6 +140,73 @@ def record_jit_first_open(*, event: str, effect: str) -> None:
     JIT_FIRST_OPEN_TOTAL.labels(event=event, effect=effect).inc()
 
 
+# Lazy desktop deferral (the pre-JIT free-desktop cost path): a raw transcript is
+# stored at capture and the paid enrichment runs only when the user first opens
+# the conversation. `stored` vs `enrich_*` is the observed ever-opened fraction,
+# which the JIT first-open deferral for paid tiers is sized against. Bounded
+# label set; anything else collapses to `other` so a new call site cannot mint
+# an unbounded series.
+#
+# Three constraints on reading the ratio (also carried in the HELP text, because
+# whoever writes the PromQL will not read this file):
+#  1. `stored` and `fenced` are emitted by EVERY job that runs the finalizer --
+#     the backend API and the pusher (`routers/pusher.py` ->
+#     `utils/pusher_finalization.py`) -- while `enrich_*` is emitted only by the
+#     backend first-open route. The ratio must therefore be
+#     `sum by (event) (lazy_desktop_deferral_total)` across every such job, and
+#     the pusher scrape target must be live or the denominator is truncated.
+#  2. `enrich_complete / stored` is an attempt-over-persist ratio, NOT a
+#     per-conversation one: a failed enrichment re-arms `deferred`, so the next
+#     open counts a second `enrich_started`, and a retried deferred persist can
+#     count `stored` (or `fenced`) more than once for a single conversation.
+#  3. The ratio is undefined while `FREE_TIER_LOCAL_PROCESSING` is on: the
+#     deferred-store path stops emitting `stored` while the already-stored
+#     backlog keeps emitting `enrich_*`, so the ratio drifts above 100%.
+LAZY_DESKTOP_DEFERRAL_EVENTS = frozenset(
+    {
+        'stored',
+        'fenced',
+        'enrich_started',
+        'enrich_lost_ownership',
+        'enrich_reacquire_error',
+        'enrich_complete',
+        'enrich_failed',
+    }
+)
+
+LAZY_DESKTOP_DEFERRAL_TOTAL = Counter(
+    'lazy_desktop_deferral_total',
+    (
+        'Lazy desktop deferral lifecycle: store at capture and first-open enrichment outcomes; '
+        'never labeled by UID. Aggregate as sum by (event) across BOTH backend and pusher: '
+        'stored/fenced are emitted by every host running the finalizer, enrich_* only by the '
+        'backend first-open route. enrich_complete/stored is an attempt/persist ratio, not a '
+        'per-conversation one (a re-armed retry counts again). The ratio is undefined while '
+        'FREE_TIER_LOCAL_PROCESSING is on: stored stops while the enrich_* backlog drains.'
+    ),
+    ['event'],
+)
+
+# Export zero-valued children so a healthy but idle process is distinguishable
+# from an absent scrape target, matching the journey-metric convention above.
+for _lazy_event in LAZY_DESKTOP_DEFERRAL_EVENTS | {'other'}:
+    LAZY_DESKTOP_DEFERRAL_TOTAL.labels(event=_lazy_event)
+
+
+def record_lazy_desktop_deferral(*, event: str) -> None:
+    """Never raises: observability must not change a persistence or enrichment outcome."""
+    try:
+        label = event if event in LAZY_DESKTOP_DEFERRAL_EVENTS else 'other'
+    except Exception:
+        # Unhashable/invalid runtime values must not escape the guard; they
+        # collapse to `other` instead of breaking the owning path.
+        label = 'other'
+    try:
+        LAZY_DESKTOP_DEFERRAL_TOTAL.labels(event=label).inc()
+    except Exception:
+        pass
+
+
 OMI_CLIENT_JOURNEY_ACCEPTED_TOTAL = Counter(
     'omi_client_journey_accepted_total',
     'Accepted client-segmented product journeys by bounded journey and client kind',
@@ -188,7 +255,7 @@ for _journey in CLIENT_JOURNEYS:
     for _outcome in CLIENT_JOURNEY_OUTCOMES:
         OMI_CLIENT_JOURNEY_DURATION_SECONDS.labels(journey=_journey, outcome=_outcome)
 
-# The three gauges below report one GLOBAL Firestore-derived quantity, and every
+# The gauges below report one GLOBAL Firestore-derived quantity, and every
 # replica publishes the same value. Aggregate them with max(), never sum(): a
 # sum() multiplies the real number by the replica count and, while replicas run
 # different images, mixes two different answers to the same question.
@@ -196,6 +263,28 @@ LISTEN_FINALIZATION_OLDEST_NONTERMINAL_AGE_SECONDS = Gauge(
     'listen_finalization_oldest_nonterminal_age_seconds',
     'Global age of the oldest queued, leased, or blocked listen finalization job; '
     'replicated per process, aggregate with max() not sum()',
+)
+
+# Durable-queue substrate age. Every replica publishes the same Firestore-derived
+# value for a given queue name; aggregate with max(), never sum(). Do not
+# zero-initialize: absent() means the periodic publisher has not run.
+OMI_QUEUE_OLDEST_READY_AGE_SECONDS = Gauge(
+    'omi_queue_oldest_ready_age_seconds',
+    'Age in seconds of the oldest ready durable-queue item; replicated per process, ' 'aggregate with max() not sum()',
+    ['queue'],
+)
+
+OMI_QUEUE_NAMES = (
+    'memory_outbox',
+    'candidate_integration_outbox',
+    'chat_first_proactive_intents',
+    'conversation_finalization_jobs',
+    'daily_summary_hour_groups',
+    'daily_memory_sweep',
+    'vector_repair_outbox',
+    'task_recurrence_inbox',
+    'frame_deletion_outbox',
+    'projection_repairs',
 )
 
 LISTEN_FINALIZATION_JOB_STATUS = Gauge(
@@ -367,6 +456,16 @@ OMI_TRANSCRIPTION_LATENCY_SECONDS = Histogram(
     buckets=(0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300),
 )
 
+# Audio duration actually submitted for transcription (from PCM byte length or
+# WAV headers), not wall-clock latency: query as minutes to compare provider
+# STT volume. Skips deployment_version to keep cardinality at provider+route+
+# outcome+platform.
+OMI_TRANSCRIPTION_AUDIO_SECONDS_TOTAL = Counter(
+    'omi_voice_transcription_audio_seconds_total',
+    'Audio seconds submitted for accepted prerecorded transcription journeys (measured duration, not latency)',
+    ['route', 'provider', 'outcome', 'client_platform'],
+)
+
 OMI_SYNC_TRANSCRIPTION_SEGMENTS_TOTAL = Counter(
     'omi_sync_transcription_segments_total',
     'Terminal semantic outcomes for sync transcription segments',
@@ -388,6 +487,15 @@ OMI_LIVE_STT_TERMINAL_FAILURES_TOTAL = Counter(
 OMI_LIVE_STT_ACCEPTED_TOTAL = Counter(
     'omi_live_stt_accepted_total',
     'Accepted live-STT attempts by bounded provider, client platform, and deployment environment',
+    ['provider', 'client_platform', 'deployment_environment'],
+)
+
+# VAD-measured speech seconds for backend-provider live sessions, metered once
+# per speech-delta flush: speech sent to the provider, not wall-clock session
+# length and not fair-use transcription_seconds.
+OMI_LIVE_STT_AUDIO_SECONDS_TOTAL = Counter(
+    'omi_live_stt_audio_seconds_total',
+    'VAD speech seconds flushed for backend-provider live-STT sessions (speech sent, not wall-clock)',
     ['provider', 'client_platform', 'deployment_environment'],
 )
 
@@ -453,7 +561,7 @@ TASK_INTELLIGENCE_ATTRIBUTION_TOTAL = Counter(
 CHAT_FIRST_PROACTIVE_TOTAL = Counter(
     'chat_first_proactive_total',
     'Chat-first proactive engine activity with no user content',
-    ['event', 'source'],
+    ['event', 'source', 'reason'],
 )
 
 MEMORY_UNIVERSAL_READ_ORIGIN_TOTAL = Counter(
@@ -541,6 +649,34 @@ PUSHER_DRAIN_IN_PROGRESS = Gauge(
 )
 PUSHER_READY.set(1)
 PUSHER_DRAIN_IN_PROGRESS.set(0)
+
+
+# GET /v1/action-items read-cost controls (see database/action_items_cache.py).
+# `action_items_list` was 48.8% of every billable Firestore document read before
+# the 12/min per-uid cap shipped (#12258); the residual cost is a small number of
+# large-backlog accounts re-reading a full backlog on every allowed poll. These
+# two counters are how a deploy proves the remaining reads went away, rather than
+# inferring it from the billing export a week later.
+OMI_ACTION_ITEMS_LIST_THROTTLED_TOTAL = Counter(
+    'omi_action_items_list_throttled_total',
+    'GET /v1/action-items requests rejected with 429 by a list ceiling',
+    ['client', 'policy'],
+)
+
+OMI_ACTION_ITEMS_LIST_CACHE_TOTAL = Counter(
+    'omi_action_items_list_cache_total',
+    'GET /v1/action-items list responses by cache outcome (a hit or not_modified reads zero Firestore documents)',
+    ['outcome'],
+)
+
+
+def record_action_items_list_throttled(*, client: str, policy: str) -> None:
+    OMI_ACTION_ITEMS_LIST_THROTTLED_TOTAL.labels(client=client, policy=policy).inc()
+
+
+def record_action_items_list_cache(outcome: str) -> None:
+    """outcome: hit | not_modified | miss | bypass | unavailable."""
+    OMI_ACTION_ITEMS_LIST_CACHE_TOTAL.labels(outcome=outcome).inc()
 
 
 def metrics_response() -> Response:

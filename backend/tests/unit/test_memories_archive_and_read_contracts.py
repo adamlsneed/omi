@@ -377,6 +377,27 @@ def test_memory_item_to_memorydb_preserves_canonical_alias_for_portability():
     assert projected.model_dump(mode="json")["canonical_memory_id"] == "canonical-row"
 
 
+def test_memory_item_to_memorydb_attaches_belief_view_only_when_flag_on(monkeypatch):
+    # Anchor to the wall clock: exactly one half-life old keeps currency at 0.5
+    # (the fading band floor) regardless of when CI runs. A fixed calendar date
+    # rots into the history band once 60 days elapse.
+    captured_at = datetime.now(timezone.utc) - timedelta(days=30)
+    item = _item("mem-state", tier=MemoryLayer.short_term, content="in a meeting", updated_at=captured_at).model_copy(
+        update={"half_life_days": 30, "captured_at": captured_at}
+    )
+    monkeypatch.delenv("MEMORY_BELIEF_MODEL_ENABLED", raising=False)
+    off = memory_item_to_memorydb(item)
+    assert off.currency is None
+    assert off.currency_band is None
+    assert off.as_of is None
+
+    monkeypatch.setenv("MEMORY_BELIEF_MODEL_ENABLED", "true")
+    on = memory_item_to_memorydb(item)
+    assert on.currency_band == "fading"
+    assert on.as_of == item.captured_at
+    assert on.half_life_days == 30
+
+
 def test_ledger_history_route_answers_empty_without_scan_outside_rollout():
     """Fleet-cost guard: the memories tab calls this on every load for every
     user; outside the JIT rollout (including unknown/error states) the route

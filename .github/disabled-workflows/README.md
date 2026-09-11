@@ -16,6 +16,7 @@ an upstream sync brings one of them back, move it here again.
 - `gcp_cloud_run_metrics_egress.yml`
 - `gcp_daily_memory_sweep_job_auto_dev.yml`
 - `gcp_day3_reengagement_email_job_auto_dev.yml`
+- `gcp_storage_lifecycle.yml`
 - `runtime_image_contracts.yml`
 
 ## Disabled in the repository's Actions settings
