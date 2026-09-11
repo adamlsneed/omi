@@ -1204,7 +1204,7 @@ final class ScreenCaptureService: Sendable {
       // See WindowCaptureStreamEngine for why this is the consent-re-prompt fix.
       if ScreenCaptureStreamFeature.isEnabled {
         switch await WindowCaptureStreamEngine.shared.captureFrame(
-          window: window, requestedMaxSize: maxSize)
+          window: window, content: content, requestedMaxSize: maxSize)
         {
         case .success(let image):
           return .success(image)
