@@ -210,7 +210,11 @@ check_pr_preflight() {
   #   scripts/pr-preflight --suggest
   #   scripts/pr-preflight --pr-body-file /tmp/pr-body.md
   # or: OMI_PR_BODY_FILE=/tmp/pr-body.md git push
-  scripts/pr-preflight --lane local --base "$BASE_REF" --head HEAD --head-branch "$CURRENT_BRANCH"
+  # Git exports GIT_DIR/GIT_WORK_TREE to hooks. Manifest checks that build
+  # temp repos (agents-md-lean self-test, dead-code ratchet tests) would then
+  # `git init`/`git add` against the pushed repo instead; drop them here.
+  env -u GIT_DIR -u GIT_WORK_TREE \
+    scripts/pr-preflight --lane local --base "$BASE_REF" --head HEAD --head-branch "$CURRENT_BRANCH"
   if [ "$has_supplied_pr_body" -eq 1 ]; then
     ci_prediction_note_verified "shared PR contract, hygiene, and supplied PR body"
   else
