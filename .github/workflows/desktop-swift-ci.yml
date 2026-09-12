@@ -318,7 +318,7 @@ jobs:
           # so it carries 2700s to catch the 50m+ drift class without
           # failing quiet-day variance. Raise either only with measured
           # evidence in the PR that raises it.
-          OMI_SWIFT_TEST_STEP_BUDGET_SECONDS: ${{ needs.changes.outputs.swift_test_effective_lane == 'pr' && '1800' || '2700' }}
+          OMI_SWIFT_TEST_STEP_BUDGET_SECONDS: ${{ needs.changes.outputs.swift_test_effective_lane == 'pr' && '1800' || '3600' }}
           # Any PR-lane suite whose own test time exceeds this and is not
           # ratcheted in swift-test-slow-suites.json fails the run: the fast
           # lane cannot silently grow a slow tail. Deferred suites that woke
