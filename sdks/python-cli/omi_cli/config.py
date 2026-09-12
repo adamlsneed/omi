@@ -209,7 +209,7 @@ def load(path: Optional[Path] = None) -> Config:
         )
 
     profiles_data = data.get("profiles", {})
-    
+
     # Validate that profiles is a table (dict), not a string or other scalar.
     if not isinstance(profiles_data, dict):
         return Config(
@@ -218,7 +218,7 @@ def load(path: Optional[Path] = None) -> Config:
             profiles={},
             load_error=f"'profiles' must be a table, got {type(profiles_data).__name__}",
         )
-    
+
     # Validate each profile value is a table before constructing Profile objects.
     profiles = {}
     for name, raw in profiles_data.items():
