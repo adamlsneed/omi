@@ -46,7 +46,7 @@ MACOS_JOB_TIMEOUT_MINUTES = {
     # cold-tools run (~15 min from-source bootstrap) ahead of the full lane,
     # which still executes every suite on runner-changing diffs. Two #13219
     # runs were cancelled by tighter ceilings before completing.
-    "desktop-swift-verify": 60,
+    "desktop-swift-verify": 90,
     # A notification-boundary change compiles release mode AND builds the
     # release test target for the regression (~50 min observed on
     # run 34239723019), so this lane keeps the same bound.
