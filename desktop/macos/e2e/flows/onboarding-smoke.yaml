@@ -5,6 +5,9 @@ description: "Manual only: reset_onboarding restarts the app. State corruption f
 app: non-prod
 covers:
   - desktop/macos/Desktop/Sources/Onboarding/OnboardingFlow.swift
+  - desktop/macos/Desktop/Sources/Onboarding/FirstUseCase.swift
+  - desktop/macos/Desktop/Sources/Onboarding/FirstUseCasePreview.swift
+  - desktop/macos/Desktop/Sources/Onboarding/OnboardingRerunPolicy.swift
   - desktop/macos/Desktop/Sources/Onboarding/SecondBrain/SBOnboardingView.swift
   - desktop/macos/Desktop/Sources/DesktopAutomationBridge.swift
   - desktop/macos/Desktop/Sources/AppState/AppState+SystemActions.swift
