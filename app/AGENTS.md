@@ -6,7 +6,7 @@ Inherits [`../AGENTS.md`](../AGENTS.md); adds app-specific operational guidance.
 
 ### Flavors
 - **dev**: Android `com.friend.ios.dev`, iOS `com.friend-app-with-wearable.ios12.development` — uses `.dev.env`, Firebase project `based-hardware-dev`
-- **prod**: Android `com.friend.ios`, iOS `com.friend-app-with-wearable.ios12` — uses `.env`, Firebase project **`based-hardware`** (bare name — there is no `based-hardware-prod` project; `api.omi.me` hosted auth mints custom tokens for `based-hardware`)
+- **prod**: Android `com.friend.ios`, iOS `com.friend-app-with-wearable.ios12` — uses `.env`, Firebase project `based-hardware`
 - **raybanDat**: camera-capable iOS target with the same iOS development identity; `scripts/rayban_dat.sh` excludes mcumgr only for that transaction, then restores the default graph.
 
 ### Generated Files (never edit manually)
@@ -29,9 +29,6 @@ For physical-device builds, use the wrapper: it owns `dev + local_dev` and `prod
 with the matching `OMI_APP_PROFILE`; release/profile helpers do this too.
 `OMI_MOBILE_BUILD_MODE=profile` installs an AOT build that opens untethered
 (debug builds need `flutter run` attached on a physical iPhone; see README).
-
-### Adam Local iPhone Signing
-- Physical-device installs on Adam's iPhone: full recipe in [`docs/adam-local-iphone-signing.md`](docs/adam-local-iphone-signing.md) (LocalSigning.xcconfig, team `66K48S8RD4`, dev flavor + `based-hardware` Firebase, device IDs). Companion: `docs/local-ios-standalone-install.md`.
 
 ### Firebase Config
 Never run `flutterfire configure` — it overwrites prod credentials. Config files:

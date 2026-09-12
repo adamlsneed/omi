@@ -1,5 +1,5 @@
 <!-- SINGLE SOURCE OF TRUTH for all agent instructions in this repo (Claude Code, Codex, and any other agent). -->
-<!-- CLAUDE.md is the one pointer to this file. Add or change rules HERE, never in CLAUDE.md. -->
+<!-- CLAUDE.md is a thin pointer to this file. Add or change rules HERE, never in CLAUDE.md. -->
 <!-- Format spec: https://agents.md | Codex guidance: https://developers.openai.com/codex/guides/agents-md -->
 
 # Omi Agent Guide
@@ -16,8 +16,6 @@ These rules apply to every AI agent working in this repository. This file is **h
 | Flutter app (`app/`) | `app/AGENTS.md` — build flavors, l10n, native bridge, tests, agent-flutter UI verification |
 | Desktop macOS (`desktop/macos/`) | `desktop/macos/AGENTS.md` — build/run, named bundles, self-testing, release pipeline, changelog |
 | Desktop Windows/Linux (`desktop/windows/`) | `desktop/windows/AGENTS.md` — pnpm pin, build/test, CI shape, Linux/Wayland dev env, release pipeline |
-| GitHub Actions (`.github/`) | `.github/AGENTS.md` — deploy concurrency, immutable image tags, rollout waits, secret ordering |
-| Admin dashboard (`web/admin/`) | `web/admin/AGENTS.md` — stack, data sources, conventions |
 | Web app (`web/app/`) | `web/app/AGENTS.md` — setup, quality gates, tests, desktop-parity limits |
 | Firmware (`omi/firmware/`) | `omi/firmware/AGENTS.md` — release workflow |
 | Product behavior | `PRODUCT.md` + `product/invariants/` — locked invariants and guard tests |
@@ -61,23 +59,20 @@ The unit of work is the violated contract, not only the line where the symptom a
 
 - **Local, reversible work needs no permission.** Reading files, running commands, searching the web, using tools — just do it, and don't stop partway to ask whether to continue.
 - **You have full access to the user's machine** — browser, desktop, all apps. Don't hand back a task you could do yourself. Ask only when a step genuinely requires the user: an interactive login, a physical device, a credential only they hold.
-- **Outward-facing and hard-to-reverse actions are the exception**, and follow the Safety Rules below.
 
 ## Safety Rules
 
 - Never kill, stop, or restart the production macOS apps (`/Applications/Omi.app` / `Omi Beta.app`, bundle ids `com.omi.computer-macos` and `com.omi.computer-macos.beta`). Dev commands target only dev or `omi-*` named test bundles.
 - **Verify before proposing to land.** Default to a local build + run (desktop: `desktop/macos/run.sh`, deployed as Omi Dev) and exercise the real user-facing path. "It compiles" is not verification.
 - **Production writes are never implied.** Deploys, traffic shifts, release-pointer moves, secret and schema changes, and data deletion each need their own explicit go-ahead. An approval for one action never carries to the next.
-- **Landing conventions belong to the user, not this file.** Whether to commit locally, push, open a PR, or merge follows the user's own workflow and your judgment in context. This repo asks only for the mechanics in Git below.
-- **Fork rules.** Never deploy fork-owned backends (Python, Rust, pusher, agent-proxy, GKE); this fork uses BasedHardware's hosted services. Push, merge, and open PRs only against `adamlsneed` remotes, never BasedHardware; upstream sync is one-way, `BasedHardware/Omi` into `adamlsneed/omi`. Never push directly to `main`; land through a PR with a regular merge, which needs no per-change approval once verified.
+- **Fork rules.** Never deploy fork-owned backends (this fork runs on BasedHardware's hosted services), never push, merge, or open PRs against BasedHardware (sync is one-way, upstream into `adamlsneed/omi`), never push directly to `main`; land through a PR with a regular merge. Detail: `.github/agent-docs/fork-rules.md`.
 
 ## Git
 
-- **Setup (required before first commit):** `make setup` — fetches `origin/main`, fast-forwards when safe, installs repo Git hooks (including the auto-formatting pre-commit hook) with linked-worktree-safe paths, and syncs the pinned `backend/.venv` required by selected backend pre-push checks. Never set repo-local `user.name`/`user.email`; fixture identities belong only in temp test repos (`git -c`).
+- **Setup (required before first commit):** `make setup` — fetches `origin/main`, fast-forwards when safe, installs repo Git hooks (including the auto-formatting pre-commit hook) with linked-worktree-safe paths. Never set repo-local `user.name`/`user.email`; fixture identities belong only in temp test repos (`git -c`).
 - Before starting work: `git fetch origin && git pull --ff-only` on `main` — don't branch off stale state.
 - Always work in a git worktree for code changes (`git worktree add`); commit to the current branch and never switch branches mid-task.
 - Make individual commits per feature or testable surface, not per file or unrelated bulk changes.
-- **Merge, never squash.** Keeping merge commits is what makes a change cleanly revertible with `git revert -m 1` later.
 - If push fails (remote ahead): `git pull --rebase && git push`.
 - **PR size is reported, not bounded** (`pr-scope` manifest check — advisory annotations, never blocks): 1,500+ changed production-source lines warns; 3,000+ cites the audited history of missed regressions. Split only when the pieces are independently verifiable; otherwise give the one PR proportional review depth.
 - **RELEASE command:** branch from `main`, individual commits, push, open PR, merge without squash, switch back to `main` and pull. **RELEASEWITHBACKEND:** unavailable in this fork (hosted backend services only).
@@ -124,6 +119,9 @@ Click at coordinates: `cliclick c:X,Y`. Mac screenshots: `screencapture -x /tmp/
 - **Coverage grows by ratchet, not mandate:** every bug fix adds the regression test that would have caught it; new features test the core path and main error path — no more. A small test that stays meaningful in a year beats ten brittle ones.
 - **Push gate budget:** `scripts/pre-push` is a bounded local acceptance gate, intentionally smaller than CI: cap broad backend selection at 40 files and use only the desktop debug compile. Do not add full suites, release compiles, or CI-only toolchain pins to it — push-time bloat breaks normal iteration. Use focused feedback while editing; CI remains the full test authority.
 - **CI tests must be hermetic** (no live services, network, sleeps, or ordering dependence) — and hermetic tests must run in CI: put them where the component's runner discovers them. A test needing a live service stays out of CI; note in the PR how you ran it.
+- Backend enforces test discovery mechanically: manifest check `backend-test-discovery` fails on any test file no verified runner discovers.
+- **New fail-closed gates ship with a legacy-principal test** — an existing/unmigrated principal (no state doc, old API key, already-shipped client) asserting the intended fallback; gates without one have shipped day-one breakage.
+- **A test rewritten in the same PR as the code it asserts is suspect** — the PR body must cite an external source (platform doc, wire contract, measurement) for the new expected value, or the rewrite deletes the guard.
 - Delete or fix a flaky/obsolete test you encounter — a suite people distrust is worse than a smaller suite.
 - Component runners and prerequisites: see the component guides (`backend/AGENTS.md` → Testing, `app/AGENTS.md` → Test Strategy). High-risk backend workflows must be listed in `backend/testing/workflow_contracts.json` with contract tests.
 
@@ -137,12 +135,10 @@ Click at coordinates: `cliclick c:X,Y`. Mac screenshots: `screencapture -x /tmp/
 
 | Blocked on | Hatch |
 |---|---|
-| A signed, qualified desktop candidate did not reach Beta | `desktop_recover_beta.yml` with its exact tag, `confirm=recover-beta`, and a reason |
+| Desktop candidate won't cut (`Desktop Swift Build & Tests` red/flaky) | `desktop_auto_release.yml` with `release_mode=break_glass` |
 | Backend deploy has no Release Eligibility proof | `gcp_backend.yml` with `skip_eligibility_proof=true`, `break_glass_confirm=deploy-without-proof`, `break_glass_reason` |
 
 Hatches relax *evidence* requirements only. They never relax that code is merged to `main` first, and never reach stable/prod pointers without their own explicit confirm.
-
-Fork note: release automation that deploys a backend stays disabled in this fork; desktop ships manually via `desktop/macos/release.sh --bump` + Homebrew (see `desktop/macos/RELEASE.md`).
 
 ## Documentation Maintenance
 
