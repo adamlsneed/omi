@@ -38,6 +38,7 @@ import 'package:omi/utils/audio/foreground.dart';
 import 'package:omi/services/capture/native_batch_geolocation.dart';
 import 'package:omi/services/capture/native_ble_stream_config.dart';
 import 'package:omi/services/capture/freemium_threshold_tracker.dart';
+import 'package:omi/services/capture/stt_mode_resolver.dart';
 import 'package:omi/services/capture/recording_lifecycle_telemetry.dart';
 import 'package:omi/services/connectivity_service.dart';
 import 'package:omi/services/services.dart';
@@ -485,8 +486,6 @@ class CaptureController extends ChangeNotifier
   List<List<int>> _commandBytes = [];
   bool _isProcessingButtonEvent = false; // Guard to prevent overlapping button operations
   Timer? _voiceCommandTimeoutTimer; // 30s auto-end timer for voice questions
-  bool _voiceSessionStartedByLegacyLongPress =
-      false; // Track if session was started by legacy long press (3) vs new toggle (1), TODO: remove this flag later
 
   StreamSubscription? _storageStream;
 
@@ -821,24 +820,38 @@ class CaptureController extends ChangeNotifier
     String language =
         SharedPreferencesUtil().hasSetPrimaryLanguage ? SharedPreferencesUtil().userPrimaryLanguage : "multi";
     final customSttConfig = SharedPreferencesUtil().customSttConfig;
+    final decision = await SttModeResolver.instance.decide(
+      persistedCustomStt: customSttConfig,
+      codec: codec,
+    );
 
-    Logger.debug('Custom STT enabled: ${customSttConfig.isEnabled}, provider: ${customSttConfig.provider}');
+    Logger.debug(
+      'STT mode: path=${decision.path.name} reason=${decision.reason} '
+      'custom=${customSttConfig.isEnabled} provider=${customSttConfig.provider}',
+    );
 
-    // Check codec compatibility for custom STT - fallback to default if incompatible
-    CustomSttConfig? effectiveConfig = customSttConfig.isEnabled ? customSttConfig : null;
+    if (decision.blockSocket) {
+      Logger.warning('[SttMode] Blocking transcription socket (${decision.reason})');
+      await _abandonTranscriptionSocket(reason: 'stt mode blocked: ${decision.reason}');
+      await _reconcileNativeBackgroundStreamingPolicy();
+      notifyListeners();
+      _startKeepAliveServices();
+      return;
+    }
+
+    // Check codec compatibility for custom STT - fallback to default if incompatible.
+    // On-device allowance never falls back to a billed Omi socket (S17).
+    CustomSttConfig? effectiveConfig = decision.customSttConfig;
     if (effectiveConfig != null && !TranscriptSocketServiceFactory.isCodecSupportedForCustomStt(codec)) {
-      if (TranscriptSocketServiceFactory.shouldBlockUnsupportedCodecFallback(codec, effectiveConfig)) {
+      if (TranscriptSocketServiceFactory.shouldBlockUnsupportedCodecFallback(
+        codec,
+        effectiveConfig,
+        allowanceOnDevice: decision.allowanceOnDevice,
+      )) {
         Logger.warning(
-          '[CustomSTT] Codec $codec is unsupported; refusing Omi fallback because raw audio forwarding is disabled',
+          '[CustomSTT] Codec $codec is unsupported; refusing Omi fallback (${decision.reason})',
         );
-        final previousSocket = _socket;
-        _socket = null;
-        _transcriptServiceReady = false;
-        try {
-          await previousSocket?.stop(reason: 'unsupported custom STT codec with raw audio forwarding disabled');
-        } catch (e, stack) {
-          Logger.error('[CustomSTT] Failed to stop the previous socket after blocking Omi fallback: $e\n$stack');
-        }
+        await _abandonTranscriptionSocket(reason: 'unsupported custom STT codec');
         await _reconcileNativeBackgroundStreamingPolicy();
         notifyListeners();
         _startKeepAliveServices();
@@ -931,7 +944,6 @@ class CaptureController extends ChangeNotifier
     _voiceCommandTimeoutTimer?.cancel();
     _voiceCommandTimeoutTimer = null;
     _voiceCommandSession = null;
-    _voiceSessionStartedByLegacyLongPress = false; // Reset flag
     var data = List<List<int>>.from(_commandBytes);
     _commandBytes = [];
     _processVoiceCommandBytes(deviceId, data);
@@ -1035,11 +1047,10 @@ class CaptureController extends ChangeNotifier
             }
             _voiceCommandSession = DateTime.now();
             _commandBytes = [];
-            _voiceSessionStartedByLegacyLongPress = false; // New toggle mode
             _startVoiceCommandTimeout(deviceId);
             _playSpeakerHaptic(deviceId, 1);
-          } else if (!_voiceSessionStartedByLegacyLongPress) {
-            // Only end on second tap if session was started by toggle mode (not legacy)
+          } else {
+            // End on second tap
             debugPrint("Ending voice question session (toggle mode)");
             _endVoiceCommandSession(deviceId);
           }
@@ -1051,15 +1062,14 @@ class CaptureController extends ChangeNotifier
           debugPrint("Legacy: Long press start detected");
           _voiceCommandSession = DateTime.now();
           _commandBytes = [];
-          _voiceSessionStartedByLegacyLongPress = true; // Legacy hold-to-talk mode
           _startVoiceCommandTimeout(deviceId);
           _playSpeakerHaptic(deviceId, 1);
         }
 
         // Legacy support: release (end voice command) - older firmware
-        // Only end on release if session was started by legacy long press (buttonState 3)
-        if (buttonState == 5 && _voiceCommandSession != null && _voiceSessionStartedByLegacyLongPress) {
-          Logger.debug("Legacy: Release detected - ending voice command");
+        // End on release if a voice command session is active
+        if (buttonState == 5 && _voiceCommandSession != null) {
+          debugPrint("Legacy: Release detected - ending voice command");
           _endVoiceCommandSession(deviceId);
           return;
         }
@@ -1427,7 +1437,15 @@ class CaptureController extends ChangeNotifier
     var language =
         SharedPreferencesUtil().hasSetPrimaryLanguage ? SharedPreferencesUtil().userPrimaryLanguage : "multi";
     final customSttConfig = SharedPreferencesUtil().customSttConfig;
-    final sttConfigId = customSttConfig.sttConfigId;
+    final decision = await SttModeResolver.instance.decide(
+      persistedCustomStt: customSttConfig,
+      codec: codec,
+    );
+    if (decision.blockSocket) {
+      await _abandonTranscriptionSocket(reason: 'stt mode blocked: ${decision.reason}');
+      return;
+    }
+    final sttConfigId = decision.socketIdentity;
 
     if (language != _socket?.language ||
         codec != _socket?.codec ||
@@ -1435,6 +1453,17 @@ class CaptureController extends ChangeNotifier
         _socket?.sttConfigId != sttConfigId ||
         _sessionGeolocationDiffersFromSocket()) {
       await _initiateWebsocket(audioCodec: codec, force: true, source: _getConversationSourceFromDevice());
+    }
+  }
+
+  Future<void> _abandonTranscriptionSocket({required String reason}) async {
+    final previousSocket = _socket;
+    _socket = null;
+    _transcriptServiceReady = false;
+    try {
+      await previousSocket?.stop(reason: reason);
+    } catch (e, stack) {
+      Logger.error('[SttMode] Failed to stop the previous socket after $reason: $e\n$stack');
     }
   }
 
@@ -2074,9 +2103,13 @@ class CaptureController extends ChangeNotifier
     if (device != null) _updateRecordingDevice(device);
     _sessionRecordingDevice = _recordingDevice;
 
-    _recordingTelemetry.prepare(
-      source: SharedPreferencesUtil().batchModeEnabled ? 'pendant_batch' : 'pendant_live',
-    );
+    // HomePage calls this with device == null on every entry as a check-only
+    // path. That must not mint a recording ID or emit Recording Start Failed —
+    // a missing pendant is not a failed start.
+    final deviceRequested = device != null || _recordingDevice != null;
+    if (deviceRequested) {
+      _recordingTelemetry.prepare(source: SharedPreferencesUtil().batchModeEnabled ? 'pendant_batch' : 'pendant_live');
+    }
 
     bool wasPaused = _isPaused;
 
@@ -2097,7 +2130,7 @@ class CaptureController extends ChangeNotifier
 
     if (recordingState == RecordingState.deviceRecord) {
       _recordingTelemetry.markStarted();
-    } else {
+    } else if (deviceRequested) {
       _recordingTelemetry.failStart(failureClass: 'capture_unavailable');
     }
 

@@ -283,28 +283,10 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     notifyListeners();
   }
 
-  bool hasConversationSummaryRatingSet = false;
-  Timer? _ratingTimer;
-  bool showRatingUI = false;
-
-  void setShowRatingUi(bool value) {
-    showRatingUI = value;
-    notifyListeners();
-  }
-
-  void setConversationRating(int value) {
-    setConversationSummaryRating(conversation.id, value);
-    hasConversationSummaryRatingSet = true;
-    setShowRatingUi(false);
-  }
-
   Future initConversation() async {
     // updateLoadingState(true);
     titleController?.dispose();
     titleFocusNode?.dispose();
-    _ratingTimer?.cancel();
-    showRatingUI = false;
-    hasConversationSummaryRatingSet = false;
 
     titleController = TextEditingController();
     titleFocusNode = FocusNode();
@@ -332,24 +314,6 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
     }
 
     unawaited(loadOrGenerateRoutedSummary());
-
-    if (!conversation.discarded) {
-      getHasConversationSummaryRating(conversation.id).then((value) {
-        if (_isDisposed) return;
-        hasConversationSummaryRatingSet = value;
-        notifyListeners();
-        if (!hasConversationSummaryRatingSet) {
-          _ratingTimer = Timer(const Duration(seconds: 15), () {
-            if (_isDisposed) return;
-            final conv = conversationOrNull;
-            if (conv == null) return;
-            setConversationSummaryRating(conv.id, -1); // set -1 to indicate is was shown
-            showRatingUI = true;
-            notifyListeners();
-          });
-        }
-      });
-    }
 
     // updateLoadingState(false);
     notifyListeners();
@@ -924,7 +888,6 @@ class ConversationDetailProvider extends ChangeNotifier with MessageNotifierMixi
   @override
   void dispose() {
     _isDisposed = true;
-    _ratingTimer?.cancel();
     super.dispose();
   }
 }

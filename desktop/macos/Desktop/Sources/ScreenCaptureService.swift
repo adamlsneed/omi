@@ -1025,7 +1025,22 @@ final class ScreenCaptureService: Sendable {
     return (Int(configWidth), Int(configHeight))
   }
 
+  /// Keep single-window captures safe for opaque storage formats.
+  ///
+  /// ScreenCaptureKit includes window framing/shadows by default and represents
+  /// those pixels, plus any other translucent window content, with alpha. Rewind
+  /// persists JPEG and HEVC projections that cannot retain that alpha; allowing the
+  /// default clear backing through makes the transparent region become a black band.
+  /// Remove the framing and ask ScreenCaptureKit to back any remaining transparency
+  /// with its documented solid-white opaque fill before bytes reach either sink.
+  @available(macOS 14.0, *)
+  static func applySingleWindowPixelIntegrityPolicy(to configuration: SCStreamConfiguration) {
+    configuration.ignoreShadowsSingleWindow = true
+    configuration.shouldBeOpaque = true
+  }
+
   /// Aspect-preserving stream configuration, or nil if the window has no area.
+  @available(macOS 14.0, *)
   private func captureConfiguration(for window: SCWindow, maxSize: CGFloat = ScreenCaptureService.maxSize)
     -> SCStreamConfiguration?
   {
@@ -1039,6 +1054,7 @@ final class ScreenCaptureService: Sendable {
     config.showsCursor = false
     config.width = size.width
     config.height = size.height
+    Self.applySingleWindowPixelIntegrityPolicy(to: config)
     return config
   }
 
