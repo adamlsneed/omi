@@ -22,22 +22,64 @@ enum WindowCaptureStreamPolicy {
     case startStream
     /// Same window, same output size — serve from the running stream.
     case reuseStream
-    /// The frontmost window changed — retarget the live stream via `updateContentFilter`.
+    /// The capture scope changed (another display, or a different set of excluded
+    /// applications): retarget the live stream via `updateContentFilter`.
     case updateFilter
-    /// Same window, different size (the user resized it) — `updateConfiguration` only.
+    /// Same scope, different window, crop, or output size (the user switched between
+    /// two windows of one app, or moved or resized one): `updateConfiguration` only.
     case updateConfiguration
+  }
+
+  /// Everything the live stream's content filter is built from. Same key, same filter.
+  struct FilterKey: Equatable {
+    var displayID: CGDirectDisplayID
+    var excludedApplicationPIDs: Set<pid_t>
+  }
+
+  /// Everything the live stream's configuration is built from. Same key, same configuration.
+  struct ConfigKey: Equatable {
+    var sourceRect: CGRect
+    var outputSize: CGSize
   }
 
   static func action(
     runningWindowID: CGWindowID?,
-    runningConfigSize: CGSize?,
+    runningFilter: FilterKey?,
+    runningConfig: ConfigKey?,
     requestedWindowID: CGWindowID,
-    requestedConfigSize: CGSize
+    requestedFilter: FilterKey,
+    requestedConfig: ConfigKey
   ) -> StreamAction {
-    guard let runningWindowID, runningConfigSize != nil else { return .startStream }
-    if runningWindowID != requestedWindowID { return .updateFilter }
-    if runningConfigSize != requestedConfigSize { return .updateConfiguration }
+    guard let runningWindowID, let runningFilter, let runningConfig else { return .startStream }
+    if runningFilter != requestedFilter { return .updateFilter }
+    if runningWindowID != requestedWindowID || runningConfig != requestedConfig {
+      return .updateConfiguration
+    }
     return .reuseStream
+  }
+
+  /// The display-relative crop that isolates `windowFrame` on a display occupying
+  /// `displayFrame` (both in the global space ScreenCaptureKit reports), or nil when
+  /// the window has no area on that display.
+  static func cropRect(windowFrame: CGRect, displayFrame: CGRect) -> CGRect? {
+    let visible = windowFrame.intersection(displayFrame)
+    guard !visible.isNull, visible.width > 0, visible.height > 0 else { return nil }
+    return visible.offsetBy(dx: -displayFrame.origin.x, dy: -displayFrame.origin.y)
+  }
+
+  /// Index of the display whose stream should serve the window: the one under its
+  /// center, else the one showing the largest part of it, nil when it is on none.
+  static func displayIndex(for windowFrame: CGRect, displayFrames: [CGRect]) -> Int? {
+    let center = CGPoint(x: windowFrame.midX, y: windowFrame.midY)
+    if let index = displayFrames.firstIndex(where: { $0.contains(center) }) { return index }
+    let areas = displayFrames.map { frame -> CGFloat in
+      let overlap = frame.intersection(windowFrame)
+      return overlap.isNull ? 0 : overlap.width * overlap.height
+    }
+    guard let best = areas.indices.max(by: { areas[$0] < areas[$1] }), areas[best] > 0 else {
+      return nil
+    }
+    return best
   }
 
   /// Whether the stream should be torn down for lack of use. A live SCStream keeps the
@@ -61,14 +103,24 @@ enum WindowCaptureStreamPolicy {
 /// (~5,000/hour) under the capture tick. macOS ties its periodic re-confirmation of
 /// app-built filters to session creation, so that rate makes the consent dialog fire the
 /// instant it comes due. One stream = one authorization at `startCapture`; window
-/// switches ride `updateContentFilter` on the live stream.
+/// switches ride `updateContentFilter` / `updateConfiguration` on the live stream.
 ///
-/// Privacy: the filter stays `desktopIndependentWindow` — the stream never sees more
-/// than the single window the one-shot path saw. A display-scoped stream with cropping
-/// was rejected because it would move the per-window privacy boundary (Rewind
-/// exclusions, filtered browser windows) from OS-enforced to app-enforced. Frames are
-/// dropped outright for the whole duration of a retarget (see `CaptureFrameSink`), so a
-/// request for a new window cannot be served the previous window's pixels.
+/// Scope: the stream is display-scoped, excludes every application other than the
+/// target window's owner, and crops to the window's frame (`sourceRect`). It is NOT a
+/// `desktopIndependentWindow` filter and must not become one: a live stream whose
+/// filter names a window makes macOS replace that window's traffic-light buttons with
+/// the "window is being shared" badge for as long as the stream runs, on every app the
+/// user brings forward. A display filter that names the window via `including:` gets
+/// the badge too; excluding applications does not (verified on macOS 27.0 by
+/// screenshotting the captured window's title bar under each filter shape).
+/// The privacy boundary stays OS-enforced: excluded applications are never composited,
+/// so another app's window overlapping the target cannot leak into the frame (also
+/// verified, against a window occluded by the frontmost app). The residual is an
+/// application that appears after the shareable-content snapshot the filter was built
+/// from; that snapshot is at most `ScreenCaptureService.sharedContentTTL` old, and the
+/// filter is rebuilt as soon as the excluded set changes. Frames are dropped outright
+/// for the whole duration of a retarget (see `CaptureFrameSink`), so a request for a
+/// new window cannot be served the previous window's pixels.
 ///
 /// Concurrency contract — read this before editing:
 /// - Every mutation of `stream` / `sink` / `streamWindowID` / `streamConfigSize` runs
@@ -121,31 +173,31 @@ actor WindowCaptureStreamEngine {
   /// error, or worse, tagging the old window's pixels with the new window's ID.
   private var sink: CaptureFrameSink?
   private var streamWindowID: CGWindowID?
-  private var streamConfigSize: CGSize?
+  private var streamFilter: WindowCaptureStreamPolicy.FilterKey?
+  private var streamConfig: WindowCaptureStreamPolicy.ConfigKey?
   private let sampleQueue = DispatchQueue(label: "com.omi.window-capture-stream")
   private var idleWatchdog: Task<Void, Never>?
   private var lastRequestAt = Date.distantPast
   private var isMutatingStream = false
 
   /// Capture the given window at `requestedMaxSize` (long edge, points-derived pixels).
+  /// `content` is the shareable-content snapshot the window came from; the stream's
+  /// scope (display, excluded applications) is derived from it.
   /// The stream always runs at the full `ScreenCaptureService.maxSize` configuration;
   /// smaller requests (the ≤80 px previews) are served by downscaling the latest full
   /// frame, so preview and full ticks never thrash the stream configuration.
-  func captureFrame(window: SCWindow, requestedMaxSize: CGFloat) async -> FrameResult {
+  func captureFrame(window: SCWindow, content: SCShareableContent, requestedMaxSize: CGFloat) async
+    -> FrameResult
+  {
     lastRequestAt = Date()
-    guard
-      let fullSize = ScreenCaptureService.captureDimensions(
-        width: window.frame.width, height: window.frame.height,
-        maxSize: ScreenCaptureService.maxSize)
-    else {
-      // Zero-area window — same refusal as the one-shot path (see captureDimensions).
+    guard let target = Self.makeTarget(window: window, content: content) else {
+      // Zero-area or off every display: same refusal as the one-shot path.
       return .failed
     }
-    let configSize = CGSize(width: fullSize.width, height: fullSize.height)
     let windowID = window.windowID
 
     let activeSink: CaptureFrameSink
-    switch await configureStream(window: window, configSize: configSize) {
+    switch await configureStream(target) {
     case .ready(let configured):
       activeSink = configured
     case .declined:
@@ -242,7 +294,7 @@ actor WindowCaptureStreamEngine {
     case failed
   }
 
-  private func configureStream(window: SCWindow, configSize: CGSize) async -> ConfigureOutcome {
+  private func configureStream(_ target: StreamTarget) async -> ConfigureOutcome {
     // Takes the lock directly rather than through `withStreamLock`: this is the only
     // holder that returns a non-Sendable value (`CaptureFrameSink`), and handing one
     // out of a closure makes it cross an isolation boundary the pinned CI toolchain
@@ -263,36 +315,39 @@ actor WindowCaptureStreamEngine {
     do {
       switch WindowCaptureStreamPolicy.action(
         runningWindowID: self.streamWindowID,
-        runningConfigSize: self.streamConfigSize,
-        requestedWindowID: window.windowID,
-        requestedConfigSize: configSize)
+        runningFilter: self.streamFilter,
+        runningConfig: self.streamConfig,
+        requestedWindowID: target.window.windowID,
+        requestedFilter: target.filterKey,
+        requestedConfig: target.configKey)
       {
       case .startStream:
-        try await self.startStreamLocked(window: window, configSize: configSize)
+        try await self.startStreamLocked(target)
       case .updateFilter:
         guard let stream = self.stream, let sink = self.sink else { return .failed }
         // Privacy: beginRetarget stops the sink accepting ANY frame, and the stream
-        // keeps producing old-window frames until the filter change lands. Tagging
+        // keeps producing old-scope frames until the filter change lands. Tagging
         // them with the new window ID (what an expect(windowID:) up front would do)
         // is exactly how a caller ends up holding a screenshot of the window the user
         // just switched away from — possibly a Rewind-excluded one.
         sink.beginRetarget()
-        try await stream.updateContentFilter(
-          SCContentFilter(desktopIndependentWindow: window))
-        if self.streamConfigSize != configSize {
-          try await stream.updateConfiguration(self.makeConfiguration(size: configSize))
+        try await stream.updateContentFilter(Self.makeFilter(target))
+        if self.streamConfig != target.configKey {
+          try await stream.updateConfiguration(self.makeConfiguration(target.configKey))
         }
-        sink.endRetarget(windowID: window.windowID)
-        self.streamWindowID = window.windowID
-        self.streamConfigSize = configSize
+        sink.endRetarget(windowID: target.window.windowID)
+        self.streamWindowID = target.window.windowID
+        self.streamFilter = target.filterKey
+        self.streamConfig = target.configKey
       case .updateConfiguration:
         guard let stream = self.stream, let sink = self.sink else { return .failed }
-        // Same window, new size: the cached frame has the wrong dimensions and
-        // in-flight frames still carry the old ones, so drop both.
+        // Same scope, new window or crop: the cached frame shows the wrong region and
+        // in-flight frames still carry the old one, so drop both.
         sink.beginRetarget()
-        try await stream.updateConfiguration(self.makeConfiguration(size: configSize))
-        sink.endRetarget(windowID: window.windowID)
-        self.streamConfigSize = configSize
+        try await stream.updateConfiguration(self.makeConfiguration(target.configKey))
+        sink.endRetarget(windowID: target.window.windowID)
+        self.streamWindowID = target.window.windowID
+        self.streamConfig = target.configKey
       case .reuseStream:
         break
       }
@@ -309,21 +364,24 @@ actor WindowCaptureStreamEngine {
     return .ready(sink)
   }
 
-  private func startStreamLocked(window: SCWindow, configSize: CGSize) async throws {
+  private func startStreamLocked(_ target: StreamTarget) async throws {
     let newSink = CaptureFrameSink()
-    let filter = SCContentFilter(desktopIndependentWindow: window)
-    let config = makeConfiguration(size: configSize)
+    let filter = Self.makeFilter(target)
+    let config = makeConfiguration(target.configKey)
     let newStream = SCStream(filter: filter, configuration: config, delegate: newSink)
     try newStream.addStreamOutput(newSink, type: .screen, sampleHandlerQueue: sampleQueue)
-    newSink.endRetarget(windowID: window.windowID)
+    newSink.endRetarget(windowID: target.window.windowID)
     // The one TCC authorization this engine pays per stream lifetime.
     try await newStream.startCapture()
     stream = newStream
     sink = newSink
-    streamWindowID = window.windowID
-    streamConfigSize = configSize
+    streamWindowID = target.window.windowID
+    streamFilter = target.filterKey
+    streamConfig = target.configKey
     startIdleWatchdog()
-    log("WindowCaptureStreamEngine: started persistent stream for window \(window.windowID)")
+    log(
+      "WindowCaptureStreamEngine: started persistent stream for window \(target.window.windowID) on display \(target.display.displayID)"
+    )
   }
 
   /// Tear down the current stream. Caller MUST hold the stream lock.
@@ -343,7 +401,8 @@ actor WindowCaptureStreamEngine {
     stream = nil
     sink = nil
     streamWindowID = nil
-    streamConfigSize = nil
+    streamFilter = nil
+    streamConfig = nil
     // Detach before stopping: the departing stream may still emit a frame or a
     // didStopWithError, and a detached sink drops both instead of letting them reach
     // a caller or be mistaken for the next stream's state.
@@ -367,12 +426,57 @@ actor WindowCaptureStreamEngine {
     }
   }
 
-  private func makeConfiguration(size: CGSize) -> SCStreamConfiguration {
+  /// What one capture request resolves to once the window is placed on a display.
+  private struct StreamTarget {
+    let window: SCWindow
+    let display: SCDisplay
+    let excludedApplications: [SCRunningApplication]
+    let filterKey: WindowCaptureStreamPolicy.FilterKey
+    let configKey: WindowCaptureStreamPolicy.ConfigKey
+  }
+
+  /// Nil when the window has no area on any display (`captureDimensions` refuses a
+  /// zero-area crop for the same reason it refuses a zero-area window).
+  private static func makeTarget(window: SCWindow, content: SCShareableContent) -> StreamTarget? {
+    let displays = content.displays
+    guard
+      let index = WindowCaptureStreamPolicy.displayIndex(
+        for: window.frame, displayFrames: displays.map(\.frame))
+    else { return nil }
+    let display = displays[index]
+    guard
+      let crop = WindowCaptureStreamPolicy.cropRect(
+        windowFrame: window.frame, displayFrame: display.frame),
+      let fullSize = ScreenCaptureService.captureDimensions(
+        width: crop.width, height: crop.height, maxSize: ScreenCaptureService.maxSize)
+    else { return nil }
+    let ownerPID = window.owningApplication?.processID
+    let excluded = content.applications.filter { $0.processID != ownerPID }
+    return StreamTarget(
+      window: window,
+      display: display,
+      excludedApplications: excluded,
+      filterKey: .init(
+        displayID: display.displayID, excludedApplicationPIDs: Set(excluded.map(\.processID))),
+      configKey: .init(
+        sourceRect: crop, outputSize: CGSize(width: fullSize.width, height: fullSize.height)))
+  }
+
+  /// Display-scoped and application-excluding on purpose; see the type comment for why
+  /// a window-scoped filter is off the table.
+  private static func makeFilter(_ target: StreamTarget) -> SCContentFilter {
+    SCContentFilter(
+      display: target.display, excludingApplications: target.excludedApplications,
+      exceptingWindows: [])
+  }
+
+  private func makeConfiguration(_ key: WindowCaptureStreamPolicy.ConfigKey) -> SCStreamConfiguration {
     let config = SCStreamConfiguration()
     config.scalesToFit = true
     config.showsCursor = false
-    config.width = Int(size.width)
-    config.height = Int(size.height)
+    config.sourceRect = key.sourceRect
+    config.width = Int(key.outputSize.width)
+    config.height = Int(key.outputSize.height)
     config.pixelFormat = kCVPixelFormatType_32BGRA
     ScreenCaptureService.applySingleWindowPixelIntegrityPolicy(to: config)
     config.minimumFrameInterval = Self.minimumFrameInterval
