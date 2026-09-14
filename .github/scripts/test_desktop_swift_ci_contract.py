@@ -521,7 +521,7 @@ class DesktopSwiftCIContractTests(unittest.TestCase):
         # a re-baselined PR run the full suite against the PR number and
         # false-red at 2013s vs 1800s (run 34369508858).
         self.assertIn(
-            "OMI_SWIFT_TEST_STEP_BUDGET_SECONDS: ${{ needs.changes.outputs.swift_test_effective_lane == 'pr' && '1800' || '3600' }}",
+            "OMI_SWIFT_TEST_STEP_BUDGET_SECONDS: ${{ needs.changes.outputs.swift_test_effective_lane == 'pr' && '1800' || '4500' }}",
             verify_job,
         )
         self.assertIn('OMI_SWIFT_TEST_SLOW_RATCHET_SECONDS: "60"', verify_job)

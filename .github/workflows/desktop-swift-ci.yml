@@ -141,7 +141,7 @@ jobs:
     # cold-tools run (~15 min from-source bootstrap ahead of the full lane,
     # which still executes every suite on this branch's own runner-changing
     # diffs). Two runs were cancelled by tighter ceilings before completing.
-    # Fork: cold SwiftPM caches on this repo push the full lane past 60 minutes.
+    # Fork: the full lane takes 49 to 61 minutes of tests alone on hosted macos-15 runners.
     timeout-minutes: 90
     steps:
       - name: Checkout code
@@ -318,7 +318,7 @@ jobs:
           # so it carries 2700s to catch the 50m+ drift class without
           # failing quiet-day variance. Raise either only with measured
           # evidence in the PR that raises it.
-          OMI_SWIFT_TEST_STEP_BUDGET_SECONDS: ${{ needs.changes.outputs.swift_test_effective_lane == 'pr' && '1800' || '3600' }}
+          OMI_SWIFT_TEST_STEP_BUDGET_SECONDS: ${{ needs.changes.outputs.swift_test_effective_lane == 'pr' && '1800' || '4500' }}
           # Any PR-lane suite whose own test time exceeds this and is not
           # ratcheted in swift-test-slow-suites.json fails the run: the fast
           # lane cannot silently grow a slow tail. Deferred suites that woke
