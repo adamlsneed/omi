@@ -213,7 +213,8 @@ final class QuickActionsIconPatcher: NSObject {
       do {
           let messenger = controller.binaryMessenger
           let phoneMicFlutterApi = PhoneMicFlutterApi(binaryMessenger: messenger)
-          let micController = PhoneMicController(flutterApi: phoneMicFlutterApi)
+          let micController = PhoneMicController(
+              environment: PhoneMicLiveEnvironment.make(sink: phoneMicFlutterApi))
           phoneMicController = micController
           PhoneMicHostApiSetup.setUp(binaryMessenger: messenger, api: PhoneMicHostApiImpl(controller: micController))
       }

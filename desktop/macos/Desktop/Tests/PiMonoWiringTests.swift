@@ -42,6 +42,32 @@ final class PiMonoWiringTests: XCTestCase {
     XCTAssertEqual(AgentRuntimeRouting.adapterId(for: .hermes).rawValue, "hermes")
     XCTAssertEqual(AgentRuntimeRouting.adapterId(for: .openclaw).rawValue, "openclaw")
     XCTAssertNil(AgentRuntimeRouting.harnessMode(from: "unknown"))
+    XCTAssertNil(
+      AgentRuntimeRouting.defaultModelProfile(
+        harnessMode: AgentHarnessMode.hermes.rawValue,
+        chatBridgeMode: ChatProvider.BridgeMode.hermes.rawValue
+      )
+    )
+    XCTAssertNil(
+      AgentRuntimeRouting.defaultModelProfile(
+        harnessMode: AgentHarnessMode.piMono.rawValue,
+        chatBridgeMode: ChatProvider.BridgeMode.local.rawValue
+      )
+    )
+    XCTAssertEqual(
+      AgentRuntimeRouting.defaultModelProfile(
+        harnessMode: AgentHarnessMode.piMono.rawValue,
+        chatBridgeMode: ChatProvider.BridgeMode.piMono.rawValue
+      ),
+      ModelQoS.Claude.chat
+    )
+    XCTAssertEqual(
+      AgentRuntimeRouting.defaultModelProfileForRunHarness(
+        AgentHarnessMode.piMono.rawValue,
+        persistedChatBridgeMode: ChatProvider.BridgeMode.hermes.rawValue
+      ),
+      ModelQoS.Claude.chat
+    )
   }
 
   func testLocalAgentProviderDetectorUsesExplicitCommand() {
@@ -304,42 +330,27 @@ final class PiMonoWiringTests: XCTestCase {
       "AgentRuntimeProcess should build a small allowlisted subprocess environment")
   }
 
-  func testAgentRuntimeDoesNotPutAuthTokenDirectlyInNodeEnvironment() throws {
+  func testAgentRuntimeNeverPlacesModelCredentialsInNodeEnvironment() throws {
     let runtimePath = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent()  // Tests/
       .deletingLastPathComponent()  // Desktop/
       .appendingPathComponent("Sources/Chat/AgentRuntimeProcess.swift")
 
-    // omi-test-quality: source-inspection -- static contract: forbidden-pattern tripwire that Firebase auth tokens are never placed directly in the Node subprocess environment
+    // Upstream #14xxx replaced the long-lived child token (which the fork had moved out of the
+    // environment into a private 0600 file) with request-scoped model headers fetched over the
+    // JSONL channel, so no credential reaches the subprocess at all. This tripwire guards the
+    // stronger property; it replaces the token-file tripwires.
+    // omi-test-quality: source-inspection -- static contract: forbidden-pattern tripwire that model credentials never reach the Node subprocess environment
     let src = try String(contentsOf: runtimePath, encoding: .utf8)
     XCTAssertFalse(
       src.contains("env[\"OMI_AUTH_TOKEN\"] = token"),
-      "AgentRuntimeProcess must not put Firebase tokens directly in Node env; process listings expose env values")
+      "AgentRuntimeProcess must not put Firebase tokens in Node env; process listings expose env values")
     XCTAssert(
-      src.contains("OMI_AUTH_TOKEN_FILE"),
-      "AgentRuntimeProcess should pass the Firebase token to Node through a private token file")
-  }
-
-  func testAgentRuntimeClearsAuthTokenFileWhenTheChildDiesUnexpectedly() throws {
-    let runtimePath = URL(fileURLWithPath: #filePath)
-      .deletingLastPathComponent()  // Tests/
-      .deletingLastPathComponent()  // Desktop/
-      .appendingPathComponent("Sources/Chat/AgentRuntimeProcess.swift")
-
-    // The graceful paths (stopProcess, cleanupFailedStart) already cleared the token file; a crash
-    // or OOM goes through handleTermination, which did not, stranding a readable Firebase token on
-    // disk with no child left to consume it.
-    // omi-test-quality: source-inspection -- static contract: required-pattern tripwire that the unexpected-termination path clears the auth token file
-    let src = try String(contentsOf: runtimePath, encoding: .utf8)
-    guard let start = src.range(of: "private func handleTermination(") else {
-      return XCTFail("handleTermination moved; re-point this tripwire at its new home")
-    }
-    let rest = src[start.upperBound...]
-    let end = rest.range(of: "\n  private func ") ?? rest.range(of: "\n  func ")
-    let body = end.map { String(rest[..<$0.lowerBound]) } ?? String(rest)
+      src.contains("env.removeValue(forKey: \"OMI_AUTH_TOKEN\")"),
+      "AgentRuntimeProcess should strip any inherited OMI_AUTH_TOKEN from the child environment")
     XCTAssert(
-      body.contains("cleanupAuthTokenFile()"),
-      "handleTermination must clear the auth token file; a crashed child leaves the token readable on disk")
+      src.contains("env[\"OMI_MODEL_CREDENTIALS\"] = \"on_demand\""),
+      "AgentRuntimeProcess should hand Node request-scoped model credentials instead of a long-lived token")
   }
 
 }

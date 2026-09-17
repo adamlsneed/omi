@@ -244,7 +244,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get searchConversations => 'Поиск разговоров...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return 'Выбрано $count';
   }
 
@@ -2057,6 +2057,15 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Часть истории воспоминаний недоступна. Показана история, полученная на данный момент.';
+
+  @override
+  String get memoryHistory => 'История';
+
+  @override
+  String get memoryAllowUse => 'Разрешить использование';
+
+  @override
+  String get memoryDontUse => 'Не использовать';
 
   @override
   String get undo => 'Отменить';
@@ -10247,4 +10256,14 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Ещё обрабатывается — это занимает больше обычного.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Чтобы Omi знал, какой голос ваш, говорите о чём угодно примерно 5 секунд.';
+
+  @override
+  String get home => 'Главная';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Не удалось обновить базовый статус.';
 }

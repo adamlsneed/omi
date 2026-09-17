@@ -242,7 +242,7 @@ class AppLocalizationsTh extends AppLocalizations {
   String get searchConversations => 'ค้นหาการสนทนา...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return 'เลือก $count รายการ';
   }
 
@@ -2038,6 +2038,15 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => 'ประวัติความทรงจำบางส่วนไม่พร้อมใช้งาน กำลังแสดงประวัติที่ได้รับจนถึงตอนนี้';
+
+  @override
+  String get memoryHistory => 'ประวัติ';
+
+  @override
+  String get memoryAllowUse => 'อนุญาตให้ใช้';
+
+  @override
+  String get memoryDontUse => 'ไม่ต้องใช้';
 
   @override
   String get undo => 'เลิกทำ';
@@ -10151,4 +10160,14 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'ยังทำงานอยู่ — ใช้เวลานานกว่าปกติ';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'เพื่อให้ Omi รู้ว่าเสียงไหนเป็นของคุณ — พูดเรื่องอะไรก็ได้ประมาณ 5 วินาที';
+
+  @override
+  String get home => 'หน้าหลัก';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'ไม่สามารถอัปเดตสถานะเส้นฐานได้';
 }

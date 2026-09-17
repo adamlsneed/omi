@@ -245,7 +245,7 @@ class AppLocalizationsHu extends AppLocalizations {
   String get searchConversations => 'Beszélgetések keresése...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count kiválasztva';
   }
 
@@ -2064,6 +2064,15 @@ class AppLocalizationsHu extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Az emlékek előzményeinek egy része nem érhető el. Az eddig megkapott előzmények láthatók.';
+
+  @override
+  String get memoryHistory => 'Előzmények';
+
+  @override
+  String get memoryAllowUse => 'Használat engedélyezése';
+
+  @override
+  String get memoryDontUse => 'Ne használd';
 
   @override
   String get undo => 'Visszavonás';
@@ -10252,4 +10261,14 @@ class AppLocalizationsHu extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Még folyamatban — ez tovább tart a szokásosnál.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Hogy az Omi tudja, melyik hang a tiéd — beszélj bármiről körülbelül 5 másodpercig.';
+
+  @override
+  String get home => 'Kezdőlap';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Az alapállapot frissítése sikertelen.';
 }

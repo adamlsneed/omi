@@ -32,6 +32,7 @@
               "developer/upstream-sync-and-backend-policy",
               "doc/developer/AppSetup",
               "doc/developer/Cursor",
+              "doc/developer/memory-clients",
               {
                 "group": "Backend",
                 "pages": [

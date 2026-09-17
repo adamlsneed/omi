@@ -241,7 +241,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get searchConversations => '会話を検索...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count件選択中';
   }
 
@@ -2011,6 +2011,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => '記憶の履歴の一部を取得できません。これまでに取得した履歴を表示しています。';
+
+  @override
+  String get memoryHistory => '履歴';
+
+  @override
+  String get memoryAllowUse => '使用を許可';
+
+  @override
+  String get memoryDontUse => '使用しない';
 
   @override
   String get undo => '元に戻す';
@@ -10031,4 +10040,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'まだ処理中です。通常より時間がかかっています。';
+
+  @override
+  String get speechProfileEnrollmentPrompt => 'Omiがあなたの声を識別できるように、好きなことを5秒ほど話してください。';
+
+  @override
+  String get home => 'ホーム';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'ベースライン状態の更新に失敗しました。';
 }

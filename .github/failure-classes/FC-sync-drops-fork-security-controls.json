@@ -1,10 +1,11 @@
 {
  "schema_version": 1,
  "id": "FC-sync-drops-fork-security-controls",
- "violated_contract": "A fork-local security control composed into upstream-owned code (the agent subprocess environment allowlist and the file-based OMI_AUTH_TOKEN delivery) must survive an upstream sync. Resolving a merge by taking upstream's rewritten spawn path wholesale silently reverts the control, and the regression ships if the sync lands without the control's tripwires red-flagging it.",
- "canonical_prevention": "Keep source-level tripwire tests (PiMonoWiringTests) asserting the forbidden pattern (whole-environment copy, token directly in child env) and the required pattern (allowlist builder, token file) against the current spawn-path file, and re-point them at the new file whenever upstream moves the spawn path. A sync PR is not landable while these tripwires are red, and an unverified auto-merge to main is not a landing path.",
+ "violated_contract": "A fork-local control composed into upstream-owned code must survive an upstream sync, or be retired deliberately in favour of an upstream control that supersedes it. Resolving a merge by taking upstream's rewritten file wholesale silently reverts the control, and the regression ships if nothing in the tree fails while the control is absent. Controls currently under this contract: the agent subprocess environment allowlist, request-scoped agent model credentials (which superseded the fork's file-based OMI_AUTH_TOKEN delivery), app-id query encoding that excludes query metacharacters, and iOS BLE service re-discovery on state restore.",
+ "canonical_prevention": "Two guards, both of which must name a live artifact after every sync. Source-level tripwire tests (PiMonoWiringTests) assert the forbidden pattern (whole-environment copy, credential in the child env) and the required pattern (allowlist builder, on-demand model credentials) against the current spawn-path file, and are re-pointed whenever upstream moves it. scripts/fork-feature-audit.sh resolves every other fork control to a live file, and to a caller outside its defining file where presence alone is not evidence of wiring. A control that neither guard covers is droppable without anything going red, which is how the app-id query encoding and the BLE re-discovery helper were lost in the 2026-09-17 sync; add the check in the same PR that restores the control. A sync PR is not landable while either guard is red, and an unverified auto-merge to main is not a landing path.",
  "canonical_prevention_artifact": [
-  "desktop/macos/Desktop/Tests/PiMonoWiringTests.swift"
+  "desktop/macos/Desktop/Tests/PiMonoWiringTests.swift",
+  "scripts/fork-feature-audit.sh"
  ],
  "evidence_prs": [
   98,
@@ -13,7 +14,10 @@
  "scope_hints": [
   "desktop/macos/Desktop/Sources/Chat/AgentRuntimeProcess.swift",
   "desktop/macos/agent/src/index.ts",
-  "desktop/macos/Desktop/Tests/PiMonoWiringTests.swift"
+  "desktop/macos/Desktop/Tests/PiMonoWiringTests.swift",
+  "desktop/macos/Desktop/Sources/Services/APIClient/APIClient+Apps.swift",
+  "app/ios/Runner/Ble/OmiBleManager.swift",
+  "scripts/fork-feature-audit.sh"
  ],
  "status": "open"
 }

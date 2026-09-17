@@ -245,7 +245,7 @@ class AppLocalizationsEl extends AppLocalizations {
   String get searchConversations => 'Αναζήτηση συνομιλιών...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count επιλεγμένα';
   }
 
@@ -2066,6 +2066,15 @@ class AppLocalizationsEl extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Ένα μέρος του ιστορικού αναμνήσεων δεν είναι διαθέσιμο. Εμφανίζεται το ιστορικό που έχει ληφθεί μέχρι τώρα.';
+
+  @override
+  String get memoryHistory => 'Ιστορικό';
+
+  @override
+  String get memoryAllowUse => 'Να επιτρέπεται η χρήση';
+
+  @override
+  String get memoryDontUse => 'Να μην χρησιμοποιείται';
 
   @override
   String get undo => 'Αναίρεση';
@@ -10284,4 +10293,14 @@ class AppLocalizationsEl extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Ακόμα σε εξέλιξη — χρειάζεται περισσότερο χρόνο από το συνηθισμένο.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Για να ξέρει το Omi ποια φωνή είναι δική σας — μιλήστε για οτιδήποτε για περίπου 5 δευτερόλεπτα.';
+
+  @override
+  String get home => 'Αρχική';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Αποτυχία ενημέρωσης της βασικής κατάστασης.';
 }

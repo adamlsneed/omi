@@ -242,7 +242,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchConversations => 'البحث في المحادثات...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count محدد';
   }
 
@@ -2033,6 +2033,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => 'بعض سجل الذكريات غير متاح. يتم عرض السجل المستلم حتى الآن.';
+
+  @override
+  String get memoryHistory => 'السجل';
+
+  @override
+  String get memoryAllowUse => 'السماح بالاستخدام';
+
+  @override
+  String get memoryDontUse => 'عدم الاستخدام';
 
   @override
   String get undo => 'تراجع';
@@ -10149,4 +10158,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'ما زال قيد العمل — يستغرق وقتًا أطول من المعتاد.';
+
+  @override
+  String get speechProfileEnrollmentPrompt => 'لكي يعرف Omi أي صوت هو صوتك — تحدث عن أي شيء لمدة 5 ثوانٍ تقريبًا.';
+
+  @override
+  String get home => 'الرئيسية';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'فشل تحديث حالة الخط الأساسي.';
 }

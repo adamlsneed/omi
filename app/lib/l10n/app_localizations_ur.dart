@@ -243,7 +243,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get searchConversations => 'بات چیتوں کو تلاش کریں...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count منتخب';
   }
 
@@ -2049,6 +2049,15 @@ class AppLocalizationsUr extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'یادوں کی تاریخ کا کچھ حصہ دستیاب نہیں ہے۔ اب تک موصول ہونے والی تاریخ دکھائی جا رہی ہے۔';
+
+  @override
+  String get memoryHistory => 'تاریخ';
+
+  @override
+  String get memoryAllowUse => 'استعمال کی اجازت دیں';
+
+  @override
+  String get memoryDontUse => 'استعمال نہ کریں';
 
   @override
   String get undo => 'واپس لیں';
@@ -10224,4 +10233,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'ابھی کام جاری ہے — اس میں معمول سے زیادہ وقت لگ رہا ہے۔';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'تاکہ Omi آپ کی آواز پہچان سکے — کسی بھی موضوع پر تقریباً 5 سیکنڈ بات کریں۔';
+
+  @override
+  String get home => 'ہوم';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'بیس لائن کی حالت اپ ڈیٹ نہیں ہو سکی۔';
 }

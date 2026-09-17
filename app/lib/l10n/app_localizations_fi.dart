@@ -242,7 +242,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get searchConversations => 'Etsi keskusteluja...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count valittu';
   }
 
@@ -2048,6 +2048,15 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Osa muistojen historiasta ei ole saatavilla. Näytetään tähän mennessä saatu historia.';
+
+  @override
+  String get memoryHistory => 'Historia';
+
+  @override
+  String get memoryAllowUse => 'Salli käyttö';
+
+  @override
+  String get memoryDontUse => 'Älä käytä';
 
   @override
   String get undo => 'Kumoa';
@@ -10210,4 +10219,14 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Vielä käynnissä — tämä kestää tavallista kauemmin.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Jotta Omi tietää, mikä ääni on sinun — puhu mistä tahansa noin 5 sekuntia.';
+
+  @override
+  String get home => 'Koti';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Perustilan päivitys epäonnistui.';
 }

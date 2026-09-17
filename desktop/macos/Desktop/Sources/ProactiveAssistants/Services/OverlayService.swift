@@ -134,7 +134,8 @@ class OverlayService {
     let focusResult = AXUIElementCopyAttributeValue(
       appElement, kAXFocusedWindowAttribute as CFString, &focusedWindow)
 
-    guard focusResult == .success, let windowElementRef = focusedWindow else {
+    guard focusResult == .success, let windowElement = AXAttributeCasting.element(focusedWindow)
+    else {
       if focusResult == .apiDisabled || focusResult == .cannotComplete {
         log(
           "ACCESSIBILITY_AX: getWindowFrameViaAccessibility failed with \(focusResult.rawValue) — permission may be stuck"
@@ -142,25 +143,18 @@ class OverlayService {
       }
       return nil
     }
-    guard CFGetTypeID(windowElementRef) == AXUIElementGetTypeID() else {
-      return nil
-    }
-    let windowElement = unsafeDowncast(windowElementRef, to: AXUIElement.self)
 
     // Get window position
     var positionValue: CFTypeRef?
     let posResult = AXUIElementCopyAttributeValue(
       windowElement, kAXPositionAttribute as CFString, &positionValue)
 
-    guard posResult == .success, let posRef = positionValue,
-      CFGetTypeID(posRef) == AXValueGetTypeID()
-    else {
+    guard posResult == .success, let posRef = AXAttributeCasting.value(positionValue) else {
       return nil
     }
-    let axPosition = unsafeDowncast(posRef, to: AXValue.self)
 
     var position = CGPoint.zero
-    if !AXValueGetValue(axPosition, .cgPoint, &position) {
+    if !AXValueGetValue(posRef, .cgPoint, &position) {
       return nil
     }
 
@@ -169,15 +163,12 @@ class OverlayService {
     let sizeResult = AXUIElementCopyAttributeValue(
       windowElement, kAXSizeAttribute as CFString, &sizeValue)
 
-    guard sizeResult == .success, let sizeRef = sizeValue,
-      CFGetTypeID(sizeRef) == AXValueGetTypeID()
-    else {
+    guard sizeResult == .success, let sizeRef = AXAttributeCasting.value(sizeValue) else {
       return nil
     }
-    let axSize = unsafeDowncast(sizeRef, to: AXValue.self)
 
     var size = CGSize.zero
-    if !AXValueGetValue(axSize, .cgSize, &size) {
+    if !AXValueGetValue(sizeRef, .cgSize, &size) {
       return nil
     }
 
