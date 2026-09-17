@@ -1148,8 +1148,7 @@ class GetAppsWidgets extends StatelessWidget {
                 // A routed summary is generated locally from a template, so there is no
                 // server-side summary identity to save an edit against: keep it read-only.
                 onEditStarted: isRoutedSummary || onEditStarted == null ? null : (_) => onEditStarted!(selection),
-                onEditCancelled:
-                    isRoutedSummary || onEditCancelled == null ? null : (_) => onEditCancelled!(selection),
+                onEditCancelled: isRoutedSummary || onEditCancelled == null ? null : (_) => onEditCancelled!(selection),
                 onSaveSummarySelection: isRoutedSummary ? null : onSaveSummarySelection,
                 asSliver: true,
               ),
