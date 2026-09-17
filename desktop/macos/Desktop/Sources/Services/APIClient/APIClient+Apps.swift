@@ -408,33 +408,13 @@ extension APIClient {
     let _: ToggleResponse = try await post("v1/apps/disable?app_id=\(appId)")
   }
 
-  /// Sets the current user's preferred summary app using the hosted Omi backend.
-  func setPreferredSummarizationApp(appId: String) async throws {
-    struct PreferenceResponse: Decodable {
-      let status: String?
-      let message: String?
-    }
-
-    var queryAllowed = CharacterSet.urlQueryAllowed
-    queryAllowed.remove(charactersIn: "&+=?")
-
-    let encodedAppId = appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
-    let _: PreferenceResponse = try await put("v1/users/preferences/app?app_id=\(encodedAppId)")
-  }
-
   /// Checks if an external integration app's setup is complete
   func isAppSetupCompleted(url: String, uid: String) async -> Bool {
     // An empty/unknown completion URL means setup cannot be verified, so report
     // not-completed (consistent with the invalid-URL and network-failure paths
     // below). Returning true here would wrongly mark an unconfigured app as set up.
     guard !url.isEmpty else { return false }
-    guard var components = URLComponents(string: url) else { return false }
-    var queryItems = components.queryItems ?? []
-    if !queryItems.contains(where: { $0.name == "uid" }) {
-      queryItems.append(URLQueryItem(name: "uid", value: uid))
-    }
-    components.queryItems = queryItems
-    guard let fullUrl = components.url else { return false }
+    guard let fullUrl = AppSetupURL.withUID(url, uid: uid) else { return false }
     var request = URLRequest(url: fullUrl)
     request.httpMethod = "GET"
     do {
@@ -484,10 +464,7 @@ extension APIClient {
     // mode that means picking an app returns the first-party note instead of the chosen app.
     // Encode with query metacharacters excluded so an app id cannot smuggle
     // extra query parameters (urlQueryAllowed keeps & + = ? literal).
-    var queryAllowed = CharacterSet.urlQueryAllowed
-    queryAllowed.remove(charactersIn: "&+=?")
-    let encoded =
-      appId.addingPercentEncoding(withAllowedCharacters: queryAllowed) ?? appId
+    let encoded = appId.addingPercentEncoding(withAllowedCharacters: Self.appIdQueryAllowed) ?? appId
     return try await post(
       "v1/conversations/\(conversationId)/reprocess?app_id=\(encoded)",
       body: EmptyBody())
@@ -502,6 +479,26 @@ extension APIClient {
   }
 
   private struct EmptyBody: Encodable {}
+
+  /// Query-safe character set for an app id carried as a query parameter:
+  /// `urlQueryAllowed` leaves `& + = ?` literal, which would let an id append
+  /// parameters of its own to the route.
+  private static let appIdQueryAllowed: CharacterSet = {
+    var allowed = CharacterSet.urlQueryAllowed
+    allowed.remove(charactersIn: "&+=?")
+    return allowed
+  }()
+
+  /// Sets the user's preferred summarization app; the backend keys future
+  /// conversation processing on it (mobile uses the same route).
+  func setPreferredSummarizationApp(appId: String) async throws {
+    struct StatusResponse: Decodable {
+      let status: String?
+      let message: String?
+    }
+    let encoded = appId.addingPercentEncoding(withAllowedCharacters: Self.appIdQueryAllowed) ?? appId
+    let _: StatusResponse = try await put("v1/users/preferences/app?app_id=\(encoded)")
+  }
 
   /// Bodyless PUT counterpart of the `post`/`patch` helpers, kept in this
   /// extension so the oversized core transport file stays net-neutral.

@@ -241,7 +241,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchConversations => '搜索对话...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '已选择 $count 项';
   }
 
@@ -2007,6 +2007,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => '部分记忆历史暂不可用。正在显示目前已获取的历史记录。';
+
+  @override
+  String get memoryHistory => '历史';
+
+  @override
+  String get memoryAllowUse => '允许使用';
+
+  @override
+  String get memoryDontUse => '不使用';
 
   @override
   String get undo => '撤销';
@@ -10012,4 +10021,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get processingTakingLonger => '仍在处理中——比平时耗时更长。';
+
+  @override
+  String get speechProfileEnrollmentPrompt => '让 Omi 知道哪个声音是你的——随便聊点什么，说大约 5 秒就好。';
+
+  @override
+  String get home => '首页';
+
+  @override
+  String get failedToUpdateBaselineStatus => '无法更新基线状态。';
 }

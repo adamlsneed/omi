@@ -1663,6 +1663,12 @@ actor RewindDatabase {
       }
     }
 
+    migrator.registerMigration("addTranscriptionCaptureAttemptId") { db in
+      try db.alter(table: "transcription_sessions") { t in
+        t.add(column: "captureAttemptId", .text)
+      }
+    }
+
     // Migration 11: Create live_notes table for AI-generated notes during recording
     migrator.registerMigration("createLiveNotes") { db in
       try db.create(table: "live_notes") { t in
@@ -2748,6 +2754,7 @@ actor RewindDatabase {
     JITTriggerMirrorSchema.registerMigration(on: &migrator)
     KnowledgeLedgerMirrorStagingSchema.registerMigration(on: &migrator)
     Self.registerClientProcessingProjectionMigration(on: &migrator)
+    Self.registerConversationSummarySectionsMigration(on: &migrator)
     try migrator.migrate(queue)
     try ContextBucketSchema.removeMigratedLegacyDefaults(
       afterMigrating: queue,
@@ -2801,6 +2808,15 @@ actor RewindDatabase {
   static func registerClientProcessingProjectionMigration(on migrator: inout DatabaseMigrator) {
     migrator.registerMigration("addClientProcessingProjection") { db in
       try Self.addTranscriptionSessionColumnIfMissing(db, name: "clientProcessingJson", type: .text)
+    }
+  }
+
+  /// Persist the structured summary sections alongside the legacy overview. Without this field,
+  /// a cache refresh silently dropped section bodies and their transcript evidence even though the
+  /// network decode had succeeded.
+  static func registerConversationSummarySectionsMigration(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("addConversationSummarySections") { db in
+      try Self.addTranscriptionSessionColumnIfMissing(db, name: "sectionsJson", type: .text)
     }
   }
 

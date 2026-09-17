@@ -244,7 +244,7 @@ class AppLocalizationsCs extends AppLocalizations {
   String get searchConversations => 'Hledat konverzace...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return 'Vybráno: $count';
   }
 
@@ -2051,6 +2051,15 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => 'Část historie vzpomínek není dostupná. Zobrazuje se dosud přijatá historie.';
+
+  @override
+  String get memoryHistory => 'Historie';
+
+  @override
+  String get memoryAllowUse => 'Povolit použití';
+
+  @override
+  String get memoryDontUse => 'Nepoužívat';
 
   @override
   String get undo => 'Vrátit zpět';
@@ -10210,4 +10219,13 @@ class AppLocalizationsCs extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Stále probíhá — trvá to déle než obvykle.';
+
+  @override
+  String get speechProfileEnrollmentPrompt => 'Aby Omi věděl, který hlas je váš — mluvte asi 5 sekund o čemkoli.';
+
+  @override
+  String get home => 'Domů';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Nepodařilo se aktualizovat stav výchozí paměti.';
 }

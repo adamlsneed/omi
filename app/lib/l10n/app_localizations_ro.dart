@@ -245,7 +245,7 @@ class AppLocalizationsRo extends AppLocalizations {
   String get searchConversations => 'Căutare conversații...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count selectate';
   }
 
@@ -2059,6 +2059,15 @@ class AppLocalizationsRo extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'O parte din istoricul amintirilor nu este disponibilă. Se afișează istoricul primit până acum.';
+
+  @override
+  String get memoryHistory => 'Istoric';
+
+  @override
+  String get memoryAllowUse => 'Permite utilizarea';
+
+  @override
+  String get memoryDontUse => 'Nu utiliza';
 
   @override
   String get undo => 'Anulează';
@@ -10259,4 +10268,14 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Încă se procesează — durează mai mult decât de obicei.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Pentru ca Omi să știe care este vocea ta — vorbește despre orice timp de aproximativ 5 secunde.';
+
+  @override
+  String get home => 'Acasă';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Nu s-a putut actualiza starea de referință.';
 }

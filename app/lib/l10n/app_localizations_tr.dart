@@ -244,7 +244,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchConversations => 'Konuşmaları ara...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count seçildi';
   }
 
@@ -2055,6 +2055,15 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Anı geçmişinin bir kısmı kullanılamıyor. Şimdiye kadar alınan geçmiş gösteriliyor.';
+
+  @override
+  String get memoryHistory => 'Geçmiş';
+
+  @override
+  String get memoryAllowUse => 'Kullanıma izin ver';
+
+  @override
+  String get memoryDontUse => 'Kullanma';
 
   @override
   String get undo => 'Geri Al';
@@ -10222,4 +10231,14 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Hâlâ devam ediyor — bu her zamankinden daha uzun sürüyor.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Omi\'nin hangi sesin size ait olduğunu bilmesi için yaklaşık 5 saniye boyunca istediğiniz bir konuda konuşun.';
+
+  @override
+  String get home => 'Ana Sayfa';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Temel durum güncellenemedi.';
 }

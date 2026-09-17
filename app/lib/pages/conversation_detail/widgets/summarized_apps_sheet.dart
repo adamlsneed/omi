@@ -32,9 +32,10 @@ class _SummarizedAppsBottomSheetState extends State<SummarizedAppsBottomSheet> {
     super.initState();
     // Fire once per sheet presentation, not on every provider notification.
     final provider = context.read<ConversationDetailProvider>();
+    final selection = provider.getSummarySelection();
     PlatformManager.instance.analytics.summarizedAppSheetViewed(
       conversationId: provider.conversation.id,
-      currentSummarizedAppId: provider.getSummarizedApp()?.appId,
+      currentSummarizedAppId: selection.isApp ? selection.appId : null,
     );
   }
 
@@ -48,7 +49,8 @@ class _SummarizedAppsBottomSheetState extends State<SummarizedAppsBottomSheet> {
       builder: (context, scrollController) {
         return Consumer<ConversationDetailProvider>(
           builder: (context, provider, _) {
-            final currentAppId = provider.getSummarizedApp()?.appId;
+            final currentSelection = provider.getSummarySelection();
+            final currentAppId = currentSelection.isApp ? currentSelection.appId : null;
 
             return _SheetContainer(
               scrollController: scrollController,
@@ -371,7 +373,8 @@ class _AppsListState extends State<_AppsList> {
   void _handleAppTap(BuildContext context, App app) async {
     // Reprocess with the selected app
     final provider = context.read<ConversationDetailProvider>();
-    final previousAppId = provider.getSummarizedApp()?.appId;
+    final previousSelection = provider.getSummarySelection();
+    final previousAppId = previousSelection.isApp ? previousSelection.appId : null;
     final conversationId = provider.conversation.id;
 
     PlatformManager.instance.analytics.summarizedAppSelected(
@@ -423,7 +426,8 @@ class _AppsListState extends State<_AppsList> {
       PlatformManager.instance.analytics.summarizedAppSelected(
         conversationId: conversationId,
         selectedAppId: app.id,
-        previousAppId: conversationProvider.getSummarizedApp()?.appId,
+        previousAppId:
+            conversationProvider.getSummarySelection().isApp ? conversationProvider.getSummarySelection().appId : null,
       );
 
       // Track the last used app

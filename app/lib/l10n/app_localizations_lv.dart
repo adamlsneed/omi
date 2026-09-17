@@ -244,7 +244,7 @@ class AppLocalizationsLv extends AppLocalizations {
   String get searchConversations => 'Meklēt sarunas...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count atlasīts';
   }
 
@@ -2054,6 +2054,15 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => 'Daļa atmiņu vēstures nav pieejama. Tiek rādīta līdz šim saņemtā vēsture.';
+
+  @override
+  String get memoryHistory => 'Vēsture';
+
+  @override
+  String get memoryAllowUse => 'Atļaut lietošanu';
+
+  @override
+  String get memoryDontUse => 'Nelietot';
 
   @override
   String get undo => 'Atsaukt';
@@ -10232,4 +10241,14 @@ class AppLocalizationsLv extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Joprojām notiek — tas aizņem ilgāk nekā parasti.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Lai Omi zinātu, kura balss ir jūsu — runājiet par jebko aptuveni 5 sekundes.';
+
+  @override
+  String get home => 'Sākums';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Neizdevās atjaunināt bāzes statusu.';
 }

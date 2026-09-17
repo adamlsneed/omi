@@ -243,7 +243,7 @@ class AppLocalizationsFa extends AppLocalizations {
   String get searchConversations => 'جستجوی گفتگوها...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count انتخاب‌شده';
   }
 
@@ -2048,6 +2048,15 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'بخشی از تاریخچهٔ خاطرات در دسترس نیست. تاریخچهٔ دریافت‌شده تا این لحظه نمایش داده می‌شود.';
+
+  @override
+  String get memoryHistory => 'تاریخچه';
+
+  @override
+  String get memoryAllowUse => 'اجازه استفاده';
+
+  @override
+  String get memoryDontUse => 'استفاده نکن';
 
   @override
   String get undo => 'بازگشت';
@@ -10211,4 +10220,14 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'هنوز در حال انجام است — بیشتر از حد معمول طول می‌کشد.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'برای اینکه Omi بداند کدام صدا متعلق به شماست — حدود ۵ ثانیه درباره هر چیزی صحبت کنید.';
+
+  @override
+  String get home => 'خانه';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'به‌روزرسانی وضعیت پایه ناموفق بود.';
 }

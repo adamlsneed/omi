@@ -244,7 +244,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchConversations => 'Buscar conversaciones...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count seleccionados';
   }
 
@@ -2034,6 +2034,15 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Parte del historial de recuerdos no está disponible. Se muestra el historial recibido hasta ahora.';
+
+  @override
+  String get memoryHistory => 'Historial';
+
+  @override
+  String get memoryAllowUse => 'Permitir uso';
+
+  @override
+  String get memoryDontUse => 'No usar';
 
   @override
   String get undo => 'Deshacer';
@@ -10235,4 +10244,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Sigue trabajando: esto está tardando más de lo habitual.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Para que Omi sepa cuál es tu voz — habla de cualquier cosa durante unos 5 segundos.';
+
+  @override
+  String get home => 'Inicio';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Error al actualizar el estado de la línea base.';
 }

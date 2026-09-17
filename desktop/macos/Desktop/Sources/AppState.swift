@@ -486,6 +486,12 @@ class AppState: ObservableObject {
     get { servicesCoordinator.meetingDetector }
     set { servicesCoordinator.meetingDetector = newValue }
   }
+  /// Mutes the ambient mic contribution while a dictation app holds the microphone. Lives for
+  /// one transcription session, alongside `meetingDetector`.
+  var dictationMicSuppressionMonitor: DictationMicSuppressionMonitor? {
+    get { servicesCoordinator.dictationMicSuppressionMonitor }
+    set { servicesCoordinator.dictationMicSuppressionMonitor = newValue }
+  }
   var captureGateInFlight = false
   var captureReconcilePending = false
   var pendingCoreAudioCaptureRecoveryReason: String?
@@ -573,6 +579,10 @@ class AppState: ObservableObject {
   }
 
   var currentSessionId: Int64?
+  /// Privacy-bounded state of the armed ambient-capture attempt in flight
+  /// (`CaptureAttemptOutcomeState`). Non-nil exactly between arming in
+  /// `startTranscription` and terminalization in `clearTranscriptionState`.
+  var captureAttempt: CaptureAttemptOutcomeState?
 
   // idea-capture (fork): session state; transitions live in AppState+IdeaCapture.swift.
   /// True while a start/stop idea-capture session is recording. Drives the menu-bar
@@ -584,7 +594,6 @@ class AppState: ObservableObject {
   var audioRecordingModeBeforeIdeaCapture: AssistantSettings.AudioRecordingMode?
   var ideaCaptureMicControl = IdeaCaptureMicControl.live
   static let ideaFolderIdKey = "desktop_ideaFolderId"
-
   /// Serializes segment persistence so a local duplicate replacement cannot race
   /// the original mic segment's upsert in SQLite.
   var transcriptPersistenceTail: Task<Void, Never>?

@@ -3,9 +3,16 @@ set -euo pipefail
 
 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/validate_mobile_build_config_test.sh"
 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/mobile_build_wrapper_test.sh"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/build_provenance_dart_defines_test.sh"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/check_hermetic_test_env_test.sh"
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/test/shell/l10n_tool_test.sh"
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT_DIR"
+
+# Always refuse a stale .dev.env / pairing, even when generated files exist so
+# the bootstrap below is skipped. Never rewrite the file.
+bash "$ROOT_DIR/scripts/check_hermetic_test_env.sh" --app-dir "$ROOT_DIR"
 
 missing_files=()
 required_files=(
@@ -41,8 +48,11 @@ if [[ ${#missing_files[@]} -gt 0 ]]; then
 
   if [[ -n "${OMI_APP_TEST_API_BASE_URL:-}" ]]; then
     echo "API_BASE_URL=${OMI_APP_TEST_API_BASE_URL}" > .dev.env
+  elif [[ "${OMI_APP_TEST_USE_PROD_API_DEFAULT:-}" == "1" ]]; then
+    echo "ERROR: OMI_APP_TEST_USE_PROD_API_DEFAULT=1 is not allowed for hermetic app/test.sh." >&2
+    exit 1
   else
-    echo "API_BASE_URL=https://api.omi.me/" > .dev.env
+    echo "API_BASE_URL=" > .dev.env
   fi
   echo "USE_WEB_AUTH=true" >> .dev.env
   echo "USE_AUTH_CUSTOM_TOKEN=true" >> .dev.env
@@ -50,5 +60,7 @@ if [[ ${#missing_files[@]} -gt 0 ]]; then
   flutter pub get
   flutter pub run build_runner build --delete-conflicting-outputs
 fi
+
+bash "$ROOT_DIR/scripts/check_hermetic_test_env.sh" --app-dir "$ROOT_DIR"
 
 flutter test "$@"

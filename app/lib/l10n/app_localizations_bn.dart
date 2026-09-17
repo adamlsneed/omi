@@ -242,7 +242,7 @@ class AppLocalizationsBn extends AppLocalizations {
   String get searchConversations => 'কথোপকথন খুঁজুন...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count নির্বাচিত';
   }
 
@@ -2048,6 +2048,15 @@ class AppLocalizationsBn extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'স্মৃতির ইতিহাসের কিছু অংশ পাওয়া যাচ্ছে না। এখন পর্যন্ত পাওয়া ইতিহাস দেখানো হচ্ছে।';
+
+  @override
+  String get memoryHistory => 'ইতিহাস';
+
+  @override
+  String get memoryAllowUse => 'ব্যবহারের অনুমতি দিন';
+
+  @override
+  String get memoryDontUse => 'ব্যবহার করবেন না';
 
   @override
   String get undo => 'পূর্বাবস্থা';
@@ -10215,4 +10224,14 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'এখনও কাজ চলছে — এটি স্বাভাবিকের চেয়ে বেশি সময় নিচ্ছে।';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Omi যেন আপনার কণ্ঠ চিনতে পারে — যেকোনো বিষয়ে প্রায় ৫ সেকেন্ড কথা বলুন।';
+
+  @override
+  String get home => 'হোম';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'বেসলাইন স্থিতি আপডেট করতে ব্যর্থ হয়েছে।';
 }

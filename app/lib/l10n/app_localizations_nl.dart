@@ -243,7 +243,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get searchConversations => 'Zoek gesprekken...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count geselecteerd';
   }
 
@@ -2055,6 +2055,15 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Een deel van de herinneringsgeschiedenis is niet beschikbaar. De tot nu toe ontvangen geschiedenis wordt getoond.';
+
+  @override
+  String get memoryHistory => 'Geschiedenis';
+
+  @override
+  String get memoryAllowUse => 'Gebruik toestaan';
+
+  @override
+  String get memoryDontUse => 'Niet gebruiken';
 
   @override
   String get undo => 'Ongedaan maken';
@@ -10241,4 +10250,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Nog bezig — dit duurt langer dan normaal.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Zodat Omi weet welke stem van jou is — praat ongeveer 5 seconden over wat je maar wilt.';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Kan de baseline-status niet bijwerken.';
 }

@@ -244,7 +244,7 @@ class AppLocalizationsMk extends AppLocalizations {
   String get searchConversations => 'Пребарај разговори...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count избрано';
   }
 
@@ -2057,6 +2057,15 @@ class AppLocalizationsMk extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Дел од историјата на сеќавањата не е достапен. Се прикажува досега примената историја.';
+
+  @override
+  String get memoryHistory => 'Историја';
+
+  @override
+  String get memoryAllowUse => 'Дозволи употреба';
+
+  @override
+  String get memoryDontUse => 'Не користи';
 
   @override
   String get undo => 'Врати';
@@ -10263,4 +10272,14 @@ class AppLocalizationsMk extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Сè уште се обработува — ова трае подолго од вообичаеното.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'За Omi да знае кој глас е вашиот — зборувајте за што било околу 5 секунди.';
+
+  @override
+  String get home => 'Почетна';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Неуспешно ажурирање на основниот статус.';
 }

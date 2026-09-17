@@ -1781,10 +1781,6 @@
     "@openSettings": {
         "description": "Button text to open app settings"
     },
-    "wantDifferentName": "Želiš li da ide sa nečim drugačijim?",
-    "@wantDifferentName": {
-        "description": "Question asking if user wants to change their display name"
-    },
     "whatsYourName": "Koje je tvoje ime?",
     "@whatsYourName": {
         "description": "Question asking for user's name"
@@ -11042,6 +11038,15 @@
     "speechProfileTopicGoal": "Koji je vaš dugoročni cilj?",
     "speechToTextUnavailableDesc": "Pretvaranje govora u tekst trenutačno nije dostupno. Provjerite internetsku vezu i postavke prepoznavanja govora na uređaju pa pokušajte ponovno.",
     "memoryHistoryPartial": "Dio povijesti sjećanja nije dostupan. Prikazuje se dosad primljena povijest.",
+    "memoryHistory": "Povijest",
+    "@memoryHistory": {
+        "description": "Filter option for retained memory history"
+    },
     "tapPlusToStartRecording": "Dodirnite + za početak snimanja",
-    "processingTakingLonger": "Još traje — ovo traje duže nego inače."
+    "processingTakingLonger": "Još traje — ovo traje duže nego inače.",
+    "speechProfileEnrollmentPrompt": "Kako bi Omi znao koji je vaš glas — govorite oko 5 sekundi o bilo čemu.",
+    "home": "Početna",
+    "failedToUpdateBaselineStatus": "Nije moguće ažurirati osnovni status.",
+    "memoryAllowUse": "Dopusti korištenje",
+    "memoryDontUse": "Nemoj koristiti"
 }

@@ -243,7 +243,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get searchConversations => 'Cari perbualan...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count dipilih';
   }
 
@@ -2057,6 +2057,15 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'Sebahagian sejarah ingatan tidak tersedia. Memaparkan sejarah yang telah diterima setakat ini.';
+
+  @override
+  String get memoryHistory => 'Sejarah';
+
+  @override
+  String get memoryAllowUse => 'Benarkan penggunaan';
+
+  @override
+  String get memoryDontUse => 'Jangan guna';
 
   @override
   String get undo => 'Buat Asal';
@@ -10236,4 +10245,14 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'Masih diproses — ini mengambil masa lebih lama daripada biasa.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Supaya Omi tahu suara yang mana milik anda — bercakap tentang apa sahaja selama kira-kira 5 saat.';
+
+  @override
+  String get home => 'Utama';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'Gagal mengemas kini status garis dasar.';
 }

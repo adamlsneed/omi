@@ -96,7 +96,8 @@ sequenceDiagram
   Bridge->>Python: get Firebase auth token via AuthService
   Bridge->>Node: spawn agent/dist/index.js
   Bridge->>Node: pass HARNESS_MODE=piMono
-  Bridge->>Node: pass OMI_AUTH_TOKEN_FILE
+  Bridge->>Node: pass OMI_MODEL_CREDENTIALS=on_demand
+  Node->>Bridge: request model headers per turn
   Bridge->>Node: pass OMI_API_BASE_URL=<desktop backend>/v2
   Node->>Pi: load Omi provider/tools
   Pi->>Rust: POST /v2/chat/completions
@@ -116,7 +117,7 @@ Important source files:
 | Packaged agent entrypoint | `desktop/macos/agent/src/index.ts` |
 | Backend URL resolution | `desktop/macos/Desktop/Sources/DesktopBackendEnvironment.swift` |
 
-`AgentBridge` refuses to start in Omi AI mode if it cannot obtain a Firebase ID token. It writes the token into a private temporary file and gives Node only the token-file path through `OMI_AUTH_TOKEN_FILE`.
+`AgentBridge` refuses to start in Omi AI mode if it cannot obtain a Firebase ID token. The token itself never reaches Node: the child environment is a small allowlist with `OMI_MODEL_CREDENTIALS=on_demand`, and Node asks the Swift host for request-scoped model headers over the JSONL channel for each turn.
 
 ## Browser Extension Flow
 

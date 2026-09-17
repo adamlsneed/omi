@@ -244,7 +244,7 @@ class AppLocalizationsTe extends AppLocalizations {
   String get searchConversations => 'సంభాషణలను శోధించండి...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count ఎంచుకోబడింది';
   }
 
@@ -2059,6 +2059,15 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get memoryHistoryPartial =>
       'జ్ఞాపకాల చరిత్రలో కొంత భాగం అందుబాటులో లేదు. ఇప్పటివరకు అందిన చరిత్ర చూపబడుతోంది.';
+
+  @override
+  String get memoryHistory => 'చరిత్ర';
+
+  @override
+  String get memoryAllowUse => 'ఉపయోగాన్ని అనుమతించు';
+
+  @override
+  String get memoryDontUse => 'ఉపయోగించవద్దు';
 
   @override
   String get undo => 'మరలుచేయండి';
@@ -10259,4 +10268,14 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'ఇంకా పని జరుగుతోంది — ఇది సాధారణం కంటే ఎక్కువ సమయం తీసుకుంటోంది.';
+
+  @override
+  String get speechProfileEnrollmentPrompt =>
+      'Omi మీ గొంతును గుర్తించడానికి — ఏదైనా విషయం గురించి సుమారు 5 సెకన్లు మాట్లాడండి.';
+
+  @override
+  String get home => 'హోమ్';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'బేస్‌లైన్ స్థితిని నవీకరించడం విఫలమైంది.';
 }

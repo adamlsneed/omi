@@ -242,7 +242,7 @@ class AppLocalizationsHe extends AppLocalizations {
   String get searchConversations => 'חפש שיחות...';
 
   @override
-  String selectedCount(int count, Object s) {
+  String selectedCount(int count) {
     return '$count נבחרו';
   }
 
@@ -2032,6 +2032,15 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get memoryHistoryPartial => 'חלק מהיסטוריית הזיכרונות אינו זמין. מוצגת ההיסטוריה שהתקבלה עד כה.';
+
+  @override
+  String get memoryHistory => 'היסטוריה';
+
+  @override
+  String get memoryAllowUse => 'אפשר שימוש';
+
+  @override
+  String get memoryDontUse => 'אל תשתמש';
 
   @override
   String get undo => 'בטל';
@@ -10128,4 +10137,13 @@ class AppLocalizationsHe extends AppLocalizations {
 
   @override
   String get processingTakingLonger => 'עדיין בעבודה — זה לוקח יותר זמן מהרגיל.';
+
+  @override
+  String get speechProfileEnrollmentPrompt => 'כדי ש-Omi יידע איזה קול הוא שלך — יש לדבר על כל נושא במשך כ-5 שניות.';
+
+  @override
+  String get home => 'בית';
+
+  @override
+  String get failedToUpdateBaselineStatus => 'עדכון מצב קו הבסיס נכשל.';
 }
