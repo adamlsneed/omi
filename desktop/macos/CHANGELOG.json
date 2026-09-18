@@ -2,14 +2,6 @@
   "unreleased": [],
   "releases": [
     {
-      "version": "0.1.11",
-      "date": "2026-09-12",
-      "changes": [
-        "Rewind screen capture no longer replaces the traffic-light buttons of the app you are using with the macOS window-sharing badge",
-        "Synced upstream BasedHardware desktop changes through v0.12.339 (2026-09-11)"
-      ]
-    },
-    {
       "version": "0.12.360",
       "date": "2026-09-17",
       "changes": [
@@ -36,6 +28,14 @@
       "date": "2026-09-17",
       "changes": [
         "Chat-first tab switches acknowledge the mounted page sooner so navigation feels snappier."
+      ]
+    },
+    {
+      "version": "0.1.12",
+      "date": "2026-09-17",
+      "changes": [
+        "Synced upstream BasedHardware desktop changes through v0.12.360 (2026-09-17)",
+        "Live notes no longer retry on every sentence when your plan doesn't include AI notes"
       ]
     },
     {
@@ -161,6 +161,14 @@
       "date": "2026-09-12",
       "changes": [
         "Bug fixes and improvements"
+      ]
+    },
+    {
+      "version": "0.1.11",
+      "date": "2026-09-12",
+      "changes": [
+        "Rewind screen capture no longer replaces the traffic-light buttons of the app you are using with the macOS window-sharing badge",
+        "Synced upstream BasedHardware desktop changes through v0.12.339 (2026-09-11)"
       ]
     },
     {
