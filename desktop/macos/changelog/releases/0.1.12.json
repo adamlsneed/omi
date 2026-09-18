@@ -1,0 +1,8 @@
+{
+  "version": "0.1.12",
+  "date": "2026-09-17",
+  "changes": [
+    "Synced upstream BasedHardware desktop changes through v0.12.360 (2026-09-17)",
+    "Live notes no longer retry on every sentence when your plan doesn't include AI notes"
+  ]
+}
