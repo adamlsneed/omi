@@ -119,6 +119,9 @@ actor RewindIndexer {
     Task(priority: .background) {
       await OCREmbeddingService.shared.backfillIfNeeded()
     }
+    Task(priority: .background) {
+      await LocalEmbeddingIndexer.shared.backfillIfNeeded()
+    }
 
     // Reduce ocrDataJson float precision for existing rows (one-time migration)
     Task(priority: .background) {
@@ -640,6 +643,7 @@ actor RewindIndexer {
       PowerMonitor.shared.onACReconnected = {
         Task {
           await RewindIndexer.shared.backfillUnindexedScreenshots()
+          await LocalEmbeddingIndexer.shared.backfillIfNeeded()
         }
       }
     }

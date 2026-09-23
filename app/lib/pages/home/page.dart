@@ -64,6 +64,8 @@ import 'package:omi/services/wals/recording_transfer_coordinator.dart';
 import 'package:omi/utils/other/temp.dart';
 import 'package:omi/utils/audio/foreground.dart';
 import 'package:omi/utils/analytics/background_resource_telemetry.dart';
+import 'package:omi/utils/analytics/background_checkpoint_store.dart';
+import 'package:omi/utils/analytics/analytics_manager.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
@@ -116,6 +118,7 @@ class _HomePageProductState extends State<_HomePageProduct> {
       // Check actual system permission state — the SharedPreferences flag may
       // be stale (e.g. user granted via Settings > Permissions, or reinstall).
       final notifGranted = await Permission.notification.isGranted;
+      if (!mounted) return;
       if (notifGranted) {
         SharedPreferencesUtil().notificationsEnabled = true;
         NotificationService.instance.register();
@@ -161,6 +164,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   final FreemiumSwitchHandler _freemiumHandler = FreemiumSwitchHandler();
 
   late final BackgroundResourceTelemetry _backgroundResourceTelemetry = BackgroundResourceTelemetry(
+    checkpointStore: PreferencesBackgroundCheckpointStore(),
+    ownerKey: () => AnalyticsManager.currentIdentity ?? '',
+    identityEpoch: () => AnalyticsManager.identityEpoch,
+    enabled: () => AnalyticsManager.identityKnown && AnalyticsManager.trackingEnabled,
     emit: (eventName, properties) => PlatformManager.instance.analytics.track(eventName, properties: properties),
   );
 
@@ -168,6 +175,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   DeviceProvider? _deviceProviderForQuickActions;
   CaptureProvider? _captureProviderForQuickActions;
   Timer? _announcementTimer;
+  final List<Timer> _prewarmTimers = [];
 
   void _ensurePageInitialized(int pageIndex) {
     if (pageIndex < 0 || pageIndex >= _pages.length || _pages[pageIndex] != null) return;
@@ -203,14 +211,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   }
 
   void _prewarmRemainingTabs(int selectedIndex) {
+    for (final timer in _prewarmTimers) {
+      timer.cancel();
+    }
+    _prewarmTimers.clear();
     var delay = const Duration(milliseconds: 350);
     for (var index = 0; index < _pages.length; index++) {
       if (index == selectedIndex) continue;
       final pageIndex = index;
-      Timer(delay, () {
-        if (!mounted) return;
-        _schedulePageInitialization(pageIndex);
-      });
+      _prewarmTimers.add(
+        Timer(delay, () {
+          if (!mounted) return;
+          _schedulePageInitialization(pageIndex);
+        }),
+      );
       delay += const Duration(milliseconds: 180);
     }
   }
@@ -436,6 +450,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
 
   @override
   void initState() {
+    unawaited(_backgroundResourceTelemetry.recoverInterrupted());
     SharedPreferencesUtil().onboardingCompleted = true;
     if (!SharedPreferencesUtil().permissionsCompleted) {
       SharedPreferencesUtil().permissionsCompleted = true;
@@ -501,7 +516,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
         await Provider.of<CaptureProvider>(
           context,
           listen: false,
-        ).streamDeviceRecording(device: Provider.of<DeviceProvider>(context, listen: false).connectedDevice);
+        ).streamDeviceRecording(device: Provider.of<DeviceProvider>(context, listen: false).capabilityNormalizedDevice);
       }
 
       // Navigate
@@ -1206,6 +1221,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Ticker
   void dispose() {
     _announcementTimer?.cancel();
     _announcementTimer = null;
+    for (final timer in _prewarmTimers) {
+      timer.cancel();
+    }
+    _prewarmTimers.clear();
     WidgetsBinding.instance.removeObserver(this);
     // Cancel stream subscription to prevent memory leak
     _notificationStreamSubscription?.cancel();
