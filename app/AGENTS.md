@@ -15,6 +15,8 @@ Inherits [`../AGENTS.md`](../AGENTS.md); adds app-specific operational guidance.
 ### Generated Files (never edit)
 envied, json_serializable, pigeon (`lib/pigeon_interfaces.dart` → `lib/gen/` + iOS/Android stubs), and flutter_gen: `flutter pub run build_runner build`. ARB → `flutter gen-l10n` (`lib/l10n/app_localizations*.dart`). Never edit `*.g.dart` / `*.gen.dart`.
 
+Never edit generated `.g.dart`/`.gen.dart` files. Regenerate using the commands above after source changes; resolve build_runner conflicts with `--delete-conflicting-outputs`.
+
 ### Setup Sequence
 ```bash
 bash setup.sh ios    # or: bash setup.sh android
@@ -72,9 +74,9 @@ On-device speech deadlines and cleanup: [contract](../.github/agent-docs/on-devi
 | Calendar | READ/WRITE_CALENDAR | NSCalendarsUsageDescription | Calendar integration |
 | Camera | — | NSCameraUsageDescription | QR/photo features |
 | Notifications | POST_NOTIFICATIONS | (automatic) | Push notifications |
-| Background | FOREGROUND_SERVICE_* (4 types) | UIBackgroundModes (7 modes) | Continuous capture |
+| Background | FOREGROUND_SERVICE_* (5 types) | UIBackgroundModes (7 modes) | Continuous capture |
 
-Android: 26 permissions in AndroidManifest.xml; iOS: 11 background modes + 10 consent strings.
+Android: 27 permissions in AndroidManifest.xml; iOS: 11 background modes + 10 consent strings.
 
 ## Test Strategy
 
@@ -101,6 +103,8 @@ CI runs `flutter test`, `analyze_ratchet.sh` (new info/warnings above `app/analy
 
 ### Test Patterns
 - Mock singletons (SharedPreferencesUtil, AuthService, FirebaseAuth) since they aren't injectable
+- Capture seams/ownership: [C1 contract](lib/services/capture/OWNERSHIP.md); inject fakes.
+- HTTP result/consumer migration: [C3 contract](lib/backend/http/API_RESULTS.md).
 - Test state machine logic via minimal abstractions mirroring production flow
 - Everything under `test/` must be hermetic — no network, live backends, or real devices — because `bash test.sh` (the CI suite) runs all of it.
 - Chat transcript layout: pumping only `AIMessage` in a `SingleChildScrollView` misses scroll-extent bugs; chat list changes must keep `test/widgets/chat_scroll_layout_test.dart` green (ListView drag + citation/markdown sizes) — it is the Mobile App Checks contract for this class.
@@ -132,13 +136,6 @@ All API requests include: X-Request-Start-Time, X-App-Platform, X-Device-Id-Hash
 ### API Base URLs
 - Dev: configured in `.dev.env` → `Env.apiBaseUrl`
 - Prod: configured in `.prod.env` → `Env.apiBaseUrl`
-
-## Codegen Rules
-
-- Run `flutter pub run build_runner build` after changing: env files, model annotations, pigeon contracts, or pubspec assets
-- Run `flutter gen-l10n` after changing ARB files
-- Never edit files ending in `.g.dart` or `.gen.dart`
-- If build_runner fails with conflicts: `flutter pub run build_runner build --delete-conflicting-outputs`
 
 ## App Flows & E2E
 

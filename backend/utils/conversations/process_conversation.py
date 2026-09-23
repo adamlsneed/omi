@@ -65,15 +65,8 @@ from models.conversation_enums import (
     ExternalIntegrationConversationSource,
 )
 from utils.conversations.deterministic_minimum import build_deterministic_minimum_structured
-from utils.conversations.duplicate_capture import (
-    CANDIDATE_PAGE_LIMIT,
-    DuplicateCaptureMatch,
-    MIN_CANDIDATE_WORDS,
-    capture_record,
-    find_duplicate_capture,
-    mark_duplicate_capture,
-)
 from utils.conversations.duration import conversation_duration_seconds
+from utils.conversations.duplicate_capture import link_duplicate_captures
 from utils.conversations.factory import deserialize_conversation
 from utils.conversations.projection_payload import (
     client_processing_mutation,
@@ -97,8 +90,13 @@ from utils.observability.fallback import record_fallback
 from utils.metrics import record_jit_first_open, record_lazy_desktop_deferral
 from utils.observability.finalization import FinalizationFailureReason, record_finalization_failure
 from utils.product_telemetry import emit_product_event
+from utils.release_probe import is_release_probe_uid
 from utils.task_intelligence.workstream_association import associate_canonical_evidence
-from utils.subscription import is_trial_paywalled, should_defer_desktop_processing
+from utils.subscription import (
+    is_trial_paywalled,
+    should_defer_desktop_processing,
+    should_skip_omi_paid_postprocessing,
+)
 from utils.free_tier_basic_gates import basic_plan_gate_eager_extraction_enabled
 from utils.free_tier_memory_policy import (
     free_tier_memory_suppression_enabled,
@@ -174,7 +172,7 @@ from utils.other.hume import (
 )
 from utils.retrieval.rag import retrieve_rag_conversation_context
 from utils.webhooks import conversation_created_webhook
-from utils.notifications import send_action_item_data_message
+from utils.notifications import send_action_item_data_message, sync_action_item_reminder
 from utils.task_sync import auto_sync_action_items_batch
 from utils.task_intelligence import conversation_capture
 from utils.conversations.calendar_linking import (
@@ -383,48 +381,6 @@ def _proposes_task_candidates(conversation: Any) -> bool:
     return getattr(conversation, 'source', None) == ConversationSource.desktop
 
 
-def _detect_duplicate_capture(
-    uid: str, conversation: Union[Conversation, CreateConversation]
-) -> Optional[DuplicateCaptureMatch]:
-    """Another capture client's conversation that already carries this one (#3244).
-
-    Fails open: a candidate-read failure keeps this conversation on the ordinary
-    path, the pre-fix outcome of two visible conversations, never a lost one.
-    """
-    candidate = capture_record(conversation)
-    if candidate is None or len(candidate.words) < MIN_CANDIDATE_WORDS:
-        return None
-    try:
-        rows = [
-            row
-            for status in (ConversationStatus.completed.value, ConversationStatus.processing.value)
-            for row in conversations_db.get_conversations_finished_after(
-                uid, status=status, finished_after=candidate.started_at, limit=CANDIDATE_PAGE_LIMIT
-            )
-        ]
-    except Exception:
-        record_fallback(
-            component='conversation_finalization',
-            from_mode='duplicate_capture_check',
-            to_mode='keep_both_captures',
-            reason='other',
-            outcome='degraded',
-            log=logger,
-        )
-        return None
-    match = find_duplicate_capture(candidate, [record for record in map(capture_record, rows) if record is not None])
-    if match is not None:
-        logger.info(
-            'duplicate capture folded uid=%s conversation=%s primary=%s coverage=%.2f containment=%.2f',
-            uid,
-            getattr(conversation, 'id', None),
-            match.primary_conversation_id,
-            match.window_coverage,
-            match.transcript_containment,
-        )
-    return match
-
-
 def _get_structured(
     uid: str,
     language_code: str,
@@ -603,30 +559,30 @@ def _get_structured(
             validate_structured_source_segment_ids(structured, transcript_segment_ids)
             return structured, False
 
-        # A second capture client already carrying this speech (#3244: Omi device
-        # on the phone + macOS microphone in the same room) is folded away here,
-        # before any LLM spend. It takes the same discard exit as a scrap, so the
-        # transcript and audio stay on the row and the primary is recorded in
-        # external_data. Deliberately ahead of the calendar override: the primary
-        # already holds that meeting.
-        duplicate_capture = _detect_duplicate_capture(uid, main_conv)
-        if duplicate_capture is not None:
-            mark_duplicate_capture(main_conv, duplicate_capture)
-            return Structured(emoji=random.choice(['🧠', '🎉'])), True
-
         # Transcript span, not the wall window: `started_at` is the streaming-session
         # origin, so `finished_at - started_at` read an 8s scrap as 42 minutes (#4056).
         duration_seconds: Optional[float] = conversation_duration_seconds(main_conv)
 
         # Determine whether to discard the conversation based on its content (transcript and/or photos).
         discard_transcript = action_items_transcript if has_wake_word_marker else transcript_text
-        with track_usage(uid, Features.CONVERSATION_DISCARD):
-            discarded = should_discard_conversation(
-                discard_transcript,
-                main_conv.photos,
-                duration_seconds,
-                trusted_wake_word_markers=has_wake_word_marker,
-            )
+        # The discard verdict is a desktop post-processing gate, and the release
+        # probe's terminal contract only completes through a kept conversation,
+        # so the probe uid must skip it (gate convention, utils/release_probe.py).
+        # The probe's synthetic transcript cannot rely on the deterministic
+        # >100-word keep line: the trailing fixture passes flush late — at
+        # teardown, into the rollover generation — so the durably-present word
+        # count varies with STT yield, and the discard LLM fences the lane at
+        # terminal_failure (run 35583992730).
+        if is_release_probe_uid(uid):
+            discarded = False
+        else:
+            with track_usage(uid, Features.CONVERSATION_DISCARD):
+                discarded = should_discard_conversation(
+                    discard_transcript,
+                    main_conv.photos,
+                    duration_seconds,
+                    trusted_wake_word_markers=has_wake_word_marker,
+                )
         if discarded:
             # Calendar overlap outranks discard (SCA-381): a scrap recorded
             # inside a booked meeting is evidence, never noise. Only a positive
@@ -708,7 +664,10 @@ def _get_conversation_obj(
     conversation: Union[Conversation, CreateConversation, ExternalIntegrationCreateConversation],
     conversation_id: Optional[str] = None,
 ) -> Conversation:
-    discarded = structured.title == ''
+    discarded = structured.title == '' and not is_release_probe_uid(uid)
+    # The empty-title fallback is the discard gate's second verdict and is
+    # covered by the same release-probe exemption as the LLM discard above:
+    # an LLM mood must not terminalize the probe lane's synthetic capture.
     if isinstance(conversation, CreateConversation):
         conversation_dict = conversation.dict()
         # Store calendar context in external_data if available
@@ -1077,7 +1036,11 @@ def extract_memories(uid: str, conversation: Conversation) -> None:
     # §1.8: plan denial is a second early return in this same boundary, not a
     # parallel branch. Everything below spends `get_llm('memories')`, so the
     # gate has to sit above it rather than inside the extractor.
-    if free_tier_memory_suppression_enabled():
+    # Same contract as the S6 gate below: the cohort admits nobody when it is
+    # not told which account it is deciding about, so a bare call leaves this
+    # branch unreachable however the cohort is configured. The sweep and the
+    # connectors already pass `uid`; this site was the exception.
+    if free_tier_memory_suppression_enabled(uid):
         verdict = memory_formation_verdict(decision_for=_managed_compute_decision_for(uid))
         if verdict.suppressed:
             logger.info(
@@ -1914,10 +1877,30 @@ def _write_action_items(uid: str, conversation: Conversation):
         for action_item in conversation.structured.action_items
     ]
 
-    old_ids = [item['id'] for item in action_items_db.get_action_items_by_conversation(uid, conversation.id)]
+    old_items = action_items_db.get_action_items_by_conversation(uid, conversation.id)
+    old_ids = [item['id'] for item in old_items]
     if old_ids:
         delete_action_item_vectors_batch(uid, old_ids)
     action_items_db.delete_action_items_for_conversation(uid, conversation.id)
+    try:
+        for item in old_items:
+            # The replaced rows may own client-scheduled reminders, which the client
+            # only cancels on the deletion data message (#5085). Reprocessing re-creates
+            # the tasks under new ids and schedules their reminders below, so leaving
+            # these armed duplicates every surviving task and keeps reminders for
+            # dropped ones.
+            if item.get('due_at') and not item.get('completed'):
+                sync_action_item_reminder(
+                    user_id=uid,
+                    action_item_id=item['id'],
+                    description='',
+                    completed=True,
+                    due_at=None,
+                )
+    except Exception as e:
+        # The old rows are already gone; a failed reminder send must never cost the
+        # conversation its new extraction.
+        logger.error(f"Error cancelling replaced task reminders for {conversation.id}: {e}")
 
     action_item_ids = action_items_db.create_action_items_batch(uid, action_items_data)
     logger.info(f"Saved {len(action_item_ids)} action items for conversation {conversation.id}")
@@ -2571,14 +2554,27 @@ def process_conversation(
     def report_persistence(
         current: bool,
         *,
+        completed: Conversation | None = None,
         derived_effects: DerivedEffectsDisposition = DerivedEffectsDisposition.RUN,
     ) -> None:
         if persistence_observer is not None:
             persistence_observer(current)
         if derived_effects_disposition_observer is not None:
             derived_effects_disposition_observer(derived_effects)
+        # Sync/REST callers finalize here; leased jobs defer this metadata work
+        # to finalizer.py after the fanout fence, including completed replays.
+        if current and completed is not None and not defer_derived_effects:
+            link_duplicate_captures(uid, completed)
 
     is_initial_creation = _is_ingress_create(conversation)
+    # The synthetic release-probe identity (dev pusher release lane) is
+    # exempt from the desktop deferral gates below so the probe certifies
+    # the full terminal desktop path end to end. New desktop gates must
+    # check is_release_probe_uid(uid) (utils/release_probe.py) or the probe
+    # fails loudly in CI — that is intended.
+    probe_uid = is_release_probe_uid(uid)
+    if probe_uid:
+        logger.info('release probe: desktop post-processing exemption active uid=%s', uid)
     # Trial paywall: skip ALL post-processing (summaries, memories, action
     # items, embeddings, app integrations) for paywalled desktop users.
     # Without this, any segments that did get through before the trial gate
@@ -2590,6 +2586,7 @@ def process_conversation(
     if (
         hasattr(conversation, 'source')
         and conversation.source == ConversationSource.desktop
+        and not probe_uid
         and is_trial_paywalled(uid, 'macos')
     ):
         logger.info(
@@ -2617,9 +2614,15 @@ def process_conversation(
     # consulted the policy and continued to process_normally (paid upgrade).
     clear_stale_terminal_marker = False
     if (
-        free_tier_local_processing_enabled()
+        # `uid` is required, not optional: the flag is necessary but never
+        # sufficient, and `free_tier_local_processing_enabled(None)` is answered
+        # False while the flag is on, by design, so a boolean alone lights
+        # nobody. Calling it bare made this whole branch unreachable in every
+        # environment regardless of the configured cohort.
+        free_tier_local_processing_enabled(uid)
         and hasattr(conversation, 'source')
         and conversation.source == ConversationSource.desktop
+        and not probe_uid
     ):
         source_value = getattr(conversation.source, 'value', conversation.source)
         # Explicit ingest-time projection wins over a previously stored one.
@@ -2657,6 +2660,7 @@ def process_conversation(
             )
             report_persistence(
                 persisted,
+                completed=stored,
                 derived_effects=(
                     DerivedEffectsDisposition.TERMINAL_NO_DERIVED_EFFECTS
                     if persisted
@@ -2682,6 +2686,7 @@ def process_conversation(
         and not is_reprocess
         and hasattr(conversation, 'source')
         and conversation.source == ConversationSource.desktop
+        and not probe_uid
         and should_defer_desktop_processing(uid)
     ):
         deferred = _store_deferred_conversation(uid, conversation, client_projection=client_projection)
@@ -2712,6 +2717,7 @@ def process_conversation(
             )
             report_persistence(
                 persisted,
+                completed=stored,
                 derived_effects=(
                     DerivedEffectsDisposition.TERMINAL_NO_DERIVED_EFFECTS
                     if persisted
@@ -2719,6 +2725,39 @@ def process_conversation(
                 ),
             )
             return stored
+
+    # Custom-STT skips managed-STT credits at listen connect. The LLM work that
+    # follows (structure / summary / memory) still consults the processing
+    # budget so those sessions cannot run uncapped on Omi's bill (#7690).
+    # Paid unlimited plans and LLM BYOK stay allowed — this is not the
+    # #10962 blanket skip that removed summaries for every custom-STT user.
+    #
+    # After the unpaid desktop path (#14513): store_projection /
+    # deterministic_minimum already returned above. Consulting this gate
+    # earlier would complete a desktop custom-STT session without the
+    # on-device summary it would otherwise persist. Regular conversations
+    # never consult this gate — they are already bounded by STT credits at
+    # listen connect. Keep that contract at the call site so a stubbed/truthy
+    # helper cannot abort memory/task/goal fan-out.
+    custom_stt = bool(getattr(conversation, 'uses_custom_stt', False))
+    source_token = getattr(getattr(conversation, 'source', None), 'value', getattr(conversation, 'source', None))
+    if custom_stt and should_skip_omi_paid_postprocessing(
+        uid,
+        uses_custom_stt=custom_stt,
+        source=source_token if isinstance(source_token, str) else None,
+    ):
+        logger.info(
+            "custom-STT processing budget exhausted: skipping Omi-paid post-processing uid=%s conv=%s",
+            uid,
+            getattr(conversation, 'id', '?'),
+        )
+        if isinstance(conversation, Conversation):
+            try:
+                conversation.status = ConversationStatus.completed
+            except Exception:
+                pass
+        report_persistence(False)
+        return cast(Conversation, conversation)
 
     _enrich_meeting_context(uid, conversation)
 
@@ -2755,7 +2794,7 @@ def process_conversation(
         persisted = lifecycle_service.create_completed_conversation(uid, payload, idempotent=True)
     else:
         persisted = lifecycle_service.persist_processed_conversation(uid, payload)
-    report_persistence(persisted)
+    report_persistence(persisted, completed=conversation)
     if not persisted:
         logger.info(
             'processing result fenced before completion side effects uid=%s conversation=%s', uid, conversation.id
@@ -2925,7 +2964,13 @@ def process_conversation(
                 # fail-closed. Do not hide a retryable apply/store failure in an
                 # unobserved future while reporting finalization as successful.
                 _extract_memories(uid, conversation)
-            submit_with_context(postprocess_executor, _save_action_items, uid, conversation, people)
+            if is_reprocess:
+                # Same fail-closed idea as memory source replacement: a transient
+                # destructive-op fence must be observable on the sync reprocess
+                # path instead of disappearing into postprocess_executor.
+                _save_action_items(uid, conversation, people)
+            else:
+                submit_with_context(postprocess_executor, _save_action_items, uid, conversation, people)
             # Automatic goal updates are excluded from the JIT featureset
             # entirely (not deferred): a JIT-admitted conversation never
             # updates goals; users update goals through explicit actions.
