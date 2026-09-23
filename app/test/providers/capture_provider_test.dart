@@ -682,7 +682,7 @@ void main() {
       provider.dispose();
       // The pref outlives the provider, and CaptureProvider's constructor reads it,
       // so leaving it set would mute every provider a later test builds.
-      SharedPreferencesUtil().deviceMuted = false;
+      await SharedPreferencesUtil().setCaptureMuted(false);
     });
   });
 

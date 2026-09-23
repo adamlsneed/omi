@@ -1725,7 +1725,7 @@ class CaptureController extends ChangeNotifier
     notifyListeners();
     // force_process bypasses the server discard gate, so any length is saved;
     // the result is then filed under the "Ideas" folder.
-    await forceProcessingCurrentConversation(asIdea: true);
+    await _forceProcessCurrentConversation(asIdea: true);
   }
 
   // idea-capture: refresh the folder tab strip + conversation list so a freshly
@@ -3033,10 +3033,12 @@ class CaptureController extends ChangeNotifier
     }
   }
 
+  Future<void> forceProcessingCurrentConversation() => _forceProcessCurrentConversation();
+
   /// Force-process the current in-progress conversation (bypasses the server's
   /// short-conversation discard). idea-capture: when [asIdea] is true the
   /// resulting conversation is filed under the "Ideas" folder.
-  Future<void> forceProcessingCurrentConversation({bool asIdea = false}) async {
+  Future<void> _forceProcessCurrentConversation({bool asIdea = false}) async {
     final sessionStart = _sessionStartSeconds;
 
     final phoneSync = _wal.getSyncs().phone;
