@@ -56,6 +56,22 @@ class UISceneLifecycleAdoptionTest < Minitest::Test
                      'force-unwrapping the FlutterViewController at launch crashes under the UIScene lifecycle'
   end
 
+  # SharedPreferencesUtil.init awaits com.omi/capture_policy before runApp. A
+  # background Bluetooth relaunch can start Dart without connecting a scene, so
+  # a channel registered only in registerFlutterBridges throws
+  # MissingPluginException and the app stays on its startup-failure screen.
+  def test_capture_policy_channel_is_registered_at_launch_not_scene_connect
+    source = File.read(APP_DELEGATE)
+    launch = source[/didFinishLaunchingWithOptions.*?\n  \}/m]
+    refute_nil launch, 'could not locate didFinishLaunchingWithOptions'
+    assert_includes launch, 'registerCapturePolicyChannel(',
+                    'register the capture-policy channel in didFinishLaunching on the launch engine messenger'
+    bridges = source[/func registerFlutterBridges.*?\n  \}/m]
+    refute_nil bridges, 'could not locate registerFlutterBridges'
+    refute_includes bridges, 'com.omi/capture_policy',
+                    'the capture-policy channel must not wait for a scene'
+  end
+
   def test_app_delegate_keeps_scene_reachable_hooks
     source = File.read(APP_DELEGATE)
     assert_includes source, 'func registerFlutterBridges(with controller: FlutterViewController)'
