@@ -196,6 +196,27 @@ def shared_prefixes(root: Path, base: str, registry: dict, policy: dict, read, *
     return accepted
 
 
+def inherited_from_sync_merge(root: Path, base: str, path: str) -> bool:
+    """Fork policy (adamlsneed/omi): a spine path whose working-tree content is
+    byte-identical to the upstream side of a sync merge in base..HEAD was revised
+    upstream and only inherited here, so it is not this PR's revision. A merge
+    whose second parent already contains base is the PR itself, not upstream."""
+    file = root / path
+    current = file.read_bytes() if file.is_file() else None
+    for merge in git("rev-list", "--merges", f"{base}..HEAD", root=root).split():
+        parent = f"{merge}^2"
+        own_line = subprocess.run(
+            ["git", "-C", str(root), "merge-base", "--is-ancestor", base, parent], capture_output=True
+        ).returncode == 0
+        if own_line:
+            continue
+        upstream = subprocess.run(["git", "-C", str(root), "show", f"{parent}:{path}"], capture_output=True)
+        upstream_bytes = upstream.stdout if upstream.returncode == 0 else None
+        if upstream_bytes == current:
+            return True
+    return False
+
+
 def revision_scope(root: Path, base: str, registry: dict) -> list[str]:
     """A revision is an oracle-only PR, including unstaged/untracked edits.
 
@@ -221,6 +242,8 @@ def revision_scope(root: Path, base: str, registry: dict) -> list[str]:
     changed.update(git("ls-files", "--others", "--exclude-standard", root=root).splitlines())
     needs_revision = False
     for path in changed:
+        if (path.startswith(REVISIONS + "/") or path in registry) and inherited_from_sync_merge(root, base, path):
+            continue
         if path.startswith(REVISIONS + "/"):
             file = root / path
             if not file.is_file() or hashlib.sha256(file.read_bytes()).hexdigest() not in policy.get("grandfathered_revisions", {}).get(path, []):
