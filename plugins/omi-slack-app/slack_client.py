@@ -267,7 +267,7 @@ class SlackClient:
         """
         try:
             client = WebClient(token=access_token)
-            
+
             # Debug: Check token type
             token_type = "USER" if access_token and access_token.startswith("xoxp-") else "BOT" if access_token and access_token.startswith("xoxb-") else "UNKNOWN"
             print(f"🔑 Sending with {token_type} token", flush=True)
@@ -384,7 +384,7 @@ class SlackClient:
         """
         try:
             client = WebClient(token=access_token)
-            
+
             # If searching in a specific channel and query is simple (like "today" or empty),
             # use channel history instead of search API for better results
             if channel:
