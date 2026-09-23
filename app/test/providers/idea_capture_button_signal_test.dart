@@ -8,6 +8,7 @@ import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/env/env.dart';
 import 'package:omi/providers/capture_provider.dart';
+import 'package:omi/services/capture/capture_controller.dart' show firmwareDoubleTapPauseEnabled;
 import 'package:omi/services/services.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
 
@@ -35,7 +36,8 @@ class _TestEnvFields implements EnvFields {
 // Fork firmware sends button state 6 on a press-and-hold (idea capture ENTER)
 // and 7 when the hold mode ends (EXIT). The pendant enters idea-capture mode on
 // its own, so the app must follow those signals even when upstream's Omi button
-// actions toggle is off.
+// actions toggle is off. Packets go through the same decoder the live BLE
+// listener uses.
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -73,15 +75,30 @@ void main() {
     provider.updateRecordingDevice(BtDevice(name: 'Omi', id: 'test-id', type: DeviceType.omi, rssi: -40));
     SharedPreferencesUtil().omiButtonActionsEnabled = false;
 
-    provider.handleButtonEventForTesting('test-id', 6);
+    provider.handleButtonPacketForTesting('test-id', [6, 0, 0, 0]);
     await pumpEventQueue();
     expect(provider.isIdeaCaptureActive, isTrue);
 
-    provider.handleButtonEventForTesting('test-id', 7);
+    provider.handleButtonPacketForTesting('test-id', [7, 0, 0, 0]);
     await pumpEventQueue();
     expect(provider.isIdeaCaptureActive, isFalse);
     expect(processCalls, 1, reason: 'leaving idea capture force-processes the captured window');
 
     provider.dispose();
+  });
+
+  test('firmware double-tap pause stays off while the app ignores button actions', () {
+    final prefs = SharedPreferencesUtil();
+    prefs.doubleTapAction = 1;
+    prefs.omiButtonActionsEnabled = true;
+    expect(firmwareDoubleTapPauseEnabled(prefs), isTrue);
+
+    // Firmware would mute itself while the app kept showing recording.
+    prefs.omiButtonActionsEnabled = false;
+    expect(firmwareDoubleTapPauseEnabled(prefs), isFalse);
+
+    prefs.omiButtonActionsEnabled = true;
+    prefs.doubleTapAction = 0;
+    expect(firmwareDoubleTapPauseEnabled(prefs), isFalse);
   });
 }

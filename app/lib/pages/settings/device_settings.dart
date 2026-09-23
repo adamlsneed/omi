@@ -17,6 +17,7 @@ import 'package:omi/pages/home/omiglass_ota_update.dart';
 import 'package:omi/pages/settings/device_diagnostics.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/providers/capture_provider.dart';
+import 'package:omi/services/capture/capture_controller.dart' show firmwareDoubleTapPauseEnabled;
 import 'package:omi/services/devices.dart';
 import 'package:omi/services/services.dart';
 import 'package:omi/utils/firmware_update_build_policy.dart';
@@ -392,7 +393,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
     }
   }
 
-  Future<void> _syncDoubleTapActionToDevice(int action) async {
+  Future<void> _syncDoubleTapActionToDevice() async {
     try {
       final btDevice = SharedPreferencesUtil().btDevice;
       if (btDevice.id.isEmpty || btDevice.type != DeviceType.omi) {
@@ -400,7 +401,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
       }
 
       final connection = await ServiceManager.instance().device.ensureConnection(btDevice.id);
-      await connection?.setDoubleTapPauseFeedbackEnabled(action == 1);
+      await connection?.setDoubleTapPauseFeedbackEnabled(firmwareDoubleTapPauseEnabled(SharedPreferencesUtil()));
     } catch (e) {
       Logger.debug('Failed to sync double tap action to device: $e');
     }
@@ -409,7 +410,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
   void _setDoubleTapAction(int action, BuildContext sheetContext) {
     setState(() => SharedPreferencesUtil().doubleTapAction = action);
     if (sheetContext.mounted) Navigator.pop(sheetContext);
-    unawaited(_syncDoubleTapActionToDevice(action));
+    unawaited(_syncDoubleTapActionToDevice());
   }
 
   void _showDoubleTapActionSheet() {
@@ -789,6 +790,7 @@ class _DeviceSettingsState extends State<DeviceSettings> {
                 onChanged: (value) {
                   setState(() => _omiButtonActionsEnabled = value);
                   SharedPreferencesUtil().omiButtonActionsEnabled = value;
+                  unawaited(_syncDoubleTapActionToDevice());
                   if (!value) {
                     // Drop any in-flight voice-command session so audio captured
                     // while actions were enabled is not submitted after disabling.
