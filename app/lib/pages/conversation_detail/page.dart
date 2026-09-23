@@ -213,9 +213,6 @@ class ConversationDetailPageState extends State<ConversationDetailPage> with Tic
       _ => ConversationTab.summary,
     };
     _controller!.addListener(() {
-      // Taps notify twice (at tap start with indexIsChanging true, again when the
-      // animation settles); swipes notify once with indexIsChanging false.
-      if (_controller!.indexIsChanging) return;
       setState(() {
         String? tabName;
         switch (_controller!.index) {
@@ -235,7 +232,9 @@ class ConversationDetailPageState extends State<ConversationDetailPage> with Tic
             Logger.debug('Invalid tab index: ${_controller!.index}');
             selectedTab = ConversationTab.summary;
         }
-        if (tabName != null) {
+        // Taps notify twice (at tap start with indexIsChanging true, again when the
+        // animation settles); swipes notify once with indexIsChanging false.
+        if (tabName != null && !_controller!.indexIsChanging) {
           PlatformManager.instance.analytics.conversationDetailTabChanged(tabName);
         }
         if (_searchQuery.isNotEmpty) {
