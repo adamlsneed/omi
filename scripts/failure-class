@@ -491,6 +491,7 @@ def added_definition_paths(root: Path, base: str, head: str) -> list[Path]:
     paths = [Path(line) for line in output.splitlines() if line]
     # Same fork policy as changed_definition_paths: a sync merge inherits every
     # class upstream added in the range, and those are not authored by this PR.
+    common = merge_base(root, base, head)
     return [path for path in paths if not is_upstream_inherited(root, common, head, path)]
 
 
@@ -505,6 +506,7 @@ def changed_definition_paths(root: Path, base: str, head: str) -> list[Path]:
         str(DEFINITIONS_RELATIVE_PATH),
     )
     paths = [Path(line) for line in output.splitlines() if line]
+    common = merge_base(root, base, head)
     return [path for path in paths if not is_upstream_inherited(root, common, head, path)]
 
 
