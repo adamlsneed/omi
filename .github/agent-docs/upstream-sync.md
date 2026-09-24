@@ -203,8 +203,8 @@ git -C "$WT" push -u origin "$BR"
 
 The repo's Claude settings `env` block sets `PRE_PUSH_SKIP_BACKEND_UNIT_TESTS=1` (matches
 fork CI, which does not run upstream's backend unit tests), `TZ=UTC` (avoids a
-timezone-dependent upstream web test), and `OMI_PR_BODY_FILE=/tmp/omi-pr-body.md` for the
-pre-push hook. Other agents export the same three. Never prefix `git` with variable
+timezone-dependent upstream web test), and `OMI_PR_BODY_FILE` (pointing at that body
+file) for the pre-push hook. Other agents export the same three. Never prefix `git` with variable
 assignments or `cd`; use `git -C <path>`.
 
 PR body, modeled on #126: Summary (range `$MB..upstream/main`, commit count, versions),
