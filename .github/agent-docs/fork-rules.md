@@ -16,3 +16,4 @@ upstream changes are merged in regularly; nothing flows back.
   (notarized build, GitHub Release on `adamlsneed/omi`, Homebrew cask bump). Merging
   `desktop/**` to `main` ships nothing by itself. Full guide: `desktop/macos/RELEASE.md`.
 - `RELEASEWITHBACKEND` is unavailable in this fork.
+- Upstream sync and the release that follows it: `.github/agent-docs/upstream-sync.md`.
