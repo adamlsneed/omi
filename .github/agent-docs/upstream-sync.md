@@ -86,11 +86,10 @@ gh pr list -R adamlsneed/omi --state open --search "head:sync/upstream-"
 ```bash
 DATE=$(date +%Y%m%d)
 BR=sync/upstream-$DATE
-WT=../omi-sync-$DATE
+WT="$(cd .. && pwd)/omi-sync-$DATE"
 MB=$(git merge-base origin/main upstream/main)   # last synced upstream commit
 git worktree add -b "$BR" "$WT" origin/main
-cd "$WT"
-git merge --no-ff --no-edit -m "Merge upstream BasedHardware/omi into $BR" upstream/main
+git -C "$WT" merge --no-ff --no-edit -m "Merge upstream BasedHardware/omi into $BR" upstream/main
 ```
 
 Merge, never rebase. Do not create backup branches; the PR is the safety net.
@@ -101,8 +100,8 @@ If the merge reports any conflict (including ones rerere resolved from a recorde
 resolution), resolve nothing. Write the brief, abort, file it, stop.
 
 ```bash
-git diff --name-only --diff-filter=U   # conflicted files
-git rerere status                      # files rerere already has a resolution for
+git -C "$WT" diff --name-only --diff-filter=U   # conflicted files
+git -C "$WT" rerere status                      # files rerere already has a resolution for
 ```
 
 For each conflicted file, the brief gives:
@@ -121,8 +120,8 @@ For each conflicted file, the brief gives:
 Then:
 
 ```bash
-git merge --abort
-cd - && git worktree remove "$WT" && { git branch -d "$BR" || echo "kept local branch $BR"; }
+git -C "$WT" merge --abort
+git worktree remove "$WT" && { git branch -d "$BR" || echo "kept local branch $BR"; }
 gh issue create -R adamlsneed/omi --label upstream-sync \
   --title "Upstream sync conflict ($DATE, ${MB:0:10}..$(git rev-parse --short=10 upstream/main))" \
   --body-file <brief.md>
@@ -196,12 +195,17 @@ mention these keys are noise.
 
 ## 6. Push, PR, merge
 
+Write the PR body to `/tmp/omi-pr-body.md` first, then push with a plain command:
+
 ```bash
-TZ=UTC PRE_PUSH_SKIP_BACKEND_UNIT_TESTS=1 OMI_PR_BODY_FILE=<body.md> git push -u origin "$BR"
+git -C "$WT" push -u origin "$BR"
 ```
 
-(`PRE_PUSH_SKIP_BACKEND_UNIT_TESTS` matches fork CI, which does not run upstream's
-backend unit tests; `TZ=UTC` avoids a timezone-dependent upstream web test.)
+The repo's Claude settings `env` block sets `PRE_PUSH_SKIP_BACKEND_UNIT_TESTS=1` (matches
+fork CI, which does not run upstream's backend unit tests), `TZ=UTC` (avoids a
+timezone-dependent upstream web test), and `OMI_PR_BODY_FILE=/tmp/omi-pr-body.md` for the
+pre-push hook. Other agents export the same three. Never prefix `git` with variable
+assignments or `cd`; use `git -C <path>`.
 
 PR body, modeled on #126: Summary (range `$MB..upstream/main`, commit count, versions),
 What's in this sync (categorized upstream features, fixes, and notable changes;
@@ -210,10 +214,10 @@ result), then the sections `scripts/pr-preflight` asks for:
 
 ```bash
 scripts/pr-preflight --suggest                   # invariant citations, failure class, line-count exceptions
-scripts/pr-preflight --pr-body-file <body.md>    # must pass
+scripts/pr-preflight --pr-body-file /tmp/omi-pr-body.md    # must pass
 make preflight
 gh pr create -R adamlsneed/omi --base main --head "$BR" \
-  --title "Sync upstream BasedHardware/omi ($DATE, N commits)" --body-file <body.md>
+  --title "Sync upstream BasedHardware/omi ($DATE, N commits)" --body-file /tmp/omi-pr-body.md
 gh pr checks <PR> -R adamlsneed/omi --watch
 ```
 
