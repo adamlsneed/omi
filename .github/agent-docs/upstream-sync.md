@@ -195,7 +195,7 @@ mention these keys are noise.
 
 ## 6. Push, PR, merge
 
-Write the PR body to `/tmp/omi-pr-body.md` first, then push with a plain command:
+Write the PR body to /tmp/omi-pr-body.md (a scratch file, not in the repo) first, then push with a plain command:
 
 ```bash
 git -C "$WT" push -u origin "$BR"
