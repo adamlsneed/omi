@@ -34,6 +34,24 @@ This builds `-c release`, signs with `Omi-Release.entitlements` (omits the
 notarizes + staples, publishes a GitHub Release on `adamlsneed/omi` (tag
 `desktop-fork-v<version>`), and updates the cask in the tap.
 
+Run `release.sh` directly, with no PATH prefix. It puts `~/.hermes/node/bin` (when
+present) and an npm 10 wrapper at `/tmp/npm10/npm` on its own PATH, creating the wrapper
+from the npm 10 copy in `~/.npm/_npx` (or `npm install --prefix /tmp/npm10pkg npm@10`)
+when `/tmp` was wiped. npm 12 fails `npm ci` against the committed lockfiles.
+
+Hard failures (nothing is published):
+- No `FIREBASE_API_KEY` in `.env.app.dev`/`.env.app`, the environment, or the installed
+  app's `.env`. Without it sign-in against BasedHardware's hosted Firebase fails, and
+  Sparkle would auto-install that broken build.
+- Notarization not `Accepted`, or still in Apple's queue after 90 minutes
+  (`notarytool --timeout 90m`). The error prints the submission JSON, including its id.
+- Sparkle signing fails. The error is deliberately generic and never includes
+  `sign_update`'s output, which can contain the key.
+
+After publishing, the changelog consolidation runs in a temporary worktree on
+`origin/main` (removed afterward), so the checkout you release from is never switched.
+A failure there only warns; fragments stay pending for the next release.
+
 Smoke-test without shipping:
 ```
 SKIP_NOTARIZE=1 SKIP_PUBLISH=1 ./release.sh 0.0.1-test   # build + sign only
@@ -54,8 +72,12 @@ Schedule `brew upgrade` via launchd if you want hands-off updates.
   `https://raw.githubusercontent.com/adamlsneed/homebrew-omi/main/appcast.xml`, signs
   the zip with the fork's EdDSA key (private half in this Mac's login keychain, public
   half in `release.sh`), and prepends the item to `appcast.xml` in the tap repo next
-  to the cask. Builds before 0.1.10 still carry upstream's feed and key, so that one
-  hop needs `brew upgrade`; after it, the app downloads and installs on quit by itself.
+  to the cask. `release.sh` reads the key with `/usr/bin/security find-generic-password
+  -s https://sparkle-project.org -a ed25519 -w` and pipes it to `sign_update --ed-key-file -`
+  (never to disk, logs, or argv). Keychain access is granted per binary path, and
+  `sign_update` lands at a new path in every worktree build, so only `/usr/bin/security`
+  holds access: click "Always Allow" once for it on the first run.
+- Builds before 0.1.10 still carry upstream's feed and key, so that one hop needs `brew upgrade`; after it, the app downloads and installs on quit by itself.
   The cask sets `auto_updates true`, so `brew upgrade` leaves it alone unless `--greedy`.
 - Lost the signing key? Run `Desktop/.build/artifacts/sparkle/Sparkle/bin/generate_keys`,
   put the new public key in `release.sh`, and ship one release via `brew upgrade` again.
