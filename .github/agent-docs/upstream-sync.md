@@ -14,6 +14,21 @@ Every run ends with exactly one of these lines:
 - `Conflict: <issue URL>`
 - `Nothing to sync.`
 
+After a `Merged, ...` line, add `Disabled workflows: <paths>` if step 6 disabled any.
+
+Whatever the outcome (including a Needs review, a failed command, or an aborted run),
+the last action of every run that created the sync worktree is removing it, since a
+desktop build there is about 20 GB. Run from the primary checkout:
+
+```bash
+git worktree remove --force "$WT"; git worktree prune
+git branch -d "$BR" || echo "kept unmerged local branch $BR"
+```
+
+Use `-d`, never `-D` (denied on purpose to protect real branches). If `-d` refuses
+because the branch is unmerged (a Needs review or failed run), log it and move on; the
+pushed branch or the next run covers it.
+
 ## Prerequisites
 
 One-time repository setup (already done unless a step below fails):
@@ -24,6 +39,10 @@ One-time repository setup (already done unless a step below fails):
   `PROJECT_TOKEN` the fork lacks.
 - Local git config: `rerere.enabled=true`, `rerere.autoupdate=true`,
   `merge.conflictstyle=zdiff3`.
+- "Always Allow" granted to `/usr/bin/security` on the Sparkle signing key (release.sh
+  reads the key through it, so rebuilt `sign_update` binaries never prompt).
+- `FIREBASE_API_KEY` available to release.sh (see `desktop/macos/RELEASE.md`); a
+  missing key fails the release.
 
 Per run, on the Mac that holds the signing keys, in a logged-in GUI session (the
 login keychain must be unlocked; SSH or launchd sessions cannot reach it). Codex must
@@ -38,7 +57,8 @@ export PATH="/tmp/npm10:$HOME/fvm/versions/3.44.5/bin:$HOME/fvm/versions/3.44.5/
 npm -v   # must print 10.x
 ```
 
-If that npx cache entry is gone, `npm install --prefix /tmp/npm10pkg npm@10` and
+`release.sh` sets up Node and this npm 10 wrapper on its own PATH, so step 7 needs no
+prefix; the block above is for step 4's `npm ci` checks. If that npx cache entry is gone, `npm install --prefix /tmp/npm10pkg npm@10` and
 symlink `/tmp/npm10pkg/node_modules/.bin/npm` into `/tmp/npm10` instead. `bun` must
 also be on `PATH` (the push gate runs `web/app/test.sh`).
 
@@ -102,7 +122,7 @@ Then:
 
 ```bash
 git merge --abort
-cd - && git worktree remove "$WT" && git branch -D "$BR"
+cd - && git worktree remove "$WT" && { git branch -d "$BR" || echo "kept local branch $BR"; }
 gh issue create -R adamlsneed/omi --label upstream-sync \
   --title "Upstream sync conflict ($DATE, ${MB:0:10}..$(git rev-parse --short=10 upstream/main))" \
   --body-file <brief.md>
@@ -146,7 +166,10 @@ Needs review; the brief says which it is.
 Any one of these routes to Needs review (step 6 opens the PR but does not merge):
 
 - Any check in step 4, `make preflight`, or PR CI fails.
-- A new workflow file: `git diff --name-only --diff-filter=A $MB upstream/main -- .github/workflows`
+- A new workflow file that does not deploy to cloud infrastructure:
+  `git diff --name-only --diff-filter=A $MB upstream/main -- .github/workflows`. New
+  deploy workflows (see "Disable new deploy workflows" in step 6) do not trigger this on
+  their own; step 6 disables them after the merge.
 - A changed deploy or publish workflow: a modified `.github/workflows/` file whose name
   matches `gcp_|deploy|release|publish|helm`, or whose Actions state is
   `disabled_manually` (`gh api --paginate repos/adamlsneed/omi/actions/workflows --jq '.workflows[]|select(.state!="active")|.path'`),
@@ -162,7 +185,7 @@ Any one of these routes to Needs review (step 6 opens the PR but does not merge)
 - `desktop/macos/release.sh` or `desktop/macos/scripts/release-appcast.sh` changed.
 - Sparkle or appcast settings: `SUFeedURL|SUPublicEDKey|SUEnable|appcast` in the
   `Info.plist` or `run.sh` diff, or the Sparkle pin in `desktop/macos/Desktop/Package.resolved`
-  moved (a new `sign_update` binary also needs a fresh keychain "Always Allow" click).
+  moved.
 - Bundle identifiers: `BUNDLE_ID|CFBundleIdentifier|PRODUCT_BUNDLE_IDENTIFIER` in the
   diff of `desktop/macos/run.sh`, `desktop/macos/Desktop/Info.plist`,
   `app/ios/Runner.xcodeproj/project.pbxproj`, or `app/ios/Flutter/*.xcconfig`.
@@ -210,6 +233,28 @@ gh pr merge <PR> -R adamlsneed/omi --merge       # merge commit, never squash
 Then fast-forward the primary checkout's `main` (it must be clean on tracked files) and
 remove the sync worktree.
 
+**Disable new deploy workflows.** Fork rules keep upstream's cloud deploys off. A new
+workflow counts as a deploy if its name matches `gcp_|deploy|helm|gke|cloud.?run` or its
+body matches `gcloud|google-github-actions/|kubectl|helm |firebase deploy|aws-actions/|terraform apply`:
+
+```bash
+for f in $(git diff --name-only --diff-filter=A $MB upstream/main -- .github/workflows); do
+  if basename "$f" | grep -qiE 'gcp_|deploy|helm|gke|cloud.?run' \
+     || grep -qE 'gcloud|google-github-actions/|kubectl|helm |firebase deploy|aws-actions/|terraform apply' "$f"; then
+    gh workflow disable "$(basename "$f")" -R adamlsneed/omi
+    gh run list -R adamlsneed/omi --workflow "$(basename "$f")" --json databaseId,status \
+      --jq '.[]|select(.status!="completed").databaseId' | xargs -n1 gh run cancel -R adamlsneed/omi
+  fi
+done
+gh api --paginate repos/adamlsneed/omi/actions/workflows --jq '.workflows[]|[.path,.state]|@tsv'
+```
+
+Each one must show `disabled_manually`; list them in the run's `Disabled workflows:`
+line. The merge push can start one before it is disabled; the fork has no deploy
+secrets, so that run fails without deploying, and the loop cancels it if still running.
+If a disable fails, file an `upstream-sync` issue and end with `Needs review: <issue URL>`
+without releasing.
+
 ## 7. Release (desktop changed)
 
 ```bash
@@ -222,20 +267,22 @@ git diff --quiet "$LAST" origin/main -- desktop/macos \
 Exit 0: end with `Merged, no desktop changes`.
 
 Otherwise follow `desktop/macos/RELEASE.md`, from the primary checkout on up-to-date,
-clean `main` (release.sh commits its changelog consolidation from there):
+clean `main` (the build uses that tree):
 
 ```bash
 cd desktop/macos && ./release.sh --bump
 ```
 
-A normal run takes about 15 to 25 minutes. Treat more than 90 minutes (usually
-notarization stuck in Apple's queue) as a failure.
+A normal run takes about 15 to 25 minutes. release.sh itself fails if notarization is
+still in Apple's queue after 90 minutes; treat a whole run past 2 hours as a failure.
 
-The changelog step is part of release.sh: it folds `changelog/unreleased/*.json` into
+The changelog step is part of release.sh: in a temporary worktree on `origin/main`
+(removed afterward), it folds `changelog/unreleased/*.json` into
 `changelog/releases/<version>.json` and auto-merges a `chore/desktop-changelog-<version>`
-PR. If it prints `WARNING: changelog consolidation failed` or skips for a dirty tree, do
-it by hand in a clean worktree: `python3 .github/scripts/desktop-changelog.py consolidate
---version <v> --write` from `desktop/macos`, commit, push, PR, merge with a merge commit.
+PR. It never switches the primary checkout's branch. If it prints `WARNING: changelog
+consolidation failed`, do it by hand in a clean worktree: `python3
+.github/scripts/desktop-changelog.py consolidate --version <v> --write` from
+`desktop/macos`, commit, push, PR, merge with a merge commit.
 
 Confirm all three updated:
 
