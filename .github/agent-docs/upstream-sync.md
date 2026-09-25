@@ -30,6 +30,12 @@ Use `-d`, never `-D` (denied on purpose to protect real branches). If `-d` refus
 because the branch is unmerged (a Needs review or failed run), log it and move on; the
 pushed branch or the next run covers it.
 
+Unattended runs never pass `--no-verify` to `git commit`, `git merge` or `git push`. If a
+git hook blocks, stop: file an `upstream-sync` issue with the blocked command and the
+hook's output (the failing check and its last 50 lines), and end with
+`Needs review: <issue URL>`. The `--no-verify` backend commit in the policy doc is for a
+human-reviewed conflict resolution only.
+
 ## Prerequisites
 
 One-time repository setup (already done unless a step below fails):
@@ -316,9 +322,13 @@ scripts/fork/redeploy-omi-dev.sh
 ```
 
 It keeps a rollback copy, quits Omi Dev, deploys main on top with the same signing
-identity, and verifies the new build is running. Exit 0: add `Omi Dev: <its last
-line>`. Any failure restores and relaunches the previous build (exit 1), or the
-script refuses to start (exit 2), so Adam always keeps a working app. For any non-zero
-exit, file an `upstream-sync` issue with the script output and the last 50 lines of
-`/tmp/omi-dev-redeploy.log`, and end with `Needs review: <issue URL>`. Exit 5 means the
-rollback also failed: put that first in the issue.
+identity, and verifies the new build is running. If Omi Dev was capturing screens
+before the deploy, it then waits up to 5 minutes for new Rewind captures. Exit 0: add
+`Omi Dev: <its last line>`. Any failure restores and relaunches the previous build
+(exit 1), or the script refuses to start (exit 2), so Adam always keeps a working app.
+For any non-zero exit, file an `upstream-sync` issue with the script output and the
+last 50 lines of `/tmp/omi-dev-redeploy.log`, and end with `Needs review: <issue URL>`.
+Exit 3 means the new build runs but wrote no screen captures, so Screen Recording
+likely needs re-granting: title the issue `Omi Dev: re-grant Screen Recording` and put
+the script's re-grant steps first. Exit 5 means the rollback also failed: put that
+first in the issue.

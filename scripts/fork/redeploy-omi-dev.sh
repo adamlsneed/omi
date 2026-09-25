@@ -7,9 +7,15 @@
 # Keeps one rollback copy in ~/Backups/omi-dev-rollback. If the build, install, or launch
 # fails, it restores that copy, relaunches it, and exits non-zero.
 #
+# If Omi Dev was capturing screens before the deploy, it also waits for the new build to
+# write Rewind captures again. A re-signed bundle can silently lose the Screen Recording
+# grant; a rollback would not restore it, so that case keeps the new build and exits 3.
+#
 # Usage: scripts/fork/redeploy-omi-dev.sh
 # Exit codes: 0 new build running, 1 failed and rolled back (previous build running),
-#             2 precondition failed (nothing changed), 5 failed and rollback also failed.
+#             2 precondition failed (nothing changed), 3 new build running but screen
+#             capture did not resume (Screen Recording likely needs re-granting),
+#             5 failed and rollback also failed.
 # Log: /tmp/omi-dev-redeploy.log
 set -euo pipefail
 
@@ -19,6 +25,9 @@ EXE="$APP/Contents/MacOS/Omi Computer"
 BACKUP_DIR="$HOME/Backups/omi-dev-rollback"
 BACKUP_APP="$BACKUP_DIR/Omi Dev.app"
 LOG=/tmp/omi-dev-redeploy.log
+# Rewind storage for com.omi.desktop-dev (DesktopLocalProfile: not a named bundle, so "Omi").
+CAPTURE_ROOT="$HOME/Library/Application Support/Omi/users"
+CAPTURE_WAIT_SECONDS=300
 
 ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 DEPLOYING=0
@@ -50,6 +59,12 @@ verify_running() {
   [[ -n "$pid" ]] || return 1
   sleep 15
   kill -0 "$pid" 2>/dev/null
+}
+
+# First Rewind capture file (video chunk or screenshot) matching the extra find predicates.
+capture_file() {
+  [[ -d "$CAPTURE_ROOT" ]] || return 0
+  find "$CAPTURE_ROOT" -type f \( -path '*/Videos/*' -o -path '*/Screenshots/*' \) "$@" 2>/dev/null | head -1 || true
 }
 
 restore() {
@@ -118,6 +133,10 @@ ditto "$APP" "$BACKUP_APP.tmp"
 rm -rf "$BACKUP_APP"
 mv "$BACKUP_APP.tmp" "$BACKUP_APP"
 
+# Only a build that was capturing before the deploy is expected to capture after it; a locked
+# screen or capture switched off writes nothing either way.
+captured_before="$(capture_file -mmin -10)"
+
 step "Quit Omi Dev"
 DEPLOYING=1
 if [[ -n "$(app_pids)" ]]; then
@@ -128,6 +147,8 @@ if [[ -n "$(app_pids)" ]]; then
     wait_for_exit 15 || fail_deploy "Omi Dev did not exit"
   fi
 fi
+
+capture_marker="$(mktemp /tmp/omi-dev-redeploy-marker.XXXXXX)"
 
 step "Build and install (run.sh --yolo --full --no-wait; log: $LOG)"
 start=$SECONDS
@@ -147,5 +168,30 @@ DEPLOYING=0
 
 new_rev="$(plist_get OMISourceRevision)"
 [[ "$new_rev" == "$(git -C "$ROOT" rev-parse HEAD)" ]] || echo "WARNING: installed revision $new_rev is not HEAD"
+
+step "Verify screen capture resumed"
+if [[ ! -d "$CAPTURE_ROOT" ]]; then
+  echo "WARNING: skipped: $CAPTURE_ROOT does not exist; Omi Dev's Rewind storage has moved, update CAPTURE_ROOT"
+elif [[ -z "$captured_before" ]]; then
+  echo "skipped: no Rewind captures in the 10 minutes before the deploy (capture off, screen locked, or idle)"
+else
+  waited=0
+  # Birth time, not mtime: startup recovery rewrites old chunks without Screen Recording.
+  until [[ -n "$(capture_file -newerBm "$capture_marker")" ]]; do
+    if (( waited >= CAPTURE_WAIT_SECONDS )); then
+      rm -f "$capture_marker"
+      echo "ERROR: Omi Dev is running build $(plist_get CFBundleVersion), revision ${new_rev:0:10}, but wrote no" >&2
+      echo "Rewind captures under $CAPTURE_ROOT in ${CAPTURE_WAIT_SECONDS}s. Screen Recording likely needs" >&2
+      echo "re-granting: System Settings > Privacy & Security > Screen & System Audio Recording > Omi Dev" >&2
+      echo "(toggle it off and on), then quit and reopen Omi Dev." >&2
+      exit 3
+    fi
+    sleep 15
+    waited=$((waited + 15))
+  done
+  echo "capturing again after ${waited}s"
+fi
+rm -f "$capture_marker"
+
 echo "Omi Dev redeployed and running: build $(plist_get CFBundleVersion), revision ${new_rev:0:10} (was $old_version)"
 echo "done in $((SECONDS / 60))m$((SECONDS % 60))s"
