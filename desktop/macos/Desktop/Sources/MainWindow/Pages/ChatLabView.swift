@@ -618,7 +618,7 @@ struct ChatLabView: View {
         HStack {
           Spacer()
           ProgressView()
-          Text("Loading git history & ratings...")
+          Text("Loading git history & ratings…")
             .scaledFont(size: OmiType.body)
             .foregroundColor(Ink.secondary)
           Spacer()
@@ -796,7 +796,7 @@ struct ChatLabView: View {
           .scaledFont(size: OmiType.caption, weight: .medium)
           .foregroundColor(Ink.secondary)
 
-        SecureField("sk-ant-...", text: $vm.userApiKey)
+        SecureField("sk-ant-…", text: $vm.userApiKey)
           .textFieldStyle(.plain)
           .font(.system(size: 12, design: .monospaced))
           .foregroundColor(Ink.primary)
@@ -975,7 +975,7 @@ struct ChatLabView: View {
               if eval.isRunning {
                 HStack(spacing: OmiSpacing.xs) {
                   ProgressView().scaleEffect(0.6)
-                  Text("Running...")
+                  Text("Running…")
                     .scaledFont(size: OmiType.caption)
                     .foregroundColor(Ink.secondary)
                 }

@@ -279,7 +279,7 @@ struct BrowserExtensionSetup: View {
               .scaledFont(size: OmiType.body, weight: .medium)
               .foregroundColor(isTokenValid ? Ink.secondary : Ink.primary)
 
-            TextField("Paste token here...", text: $tokenInput)
+            TextField("Paste token here…", text: $tokenInput)
               .textFieldStyle(.plain)
               .scaledFont(size: OmiType.body)
               .foregroundColor(Ink.primary)
@@ -401,7 +401,7 @@ struct BrowserExtensionSetup: View {
           .scaleEffect(1.5)
           .frame(height: 48)
 
-        Text("Testing connection...")
+        Text("Testing connection…")
           .scaledFont(size: OmiType.heading, weight: .semibold)
           .foregroundColor(Ink.primary)
 
@@ -636,7 +636,7 @@ struct BrowserExtensionSetup: View {
     case .connect:
       return "Continue"
     case .verify:
-      if isVerifying { return "Testing..." }
+      if isVerifying { return "Testing…" }
       if verifySuccess { return "Continue" }
       return "Try Again"
     case .done:

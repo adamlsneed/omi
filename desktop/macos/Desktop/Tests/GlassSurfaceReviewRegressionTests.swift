@@ -29,8 +29,8 @@ final class GlassSurfaceReviewRegressionTests: XCTestCase {
     let titledGlassContentRoots = [
       "FeedbackView.swift",
       "MainWindow/Pages/ChatLabView.swift",
-      "ProactiveAssistants/UI/TaskPromptEditorWindow.swift",
-      "ProactiveAssistants/UI/InsightPromptEditorWindow.swift",
+      // Task, insight and memory prompt editor windows all host AssistantPromptEditorView.
+      "ProactiveAssistants/UI/AssistantPromptEditor.swift",
     ]
 
     var missingGround: [String] = []
