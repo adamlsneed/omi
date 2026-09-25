@@ -30,6 +30,13 @@
       ]
     },
     {
+      "version": "0.1.15",
+      "date": "2026-09-25",
+      "changes": [
+        "Synced upstream BasedHardware desktop changes through v0.12.390 (2026-09-25)"
+      ]
+    },
+    {
       "version": "0.12.386",
       "date": "2026-09-24",
       "changes": [
