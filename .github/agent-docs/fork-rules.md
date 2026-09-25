@@ -18,3 +18,5 @@ upstream changes are merged in regularly; nothing flows back.
 - `RELEASEWITHBACKEND` is unavailable in this fork.
 - Upstream sync and the release that follows it: `.github/agent-docs/upstream-sync.md`.
 - Building and installing the iPhone app: `.github/agent-docs/ios-install.md`.
+- Redeploying Adam's local Omi Dev Mac app from `main`: `scripts/fork/redeploy-omi-dev.sh`
+  (usage and rollback in its header; runs as step 8 of the upstream sync).

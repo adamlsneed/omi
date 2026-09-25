@@ -14,7 +14,8 @@ Every run ends with exactly one of these lines:
 - `Conflict: <issue URL>`
 - `Nothing to sync.`
 
-After a `Merged, ...` line, add `Disabled workflows: <paths>` if step 6 disabled any.
+After a `Merged, ...` line, add `Disabled workflows: <paths>` if step 6 disabled any, and
+the `Omi Dev: ...` line from step 8.
 
 Whatever the outcome (including a Needs review, a failed command, or an aborted run),
 the last action of every run that created the sync worktree is removing it, since a
@@ -268,7 +269,7 @@ git diff --quiet "$LAST" origin/main -- desktop/macos \
   ':!desktop/macos/Desktop/Tests' ':!desktop/macos/e2e' ':!*.md'
 ```
 
-Exit 0: end with `Merged, no desktop changes`.
+Exit 0: run step 8, then end with `Merged, no desktop changes`.
 
 Otherwise follow `desktop/macos/RELEASE.md`, from the primary checkout on up-to-date,
 clean `main` (the build uses that tree):
@@ -302,4 +303,22 @@ an `upstream-sync` issue with the failing step and the last 50 lines of output, 
 with `Needs review: <issue URL>`. Do not rerun release.sh: a partial run may already have
 published the GitHub release or the cask, and a rerun rebuilds with a different sha256.
 
-Otherwise end with `Merged, released v$V`.
+Otherwise run step 8, then end with `Merged, released v$V`.
+
+## 8. Redeploy Omi Dev
+
+Adam's running Mac app is the locally deployed `/Applications/Omi Dev.app`, which
+releases never reach. After a merged sync (and its release, if any), rebuild it from
+the primary checkout on up-to-date `main`:
+
+```bash
+scripts/fork/redeploy-omi-dev.sh
+```
+
+It keeps a rollback copy, quits Omi Dev, deploys main on top with the same signing
+identity, and verifies the new build is running. Exit 0: add `Omi Dev: <its last
+line>`. Any failure restores and relaunches the previous build (exit 1), or the
+script refuses to start (exit 2), so Adam always keeps a working app. For any non-zero
+exit, file an `upstream-sync` issue with the script output and the last 50 lines of
+`/tmp/omi-dev-redeploy.log`, and end with `Needs review: <issue URL>`. Exit 5 means the
+rollback also failed: put that first in the issue.
