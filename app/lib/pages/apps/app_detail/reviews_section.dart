@@ -112,8 +112,8 @@ class _RecentReviewsSectionState extends State<RecentReviewsSection> {
       final userName = widget.userReview?.username.isNotEmpty == true
           ? widget.userReview!.username
           : prefs.fullName.isNotEmpty
-              ? prefs.fullName
-              : prefs.givenName;
+          ? prefs.fullName
+          : prefs.givenName;
 
       final rev = AppReview(
         uid: prefs.uid,
@@ -282,12 +282,12 @@ class _RecentReviewsSectionState extends State<RecentReviewsSection> {
             style: OmiType.subhead.copyWith(color: OmiColors.textPrimary),
             decoration: InputDecoration(
               hintText: context.l10n.writeReviewOptional,
-              hintStyle: const TextStyle(color: OmiColors.textTertiary),
+              hintStyle: TextStyle(color: OmiColors.textTertiary),
               filled: true,
               fillColor: OmiColors.surface0.withValues(alpha: 0.3),
               border: const OutlineInputBorder(borderRadius: OmiRadius.smAll, borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.all(OmiSpacing.sm),
-              counterStyle: const TextStyle(color: OmiColors.textTertiary),
+              counterStyle: TextStyle(color: OmiColors.textTertiary),
             ),
           ),
           const SizedBox(height: OmiSpacing.sm),
@@ -306,8 +306,9 @@ class _RecentReviewsSectionState extends State<RecentReviewsSection> {
 
   Widget _buildReviewItem(BuildContext context, AppReview review, {bool isUserReview = false}) {
     final l10n = AppLocalizations.of(context);
-    final displayName =
-        isUserReview ? l10n.yourReview : (review.username.isNotEmpty ? review.username : l10n.anonymousUser);
+    final displayName = isUserReview
+        ? l10n.yourReview
+        : (review.username.isNotEmpty ? review.username : l10n.anonymousUser);
     final avatarSeed = review.uid.isNotEmpty ? review.uid : review.username;
 
     return Padding(
@@ -348,7 +349,7 @@ class _RecentReviewsSectionState extends State<RecentReviewsSection> {
                         ),
                         if (isUserReview) ...[
                           const Spacer(),
-                          const ExcludeSemantics(child: Icon(Icons.edit, size: 14, color: OmiColors.textTertiary)),
+                          ExcludeSemantics(child: Icon(Icons.edit, size: 14, color: OmiColors.textTertiary)),
                         ],
                       ],
                     ),

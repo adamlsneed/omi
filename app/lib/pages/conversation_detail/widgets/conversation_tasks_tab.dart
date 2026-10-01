@@ -35,8 +35,12 @@ Future<void> openConversationTask(BuildContext context, ConversationDetailProvid
   final refreshed = await tryGetActionItems(conversationId: conversationId, limit: 200);
   if (refreshed == null || provider.conversationOrNull?.id != conversationId) return;
   final updated = refreshed.actionItems.firstWhereOrNull((task) => task.id == match.id);
-  provider.applyTaskEdit(item,
-      description: updated?.description, completed: updated?.completed, deleted: updated == null);
+  provider.applyTaskEdit(
+    item,
+    description: updated?.description,
+    completed: updated?.completed,
+    deleted: updated == null,
+  );
 }
 
 /// One task row of a conversation: a checkbox that completes it at once, and a tap that opens the
@@ -108,7 +112,7 @@ class _ActionItemDetailWidgetState extends State<ActionItemDetailWidget> {
                               ),
                               borderRadius: const BorderRadius.all(Radius.circular(4)),
                             ),
-                            child: isCompleted ? const Icon(Icons.check, size: 14, color: OmiColors.onAccent) : null,
+                            child: isCompleted ? Icon(Icons.check, size: 14, color: OmiColors.onAccent) : null,
                           ),
                         ),
                       ),
@@ -157,8 +161,9 @@ class _ActionItemDetailWidgetState extends State<ActionItemDetailWidget> {
         if (mounted) setState(() => _pendingStates.remove(itemDescription));
       });
 
-      final currentIndex =
-          provider.conversation.structured.actionItems.indexWhere((item) => item.description == itemDescription);
+      final currentIndex = provider.conversation.structured.actionItems.indexWhere(
+        (item) => item.description == itemDescription,
+      );
       if (currentIndex != -1) {
         if (newValue) {
           PlatformManager.instance.analytics.checkedActionItem(provider.conversation, currentIndex);
@@ -194,7 +199,7 @@ class _SectionHeader extends StatelessWidget {
             excludeSemantics: true,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.xs, vertical: 2),
-              decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+              decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
               child: Text(
                 '$count',
                 style: OmiType.footnote.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w500),
@@ -219,7 +224,7 @@ class _PlaceholderRow extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 52),
         alignment: Alignment.center,
-        decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
+        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
         child: Text(text, style: OmiType.footnote.copyWith(color: OmiColors.textSecondary)),
       ),
     );
@@ -247,13 +252,13 @@ class ActionItemsTab extends StatelessWidget {
         }
 
         Widget itemList(List<ActionItem> items) => SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.xs, vertical: 6),
-                  child: ActionItemDetailWidget(actionItem: items[index], conversationId: provider.conversation.id),
-                );
-              }, childCount: items.length),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.xs, vertical: 6),
+              child: ActionItemDetailWidget(actionItem: items[index], conversationId: provider.conversation.id),
             );
+          }, childCount: items.length),
+        );
 
         return CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

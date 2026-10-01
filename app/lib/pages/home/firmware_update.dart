@@ -60,8 +60,9 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
         if (mounted) {
           setState(() {
             shouldUpdate = result.$2;
-            updateMessage =
-                widget.device!.firmwareRevision.isEmpty ? context.l10n.unableToDetermineFirmwareVersion : result.$1;
+            updateMessage = widget.device!.firmwareRevision.isEmpty
+                ? context.l10n.unableToDetermineFirmwareVersion
+                : result.$1;
             isLoading = false;
           });
         }
@@ -91,8 +92,12 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
 
   Widget _buildSectionHeader(String title, {String? subtitle}) => OmiSectionHeader(title, subtitle: subtitle);
 
-  Widget _buildVersionItem(
-      {required FaIconData icon, required String label, required String version, Color? chipColor}) {
+  Widget _buildVersionItem({
+    required FaIconData icon,
+    required String label,
+    required String version,
+    Color? chipColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(OmiSpacing.md),
       child: Row(
@@ -114,7 +119,7 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
     return Container(
       width: double.infinity,
       padding: padding,
-      decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.xlAll),
+      decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.xlAll),
       child: child,
     );
   }
@@ -131,9 +136,7 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
       ),
       child: Row(
         children: [
-          const ExcludeSemantics(
-            child: FaIcon(FontAwesomeIcons.triangleExclamation, color: OmiColors.warning, size: 18),
-          ),
+          ExcludeSemantics(child: FaIcon(FontAwesomeIcons.triangleExclamation, color: OmiColors.warning, size: 18)),
           const SizedBox(width: 14),
           Expanded(child: Text(text, style: OmiType.subhead.copyWith(height: 1.4))),
         ],
@@ -169,7 +172,7 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
                           value: progress / 100,
                           strokeWidth: 8,
                           backgroundColor: OmiColors.surface2,
-                          valueColor: const AlwaysStoppedAnimation<Color>(OmiColors.textPrimary),
+                          valueColor: AlwaysStoppedAnimation<Color>(OmiColors.textPrimary),
                         ),
                       ),
                       Center(child: Text('$progress%', style: OmiType.title1)),
@@ -199,8 +202,8 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
               Container(
                 width: 80,
                 height: 80,
-                decoration: const BoxDecoration(color: OmiColors.successSurface, shape: BoxShape.circle),
-                child: const Center(child: FaIcon(FontAwesomeIcons.check, color: OmiColors.success, size: 32)),
+                decoration: BoxDecoration(color: OmiColors.successSurface, shape: BoxShape.circle),
+                child: Center(child: FaIcon(FontAwesomeIcons.check, color: OmiColors.success, size: 32)),
               ),
               const SizedBox(height: OmiSpacing.xl),
               Semantics(header: true, child: Text(context.l10n.firmwareUpdated, style: OmiType.title3)),
@@ -247,8 +250,8 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
                 Container(
                   width: 80,
                   height: 80,
-                  decoration: const BoxDecoration(color: OmiColors.dangerSurface, shape: BoxShape.circle),
-                  child: const Center(child: FaIcon(FontAwesomeIcons.xmark, color: OmiColors.danger, size: 32)),
+                  decoration: BoxDecoration(color: OmiColors.dangerSurface, shape: BoxShape.circle),
+                  child: Center(child: FaIcon(FontAwesomeIcons.xmark, color: OmiColors.danger, size: 32)),
                 ),
                 const SizedBox(height: OmiSpacing.xl),
                 Semantics(header: true, child: Text(context.l10n.firmwareUpdateFailedTitle, style: OmiType.title3)),
@@ -338,7 +341,7 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
                   ),
                 ),
                 const SizedBox(width: OmiSpacing.xs),
-                const FaIcon(FontAwesomeIcons.circleCheck, color: OmiColors.success, size: 14),
+                FaIcon(FontAwesomeIcons.circleCheck, color: OmiColors.success, size: 14),
               ],
             ),
           ),
@@ -354,7 +357,7 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
                 chipColor: shouldUpdate ? OmiColors.dangerSurface : null,
               ),
               if (shouldUpdate && latestFirmwareDetails['version'] != null) ...[
-                const Divider(height: 1, color: OmiColors.border),
+                Divider(height: 1, color: OmiColors.border),
                 _buildVersionItem(
                   icon: FontAwesomeIcons.cloudArrowDown,
                   label: context.l10n.latestVersion,
@@ -385,12 +388,14 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
                           margin: const EdgeInsets.only(top: 6),
                           width: 6,
                           height: 6,
-                          decoration: const BoxDecoration(color: OmiColors.textTertiary, shape: BoxShape.circle),
+                          decoration: BoxDecoration(color: OmiColors.textTertiary, shape: BoxShape.circle),
                         ),
                         const SizedBox(width: OmiSpacing.sm),
                         Expanded(
-                          child: Text(change,
-                              style: OmiType.subhead.copyWith(color: OmiColors.textSecondary, height: 1.4)),
+                          child: Text(
+                            change,
+                            style: OmiType.subhead.copyWith(color: OmiColors.textSecondary, height: 1.4),
+                          ),
                         ),
                       ],
                     ),
@@ -414,8 +419,8 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
             label: widget.isRollback
                 ? context.l10n.installStableFirmware
                 : otaUpdateSteps.isEmpty
-                    ? context.l10n.installUpdate
-                    : context.l10n.updateNow,
+                ? context.l10n.installUpdate
+                : context.l10n.updateNow,
             leading: const FaIcon(FontAwesomeIcons.download),
             expand: true,
             onPressed: batteryTooLow ? null : _startUpdate,
@@ -474,12 +479,12 @@ class _FirmwareUpdateState extends State<FirmwareUpdate> with FirmwareMixin {
             child: isLoading
                 ? _buildLoadingSection()
                 : busy
-                    ? _buildProgressSection()
-                    : isInstalled
-                        ? _buildSuccessSection()
-                        : failure != null
-                            ? _buildFailedSection(failure)
-                            : _buildUpdateSection(),
+                ? _buildProgressSection()
+                : isInstalled
+                ? _buildSuccessSection()
+                : failure != null
+                ? _buildFailedSection(failure)
+                : _buildUpdateSection(),
           ),
         ),
       ),

@@ -15,8 +15,7 @@ Future<ActionItemsResponse?> _empty({
   DateTime? endDate,
   DateTime? dueStartDate,
   DateTime? dueEndDate,
-}) async =>
-    const ActionItemsResponse(actionItems: []);
+}) async => const ActionItemsResponse(actionItems: []);
 
 /// The deferred single-task delete behind every task Undo toast (docs/ux-contract.md §4, D5).
 void main() {
@@ -53,7 +52,7 @@ void main() {
     final (p, calls) = await provider();
 
     p.stageDeleteActionItem(p.actionItems[1]);
-    expect(p.undoStagedDelete('b'), isTrue);
+    expect(await p.undoStagedDelete('b'), isTrue);
 
     expect(p.actionItems.map((i) => i.id), ['a', 'b', 'c']);
     expect(await p.commitStagedDelete('b'), isFalse, reason: 'an undone delete has nothing to commit');
@@ -68,7 +67,7 @@ void main() {
 
     expect(calls, ['b']);
     expect(p.actionItems.map((i) => i.id), ['a', 'c']);
-    expect(p.undoStagedDelete('b'), isFalse, reason: 'a committed delete cannot be undone');
+    expect(await p.undoStagedDelete('b'), isFalse, reason: 'a committed delete cannot be undone');
   });
 
   test('a rejected commit brings the task back', () async {

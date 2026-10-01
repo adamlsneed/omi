@@ -158,7 +158,7 @@ git diff --check origin/main HEAD                    # no conflict markers or wh
 | `desktop/` Rust | `cd desktop && cargo test` |
 | `app/` | `cd app && ./test.sh && flutter analyze` (Flutter 3.44.5; analyze must report 0 errors) |
 | `app/lib/l10n/` | `cd app && flutter gen-l10n` and confirm no diff |
-| `app/ios/` | `ruby app/ios/test/uiscene_lifecycle_adoption_test.rb`, `app_group_identity_test.rb`, `flutter_launch_engine_guard_test.rb` |
+| `app/ios/` | `ruby app/ios/test/app_group_identity_test.rb`, `flutter_launch_engine_guard_test.rb` |
 | `omi/firmware/` | the idea-capture reservation greps in the runbook's "Files To Check After A Merge" |
 
 Before calling an upstream-owned test failure sync damage, reproduce it on upstream

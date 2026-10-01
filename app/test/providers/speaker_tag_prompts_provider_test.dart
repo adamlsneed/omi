@@ -45,13 +45,22 @@ class _FakeFile extends Fake implements File {
 }
 
 class Harness {
-  Harness(
-      {List<GeneratedSpeakerTagPrompt>? prompts, bool firstTime = true, bool answerOk = true, bool settingsOk = true}) {
+  Harness({
+    List<GeneratedSpeakerTagPrompt>? prompts,
+    bool firstTime = true,
+    bool answerOk = true,
+    bool settingsOk = true,
+    Duration answeredHold = Duration.zero,
+  }) {
     provider = SpeakerTagPromptsProvider(
       fetchPrompts: () async {
         fetches += 1;
-        return ApiSuccess(GeneratedSpeakerTagPromptsResponse(
-            prompts: prompts ?? [prompt('a'), prompt('b', kind: 'identify')], firstTime: firstTime));
+        return ApiSuccess(
+          GeneratedSpeakerTagPromptsResponse(
+            prompts: prompts ?? [prompt('a'), prompt('b', kind: 'identify')],
+            firstTime: firstTime,
+          ),
+        );
       },
       markShown: (ids) async {
         shown.add(ids);
@@ -71,10 +80,12 @@ class Harness {
       updateSettings: ({bool? speakerTagPromptsEnabled, bool? saveOtherVoiceProfiles, required String source}) async {
         settingUpdates.add({'tag': speakerTagPromptsEnabled, 'save': saveOtherVoiceProfiles, 'source': source});
         return settingsOk
-            ? ApiSuccess(GeneratedVoiceProfileSettings(
-                saveOtherVoiceProfiles: saveOtherVoiceProfiles ?? true,
-                speakerTagPromptsEnabled: speakerTagPromptsEnabled ?? true,
-              ))
+            ? ApiSuccess(
+                GeneratedVoiceProfileSettings(
+                  saveOtherVoiceProfiles: saveOtherVoiceProfiles ?? true,
+                  speakerTagPromptsEnabled: speakerTagPromptsEnabled ?? true,
+                ),
+              )
             : const ApiFailure(ApiProblem(ApiProblemKind.transport));
       },
       loadClip: (p) async => clipAvailable
@@ -83,6 +94,7 @@ class Harness {
       playClip: (id, wav) async => true,
       emit: events.add,
       now: () => clock,
+      answeredHold: answeredHold,
     );
   }
 
@@ -98,6 +110,32 @@ class Harness {
 }
 
 void main() {
+  testWidgets('disposing after commit cancels the answered-state timer', (tester) async {
+    final h = Harness(answeredHold: const Duration(minutes: 1));
+    await h.provider.loadIfDue();
+    h.provider.stage(SpeakerTagAnswer.me);
+    var completed = false;
+    unawaited(h.provider.commitPending().then((_) => completed = true));
+    await tester.pump();
+    expect(h.provider.pending?.committed, isTrue);
+    h.provider.dispose();
+    await tester.pump();
+    expect(completed, isTrue);
+  });
+
+  testWidgets('a late refresh cannot arm an answered-state timer after disposal', (tester) async {
+    final h = Harness(answeredHold: const Duration(minutes: 1));
+    await h.provider.loadIfDue();
+    h.provider.stage(SpeakerTagAnswer.me);
+    final saved = Completer<void>();
+    var completed = false;
+    unawaited(h.provider.commitPending(onSaved: (_) => saved.future).then((_) => completed = true));
+    await tester.pump();
+    h.provider.dispose();
+    saved.complete();
+    await tester.pump();
+    expect(completed, isTrue);
+  });
   test('loads a set, reports it once, and throttles refetches', () async {
     final h = Harness();
     await h.provider.loadIfDue();
@@ -106,7 +144,7 @@ void main() {
     await h.provider.reportShown();
     await h.provider.reportShown();
     expect(h.shown, [
-      ['a', 'b']
+      ['a', 'b'],
     ]);
     expect(h.events.whereType<SpeakerTagPromptsViewed>().single.properties, {'prompt_count': 2, 'first_time': true});
 
@@ -151,8 +189,10 @@ void main() {
     await unanswered.provider.reportShown();
     await unanswered.provider.close();
     expect(unanswered.dismissals, 1);
-    expect(unanswered.events.whereType<SpeakerTagPromptsClosed>().single.properties,
-        {'answered_count': 0, 'prompt_count': 2});
+    expect(unanswered.events.whereType<SpeakerTagPromptsClosed>().single.properties, {
+      'answered_count': 0,
+      'prompt_count': 2,
+    });
 
     final answered = Harness();
     await answered.provider.loadIfDue();
@@ -168,14 +208,36 @@ void main() {
     expect(h.provider.visible, isFalse);
   });
 
-  test('missing clip audio is reported without blocking answers', () async {
+  test('missing clip audio is reported and advances without submitting an answer', () async {
     final h = Harness()..clipAvailable = false;
     await h.provider.loadIfDue();
     await h.provider.togglePlay(h.provider.current!);
-    expect(h.provider.clipErrorPromptId, 'a');
-    expect(
-        h.events.whereType<SpeakerTagPromptClipPlayed>().single.properties, {'kind': 'owner_check', 'loaded': false});
+    expect(h.provider.current?.id, 'b');
+    expect(h.provider.clipErrorPromptId, isNull);
+    expect(h.events.whereType<SpeakerTagPromptClipPlayed>().single.properties, {
+      'kind': 'owner_check',
+      'loaded': false,
+    });
+    expect(h.answers, isEmpty);
+    expect(h.provider.answeredCount, 0);
     expect(await h.provider.answer(SpeakerTagAnswer.notMe), isTrue);
+  });
+
+  test('last unavailable clip refetches once and does not reoffer it', () async {
+    final h = Harness(prompts: [prompt('a')])..clipAvailable = false;
+    await h.provider.loadIfDue();
+    await h.provider.togglePlay(h.provider.current!);
+    expect(h.fetches, 2);
+    expect(h.provider.visible, isFalse);
+    expect(h.provider.current, isNull);
+    expect(h.provider.answeredCount, 0);
+    expect(h.answers, isEmpty);
+    await h.provider.loadIfDue();
+    expect(h.fetches, 2);
+    h.clock = h.clock.add(SpeakerTagPromptsProvider.refetchInterval);
+    await h.provider.loadIfDue();
+    expect(h.fetches, 3);
+    expect(h.provider.current?.id, 'a');
   });
 
   test('first-prompt toggle writes with its source and reverts when rejected', () async {
@@ -183,8 +245,12 @@ void main() {
     expect(await ok.provider.setSaveOtherVoiceProfiles(false, fromFirstPrompt: true), isTrue);
     expect(ok.provider.saveOtherVoiceProfiles, isFalse);
     expect(ok.settingUpdates.single, {'tag': null, 'save': false, 'source': 'first_prompt'});
-    expect(ok.events.whereType<VoiceProfileSettingToggled>().single.properties,
-        {'setting': 'save_other_voices', 'enabled': false, 'source': 'first_prompt', 'succeeded': true});
+    expect(ok.events.whereType<VoiceProfileSettingToggled>().single.properties, {
+      'setting': 'save_other_voices',
+      'enabled': false,
+      'source': 'first_prompt',
+      'succeeded': true,
+    });
 
     final rejected = Harness(settingsOk: false);
     expect(await rejected.provider.setSaveOtherVoiceProfiles(false, fromFirstPrompt: false), isFalse);
@@ -219,8 +285,14 @@ void main() {
     final answer = Completer<ApiResult<GeneratedSpeakerTagPromptAnswerResponse>>();
     final events = <RegisteredEvent>[];
     final provider = SpeakerTagPromptsProvider(
-      fetchPrompts: () async =>
-          ApiSuccess(GeneratedSpeakerTagPromptsResponse(prompts: [prompt('a'), prompt('b', kind: 'identify')])),
+      fetchPrompts: () async => ApiSuccess(
+        GeneratedSpeakerTagPromptsResponse(
+          prompts: [
+            prompt('a'),
+            prompt('b', kind: 'identify'),
+          ],
+        ),
+      ),
       submitAnswer: (_) => answer.future,
       emit: events.add,
     );
@@ -370,27 +442,34 @@ void main() {
   test('default playback writes a unique temp file that never contains the prompt id', () async {
     TestWidgetsFlutterBinding.ensureInitialized();
     const channel = MethodChannel('plugins.flutter.io/path_provider');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async => '/tmp/omi_test');
-    addTearDown(() =>
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) async => '/tmp/omi_test',
+    );
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null),
+    );
     final written = <String>[];
     final deleted = <String>[];
     late SpeakerTagPromptsProvider provider;
-    await IOOverrides.runZoned(() async {
-      provider = SpeakerTagPromptsProvider(
-        fetchPrompts: () async => ApiSuccess(GeneratedSpeakerTagPromptsResponse(prompts: [prompt('secret-prompt-id')])),
-        loadClip: (_) async => ApiSuccess(Uint8List.fromList([1, 2, 3])),
-        emit: (_) {},
-      );
-      for (var i = 0; i < 2; i++) {
-        await provider.loadIfDue();
-        await provider.togglePlay(provider.current!);
-      }
-    }, createFile: (path) {
-      written.add(path);
-      return _FakeFile(path, onWrite: provider.clearUserData, onDelete: () => deleted.add(path));
-    });
+    await IOOverrides.runZoned(
+      () async {
+        provider = SpeakerTagPromptsProvider(
+          fetchPrompts: () async =>
+              ApiSuccess(GeneratedSpeakerTagPromptsResponse(prompts: [prompt('secret-prompt-id')])),
+          loadClip: (_) async => ApiSuccess(Uint8List.fromList([1, 2, 3])),
+          emit: (_) {},
+        );
+        for (var i = 0; i < 2; i++) {
+          await provider.loadIfDue();
+          await provider.togglePlay(provider.current!);
+        }
+      },
+      createFile: (path) {
+        written.add(path);
+        return _FakeFile(path, onWrite: provider.clearUserData, onDelete: () => deleted.add(path));
+      },
+    );
     expect(written, hasLength(2));
     expect(written[0], isNot(written[1]));
     expect(deleted, written);
@@ -398,5 +477,80 @@ void main() {
       expect(path, isNot(contains('secret-prompt-id')));
       expect(path, matches(RegExp(r'speaker_tag_prompt_\d+_\d+\.wav$')));
     }
+  });
+
+  test('a staged answer shows as pending and sends nothing until it commits', () async {
+    final h = Harness();
+    await h.provider.loadIfDue();
+    h.provider.stage(SpeakerTagAnswer.person, personId: 'p1', displayName: 'Sam');
+    expect(h.provider.pending?.displayName, 'Sam');
+    expect(h.answers, isEmpty);
+    // A second stage while one is pending is ignored.
+    h.provider.stage(SpeakerTagAnswer.me);
+    expect(h.provider.pending?.answer, SpeakerTagAnswer.person);
+
+    String? savedFor;
+    expect(await h.provider.commitPending(onSaved: (id) async => savedFor = id), isTrue);
+    expect(h.answers.single.answer, 'person');
+    expect(h.answers.single.personId, 'p1');
+    expect(savedFor, 'p1');
+    expect(h.provider.pending, isNull);
+    expect(h.provider.current!.id, 'b');
+  });
+
+  test('Undo drops a staged answer and a committed one cannot be undone', () async {
+    final h = Harness(answeredHold: const Duration(milliseconds: 50));
+    await h.provider.loadIfDue();
+    h.provider.stage(SpeakerTagAnswer.notAPerson);
+    h.provider.undoPending();
+    expect(h.provider.pending, isNull);
+    expect(await h.provider.commitPending(), isFalse);
+    expect(h.answers, isEmpty);
+    expect(h.provider.current!.id, 'a');
+
+    h.provider.stage(SpeakerTagAnswer.notAPerson);
+    final commit = h.provider.commitPending();
+    await Future<void>.delayed(Duration.zero);
+    h.provider.undoPending();
+    expect(await commit, isTrue);
+    expect(h.answers.single.answer, 'not_a_person');
+    expect(h.events.whereType<SpeakerTagPromptAnswerSubmitted>().single.properties['answer'], 'not_a_person');
+  });
+
+  test('a failed commit clears the staged answer and keeps the question', () async {
+    final h = Harness(answerOk: false);
+    await h.provider.loadIfDue();
+    h.provider.stage(SpeakerTagAnswer.me);
+    expect(await h.provider.commitPending(), isFalse);
+    expect(h.provider.pending, isNull);
+    expect(h.provider.answerFailed, isTrue);
+    expect(h.provider.current!.id, 'a');
+  });
+
+  test('closing the card keeps a staged answer', () async {
+    final h = Harness();
+    await h.provider.loadIfDue();
+    await h.provider.reportShown();
+    h.provider.stage(SpeakerTagAnswer.me);
+    await h.provider.close();
+    await Future<void>.delayed(Duration.zero);
+    expect(h.answers, isEmpty, reason: 'closing must preserve the Undo window');
+    expect(h.provider.pending, isNotNull);
+    expect(h.dismissals, 0, reason: 'a staged answer is not a dismissal');
+    expect(await h.provider.commitPending(), isTrue);
+    expect(h.answers.single.answer, 'me');
+  });
+  test('closing during Undo permits undo and cannot load over the staged answer', () async {
+    final h = Harness();
+    await h.provider.loadIfDue();
+    h.provider.stage(SpeakerTagAnswer.person, personId: 'p1', displayName: 'Sam');
+    await h.provider.close();
+    await h.provider.loadIfDue(force: true);
+    expect(h.provider.pending?.personId, 'p1');
+    expect(h.answers, isEmpty);
+    h.provider.undoPending();
+    expect(await h.provider.commitPending(), isFalse);
+    expect(h.answers, isEmpty);
+    expect(h.provider.current?.id, 'a');
   });
 }

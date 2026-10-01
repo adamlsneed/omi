@@ -43,14 +43,14 @@ void main() {
     test('ordinary runtime diagnostics need no platform plugins', () async {
       await PhysicalQualification.runtimeEvent('ignored', error: StateError('private'), stack: StackTrace.current);
     });
-    test('ordinary startup returns original future without platform or diagnostic work', () {
+    test('ordinary startup runs the operation through the boot journal', () async {
       final original = Future<int>.value(42);
       var calls = 0;
       final observed = PhysicalQualification.startupStage('ordinary', () {
         calls++;
         return original;
       });
-      expect(identical(observed, original), isTrue);
+      expect(await observed, 42);
       expect(calls, 1);
     });
   } else {
@@ -61,12 +61,16 @@ void main() {
       try {
         final writes = [
           PhysicalQualification.runtimeEvent('run_app_scheduled'),
-          PhysicalQualification.runtimeEvent('flutter_error',
-              error: StateError('sensitive-token'),
-              stack: StackTrace.fromString('sensitive-token\n'
-                  '#0      MyApp.build (package:omi/main.dart:321:7)\n'
-                  '#1      run (dart:async/zone.dart:11:2)\n'
-                  '#2      private (https://example.test/sensitive-token:1:1)\n')),
+          PhysicalQualification.runtimeEvent(
+            'flutter_error',
+            error: StateError('sensitive-token'),
+            stack: StackTrace.fromString(
+              'sensitive-token\n'
+              '#0      MyApp.build (package:omi/main.dart:321:7)\n'
+              '#1      run (dart:async/zone.dart:11:2)\n'
+              '#2      private (https://example.test/sensitive-token:1:1)\n',
+            ),
+          ),
           PhysicalQualification.runtimeEvent('first_frame_callback'),
         ];
         await Future.wait(writes);
@@ -136,12 +140,7 @@ void main() {
       'peripheral_id': peripheral,
     };
     String? choose(Map<String, dynamic> control, {List<String> ids = const [peripheral]}) =>
-        PhysicalQualification.selectedWearable(
-          control: control,
-          scanId: scan,
-          fixtureUid: fixture,
-          candidateIds: ids,
-        );
+        PhysicalQualification.selectedWearable(control: control, scanId: scan, fixtureUid: fixture, candidateIds: ids);
 
     test('wait never selects and matching host approval selects the sole candidate', () {
       expect(choose({'command': 'wait'}), isNull);
@@ -166,7 +165,7 @@ void main() {
         [],
         [''],
         [peripheral, 'another-device'],
-        [peripheral, peripheral]
+        [peripheral, peripheral],
       ]) {
         expect(() => choose({'command': 'wait'}, ids: ids), throwsStateError);
         expect(() => choose(selected, ids: ids), throwsStateError);
@@ -175,7 +174,7 @@ void main() {
   });
 
   if (PhysicalQualification.enabled) {
-    test('opt-in excludes analytics initialization, identity and experiment refresh even with an adapter', () async {
+    test('opt-in excludes analytics initialization and identity even with an adapter', () async {
       AnalyticsManager.resetForTesting();
       final adapter = _QualificationAnalytics();
       AnalyticsManager.configure(adapter);
@@ -183,7 +182,6 @@ void main() {
         final analytics = AnalyticsManager();
         analytics.bindIdentity('omi-physical-fixture-test');
         await AnalyticsManager.init();
-        await analytics.refreshExperiments();
         analytics.recordProductError(ProductErrorKind.uncaughtDart);
         analytics.recordTelemetryHealth();
         await AnalyticsManager.flushPending(force: true);
@@ -227,7 +225,7 @@ void main() {
       '172.32.0.1',
       '100.63.0.1',
       '100.128.0.1',
-      '8.8.8.8'
+      '8.8.8.8',
     ]) {
       expect(PhysicalQualification.isPrivateLiteral(host), isFalse, reason: host);
     }

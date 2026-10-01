@@ -13,6 +13,7 @@ import 'package:omi/pages/settings/data_export.dart';
 import 'package:omi/pages/settings/settings_destinations.dart';
 import 'package:omi/pages/settings/settings_search_index.dart';
 import 'package:omi/providers/capture_provider.dart';
+import 'package:omi/providers/appearance_provider.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/ui/ui.dart';
 import 'package:omi/utils/l10n_extensions.dart';
@@ -38,7 +39,10 @@ class SettingsTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.xs, vertical: OmiSpacing.xxs),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: OmiRadius.smAll),
-      child: Text(label, style: OmiType.caption.copyWith(color: color, fontWeight: FontWeight.w600)),
+      child: Text(
+        label,
+        style: OmiType.caption.copyWith(color: color, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }
@@ -169,7 +173,7 @@ class _RecordingGroupPageState extends State<RecordingGroupPage> with _GroupRows
           for (final mode in const [0, 1, 2])
             OmiSettingsRow(
               title: _voiceResponseModeLabel(mode),
-              trailing: mode == current ? const Icon(Icons.check, color: OmiColors.textPrimary, size: 20) : null,
+              trailing: mode == current ? Icon(Icons.check, color: OmiColors.textPrimary, size: 20) : null,
               showChevron: false,
               onTap: () => Navigator.of(sheetContext).pop(mode),
             ),
@@ -207,8 +211,12 @@ class _RecordingGroupPageState extends State<RecordingGroupPage> with _GroupRows
       children: [
         OmiSettingsGroup(
           children: [
-            row(SettingsDestination.transcription,
-                icon: FontAwesomeIcons.microphone, title: l10n.transcription, value: _transcriptionValue()),
+            row(
+              SettingsDestination.transcription,
+              icon: FontAwesomeIcons.microphone,
+              title: l10n.transcription,
+              value: _transcriptionValue(),
+            ),
             row(SettingsDestination.language, icon: FontAwesomeIcons.globe, title: l10n.language),
             row(SettingsDestination.customVocabulary, icon: FontAwesomeIcons.book, title: l10n.customVocabulary),
           ],
@@ -230,10 +238,12 @@ class _RecordingGroupPageState extends State<RecordingGroupPage> with _GroupRows
         const SizedBox(height: OmiSpacing.xl),
         OmiSettingsGroup(
           children: [
-            row(SettingsDestination.conversationTimeout,
-                icon: FontAwesomeIcons.clock,
-                title: l10n.conversationTimeout,
-                subtitle: l10n.setWhenConversationsAutoEnd),
+            row(
+              SettingsDestination.conversationTimeout,
+              icon: FontAwesomeIcons.clock,
+              title: l10n.conversationTimeout,
+              subtitle: l10n.setWhenConversationsAutoEnd,
+            ),
             row(SettingsDestination.templateRouting, icon: FontAwesomeIcons.route, title: l10n.templateRouting),
           ],
         ),
@@ -282,9 +292,36 @@ class NotificationsDisplayGroupPage extends StatefulWidget {
 }
 
 class _NotificationsDisplayGroupPageState extends State<NotificationsDisplayGroupPage> with _GroupRows {
+  String _appearanceLabel(ThemeMode mode) => switch (mode) {
+    ThemeMode.system => context.l10n.appearanceSystem,
+    ThemeMode.light => context.l10n.appearanceLight,
+    ThemeMode.dark => context.l10n.appearanceDark,
+  };
+
+  Future<void> _showAppearancePicker() async {
+    final provider = context.read<AppearanceProvider>();
+    final picked = await showOmiSheet<ThemeMode>(
+      context: context,
+      title: context.l10n.appearance,
+      builder: (sheetContext) => OmiSettingsGroup(
+        children: [
+          for (final mode in ThemeMode.values)
+            OmiSettingsRow(
+              title: _appearanceLabel(mode),
+              trailing: mode == provider.mode ? Icon(Icons.check, color: OmiColors.textPrimary, size: 20) : null,
+              showChevron: false,
+              onTap: () => Navigator.of(sheetContext).pop(mode),
+            ),
+        ],
+      ),
+    );
+    if (picked != null && mounted) await provider.setMode(picked);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final appearance = context.watch<AppearanceProvider>().mode;
     return _GroupPage(
       pageKey: 'settings_page_notifications',
       title: l10n.notificationsAndDisplay,
@@ -292,8 +329,14 @@ class _NotificationsDisplayGroupPageState extends State<NotificationsDisplayGrou
         OmiSettingsGroup(
           children: [
             row(SettingsDestination.notifications, icon: FontAwesomeIcons.solidBell, title: l10n.notifications),
-            row(SettingsDestination.homeScreen, icon: FontAwesomeIcons.house, title: l10n.homeScreen),
             row(SettingsDestination.conversationDisplay, icon: FontAwesomeIcons.list, title: l10n.conversationDisplay),
+            OmiSettingsRow(
+              key: const ValueKey('settings_row_appearance'),
+              leading: const FaIcon(FontAwesomeIcons.circleHalfStroke),
+              title: l10n.appearance,
+              value: _appearanceLabel(appearance),
+              onTap: _showAppearancePicker,
+            ),
           ],
         ),
       ],
@@ -304,7 +347,7 @@ class _NotificationsDisplayGroupPageState extends State<NotificationsDisplayGrou
 // -----------------------------------------------------------------------------------------------
 // Privacy & Data
 
-/// Privacy & Data: data protection, memories, and exporting or importing data.
+/// Privacy & Data: data protection, and exporting or importing data.
 class PrivacyDataGroupPage extends StatefulWidget {
   const PrivacyDataGroupPage({super.key});
 
@@ -323,7 +366,6 @@ class _PrivacyDataGroupPageState extends State<PrivacyDataGroupPage> with _Group
         OmiSettingsGroup(
           children: [
             row(SettingsDestination.dataPrivacy, icon: FontAwesomeIcons.shield, title: l10n.dataProtection),
-            row(SettingsDestination.memories, icon: FontAwesomeIcons.brain, title: l10n.memories),
             ValueListenableBuilder<bool>(
               valueListenable: DataExport.exportInProgress,
               builder: (context, exporting, _) => OmiSettingsRow(
@@ -336,8 +378,12 @@ class _PrivacyDataGroupPageState extends State<PrivacyDataGroupPage> with _Group
                 onTap: exporting ? null : () => open(SettingsDestination.exportData),
               ),
             ),
-            row(SettingsDestination.importData,
-                icon: FontAwesomeIcons.fileImport, title: l10n.importData, subtitle: l10n.importDataFromOtherSources),
+            row(
+              SettingsDestination.importData,
+              icon: FontAwesomeIcons.fileImport,
+              title: l10n.importData,
+              subtitle: l10n.importDataFromOtherSources,
+            ),
           ],
         ),
       ],

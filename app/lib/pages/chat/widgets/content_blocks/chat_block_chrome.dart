@@ -7,12 +7,7 @@ import 'package:omi/ui/ui.dart';
 /// Deliberately mirrors [ChatEvidenceReferenceCard]'s paddings, radius, and
 /// colors so structured blocks read as one family inside the transcript.
 class ChatBlockCard extends StatelessWidget {
-  const ChatBlockCard({
-    super.key,
-    required this.child,
-    this.onTap,
-    this.semanticsLabel,
-  });
+  const ChatBlockCard({super.key, required this.child, this.onTap, this.semanticsLabel});
 
   final Widget child;
   final VoidCallback? onTap;
@@ -33,13 +28,7 @@ class ChatBlockCard extends StatelessWidget {
       child: child,
     );
 
-    final content = onTap == null
-        ? card
-        : InkWell(
-            onTap: onTap,
-            borderRadius: radius,
-            child: card,
-          );
+    final content = onTap == null ? card : InkWell(onTap: onTap, borderRadius: radius, child: card);
 
     if (semanticsLabel == null) return content;
     return Semantics(
@@ -66,7 +55,10 @@ class ChatBlockEyebrow extends StatelessWidget {
       children: [
         ExcludeSemantics(child: Icon(icon, size: 14, color: OmiColors.textSecondary)),
         const SizedBox(width: 6),
-        Text(label, style: OmiType.caption.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: OmiType.caption.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }
@@ -74,12 +66,7 @@ class ChatBlockEyebrow extends StatelessWidget {
 
 /// Terminal state for a block whose entity cannot be resolved any more.
 class ChatBlockUnavailable extends StatelessWidget {
-  const ChatBlockUnavailable({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.message,
-  });
+  const ChatBlockUnavailable({super.key, required this.icon, required this.label, required this.message});
 
   final IconData icon;
   final String label;
@@ -104,12 +91,7 @@ class ChatBlockUnavailable extends StatelessWidget {
 
 /// Placeholder while the owning store is still hydrating the entity.
 class ChatBlockLoading extends StatelessWidget {
-  const ChatBlockLoading({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.message,
-  });
+  const ChatBlockLoading({super.key, required this.icon, required this.label, required this.message});
 
   final IconData icon;
   final String label;
@@ -121,7 +103,7 @@ class ChatBlockLoading extends StatelessWidget {
       semanticsLabel: '$label: $message',
       child: Row(
         children: [
-          const OmiSpinner(size: OmiSpinnerSize.small, color: OmiColors.textSecondary),
+          OmiSpinner(size: OmiSpinnerSize.small, color: OmiColors.textSecondary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(message, style: OmiType.footnote.copyWith(color: OmiColors.textSecondary)),

@@ -47,9 +47,7 @@ class AppMetadataWidget extends StatelessWidget {
     showAppOptionPicker<String>(
       context: context,
       title: context.l10n.appCategoryModalTitle,
-      options: [
-        for (final c in categories) AppFormOption<String>(c.id, c.getLocalizedTitle(context)),
-      ],
+      options: [for (final c in categories) AppFormOption<String>(c.id, c.getLocalizedTitle(context))],
       selected: context.read<AddAppProvider>().appCategory,
       onSelected: setAppCategory,
     );
@@ -60,10 +58,7 @@ class AppMetadataWidget extends StatelessWidget {
     showAppOptionPicker<bool>(
       context: context,
       title: l10n.appPricingLabel,
-      options: [
-        AppFormOption<bool>(false, l10n.pricingFree),
-        AppFormOption<bool>(true, l10n.pricingPaid),
-      ],
+      options: [AppFormOption<bool>(false, l10n.pricingFree), AppFormOption<bool>(true, l10n.pricingPaid)],
       selected: context.read<AddAppProvider>().isPaid,
       onSelected: (isPaid) => context.read<AddAppProvider>().setIsPaid(isPaid),
     );
@@ -89,10 +84,7 @@ class AppMetadataWidget extends StatelessWidget {
             children: [
               // App ID field with copy button (only shown when updating)
               if (updateAppId != null) ...[
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: AppFormSectionTitle(l10n.appIdLabel),
-                ),
+                Padding(padding: const EdgeInsets.only(left: 8.0), child: AppFormSectionTitle(l10n.appIdLabel)),
                 Container(
                   margin: const EdgeInsets.only(left: 2.0, right: 2.0, top: 10, bottom: 6),
                   padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.sm, vertical: OmiSpacing.xs),
@@ -139,18 +131,18 @@ class AppMetadataWidget extends StatelessWidget {
                           ),
                           child: imageFile != null || imageUrl != null
                               ? (imageUrl == null
-                                  ? ClipRRect(
-                                      borderRadius: const BorderRadius.all(Radius.circular(14.0)),
-                                      child: Image.file(imageFile!, fit: BoxFit.cover),
-                                    )
-                                  : ClipRRect(
-                                      borderRadius: const BorderRadius.all(Radius.circular(14.0)),
-                                      child: CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover),
-                                    ))
+                                    ? ClipRRect(
+                                        borderRadius: const BorderRadius.all(Radius.circular(14.0)),
+                                        child: Image.file(imageFile!, fit: BoxFit.cover),
+                                      )
+                                    : ClipRRect(
+                                        borderRadius: const BorderRadius.all(Radius.circular(14.0)),
+                                        child: CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover),
+                                      ))
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const FaIcon(FontAwesomeIcons.camera, color: OmiColors.textTertiary, size: 24),
+                                    FaIcon(FontAwesomeIcons.camera, color: OmiColors.textTertiary, size: 24),
                                     const SizedBox(height: 6),
                                     Text(
                                       '${l10n.appIconLabel}*',
@@ -189,7 +181,7 @@ class AppMetadataWidget extends StatelessWidget {
                           },
                           controller: appNameController,
                           decoration: appFormInputDecoration(label: '${l10n.appNameLabel}*'),
-                          style: const TextStyle(color: OmiColors.textPrimary),
+                          style: TextStyle(color: OmiColors.textPrimary),
                         ),
                         const SizedBox(height: OmiSpacing.xs + 2),
                         // Category selector
@@ -217,10 +209,10 @@ class AppMetadataWidget extends StatelessWidget {
                           constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height * 0.1),
                           child: Skeletonizer.zone(
                             enabled: generatingDescription,
-                            effect: const ShimmerEffect(
+                            effect: ShimmerEffect(
                               baseColor: OmiColors.surface2,
                               highlightColor: OmiColors.surface3,
-                              duration: Duration(seconds: 1),
+                              duration: const Duration(seconds: 1),
                             ),
                             child: const Bone.multiText(),
                           ),
@@ -239,7 +231,7 @@ class AppMetadataWidget extends StatelessWidget {
                             label: '${l10n.descriptionLabel}*',
                             alignLabelWithHint: true,
                           ),
-                          style: const TextStyle(color: OmiColors.textPrimary),
+                          style: TextStyle(color: OmiColors.textPrimary),
                         ),
                   if (appDescriptionController.text.isNotEmpty && appNameController.text.isNotEmpty)
                     Positioned(
@@ -248,7 +240,7 @@ class AppMetadataWidget extends StatelessWidget {
                       child: OmiIconButton(
                         icon: SvgPicture.asset(
                           Assets.images.aiMagic,
-                          colorFilter: const ColorFilter.mode(OmiColors.textPrimary, BlendMode.srcIn),
+                          colorFilter: ColorFilter.mode(OmiColors.textPrimary, BlendMode.srcIn),
                         ),
                         label: l10n.generateDescription,
                         onPressed: () async {

@@ -2506,12 +2506,6 @@ class AppLocalizationsHr extends AppLocalizations {
   String get detailedDiagnosticMessages => 'Detaljne dijagnostičke poruke';
 
   @override
-  String get autoCreateSpeakers => 'Automatski kreiraj govornika';
-
-  @override
-  String get autoCreateWhenNameDetected => 'Automatski kreiraj kada je ime detektirano';
-
-  @override
   String get followUpQuestions => 'Pitanja za praćenje';
 
   @override
@@ -10371,12 +10365,6 @@ class AppLocalizationsHr extends AppLocalizations {
   String get syncStatusUnsupportedAudio => 'Zvuk se ne može pročitati — sinkronizacija nije moguća';
 
   @override
-  String get conversationTitleDidntGenerate => 'Title didn\'t generate';
-
-  @override
-  String get conversationReprocess => 'Reprocess';
-
-  @override
   String chatStarterPrompt(String kind) {
     String _temp0 = intl.Intl.selectLogic(
       kind,
@@ -11437,9 +11425,6 @@ class AppLocalizationsHr extends AppLocalizations {
       'Transkripcije nisu dostupne, snimanje se nastavlja na uređaju i obradit će se kasnije';
 
   @override
-  String get transcriptionUnavailableSavingOnDevice => 'Transkripcija nedostupna · sprema se na uređaj';
-
-  @override
   String transcriptionsPendingFraction(int pending, int total) {
     return 'Transkripcije na čekanju $pending/$total';
   }
@@ -11497,5 +11482,898 @@ class AppLocalizationsHr extends AppLocalizations {
   String get openCall => 'Otvori poziv';
 
   @override
-  String get captureRecoveryBanner => 'Zvuk privjeska ne stiže do aplikacije — dodirnite za popravak';
+  String get captureRecoveryBanner => 'Omi ne šalje zvuk — dodirnite za ponovno povezivanje';
+
+  @override
+  String get phoneRecordingBlockedByPendantBatch =>
+      'Zaustavite Transcribe Later na privjesku prije snimanja telefonom.';
+
+  @override
+  String get captureNotTranscribing => 'Nema transkripcije';
+
+  @override
+  String get captureAudioSavedTranscribesLater => 'Zvuk je spremljen, transkripcija kasnije';
+
+  @override
+  String get captureStillRecording => 'Snimanje se nastavlja';
+
+  @override
+  String get captureMicInUseElsewhere => 'Mikrofon koristi druga aplikacija';
+
+  @override
+  String get captureMicInterruptedDetail =>
+      'Poziv ili druga aplikacija preuzela je mikrofon, pa Omi trenutačno ne čuje. Omi će sam nastaviti kad mikrofon bude slobodan. Sve dosad snimljeno je sigurno.';
+
+  @override
+  String get captureCustomSttUnreachableDetail =>
+      'Vaša prilagođena usluga pretvorbe govora u tekst nije dostupna. Omi čuva zvuk na ovom telefonu i poslat će ga kad se usluga vrati. Ništa se ne gubi.';
+
+  @override
+  String get captureStarting => 'Pokretanje…';
+
+  @override
+  String get capturePhoneStorageFull => 'Pohrana telefona je puna';
+
+  @override
+  String get captureStorageAlmostFull => 'Pohrana je gotovo puna';
+
+  @override
+  String get capturePendantDisconnectedDetail =>
+      'Privjesak je izgubio vezu s ovim telefonom. Omi će se sam ponovno povezati kad je privjesak uključen i u blizini. Sve dosad snimljeno je sigurno.';
+
+  @override
+  String participantsSummaryUncounted(String name) {
+    return '$name i drugi';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyTitle => 'Poslušajte Omijeve odgovore';
+
+  @override
+  String get deviceOnboardingVoiceReplySample => 'U redu. Vaš sljedeći sastanak počinje za dvadeset minuta.';
+
+  @override
+  String get deviceOnboardingAllSetTitle => 'Sve je spremno';
+
+  @override
+  String get deviceOnboardingAllSetSubtitle => 'Dodirnite redak da biste ga pregledali ili promijenili.';
+
+  @override
+  String get deviceOnboardingAllSetSinglePressBadge => '1×';
+
+  @override
+  String get deviceOnboardingAllSetDoublePressBadge => '2×';
+
+  @override
+  String get deviceOnboardingVoiceReplySubtitle => 'Kada pitate pomoću gumba, Omi može pročitati svoj odgovor naglas.';
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewIdle => 'Čuj svoj posljednji odgovor';
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewPlaying => 'Reprodukcija vašeg posljednjeg odgovora...';
+
+  @override
+  String deviceOnboardingVoiceReplyPreviewThroughDevice(String device) {
+    return 'Preko $device';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewThroughPhoneSpeaker => 'Preko zvučnika telefona';
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewThroughCurrentOutput => 'Kroz trenutni audio izlaz';
+
+  @override
+  String get deviceOnboardingVoiceReplyOffDescription => 'Odgovori ostaju na ekranu. Ništa se ne govori.';
+
+  @override
+  String get deviceOnboardingVoiceReplyHeadphonesDescription =>
+      'Privatno. Razgovara samo putem AirPods, Bluetooth ili žičnih slušalica.';
+
+  @override
+  String get deviceOnboardingVoiceReplyAlwaysDescription => 'Koristi zvučnik telefona kada nisu spojene slušalice.';
+
+  @override
+  String get deviceOnboardingVoiceReplyStatusOff => 'Omi će šutjeti. Odgovori se i dalje pojavljuju u aplikaciji.';
+
+  @override
+  String deviceOnboardingVoiceReplyStatusHeadphonesConnected(String device) {
+    return '$device povezan. Ovdje će govoriti Omi.';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyStatusHeadphonesDisconnected =>
+      'Nisu spojene slušalice. Omi ostaje tih dok ne povežete neke.';
+
+  @override
+  String deviceOnboardingVoiceReplyStatusAlwaysHeadphones(String device) {
+    return 'Igra preko $device.';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyStatusAlwaysSpeaker => 'Reproducira se naglas preko zvučnika telefona.';
+
+  @override
+  String deviceOnboardingVoiceReplySettingsHint(String settings, String voiceResponse) {
+    return 'Ovo možete promijeniti bilo kada u $settings › $voiceResponse';
+  }
+
+  @override
+  String deviceOnboardingAllSetReplayHint(String settings, String deviceSettings, String deviceTutorial) {
+    return 'Ponovite ovaj obilazak bilo kada u $settings › $deviceSettings › $deviceTutorial';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyGenericHeadphones => 'Slušalice';
+
+  @override
+  String get usageListened => 'Listened';
+
+  @override
+  String get usageWordsHeard => 'Words heard';
+
+  @override
+  String get usageTasksNotes => 'Tasks & notes';
+
+  @override
+  String get usagePeakHour => 'Peak hour';
+
+  @override
+  String get usageBestDay => 'Best day';
+
+  @override
+  String get usageBestMonth => 'Best month';
+
+  @override
+  String get usageBestYear => 'Best year';
+
+  @override
+  String get usageMinutes => 'minuta';
+
+  @override
+  String get usageWords => 'Words';
+
+  @override
+  String get usageTasks => 'Zadaci';
+
+  @override
+  String get usageMonth => 'Ovaj mjesec';
+
+  @override
+  String get usageYear => 'Ova godina';
+
+  @override
+  String get usageAll => 'Sve vrijeme';
+
+  @override
+  String get usageNow => 'now';
+
+  @override
+  String get usageChatThisMonth => 'Chat this month';
+
+  @override
+  String get appearance => 'Izgled';
+
+  @override
+  String get appearanceSystem => 'Sustav';
+
+  @override
+  String get appearanceLight => 'Svijetlo';
+
+  @override
+  String get appearanceDark => 'Tamno';
+
+  @override
+  String get chatDiscardRecording => 'Odbaci';
+
+  @override
+  String get voiceQuestionNoSpeech => 'Nisam razumio — pokušajte ponovno';
+
+  @override
+  String get siriIndexSetting => 'Use Omi with Siri & Apple Intelligence';
+
+  @override
+  String get siriIndexSettingDescription =>
+      'Allow Siri to find your conversations, memories, and tasks on this device. Turning this off removes them from Apple search.';
+
+  @override
+  String get sendToSupport => 'Send to support';
+
+  @override
+  String get deviceDiagnosticsUploadDescription =>
+      'Review the diagnostics JSON below. It includes your device identifier, connection history, battery readings, firmware diagnostics, and BLE events. No audio or transcripts are included.';
+
+  @override
+  String get deviceDiagnosticsTicket => 'Support ticket code';
+
+  @override
+  String get deviceDiagnosticsUploadFailed => 'Could not send diagnostics to support. Please try again.';
+
+  @override
+  String get feedbackGiveFeedback => 'Give feedback';
+
+  @override
+  String get feedbackAllGood => 'All good';
+
+  @override
+  String get feedbackChatWithUs => 'More detail? Chat with us';
+
+  @override
+  String get feedbackReasonSummaryInaccurate => 'Inaccurate';
+
+  @override
+  String get feedbackReasonSummaryIncomplete => 'Incomplete';
+
+  @override
+  String get feedbackReasonSummaryIrrelevant => 'Not relevant';
+
+  @override
+  String get feedbackReasonSummaryWrongContext => 'Wrong context';
+
+  @override
+  String get feedbackReasonSummaryOther => 'Something else';
+
+  @override
+  String get feedbackReasonRecordingMissingAudio => 'Missing audio';
+
+  @override
+  String get feedbackReasonRecordingPoorTranscription => 'Poor transcription';
+
+  @override
+  String get feedbackReasonRecordingWrongSpeaker => 'Wrong speaker';
+
+  @override
+  String get feedbackReasonRecordingDelayedOrStuck => 'Delayed or stuck';
+
+  @override
+  String get feedbackReasonRecordingFragmentedOrDuplicated => 'Fragmented or duplicated';
+
+  @override
+  String get feedbackReasonRecordingOther => 'Something else';
+
+  @override
+  String get searchPeople => 'Pretraži osobe';
+
+  @override
+  String addQueryAsNewPerson(String query) {
+    return 'Dodaj \"$query\" kao novu osobu';
+  }
+
+  @override
+  String showAllPeople(int count) {
+    return 'Prikaži sve osobe ($count)';
+  }
+
+  @override
+  String chatGreeting(String name) {
+    return 'Bok $name, pitaj bilo što';
+  }
+
+  @override
+  String get activity => 'Aktivnost';
+
+  @override
+  String get places => 'Mjesta';
+
+  @override
+  String get recaps => 'Sažeci';
+
+  @override
+  String get recent => 'Nedavno';
+
+  @override
+  String get searchPartialFailure => 'Neki rezultati nisu se mogli učitati';
+
+  @override
+  String get peopleSearchPlaceholder => 'Pretraži osobe';
+
+  @override
+  String get peopleNotHeardYet => 'Još nije čuto';
+
+  @override
+  String get peopleRecent => 'Nedavno';
+
+  @override
+  String get deletePeopleMessage =>
+      'Ovo uklanja njihove uzorke glasa i ne može se poništiti. Njihove replike u prošlim razgovorima postaju neimenovani govornici.';
+
+  @override
+  String get personTalkTime => 'Vrijeme govora';
+
+  @override
+  String get personLastHeard => 'Zadnji put čuto';
+
+  @override
+  String deletePeopleTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Izbrisati osobe: $count?',
+      one: 'Izbrisati 1 osobu?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get peopleFilterNeedsVoice => 'Potreban glas';
+
+  @override
+  String peopleCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Osoba: $count',
+      one: '1 osoba',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noMatchingPeople => 'Nema odgovarajućih osoba';
+
+  @override
+  String get deselectAll => 'Poništi odabir svega';
+
+  @override
+  String get voiceRecognitionSettings => 'Prepoznavanje glasa';
+
+  @override
+  String get greetingMorning => 'Dobro jutro';
+
+  @override
+  String get greetingAfternoon => 'Dobar dan';
+
+  @override
+  String get greetingEvening => 'Dobra večer';
+
+  @override
+  String greetingWithName(String greeting, String name) {
+    return '$greeting, $name';
+  }
+
+  @override
+  String get whatDoYouWantToKnow => 'Što želite znati?';
+
+  @override
+  String get askSuggestDecide => 'Što sam danas odlučio?';
+
+  @override
+  String get askSuggestOwe => 'Što još dugujem ljudima?';
+
+  @override
+  String get askSuggestNotice => 'Što je Omi primijetio?';
+
+  @override
+  String get pastChats => 'Prethodni razgovori';
+
+  @override
+  String get newChat => 'Novi razgovor';
+
+  @override
+  String get startFresh => 'Počni ispočetka';
+
+  @override
+  String get noPastChats => 'Vaši razgovori s Omijem pojavljuju se ovdje.';
+
+  @override
+  String get deleteChatQuestion => 'Izbrisati ovaj razgovor?';
+
+  @override
+  String get deleteChatMessage => 'Trajno nestaje iz prethodnih razgovora.';
+
+  @override
+  String get deleteChat => 'Izbriši razgovor';
+
+  @override
+  String get appsAskWith => 'Pitaj Omi uz';
+
+  @override
+  String conversationsTodayCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count razgovora danas.',
+      one: '1 razgovor danas.',
+      zero: 'Danas nema razgovora.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get meetingScreenshotsTitle => 'Što je bilo na zaslonu';
+
+  @override
+  String get meetingScreenshotFallbackCaption => 'Snimka zaslona s ovog sastanka';
+
+  @override
+  String get deleteMeetingScreenshotTitle => 'Izbrisati snimku zaslona?';
+
+  @override
+  String get deleteMeetingScreenshotMessage =>
+      'Ovo uklanja snimku zaslona iz bilješke ovog sastanka. Radnja se ne može poništiti.';
+
+  @override
+  String get conversationSummaryFailed => 'Sažetak nije uspio';
+
+  @override
+  String get reconnectionsRecent => 'Ponovna povezivanja (posljednjih 7 dana)';
+
+  @override
+  String get failedConnections => 'Neuspješne veze';
+
+  @override
+  String get failedConnectionsRecent => 'Neuspješne veze (posljednjih 7 dana)';
+
+  @override
+  String diagnosticsCountSincePairing(int count) {
+    return '$count od uparivanja';
+  }
+
+  @override
+  String get peopleFilterLowConfidence => 'Niska pouzdanost';
+
+  @override
+  String get peopleFilterPinned => 'Prikvačeno';
+
+  @override
+  String peoplePinnedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count prikvačeno',
+      one: '1 prikvačeno',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get confidenceConfirmed => 'Potvrđeno';
+
+  @override
+  String get confidenceLikely => 'Vjerojatno';
+
+  @override
+  String get confidenceUnverified => 'Neprovjereno';
+
+  @override
+  String confidenceMeterLabel(String level) {
+    return 'Pouzdanost: $level';
+  }
+
+  @override
+  String confidenceReasonLabeled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ručno označeno $count puta',
+      one: 'Ručno označeno jednom',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confidenceReasonPicked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Odabrano u prijedlozima: $count',
+      one: 'Odabrano u 1 prijedlogu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confidenceReasonAutoConfirmed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ručno potvrđena podudaranja: $count',
+      one: 'Ručno potvrđeno 1 podudaranje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get confidenceReasonAutoOnly => 'Samo automatski povezano, nikad potvrđeno';
+
+  @override
+  String get confidenceReasonNeverConfirmed => 'Nikad potvrđeno';
+
+  @override
+  String get confidenceReasonCorrected => 'Podudaranje je ručno ispravljeno';
+
+  @override
+  String get confidenceReasonVoiceReady => 'glas spreman';
+
+  @override
+  String get confidenceReasonNeedsVoice => 'treba glas';
+
+  @override
+  String get confidenceReasonNotHeard => 'još nije čuto';
+
+  @override
+  String get confidenceSheetTitle => 'Pouzdanost';
+
+  @override
+  String confidenceSummaryConfirmed(String name) {
+    return 'Omi prepoznaje glas osobe $name, a glas je potvrđen.';
+  }
+
+  @override
+  String confidenceSummaryLikely(String name) {
+    return 'Omi obično prepoznaje glas osobe $name, ali je potvrđen tek nekoliko puta.';
+  }
+
+  @override
+  String confidenceSummaryUnverified(String name) {
+    return 'Ništa u tvojim odgovorima još ne potvrđuje osobu $name.';
+  }
+
+  @override
+  String get confidenceEvidenceHeader => 'Dokazi';
+
+  @override
+  String evidenceManualLabels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ručno označeno u $count razgovora',
+      one: 'Ručno označeno u 1 razgovoru',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceCardConfirms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Da na $count prijedloga',
+      one: 'Da na 1 prijedlog',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceCardPicks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Odabrano u prijedlozima: $count',
+      one: 'Odabrano u 1 prijedlogu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceAutoConfirmed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Potvrđeno automatskih podudaranja: $count',
+      one: 'Potvrđeno 1 automatsko podudaranje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceAutoCorrected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Podudaranja premještena na nekog drugog: $count',
+      one: '1 podudaranje premješteno na nekog drugog',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceAutoUnconfirmed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nepotvrđenih automatskih podudaranja: $count',
+      one: '1 automatsko podudaranje nije potvrđeno',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get evidenceVoiceReady => 'Uzorak glasa spreman';
+
+  @override
+  String get evidenceNoVoice => 'Još nema uzorka glasa';
+
+  @override
+  String get evidenceNotHeard => 'Još nije čuto u razgovoru';
+
+  @override
+  String get evidenceNothing => 'Još nema tvojih oznaka ni potvrda';
+
+  @override
+  String get effectCountsALot => 'Puno vrijedi';
+
+  @override
+  String get effectCounts => 'Vrijedi';
+
+  @override
+  String get effectCountsALittle => 'Malo vrijedi';
+
+  @override
+  String get effectBarelyCounts => 'Jedva da vrijedi';
+
+  @override
+  String get effectCountsAgainst => 'Vrijedi protiv';
+
+  @override
+  String get effectNeeded => 'Potrebno za Potvrđeno';
+
+  @override
+  String get confidenceToReachConfirmed => 'Za dostizanje statusa Potvrđeno';
+
+  @override
+  String confidenceNextVoice(String name) {
+    return 'Omi treba i uzorak glasa osobe $name. Označi je uz uključeno „Zapamti glasove”.';
+  }
+
+  @override
+  String confidenceIsConfirmed(String name) {
+    return 'Osoba $name: Potvrđeno. Omi uči iz svake oznake.';
+  }
+
+  @override
+  String get confidenceFootnote =>
+      'Pouzdanost bitno mijenjaju samo tvoji odgovori. Automatska podudaranja sama jedva da vrijede.';
+
+  @override
+  String get personWhyConfidence => 'Zašto?';
+
+  @override
+  String pinPersonTitle(String name) {
+    return 'Prikvači $name';
+  }
+
+  @override
+  String pinPersonSubtitle(String name) {
+    return 'Zadrži osobu $name i očekuj je u svojim razgovorima';
+  }
+
+  @override
+  String get pinPersonHonestLine => 'Omi će te tražiti da potvrdiš bliska podudaranja umjesto da nagađa.';
+
+  @override
+  String get pinAction => 'Prikvači';
+
+  @override
+  String get unpinAction => 'Otkvači';
+
+  @override
+  String personPinnedToast(String name) {
+    return 'Prikvačeno: $name';
+  }
+
+  @override
+  String personUnpinnedToast(String name) {
+    return 'Otkvačeno: $name';
+  }
+
+  @override
+  String whyConfidenceMenu(String level) {
+    return 'Zašto $level?';
+  }
+
+  @override
+  String deletePersonNamedTitle(String name) {
+    return 'Obrisati $name?';
+  }
+
+  @override
+  String deletePinnedPersonMessage(String name) {
+    return 'Osoba $name je prikvačena. Njezini uzorci glasa bit će uklonjeni, Omi je više neće prepoznavati, a u prošlim transkriptima prikazivat će se kao govornik bez imena. Ovo se ne može poništiti.';
+  }
+
+  @override
+  String deleteNamedPerson(String name) {
+    return 'Obriši $name';
+  }
+
+  @override
+  String get selectPeople => 'Odaberi osobe';
+
+  @override
+  String get cleanUpEllipsis => 'Očisti…';
+
+  @override
+  String cleanUpUnsureCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Osobe u koje Omi nije siguran: $count',
+      one: '1 osoba u koju Omi nije siguran',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cleanUpBannerBody => 'Uglavnom krivo čuta imena. Pregledaj ih i ukloni ona koja nisu stvarna.';
+
+  @override
+  String get reviewAction => 'Pregledaj';
+
+  @override
+  String get cleanUpTitle => 'Čišćenje';
+
+  @override
+  String cleanUpLead(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Omi nije siguran u ovih $count osoba. Većinom su to krivo čuta imena iz transkripata. Odznači one koje želiš zadržati.',
+      one: 'Omi nije siguran u ovu osobu. Odznači je da je zadržiš.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cleanUpPinnedNote => 'Prikvačene osobe nikad nisu uključene u čišćenje.';
+
+  @override
+  String deletePeopleCountAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Obriši osoba: $count',
+      one: 'Obriši 1 osobu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String peopleDeletedToast(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Obrisano osoba: $count',
+      one: '1 osoba obrisana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cleanUpNothingTitle => 'Nema se što čistiti';
+
+  @override
+  String get cleanUpNothingMessage => 'Omi trenutno nema nedoumica ni oko koga.';
+
+  @override
+  String get selectAllSkipsPinned =>
+      '„Odaberi sve” preskače prikvačene osobe. Obriši ih jednu po jednu na njihovoj stranici.';
+
+  @override
+  String get pinnedNotSelectable => 'Prikvačeno, ne može se odabrati';
+
+  @override
+  String get ignoredVoicesTitle => 'Zanemareni glasovi';
+
+  @override
+  String get ignoredVoicesSubtitle => 'TV, podcasti i drugi glasovi označeni kao „Nije osoba”';
+
+  @override
+  String get ignoredVoicesEmpty => 'Nema zanemarenih glasova';
+
+  @override
+  String get restoreAction => 'Vrati';
+
+  @override
+  String get voiceRestoredToast => 'Omi bi opet mogao pitati o ovom glasu';
+
+  @override
+  String get speakerTagPromptSomeoneElse => 'Netko drugi…';
+
+  @override
+  String get speakerTagPromptNotAPerson => 'Nije osoba';
+
+  @override
+  String get speakerTagPromptNotSureAction => 'Ne znam';
+
+  @override
+  String get speakerTagPromptThatsMeAction => 'To sam ja';
+
+  @override
+  String get speakerTagPromptClosestVoices => 'Najbliži glasovi';
+
+  @override
+  String get speakerTagPromptRecentPeople => 'Osobe iz nedavnih razgovora';
+
+  @override
+  String get voiceMatchClose => 'Blisko podudaranje';
+
+  @override
+  String get voiceMatchPossible => 'Moguće podudaranje';
+
+  @override
+  String get voiceMatchWeak => 'Slabo podudaranje';
+
+  @override
+  String voiceMatchMeterLabel(String level) {
+    return 'Podudaranje glasa: $level';
+  }
+
+  @override
+  String get speakerTagPromptHintIdentify => 'Svaki odgovor uči Omi jedan glas i povećava pouzdanost te osobe.';
+
+  @override
+  String speakerTagPromptHintConfirm(String name) {
+    return '„Da” povećava pouzdanost osobe $name.';
+  }
+
+  @override
+  String get speakerTagPromptHintOwner =>
+      'Održava tvoj glasovni profil točnim da te Omi nikad ne označi kao nekog drugog.';
+
+  @override
+  String speakerTagPromptSavedAs(String name) {
+    return 'Spremljeno kao $name';
+  }
+
+  @override
+  String get speakerTagPromptSavedAsYou => 'Spremljeno kao ti';
+
+  @override
+  String get speakerTagPromptIgnoredNote => 'Omi više neće pitati o ovom glasu';
+
+  @override
+  String speakerTagPromptLabeledToast(String name) {
+    return 'Označeno kao $name';
+  }
+
+  @override
+  String get speakerTagPromptLabeledYouToast => 'Označeno kao ti';
+
+  @override
+  String get speakerTagPromptNotAPersonToast => 'Označeno kao „nije osoba”';
+
+  @override
+  String get speakerTagPromptRejectedToast => 'Oznaka uklonjena';
+
+  @override
+  String get whoIsItTitle => 'Tko je to?';
+
+  @override
+  String get newPersonEllipsis => 'Nova osoba…';
+
+  @override
+  String addNamedPersonAction(String name) {
+    return 'Dodaj „$name”';
+  }
+
+  @override
+  String get everyoneHeader => 'Svi';
+
+  @override
+  String speakerSuggestionChip(String name) {
+    return '$name?';
+  }
+
+  @override
+  String get speakerSuggestionAppliesToSpeaker => 'Primjenjuje se na sve retke ovog govornika';
+
+  @override
+  String get collapseAction => 'Sažmi';
+
+  @override
+  String get speakerTagPromptNotMeAction => 'Nisam ja';
+
+  @override
+  String confidenceNextLabels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Označite ih u još $count razgovora.',
+      one: 'Označite ih u još 1 razgovoru.',
+    );
+    return '$_temp0';
+  }
 }

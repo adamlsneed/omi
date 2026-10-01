@@ -9,7 +9,6 @@ import WidgetKit
 import BackgroundTasks
 
 extension FlutterError: Error {}
-
 // MARK: - Quick Actions Icon Patcher
 
 /// Observes UIApplication.shortcutItems via KVO and replaces template-image icons
@@ -81,7 +80,7 @@ final class QuickActionsIconPatcher: NSObject {
 }
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private static let unusedForegroundTaskRefreshIdentifier = "com.pravera.flutter_foreground_task.refresh"
 
   /// The App Group the battery widget shares, resolved the same way the widget
@@ -96,6 +95,27 @@ final class QuickActionsIconPatcher: NSObject {
     ?? "group.com.friend-app-with-wearable.ios12"
   private var methodChannel: FlutterMethodChannel?
   private var capturePolicyChannel: FlutterMethodChannel?
+  private var syncTransferChannel: FlutterMethodChannel?
+  private var ttsMp3DecoderChannel: FlutterMethodChannel?
+  private var ttsPcmPlayerChannel: FlutterMethodChannel?
+  private let ttsPcmPlayer = TtsPcmPlayer()
+  private var syncTransferBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+  private lazy var syncTransferLease = SyncTransferBackgroundLease(
+      begin: { [weak self] expirationHandler in
+          guard let self else { return false }
+          self.syncTransferBackgroundTask = UIApplication.shared.beginBackgroundTask(
+              withName: "omi-live-capture-wal-drain",
+              expirationHandler: expirationHandler
+          )
+          return self.syncTransferBackgroundTask != .invalid
+      },
+      end: { [weak self] in
+          self?.endNativeSyncTransferBackgroundTask()
+      },
+      notifyExpired: { [weak self] reason in
+          self?.syncTransferChannel?.invokeMethod("expired", arguments: ["reason": reason])
+      }
+  )
   private var appleRemindersChannel: FlutterMethodChannel?
   private var appleHealthChannel: FlutterMethodChannel?
   private let appleRemindersService = AppleRemindersService()
@@ -110,32 +130,94 @@ final class QuickActionsIconPatcher: NSObject {
   private var audioChunks: [Int: (Data, Double)] = [:] // (audioData, sampleRate)
   private var nextExpectedChunkIndex: Int = 0
   private var isRecordingActive: Bool = false // Track recording state to handle app restarts
-  private var didRegisterFlutterBridges = false
-  /// Set when the launch probe below found no Flutter engine; the scene delegate
-  /// then shows the notice instead of handing an engine-less controller to
-  /// `registerFlutterBridges(with:)`.
-  private(set) var isFlutterEngineUnavailable = false
 
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // A debug build opened without Flutter tooling (Home Screen tap, or an iOS
-    // background relaunch after `flutter run` disconnected) has no engine: iOS
-    // refuses the JIT Dart VM, FlutterEngine init returns nil, and every
-    // registrar below would be nil. Registering plugins anyway crashed in
-    // SwiftAwesomeNotificationsPlugin.register; explain instead.
-    // Under UIScene no window exists yet, so the probe is the app delegate's own
-    // registrar: FlutterAppDelegate vends it from a launch engine created on
-    // first request, the same engine the scene's FlutterViewController takes.
-    guard registrar(forPlugin: "OmiLaunchEngineProbe") != nil else {
-      isFlutterEngineUnavailable = true
-      return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    QuickActionsIconPatcher.shared.startObserving()
+    SwiftFlutterForegroundTaskPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
     }
-    GeneratedPluginRegistrant.register(with: self)
+    UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+    let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    SiriBridge.shared.installNativeAuthFence()
+    SiriBridge.shared.retryPendingWipeOnLaunch()
+    BGTaskScheduler.shared.cancel(
+      taskRequestWithIdentifier: AppDelegate.unusedForegroundTaskRefreshIdentifier
+    )
+    if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
+      AppLinks.shared.handleLink(url: url)
+      return true
+    }
+    return launched
+  }
+
+  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
+    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    SiriBridge.shared.attach(messenger: messenger)
+
+    ttsMp3DecoderChannel = FlutterMethodChannel(
+      name: "com.omi/tts_mp3_decoder",
+      binaryMessenger: messenger
+    )
+    ttsMp3DecoderChannel?.setMethodCallHandler { call, result in
+      guard call.method == "decode",
+            let args = call.arguments as? [String: Any],
+            let typedData = args["bytes"] as? FlutterStandardTypedData else {
+        result(FlutterError(code: "invalid_mp3", message: "decode requires MP3 bytes", details: nil))
+        return
+      }
+      DispatchQueue.global(qos: .userInitiated).async {
+        var channels: Int32 = 0
+        var sampleRate: Int32 = 0
+        var samplesPerChannel: Int32 = 0
+        var pcm: UnsafeMutablePointer<Int16>?
+        let status = typedData.data.withUnsafeBytes { rawBuffer -> Int32 in
+          guard let base = rawBuffer.bindMemory(to: UInt8.self).baseAddress else { return 1 }
+          return omi_decode_mp3(
+            base,
+            Int32(typedData.data.count),
+            &channels,
+            &sampleRate,
+            &samplesPerChannel,
+            &pcm
+          )
+        }
+        guard status == 0, let pcm else {
+          DispatchQueue.main.async {
+            result(FlutterError(
+              code: "decode_failed",
+              message: "MP3 prefix has no complete audio frame",
+              details: nil
+            ))
+          }
+          return
+        }
+        let byteCount = Int(samplesPerChannel * channels) * MemoryLayout<Int16>.size
+        let output = Data(bytes: pcm, count: byteCount)
+        omi_free_decoded_audio(pcm)
+        DispatchQueue.main.async {
+          result([
+            "channels": channels,
+            "sample_rate": sampleRate,
+            "pcm": FlutterStandardTypedData(bytes: output)
+          ])
+        }
+      }
+    }
+    ttsPcmPlayerChannel = FlutterMethodChannel(
+      name: "com.omi/tts_pcm_player",
+      binaryMessenger: messenger
+    )
+    ttsPcmPlayerChannel?.setMethodCallHandler { [weak self] call, result in
+      self?.ttsPcmPlayer.handle(call, result: result)
+    }
+
     // Read-only admission evidence for the separately signed capture lane.
     // Missing flags stay nil so Dart fails closed before app-owned networking.
-    FlutterMethodChannel(name: "omi/physical_qualification", binaryMessenger: controller.binaryMessenger)
+    FlutterMethodChannel(name: "omi/physical_qualification", binaryMessenger: messenger)
       .setMethodCallHandler { call, result in
         guard call.method == "isolation" else {
           result(FlutterMethodNotImplemented)
@@ -149,118 +231,23 @@ final class QuickActionsIconPatcher: NSObject {
           "firebase_data_collection": info["FirebaseDataCollectionDefaultEnabled"] ?? NSNull()
         ])
       }
-    QuickActionsIconPatcher.shared.startObserving()
-    registerCapturePolicyChannel(messenger: registrar(forPlugin: "OmiCapturePolicy")!.messenger())
-      
-      
-      // Retrieve the link from parameters
-    if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {
-      // We have a link, propagate it to your Flutter app or not
-      AppLinks.shared.handleLink(url: url)
-      return true // Returning true will stop the propagation to other packages
-    }
-
-    // Register Phone Calls plugin
-    OmiPhoneCallsPlugin.register(with: self.registrar(forPlugin: "OmiPhoneCallsPlugin")!)
-
-    // here, Without this code the task will not work.
-    SwiftFlutterForegroundTaskPlugin.setPluginRegistrantCallback { registry in
-      GeneratedPluginRegistrant.register(with: registry)
-    }
-    if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
-    }
-
-    let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
-    if #available(iOS 13.0, *) {
-      // flutter_foreground_task registers an otherwise unused 25-second
-      // refresh. Clear requests left by older releases after plugin dispatch.
-      BGTaskScheduler.shared.cancel(
-        taskRequestWithIdentifier: AppDelegate.unusedForegroundTaskRefreshIdentifier
-      )
-    }
-    return launched
-  }
-
-  /// Native capture admission latch. Registered at launch rather than at scene
-  /// connect: `SharedPreferencesUtil.init` awaits this channel before runApp, and a
-  /// background Bluetooth relaunch can run Dart without ever connecting a scene.
-  private func registerCapturePolicyChannel(messenger: FlutterBinaryMessenger) {
-    capturePolicyChannel = FlutterMethodChannel(
-        name: "com.omi/capture_policy",
-        binaryMessenger: messenger
-    )
-    capturePolicyChannel?.setMethodCallHandler { call, result in
-        if call.method == "getRevision" {
-            result(CaptureAdmissionPolicy.currentProcessRevision())
-            return
-        }
-        guard call.method == "setMuted" else {
-            result(FlutterMethodNotImplemented)
-            return
-        }
-        guard let args = call.arguments as? [String: Any],
-              let muted = args["muted"] as? Bool,
-              let revision = CaptureAdmissionPolicy.channelRevision(args["revision"]),
-              revision >= 0 else {
-            result(FlutterError(
-                code: "INVALID_CAPTURE_POLICY",
-                message: "setMuted requires {muted: bool, revision: nonnegative int}",
-                details: nil
-            ))
-            return
-        }
-
-        switch CaptureAdmissionPolicy.applyProcessUpdate(
-            muted: muted,
-            revision: revision,
-            defaults: .standard
-        ) {
-        case .applied:
-            // This acknowledges the process latch only. It deliberately
-            // does not wait for BLE/audio queue drains.
-            result(nil)
-        case let .stale(currentRevision):
-            result(FlutterError(
-                code: "STALE_CAPTURE_POLICY",
-                message: "capture policy revision is older than native state",
-                details: ["currentRevision": currentRevision]
-            ))
-        case .persistenceNotReady:
-            result(FlutterError(
-                code: "CAPTURE_POLICY_NOT_PERSISTED",
-                message: "unmute requires the matching durable capture policy",
-                details: nil
-            ))
-        }
-    }
-  }
-
-  /// Registers every native bridge that needs the Flutter binary messenger.
-  ///
-  /// Under the UIScene lifecycle the window and its FlutterViewController do not
-  /// exist yet in `didFinishLaunchingWithOptions`, so the scene delegate calls this
-  /// once the scene has produced a controller. Idempotent: a second scene, or a
-  /// non-scene launch path, must not register a channel twice.
-  @objc func registerFlutterBridges(with controller: FlutterViewController) {
-    if didRegisterFlutterBridges { return }
-    didRegisterFlutterBridges = true
 
       if WCSession.isSupported() {
-          session = WCSession.default
-          session?.delegate = self
-          session?.activate();
+          let watchSession = WCSession.default
+          session = watchSession
+          watchSession.delegate = self
+          watchSession.activate()
 
-            flutterWatchAPI = WatchRecorderFlutterAPI(binaryMessenger: controller.binaryMessenger)
-            let api: WatchRecorderHostAPI = RecorderHostApiImpl(session: session!, flutterWatchAPI: flutterWatchAPI)
+            flutterWatchAPI = WatchRecorderFlutterAPI(binaryMessenger: messenger)
+            let api: WatchRecorderHostAPI = RecorderHostApiImpl(session: watchSession, flutterWatchAPI: flutterWatchAPI)
 
-            WatchRecorderHostAPISetup.setUp(binaryMessenger: controller.binaryMessenger, api: api)
+            WatchRecorderHostAPISetup.setUp(binaryMessenger: messenger, api: api)
       }
 
       // Native BLE module — register Pigeon APIs
       NSLog("[OmiBle] Registering BLE Pigeon APIs")
       do {
-          let messenger = controller.binaryMessenger
+          let messenger = messenger
           let bleFlutterApi = BleFlutterApi(binaryMessenger: messenger)
           OmiBleManager.shared.setFlutterApi(bleFlutterApi)
           let bleHostApi = BleHostApiImpl(bleManager: OmiBleManager.shared)
@@ -272,7 +259,7 @@ final class QuickActionsIconPatcher: NSObject {
       // Registered unconditionally; the impl reports availability mode based on
       // whether the DAT SDK is linked into this build.
       do {
-          let messenger = controller.binaryMessenger
+          let messenger = messenger
           let rayBanFlutterApi = RayBanMetaFlutterAPI(binaryMessenger: messenger)
           let rayBanApi = RayBanMetaHostApiImpl(flutterAPI: rayBanFlutterApi)
           rayBanMetaHostApi = rayBanApi
@@ -283,7 +270,7 @@ final class QuickActionsIconPatcher: NSObject {
       // Self-healing AVAudioEngine capture; interruption/route recovery is
       // handled natively, Dart only mirrors the state.
       do {
-          let messenger = controller.binaryMessenger
+          let messenger = messenger
           let phoneMicFlutterApi = PhoneMicFlutterApi(binaryMessenger: messenger)
           let micController = PhoneMicController(
               environment: PhoneMicLiveEnvironment.make(sink: phoneMicFlutterApi))
@@ -291,33 +278,109 @@ final class QuickActionsIconPatcher: NSObject {
           PhoneMicHostApiSetup.setUp(binaryMessenger: messenger, api: PhoneMicHostApiImpl(controller: micController))
       }
 
+      // Native capture admission latch. Mute is applied before Dart persists
+      // its preference; unmute is released only after the durable canonical
+      // preference matches the requested revision.
+      capturePolicyChannel = FlutterMethodChannel(
+          name: "com.omi/capture_policy",
+          binaryMessenger: messenger
+      )
+      capturePolicyChannel?.setMethodCallHandler { call, result in
+          if call.method == "getRevision" {
+              result(CaptureAdmissionPolicy.currentProcessRevision())
+              return
+          }
+          guard call.method == "setMuted" else {
+              result(FlutterMethodNotImplemented)
+              return
+          }
+          guard let args = call.arguments as? [String: Any],
+                let muted = args["muted"] as? Bool,
+                let revision = CaptureAdmissionPolicy.channelRevision(args["revision"]),
+                revision >= 0 else {
+              result(FlutterError(
+                  code: "INVALID_CAPTURE_POLICY",
+                  message: "setMuted requires {muted: bool, revision: nonnegative int}",
+                  details: nil
+              ))
+              return
+          }
+
+          switch CaptureAdmissionPolicy.applyProcessUpdate(
+              muted: muted,
+              revision: revision,
+              defaults: .standard
+          ) {
+          case .applied:
+              // This acknowledges the process latch only. It deliberately
+              // does not wait for BLE/audio queue drains.
+              result(nil)
+          case let .stale(currentRevision):
+              result(FlutterError(
+                  code: "STALE_CAPTURE_POLICY",
+                  message: "capture policy revision is older than native state",
+                  details: ["currentRevision": currentRevision]
+              ))
+          case .persistenceNotReady:
+              result(FlutterError(
+                  code: "CAPTURE_POLICY_NOT_PERSISTED",
+                  message: "unmute requires the matching durable capture policy",
+                  details: nil
+              ))
+          }
+      }
+
+      // A live-capture WAL drain gets only iOS's bounded background execution
+      // window. Dart limits background work to bounded phone-local drain passes
+      // and releases this lease when the pass finishes.
+      syncTransferChannel = FlutterMethodChannel(
+          name: "com.friend.ios/sync_transfer",
+          binaryMessenger: messenger
+      )
+      syncTransferChannel?.setMethodCallHandler { [weak self] call, result in
+          guard let self else {
+              result(nil)
+              return
+          }
+          switch call.method {
+          case "start":
+              self.syncTransferLease.start()
+              result(nil)
+          case "stop":
+              self.syncTransferLease.stop()
+              result(nil)
+          default:
+              result(FlutterMethodNotImplemented)
+          }
+      }
+
     //Creates a method channel to handle notifications on kill
-    methodChannel = FlutterMethodChannel(name: "com.friend.ios/notifyOnKill", binaryMessenger: controller.binaryMessenger)
+    methodChannel = FlutterMethodChannel(name: "com.friend.ios/notifyOnKill", binaryMessenger: messenger)
     methodChannel?.setMethodCallHandler { [weak self] (call, result) in
       self?.handleMethodCall(call, result: result)
     }
     
     // Create Apple Reminders method channel
-    appleRemindersChannel = FlutterMethodChannel(name: "com.omi.apple_reminders", binaryMessenger: controller.binaryMessenger)
+    appleRemindersChannel = FlutterMethodChannel(name: "com.omi.apple_reminders", binaryMessenger: messenger)
     appleRemindersChannel?.setMethodCallHandler { [weak self] (call, result) in
       self?.handleAppleRemindersCall(call, result: result)
     }
 
     // Create Apple Health method channel
-    appleHealthChannel = FlutterMethodChannel(name: "com.omi.apple_health", binaryMessenger: controller.binaryMessenger)
+    appleHealthChannel = FlutterMethodChannel(name: "com.omi.apple_health", binaryMessenger: messenger)
     appleHealthChannel?.setMethodCallHandler { [weak self] (call, result) in
       self?.handleAppleHealthCall(call, result: result)
     }
 
     // Create Speech Recognition method channel
-    let speechChannel = FlutterMethodChannel(name: "com.omi.ios/speech", binaryMessenger: controller.binaryMessenger)
+    let speechChannel = FlutterMethodChannel(name: "com.omi.ios/speech", binaryMessenger: messenger)
     let speechHandler = SpeechRecognitionHandler()
     speechChannel.setMethodCallHandler { (call, result) in
         speechHandler.handle(call, result: result)
     }
 
     // TestFlight environment detection
-    let envChannel = FlutterMethodChannel(name: "com.omi/environment", binaryMessenger: controller.binaryMessenger)
+    let envChannel = FlutterMethodChannel(name: "com.omi/environment", binaryMessenger: messenger)
     envChannel.setMethodCallHandler { (call, result) in
         if call.method == "isTestFlight" {
             let isTestFlight = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
@@ -328,7 +391,7 @@ final class QuickActionsIconPatcher: NSObject {
     }
 
     // Audio session configuration for Bluetooth microphone support
-    let audioSessionChannel = FlutterMethodChannel(name: "com.omi.ios/audioSession", binaryMessenger: controller.binaryMessenger)
+    let audioSessionChannel = FlutterMethodChannel(name: "com.omi.ios/audioSession", binaryMessenger: messenger)
     audioSessionChannel.setMethodCallHandler { (call, result) in
         if call.method == "configureForBluetooth" {
             let audioSession = AVAudioSession.sharedInstance()
@@ -350,7 +413,7 @@ final class QuickActionsIconPatcher: NSObject {
 
     // Battery widget channel — writes Omi device battery to the shared App Group
     // so the WidgetKit extension can read it.
-    let batteryWidgetChannel = FlutterMethodChannel(name: "com.omi.battery_widget", binaryMessenger: controller.binaryMessenger)
+    let batteryWidgetChannel = FlutterMethodChannel(name: "com.omi.battery_widget", binaryMessenger: messenger)
     batteryWidgetChannel.setMethodCallHandler { (call, result) in
       let defaults = UserDefaults(suiteName: AppDelegate.appGroupIdentifier)
       guard let args = call.arguments as? [String: Any] else {
@@ -359,20 +422,45 @@ final class QuickActionsIconPatcher: NSObject {
       }
       switch call.method {
       case "updateBatteryInfo":
-        defaults?.set(args["deviceName"] as? String ?? "Omi", forKey: "widget_device_name")
-        defaults?.set(args["batteryLevel"] as? Int ?? -1, forKey: "widget_battery_level")
-        defaults?.set(args["deviceType"] as? String ?? "omi", forKey: "widget_device_type")
-        defaults?.set(args["isConnected"] as? Bool ?? false, forKey: "widget_is_connected")
-        defaults?.set(Date(), forKey: "widget_last_updated")
+        defaults.map { try? SafeDefaults.store(.string(args["deviceName"] as? String ?? "Omi"), forKey: "widget_device_name", in: $0) }
+        defaults.map { try? SafeDefaults.store(.int(args["batteryLevel"] as? Int ?? -1), forKey: "widget_battery_level", in: $0) }
+        defaults.map { try? SafeDefaults.store(.string(args["deviceType"] as? String ?? "omi"), forKey: "widget_device_type", in: $0) }
+        defaults.map { try? SafeDefaults.store(.bool(args["isConnected"] as? Bool ?? false), forKey: "widget_is_connected", in: $0) }
+        defaults.map { try? SafeDefaults.store(.date(Date()), forKey: "widget_last_updated", in: $0) }
         // NOTE: isMuted is intentionally NOT written here — only updateMuteState controls it
+        if #available(iOS 14.0, *) {
+          WidgetCenter.shared.reloadTimelines(ofKind: "OmiBatteryWidget")
+        }
+      case "updateChargingState":
+        let isCharging = (args["isCharging"] as? Bool) ?? (args["isCharging"] as? NSNumber)?.boolValue ?? false
+        defaults.map { try? SafeDefaults.store(.bool(isCharging), forKey: "widget_is_charging", in: $0) }
         if #available(iOS 14.0, *) {
           WidgetCenter.shared.reloadTimelines(ofKind: "OmiBatteryWidget")
         }
       case "updateMuteState":
         let isMuted = (args["isMuted"] as? Bool) ?? (args["isMuted"] as? NSNumber)?.boolValue ?? false
-        defaults?.set(isMuted, forKey: "widget_is_muted")
+        defaults.map { try? SafeDefaults.store(.bool(isMuted), forKey: "widget_is_muted", in: $0) }
         if #available(iOS 14.0, *) {
           WidgetCenter.shared.reloadAllTimelines()
+        }
+      case "updateWidgetData":
+        // A JSON document for a Home Screen widget (Devices, Up next, Latest); a missing one clears it.
+        let kinds = [
+          "widget_devices": "OmiBatteryWidget",
+          "widget_up_next": "OmiUpNextWidget",
+          "widget_latest": "OmiLatestWidget",
+        ]
+        guard let key = args["key"] as? String, let kind = kinds[key] else {
+          result(FlutterError(code: "UNKNOWN_WIDGET_KEY", message: "No widget reads this key", details: args["key"]))
+          return
+        }
+        if let json = args["json"] as? String {
+          defaults.map { try? SafeDefaults.store(.string(json), forKey: key, in: $0) }
+        } else {
+          defaults?.removeObject(forKey: key)
+        }
+        if #available(iOS 14.0, *) {
+          WidgetCenter.shared.reloadTimelines(ofKind: kind)
         }
       default:
         result(FlutterMethodNotImplemented)
@@ -380,13 +468,27 @@ final class QuickActionsIconPatcher: NSObject {
       }
       result(nil)
     }
+
+    // Register Phone Calls plugin
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OmiPhoneCallsPlugin") {
+      OmiPhoneCallsPlugin.register(with: registrar)
+    } else {
+      NSLog("[AppDelegate] Phone calls plugin registrar unavailable")
+    }
+
+  }
+
+  private func endNativeSyncTransferBackgroundTask() {
+    guard syncTransferBackgroundTask != .invalid else { return }
+    let task = syncTransferBackgroundTask
+    syncTransferBackgroundTask = .invalid
+    UIApplication.shared.endBackgroundTask(task)
   }
 
   /// Swaps the engine-less storyboard controller for a plain notice before the
   /// window is shown, so nothing in this launch touches the missing engine.
-  /// See FlutterLaunchEngineGuard for why the engine can be absent. Under UIScene
-  /// the scene delegate owns the window and passes it in.
-  func showFlutterEngineUnavailableNotice(in window: UIWindow?) {
+  /// See FlutterLaunchEngineGuard for why the engine can be absent.
+  func showFlutterEngineUnavailableNotice(in sceneWindow: UIWindow?) {
     #if DEBUG
     let debugBuild = true
     #else
@@ -417,21 +519,12 @@ final class QuickActionsIconPatcher: NSObject {
     ])
     // Also covers an iOS background relaunch (BLE/VoIP): nothing is drawn
     // until the user foregrounds the app, and this is what they see then.
-    window?.rootViewController = notice
-    window?.makeKeyAndVisible()
+    sceneWindow?.rootViewController = notice
+    sceneWindow?.makeKeyAndVisible()
   }
 
   override func applicationDidEnterBackground(_ application: UIApplication) {
     super.applicationDidEnterBackground(application)
-    handleDidEnterBackground()
-  }
-
-  /// Backgrounding work shared with the scene delegate.
-  ///
-  /// UIKit stops calling `applicationDidEnterBackground(_:)` once UIScene is adopted, and this
-  /// starts the BLE background-energy telemetry window and clears the unused foreground-task
-  /// refresh, so the scene delegate forwards `sceneDidEnterBackground(_:)` here.
-  @objc func handleDidEnterBackground() {
     OmiBleManager.shared.markBackgroundTelemetryStart()
     if #available(iOS 13.0, *) {
       // The plugin delegate schedules this request from the super call above;
@@ -444,14 +537,8 @@ final class QuickActionsIconPatcher: NSObject {
   }
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
-    handleDidBecomeActive()
-    super.applicationDidBecomeActive(application)
-  }
-
-  /// Activation work shared with the scene delegate, for the same reason as
-  /// `handleDidEnterBackground`: UIKit routes this to the scene under UIScene.
-  @objc func handleDidBecomeActive() {
     OmiBleManager.shared.markBackgroundTelemetryEnd()
+    super.applicationDidBecomeActive(application)
   }
 
   // Meta AI app calls back into this app to finish Ray-Ban Meta registration
@@ -461,25 +548,10 @@ final class QuickActionsIconPatcher: NSObject {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    if handleIncomingURL(url) {
-      return true
-    }
-    return super.application(app, open: url, options: options)
-  }
-
-  /// URL handling shared with the scene delegate.
-  ///
-  /// Once UIScene is adopted UIKit stops calling `application(_:open:options:)`
-  /// and delivers URLs to `scene(_:openURLContexts:)` instead, so the Ray-Ban Meta
-  /// registration callback and the `omi://` deep link both have to route through
-  /// one place that either lifecycle can reach.
-  @discardableResult
-  @objc func handleIncomingURL(_ url: URL) -> Bool {
     if rayBanMetaHostApi?.handleUrl(url) == true {
       return true
     }
-    AppLinks.shared.handleLink(url: url)
-    return false
+    return super.application(app, open: url, options: options)
   }
 
   private func handleMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -555,15 +627,6 @@ final class QuickActionsIconPatcher: NSObject {
 
   override func applicationWillEnterForeground(_ application: UIApplication) {
     super.applicationWillEnterForeground(application)
-    handleWillEnterForeground()
-  }
-
-  /// Foreground work shared with the scene delegate.
-  ///
-  /// UIKit stops calling `applicationWillEnterForeground(_:)` once UIScene is
-  /// adopted, and this is where the pendant's stale-link reconnect runs, so the
-  /// scene delegate forwards `sceneWillEnterForeground(_:)` here.
-  @objc func handleWillEnterForeground() {
     OmiBleManager.shared.reconnectStalePeripherals()
   }
 
@@ -572,13 +635,11 @@ final class QuickActionsIconPatcher: NSObject {
     OmiBleManager.shared.disconnectAllPeripherals()
 
     // If title and body are nil, then we don't need to show notification.
-    if notificationTitleOnKill == nil || notificationBodyOnKill == nil {
-      return
-    }
+    guard let title = notificationTitleOnKill, let body = notificationBodyOnKill else { return }
 
     let content = UNMutableNotificationContent()
-    content.title = notificationTitleOnKill!
-    content.body = notificationBodyOnKill!
+    content.title = title
+    content.body = body
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
     let request = UNNotificationRequest(identifier: "notification on app kill", content: content, trigger: trigger)
 
@@ -749,9 +810,9 @@ extension AppDelegate: WCSessionDelegate {
             case "batteryUpdate":
                 if let batteryLevel = message["batteryLevel"] as? Double,
                    let batteryState = message["batteryState"] as? Int {
-                    UserDefaults.standard.set(batteryLevel, forKey: "watch_battery_level")
-                    UserDefaults.standard.set(batteryState, forKey: "watch_battery_state")
-                    UserDefaults.standard.set(Date(), forKey: "watch_battery_last_updated")
+                    try? SafeDefaults.store(.double(batteryLevel), forKey: "watch_battery_level")
+                    try? SafeDefaults.store(.int(batteryState), forKey: "watch_battery_state")
+                    try? SafeDefaults.store(.date(Date()), forKey: "watch_battery_last_updated")
                     
                     DispatchQueue.main.async {
                         self.flutterWatchAPI?.onWatchBatteryUpdate(batteryLevel: batteryLevel, batteryState: Int64(batteryState)) { result in
@@ -770,11 +831,11 @@ extension AppDelegate: WCSessionDelegate {
                    let systemVersion = message["systemVersion"] as? String,
                    let localizedModel = message["localizedModel"] as? String {
 
-                    UserDefaults.standard.set(name, forKey: "watch_device_name")
-                    UserDefaults.standard.set(model, forKey: "watch_device_model")
-                    UserDefaults.standard.set(systemVersion, forKey: "watch_system_version")
-                    UserDefaults.standard.set(localizedModel, forKey: "watch_localized_model")
-                    UserDefaults.standard.set(Date(), forKey: "watch_info_last_updated")
+                    try? SafeDefaults.store(.string(name), forKey: "watch_device_name")
+                    try? SafeDefaults.store(.string(model), forKey: "watch_device_model")
+                    try? SafeDefaults.store(.string(systemVersion), forKey: "watch_system_version")
+                    try? SafeDefaults.store(.string(localizedModel), forKey: "watch_localized_model")
+                    try? SafeDefaults.store(.date(Date()), forKey: "watch_info_last_updated")
                 }
             default:
                 print("Unknown method: \(method)")
@@ -818,9 +879,9 @@ extension AppDelegate: WCSessionDelegate {
             case "batteryUpdate":
                 if let batteryLevel = userInfo["batteryLevel"] as? Double,
                    let batteryState = userInfo["batteryState"] as? Int {
-                    UserDefaults.standard.set(batteryLevel, forKey: "watch_battery_level")
-                    UserDefaults.standard.set(batteryState, forKey: "watch_battery_state")
-                    UserDefaults.standard.set(Date(), forKey: "watch_battery_last_updated")
+                    try? SafeDefaults.store(.double(batteryLevel), forKey: "watch_battery_level")
+                    try? SafeDefaults.store(.int(batteryState), forKey: "watch_battery_state")
+                    try? SafeDefaults.store(.date(Date()), forKey: "watch_battery_last_updated")
                     
                     DispatchQueue.main.async {
                         self.flutterWatchAPI?.onWatchBatteryUpdate(batteryLevel: batteryLevel, batteryState: Int64(batteryState)) { result in
@@ -838,11 +899,11 @@ extension AppDelegate: WCSessionDelegate {
                    let model = userInfo["model"] as? String,
                    let systemVersion = userInfo["systemVersion"] as? String,
                    let localizedModel = userInfo["localizedModel"] as? String {
-                    UserDefaults.standard.set(name, forKey: "watch_device_name")
-                    UserDefaults.standard.set(model, forKey: "watch_device_model")
-                    UserDefaults.standard.set(systemVersion, forKey: "watch_system_version")
-                    UserDefaults.standard.set(localizedModel, forKey: "watch_localized_model")
-                    UserDefaults.standard.set(Date(), forKey: "watch_info_last_updated")
+                    try? SafeDefaults.store(.string(name), forKey: "watch_device_name")
+                    try? SafeDefaults.store(.string(model), forKey: "watch_device_model")
+                    try? SafeDefaults.store(.string(systemVersion), forKey: "watch_system_version")
+                    try? SafeDefaults.store(.string(localizedModel), forKey: "watch_localized_model")
+                    try? SafeDefaults.store(.date(Date()), forKey: "watch_info_last_updated")
                 }
             default:
                 print("Unknown background method: \(method)")
@@ -1136,7 +1197,7 @@ class SpeechRecognitionHandler: NSObject {
     /// 16 kHz mono 16-bit PCM WAV of silence, for probing the recognizer.
     static func writeSilentWav(seconds: Double) -> URL? {
         let sampleRate = 16000
-        let sampleCount = Int(Double(sampleRate) * seconds)
+        let sampleCount = CheckedIntegerConversion.int(Double(sampleRate) * seconds) ?? 0
         let dataSize = sampleCount * 2
         var data = Data(capacity: 44 + dataSize)
         func append<T: FixedWidthInteger>(_ value: T) {

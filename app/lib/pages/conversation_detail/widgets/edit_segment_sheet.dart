@@ -109,11 +109,11 @@ class _EditSegmentSheetState extends State<EditSegmentSheet> {
                 maxLines: null,
                 minLines: 3,
                 style: OmiType.subhead.copyWith(height: 1.5),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   filled: true,
                   fillColor: OmiColors.surface2,
-                  border: OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide.none),
-                  contentPadding: EdgeInsets.all(14),
+                  border: const OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.all(14),
                 ),
               ),
               const SizedBox(height: OmiSpacing.md),
@@ -127,7 +127,9 @@ class _EditSegmentSheetState extends State<EditSegmentSheet> {
                     ),
                   ),
                   const SizedBox(width: OmiSpacing.sm),
-                  Expanded(child: OmiButton(label: context.l10n.save, expand: true, onPressed: _save)),
+                  Expanded(
+                    child: OmiButton(label: context.l10n.save, expand: true, onPressed: _save),
+                  ),
                 ],
               ),
             ],

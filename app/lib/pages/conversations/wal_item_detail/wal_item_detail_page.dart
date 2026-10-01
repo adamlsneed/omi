@@ -130,8 +130,9 @@ class _WalItemDetailPageState extends State<WalItemDetailPage> {
 
   Widget _buildDeviceTransferUI() {
     final isFlashPage = widget.wal.storage == WalStorage.flashPage;
-    final storageLabel =
-        isFlashPage ? context.l10n.storageLocationLimitlessPendant : context.l10n.storageLocationSdCard;
+    final storageLabel = isFlashPage
+        ? context.l10n.storageLocationLimitlessPendant
+        : context.l10n.storageLocationSdCard;
     final storageIcon = isFlashPage ? Icons.memory : Icons.sd_card;
     final storageColor = isFlashPage ? Colors.teal : OmiColors.textSecondary;
 
@@ -168,10 +169,10 @@ class _WalItemDetailPageState extends State<WalItemDetailPage> {
                   Text(
                     OmiDateFormat.of(context).time(DateTime.fromMillisecondsSinceEpoch(widget.wal.timerStart * 1000)),
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          color: Colors.grey.shade400,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                        ),
+                      color: Colors.grey.shade400,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   // Storage notice
@@ -209,7 +210,7 @@ class _WalItemDetailPageState extends State<WalItemDetailPage> {
                       Container(
                         width: 120,
                         height: 120,
-                        decoration: const BoxDecoration(color: OmiColors.surface1, shape: BoxShape.circle),
+                        decoration: BoxDecoration(color: OmiColors.surface1, shape: BoxShape.circle),
                         child: Center(
                           child: Icon(
                             isTransferring ? Icons.downloading : Icons.sd_card,
@@ -325,10 +326,10 @@ class _WalItemDetailPageState extends State<WalItemDetailPage> {
                   Text(
                     OmiDateFormat.of(context).time(DateTime.fromMillisecondsSinceEpoch(widget.wal.timerStart * 1000)),
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          color: Colors.grey.shade400,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                        ),
+                      color: Colors.grey.shade400,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   // Privacy notice

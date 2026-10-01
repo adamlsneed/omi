@@ -173,7 +173,7 @@ class _OmiEditSheetState extends State<OmiEditSheet> {
                           child: Container(
                             width: 36,
                             height: 4,
-                            decoration: const BoxDecoration(color: OmiColors.border, borderRadius: OmiRadius.pillAll),
+                            decoration: BoxDecoration(color: OmiColors.border, borderRadius: OmiRadius.pillAll),
                           ),
                         ),
                       ),
@@ -196,14 +196,13 @@ class _OmiEditSheetState extends State<OmiEditSheet> {
                                 : const SizedBox.shrink(),
                           ),
                           ...widget.actions,
-                          OmiCloseButton(
-                            onPressed: _requestClose,
-                            color: OmiColors.textSecondary,
-                          ),
+                          OmiCloseButton(onPressed: _requestClose, color: OmiColors.textSecondary),
                         ],
                       ),
                     ),
-                    Flexible(child: Padding(padding: widget.padding, child: widget.child)),
+                    Flexible(
+                      child: Padding(padding: widget.padding, child: widget.child),
+                    ),
                   ],
                 ),
               ),

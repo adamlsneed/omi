@@ -15,6 +15,7 @@ import 'package:omi/pages/action_items/task_delete_undo.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/ui/ui.dart';
 import 'package:omi/utils/l10n_extensions.dart';
+import 'package:omi/utils/share_links.dart';
 import 'package:omi/widgets/calendar_date_picker_sheet.dart';
 import 'package:omi/utils/share_sheet.dart';
 
@@ -183,11 +184,23 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
 
     if (result != null && result['url'] != null) {
       final url = result['url'] as String;
+      final sid = newShareId();
       OmiHaptics.light();
-      await Share.share(url, sharePositionOrigin: shareSheetOrigin());
+      final outcome = await SharePlus.instance.share(
+        ShareParams(
+          text: tagShareUrl(url, sid: sid),
+          sharePositionOrigin: shareSheetOrigin(),
+        ),
+      );
+      final targetApp = outcome.status == ShareResultStatus.success ? shareTargetApp(outcome.raw) : null;
       PlatformManager.instance.analytics.track(
         'Action Item Shared',
-        properties: {'actionItemId': widget.actionItem!.id},
+        properties: {
+          'actionItemId': widget.actionItem!.id,
+          'share_id': sid,
+          'share_status': outcome.status.name,
+          if (targetApp != null) 'target_app': targetApp,
+        },
       );
     } else {
       OmiFeedback.error(context, context.l10n.failedToCreateShareLink);
@@ -294,7 +307,7 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
                 constraints: const BoxConstraints(minHeight: kOmiMinTapTarget),
                 child: Row(
                   children: [
-                    const Icon(Icons.schedule_outlined, size: 20, color: OmiColors.textSecondary),
+                    Icon(Icons.schedule_outlined, size: 20, color: OmiColors.textSecondary),
                     const SizedBox(width: OmiSpacing.md),
                     Expanded(
                       child: Text(
@@ -315,21 +328,26 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
                 ),
               ),
             ),
-            Wrap(spacing: OmiSpacing.xs, children: [
-              for (final days in [0, 1, 7])
-                ActionChip(
-                  key: ValueKey('task_quick_date_$days'),
-                  label: Text(days == 0
-                      ? l10n.today
-                      : days == 1
+            Wrap(
+              spacing: OmiSpacing.xs,
+              children: [
+                for (final days in [0, 1, 7])
+                  ActionChip(
+                    key: ValueKey('task_quick_date_$days'),
+                    label: Text(
+                      days == 0
+                          ? l10n.today
+                          : days == 1
                           ? l10n.tomorrow
-                          : l10n.nextWeek),
-                  onPressed: _isSaving ? null : () => _selectQuickDate(days),
-                  backgroundColor: OmiColors.surface2,
-                  labelStyle: OmiType.footnote,
-                  side: const BorderSide(color: OmiColors.border),
-                ),
-            ]),
+                          : l10n.nextWeek,
+                    ),
+                    onPressed: _isSaving ? null : () => _selectQuickDate(days),
+                    backgroundColor: OmiColors.surface2,
+                    labelStyle: OmiType.footnote,
+                    side: BorderSide(color: OmiColors.border),
+                  ),
+              ],
+            ),
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: Text(
@@ -368,8 +386,8 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
                     label: _saveFailed
                         ? l10n.tryAgain
                         : widget.isEditing
-                            ? l10n.save
-                            : l10n.addTask,
+                        ? l10n.save
+                        : l10n.addTask,
                   ),
                 ),
               ],
@@ -409,8 +427,8 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
         color: isSelected == true
             ? OmiColors.accent
             : isCurrentYear == true
-                ? OmiColors.surface3
-                : Colors.transparent,
+            ? OmiColors.surface3
+            : Colors.transparent,
         borderRadius: OmiRadius.smAll,
       ),
       child: Center(
@@ -421,8 +439,8 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
             color: isSelected == true
                 ? OmiColors.onAccent
                 : isDisabled == true
-                    ? OmiColors.textDisabled
-                    : OmiColors.textPrimary,
+                ? OmiColors.textDisabled
+                : OmiColors.textPrimary,
           ),
         ),
       ),
@@ -450,7 +468,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: OmiColors.accent,
               onPrimary: OmiColors.onAccent,
               surface: OmiColors.surface1,
@@ -476,7 +494,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
               dayPeriodTextColor: WidgetStateColor.resolveWith(
                 (states) => states.contains(WidgetState.selected) ? OmiColors.onAccent : OmiColors.textTertiary,
               ),
-              dayPeriodBorderSide: const BorderSide(color: OmiColors.textTertiary),
+              dayPeriodBorderSide: BorderSide(color: OmiColors.textTertiary),
             ),
           ),
           child: child!,
@@ -507,7 +525,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
       color: Colors.transparent,
       child: Container(
         height: MediaQuery.of(context).size.height * 0.65,
-        decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.sheetTop),
+        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.sheetTop),
         child: Column(
           children: [
             const SizedBox(height: OmiSpacing.sm),
@@ -544,20 +562,21 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     CalendarDatePicker2(
-                      config: getDefaultCalendarConfig(
-                        firstDate: now,
-                        currentDate: now,
-                        lastDate: (widget.initialDateTime ?? now).add(const Duration(days: 365 * 5)),
-                        yearBuilder: yearBuilder,
-                      ).copyWith(
-                        // Neutral selection (INV-UI-1): white day, black numeral.
-                        selectedDayHighlightColor: OmiColors.accent,
-                        selectedDayTextStyle: OmiType.subhead.copyWith(
-                          color: OmiColors.onAccent,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        todayTextStyle: OmiType.subhead.copyWith(fontWeight: FontWeight.w700),
-                      ),
+                      config:
+                          getDefaultCalendarConfig(
+                            firstDate: now,
+                            currentDate: now,
+                            lastDate: (widget.initialDateTime ?? now).add(const Duration(days: 365 * 5)),
+                            yearBuilder: yearBuilder,
+                          ).copyWith(
+                            // Neutral selection (INV-UI-1): white day, black numeral.
+                            selectedDayHighlightColor: OmiColors.accent,
+                            selectedDayTextStyle: OmiType.subhead.copyWith(
+                              color: OmiColors.onAccent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            todayTextStyle: OmiType.subhead.copyWith(fontWeight: FontWeight.w700),
+                          ),
                       value: [_selectedDateTime],
                       onValueChanged: (dates) => setState(() {
                         _selectedDateTime = DateTime(
@@ -577,7 +596,7 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: OmiSpacing.sm),
                           child: Row(
                             children: [
-                              const Icon(Icons.access_time, color: OmiColors.textSecondary, size: 20),
+                              Icon(Icons.access_time, color: OmiColors.textSecondary, size: 20),
                               const SizedBox(width: OmiSpacing.sm),
                               Expanded(child: Text(context.l10n.time, style: OmiType.callout)),
                               Text(

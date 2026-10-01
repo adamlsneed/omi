@@ -172,7 +172,8 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
 
   bool _shouldShowSettingsIcon() {
     final selected = context.read<TaskIntegrationProvider>().selectedApp;
-    final hasSettings = (selected == TaskIntegrationApp.asana && AsanaService().isAuthenticated) ||
+    final hasSettings =
+        (selected == TaskIntegrationApp.asana && AsanaService().isAuthenticated) ||
         (selected == TaskIntegrationApp.clickup && ClickUpService().isAuthenticated) ||
         (selected == TaskIntegrationApp.todoist && TodoistService().isAuthenticated) ||
         (selected == TaskIntegrationApp.googleTasks && GoogleTasksService().isAuthenticated);
@@ -407,7 +408,7 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
       child: Container(
         width: 70,
         height: 28,
-        decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.pillAll),
+        decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.pillAll),
       ),
     );
   }
@@ -416,10 +417,7 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Expanded(
@@ -487,12 +485,15 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
       trailing = IntegrationStatusChip(context.l10n.connect);
     } else if (isSelected) {
       // Radio mark for connected services
-      trailing = const FaIcon(FontAwesomeIcons.solidCircleCheck, color: OmiColors.success, size: 24);
+      trailing = FaIcon(FontAwesomeIcons.solidCircleCheck, color: OmiColors.success, size: 24);
     } else {
       trailing = Container(
         width: 24,
         height: 24,
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: OmiColors.border, width: 2)),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: OmiColors.border, width: 2),
+        ),
       );
     }
 
@@ -595,10 +596,10 @@ class _TaskIntegrationsPageState extends State<TaskIntegrationsPage> with Widget
               // Footer Note
               Container(
                 padding: const EdgeInsets.all(OmiSpacing.md),
-                decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
+                decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
                 child: Row(
                   children: [
-                    const FaIcon(FontAwesomeIcons.solidLightbulb, color: OmiColors.textTertiary, size: 20),
+                    FaIcon(FontAwesomeIcons.solidLightbulb, color: OmiColors.textTertiary, size: 20),
                     const SizedBox(width: OmiSpacing.sm),
                     Expanded(
                       child: Text(

@@ -45,11 +45,11 @@ class _LanguageSettingsPageState extends State<LanguageSettingsPage> {
   ) {
     final languageName = homeProvider.userPrimaryLanguage.isNotEmpty
         ? homeProvider.availableLanguages.entries
-            .firstWhere(
-              (element) => element.value == homeProvider.userPrimaryLanguage,
-              orElse: () => MapEntry(context.l10n.notSet, ''),
-            )
-            .key
+              .firstWhere(
+                (element) => element.value == homeProvider.userPrimaryLanguage,
+                orElse: () => MapEntry(context.l10n.notSet, ''),
+              )
+              .key
         : context.l10n.notSet;
 
     final isUpdatingTranslation = userProvider.isUpdatingSingleLanguageMode;
@@ -205,7 +205,7 @@ class _LanguageOptionList extends StatelessWidget {
                 fontWeight: option.selected ? FontWeight.w500 : FontWeight.w400,
               ),
             ),
-            trailing: option.selected ? const Icon(Icons.check, color: OmiColors.textPrimary, size: 20) : null,
+            trailing: option.selected ? Icon(Icons.check, color: OmiColors.textPrimary, size: 20) : null,
             onTap: option.onTap,
           );
         },

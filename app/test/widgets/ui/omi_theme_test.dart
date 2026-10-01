@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 import 'package:omi/ui/ui.dart';
+import 'package:omi/ui/omi_tokens.dart';
 
 import 'ui_test_app.dart';
 
@@ -16,6 +17,8 @@ double _contrast(Color a, Color b) {
 }
 
 void main() {
+  // These assertions describe the dark appearance; the app now starts light by default.
+  setUpAll(() => OmiColors.active = OmiPalette.dark);
   test('the theme draws unstyled spinners and accents visibly on the page', () {
     final theme = buildOmiTheme();
     final page = theme.scaffoldBackgroundColor;
@@ -54,19 +57,23 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(disableAnimations: true),
-        child: Builder(builder: (context) {
-          reduced = OmiMotion.of(context);
-          return const SizedBox();
-        }),
+        child: Builder(
+          builder: (context) {
+            reduced = OmiMotion.of(context);
+            return const SizedBox();
+          },
+        ),
       ),
     );
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(),
-        child: Builder(builder: (context) {
-          full = OmiMotion.of(context);
-          return const SizedBox();
-        }),
+        child: Builder(
+          builder: (context) {
+            full = OmiMotion.of(context);
+            return const SizedBox();
+          },
+        ),
       ),
     );
     expect(reduced.quick, Duration.zero);

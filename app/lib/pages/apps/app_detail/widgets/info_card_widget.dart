@@ -35,10 +35,7 @@ class InfoCardWidget extends StatelessWidget {
           top: 12,
           bottom: 6,
         ),
-        decoration: BoxDecoration(
-          color: OmiColors.surface1.withValues(alpha: 0.8),
-          borderRadius: OmiRadius.lgAll,
-        ),
+        decoration: BoxDecoration(color: OmiColors.surface1.withValues(alpha: 0.8), borderRadius: OmiRadius.lgAll),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -56,8 +53,8 @@ class InfoCardWidget extends StatelessWidget {
               maxLines != null
                   ? description.decodeString
                   : (description.decodeString.characters.length > 200
-                      ? '${description.decodeString.characters.take(200).toString().trim()}…'
-                      : description.decodeString),
+                        ? '${description.decodeString.characters.take(200).toString().trim()}…'
+                        : description.decodeString),
               style: OmiType.subhead.copyWith(color: OmiColors.textSecondary, height: 1.4),
               maxLines: maxLines,
               overflow: maxLines != null ? TextOverflow.ellipsis : null,
@@ -72,7 +69,7 @@ class InfoCardWidget extends StatelessWidget {
                       (chip) => Chip(
                         label: Text(chip, style: OmiType.callout),
                         backgroundColor: Colors.transparent,
-                        shape: const StadiumBorder(side: BorderSide(color: OmiColors.border)),
+                        shape: StadiumBorder(side: BorderSide(color: OmiColors.border)),
                       ),
                     )
                     .toList(),
@@ -88,7 +85,7 @@ class InfoCardWidget extends StatelessWidget {
                       (chip) => Chip(
                         label: Text(chip, style: OmiType.callout),
                         backgroundColor: Colors.transparent,
-                        shape: const StadiumBorder(side: BorderSide(color: OmiColors.border)),
+                        shape: StadiumBorder(side: BorderSide(color: OmiColors.border)),
                       ),
                     )
                     .toList(),

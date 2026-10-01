@@ -40,17 +40,14 @@ class PopularAppsSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
           child: Row(
             children: [
-              Text(
-                context.l10n.popularApps,
-                style: OmiType.title3,
-              ),
+              Text(context.l10n.popularApps, style: OmiType.title3),
               const Spacer(),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: const BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
+                    decoration: BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
                     child: Text(
                       '${apps.length}',
                       style: OmiType.caption.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w600),
@@ -98,7 +95,7 @@ class PopularAppsSection extends StatelessWidget {
                       child: Container(
                         width: 60,
                         height: 60,
-                        decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+                        decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
                         child: CachedNetworkImage(
                           imageUrl: app.getImageUrl(),
                           httpHeaders: const {
@@ -112,11 +109,11 @@ class PopularAppsSection extends StatelessWidget {
                             child: Container(
                               width: double.infinity,
                               height: double.infinity,
-                              decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
+                              decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
                             ),
                           ),
                           errorWidget: (context, url, error) =>
-                              const Icon(Icons.apps, size: 30, color: OmiColors.textTertiary),
+                              Icon(Icons.apps, size: 30, color: OmiColors.textTertiary),
                         ),
                       ),
                     ),

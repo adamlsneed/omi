@@ -148,7 +148,10 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
     return Consumer<PhoneCallProvider>(
       builder: (context, provider, _) {
         if (!provider.numbersLoaded) {
-          return Scaffold(appBar: AppBar(leading: const OmiBackButton()), body: const OmiLoadingState());
+          return Scaffold(
+            appBar: AppBar(leading: const OmiBackButton()),
+            body: const OmiLoadingState(),
+          );
         }
         if (provider.verifiedNumbers.isEmpty) {
           return const PhoneSetupIntroPage();
@@ -235,7 +238,7 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
               ? OmiEmptyState(icon: Icons.person_search_outlined, title: context.l10n.phoneNoContactsFound)
               : ListView.separated(
                   itemCount: _filteredContacts.length,
-                  separatorBuilder: (_, __) => const Divider(color: OmiColors.border, height: 1, indent: 72),
+                  separatorBuilder: (_, __) => Divider(color: OmiColors.border, height: 1, indent: 72),
                   itemBuilder: (context, index) {
                     var contact = _filteredContacts[index];
                     var phone = contact.phones.first;
@@ -279,8 +282,8 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
                       style: TextStyle(
                         fontSize: hasDigits
                             ? (_dialpadController.text.length > 12
-                                ? OmiType.title2.fontSize
-                                : OmiType.largeTitle.fontSize)
+                                  ? OmiType.title2.fontSize
+                                  : OmiType.largeTitle.fontSize)
                             : OmiType.title3.fontSize,
                         fontWeight: FontWeight.w300,
                         letterSpacing: hasDigits ? 2 : 0,
@@ -313,7 +316,7 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
                                 _dialpadController.text = '';
                               });
                             },
-                            child: const Center(
+                            child: Center(
                               child: Icon(Icons.backspace_outlined, color: OmiColors.textSecondary, size: 22),
                             ),
                           ),
@@ -525,7 +528,7 @@ class _ContactRow extends StatelessWidget {
                 ),
               ),
               // The whole row dials; the glyph only says so.
-              const ExcludeSemantics(child: Icon(Icons.phone, color: OmiColors.textSecondary, size: 22)),
+              ExcludeSemantics(child: Icon(Icons.phone, color: OmiColors.textSecondary, size: 22)),
             ],
           ),
         ),
@@ -562,9 +565,11 @@ class _FreeQuotaBanner extends StatelessWidget {
           color: OmiColors.surface1,
           child: Row(
             children: [
-              const ExcludeSemantics(child: Icon(Icons.info_outline, size: 16, color: OmiColors.textTertiary)),
+              ExcludeSemantics(child: Icon(Icons.info_outline, size: 16, color: OmiColors.textTertiary)),
               const SizedBox(width: OmiSpacing.xs),
-              Expanded(child: Text(text, style: OmiType.footnote.copyWith(color: OmiColors.textSecondary))),
+              Expanded(
+                child: Text(text, style: OmiType.footnote.copyWith(color: OmiColors.textSecondary)),
+              ),
             ],
           ),
         );
@@ -596,7 +601,7 @@ class _DialpadKey extends StatelessWidget {
         child: Container(
           width: 72,
           height: 72,
-          decoration: const BoxDecoration(shape: BoxShape.circle, color: OmiColors.surface1),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: OmiColors.surface1),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

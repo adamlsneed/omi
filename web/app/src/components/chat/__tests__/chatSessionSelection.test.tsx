@@ -9,11 +9,12 @@ vi.mock('@/lib/api', () => ({
   uploadChatFiles: vi.fn().mockResolvedValue([]),
   getChatApps: vi.fn().mockResolvedValue([]),
 }));
-vi.mock('@/lib/analytics/mixpanel', () => ({ MixpanelManager: {} }));
+vi.mock('@/lib/analytics/posthog', () => ({ PostHogManager: {} }));
 
 const { getMessages } = await import('@/lib/api');
-const { ChatProvider, useChat: useChatContext } =
-  await import('@/components/chat/ChatContext');
+const { ChatProvider, useChat: useChatContext } = await import(
+  '@/components/chat/ChatContext'
+);
 const { ChatPanel } = await import('@/components/chat/ChatPanel');
 
 function OpenWithSession({ sessionId }: { sessionId: string | null }) {

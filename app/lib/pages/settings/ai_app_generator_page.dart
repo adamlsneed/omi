@@ -169,7 +169,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
                       iconBytes: provider.generatedIconBytes,
                       placeholder: provider.currentStep.index >= GenerationStep.generatingIcon.index
                           ? const OmiSpinner()
-                          : const FaIcon(FontAwesomeIcons.wandMagicSparkles, color: OmiColors.textTertiary, size: 28),
+                          : FaIcon(FontAwesomeIcons.wandMagicSparkles, color: OmiColors.textTertiary, size: 28),
                     ),
                     if (provider.generatedIconBytes == null)
                       Positioned(
@@ -183,8 +183,10 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
                           ),
                           child: Text(
                             '${(progress * 100).round()}%',
-                            style:
-                                OmiType.caption.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w600),
+                            style: OmiType.caption.copyWith(
+                              color: OmiColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -194,11 +196,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
 
                 // App name (shimmer until it is ready)
                 provider.generatedName != null
-                    ? Text(
-                        provider.generatedName!,
-                        style: OmiType.title3,
-                        textAlign: TextAlign.center,
-                      )
+                    ? Text(provider.generatedName!, style: OmiType.title3, textAlign: TextAlign.center)
                     : const _ShimmerBlock(width: 160, height: 24),
                 const SizedBox(height: OmiSpacing.sm),
 
@@ -251,7 +249,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
                       for (final capability in _capabilityNames(provider))
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: OmiSpacing.xs),
-                          decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.pillAll),
+                          decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.pillAll),
                           child: Text(capability, style: OmiType.footnote.copyWith(color: OmiColors.textSecondary)),
                         ),
                     ],
@@ -284,14 +282,14 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
               ),
               child: Center(
                 child: isCompleted
-                    ? const FaIcon(FontAwesomeIcons.check, color: OmiColors.onAccent, size: 12)
+                    ? FaIcon(FontAwesomeIcons.check, color: OmiColors.onAccent, size: 12)
                     : isActive
-                        ? const OmiSpinner(size: OmiSpinnerSize.small)
-                        : Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(shape: BoxShape.circle, color: OmiColors.textTertiary),
-                          ),
+                    ? const OmiSpinner(size: OmiSpinnerSize.small)
+                    : Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: OmiColors.textTertiary),
+                      ),
               ),
             ),
             const SizedBox(width: 14),
@@ -324,11 +322,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
             padding: const EdgeInsets.only(left: 15),
             child: Row(
               children: [
-                Container(
-                  width: 2,
-                  height: OmiSpacing.xl,
-                  color: isCompleted ? OmiColors.accent : OmiColors.surface2,
-                ),
+                Container(width: 2, height: OmiSpacing.xl, color: isCompleted ? OmiColors.accent : OmiColors.surface2),
               ],
             ),
           ),
@@ -341,7 +335,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
       width: 260,
       margin: const EdgeInsets.only(right: OmiSpacing.sm),
       padding: const EdgeInsets.all(OmiSpacing.lg),
-      decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
+      decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -380,7 +374,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
           top: 6,
           bottom: 6,
         ),
-        decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.pillAll),
+        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.pillAll),
         child: Row(
           children: [
             Expanded(
@@ -417,7 +411,10 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
             if (hasText || isGenerating) ...[
               const SizedBox(width: OmiSpacing.xs),
               isGenerating
-                  ? const SizedBox.square(dimension: kOmiMinTapTarget, child: Center(child: OmiSpinner()))
+                  ? const SizedBox.square(
+                      dimension: kOmiMinTapTarget,
+                      child: Center(child: OmiSpinner()),
+                    )
                   : OmiIconButton.filled(
                       icon: const FaIcon(FontAwesomeIcons.arrowUp, size: 18),
                       label: context.l10n.send,
@@ -442,7 +439,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
           Container(
             margin: const EdgeInsetsDirectional.only(end: OmiSpacing.md),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+            decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
             child: Text(
               context.l10n.beta,
               style: OmiType.caption.copyWith(fontWeight: FontWeight.w700, color: OmiColors.textSecondary),
@@ -492,7 +489,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
                 children: [
                   _AppIconTile(
                     iconBytes: provider.generatedIconBytes,
-                    placeholder: const FaIcon(FontAwesomeIcons.cube, color: OmiColors.textTertiary, size: 32),
+                    placeholder: FaIcon(FontAwesomeIcons.cube, color: OmiColors.textTertiary, size: 32),
                   ),
                   Positioned(
                     right: -14,
@@ -581,11 +578,13 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(color: OmiColors.surface2, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: OmiColors.surface2, shape: BoxShape.circle),
             child: Center(child: FaIcon(icon, color: OmiColors.textPrimary, size: 16)),
           ),
           const SizedBox(width: 14),
-          Expanded(child: Text(description, style: OmiType.subhead.copyWith(fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text(description, style: OmiType.subhead.copyWith(fontWeight: FontWeight.w600)),
+          ),
         ],
       ),
     );
@@ -604,8 +603,8 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
             value: provider.makePublic,
             onChanged: (v) => provider.setMakePublic(v),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: OmiSpacing.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: OmiSpacing.md),
             child: Divider(color: OmiColors.border, height: 1),
           ),
           _buildSettingRow(
@@ -619,10 +618,10 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
             const SizedBox(height: OmiSpacing.md),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.md, vertical: 14),
-              decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+              decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
               child: Row(
                 children: [
-                  const Text('\$', style: OmiType.title3),
+                  Text('\$', style: OmiType.title3),
                   const SizedBox(width: OmiSpacing.xs),
                   Expanded(
                     child: TextField(
@@ -661,7 +660,7 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+            decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
             child: Center(child: FaIcon(icon, color: OmiColors.textSecondary, size: 16)),
           ),
           const SizedBox(width: 14),
@@ -780,15 +779,16 @@ class _AppIconTile extends StatelessWidget {
 
 /// A small pill: category, visibility or price.
 class _Badge extends StatelessWidget {
-  const _Badge({required this.label, this.icon, this.color = OmiColors.textSecondary});
+  const _Badge({required this.label, this.icon, this.color});
 
   final String label;
   final FaIconData? icon;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final icon = this.icon;
+    final color = this.color ?? OmiColors.textSecondary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.sm, vertical: 6),
       decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: OmiRadius.pillAll),
@@ -796,7 +796,10 @@ class _Badge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[FaIcon(icon, color: color, size: 12), const SizedBox(width: 6)],
-          Text(label, style: OmiType.footnote.copyWith(color: color, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: OmiType.footnote.copyWith(color: color, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -832,11 +835,10 @@ class _SuggestionCardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget line(double width) => Container(
-          height: 16,
-          width: width,
-          decoration:
-              BoxDecoration(color: OmiColors.textPrimary, borderRadius: BorderRadius.circular(OmiRadius.sm / 2)),
-        );
+      height: 16,
+      width: width,
+      decoration: BoxDecoration(color: OmiColors.textPrimary, borderRadius: BorderRadius.circular(OmiRadius.sm / 2)),
+    );
     return ShimmerWithTimeout(
       baseColor: OmiColors.surface1,
       highlightColor: OmiColors.surface2,
@@ -844,7 +846,7 @@ class _SuggestionCardShimmer extends StatelessWidget {
         width: 260,
         margin: const EdgeInsets.only(right: OmiSpacing.sm),
         padding: const EdgeInsets.all(OmiSpacing.lg),
-        decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
+        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -857,7 +859,7 @@ class _SuggestionCardShimmer extends StatelessWidget {
             Container(
               height: 36,
               width: 80,
-              decoration: const BoxDecoration(color: OmiColors.textPrimary, borderRadius: OmiRadius.pillAll),
+              decoration: BoxDecoration(color: OmiColors.textPrimary, borderRadius: OmiRadius.pillAll),
             ),
           ],
         ),

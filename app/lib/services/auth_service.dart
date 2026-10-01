@@ -18,6 +18,7 @@ import 'package:omi/env/env.dart';
 import 'package:omi/env/environment_profile.dart';
 import 'package:omi/flavors.dart';
 import 'package:omi/services/auth/auth_token_result.dart';
+import 'package:omi/services/siri_integration.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/platform/platform_manager.dart';
 
@@ -27,7 +28,11 @@ final class _FirebaseAuthTokenGateway implements AuthTokenGateway {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
     return AuthUserSnapshot(
-        uid: user.uid, email: user.email, displayName: user.displayName, isAnonymous: user.isAnonymous);
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      isAnonymous: user.isAnonymous,
+    );
   }
 
   @override
@@ -73,8 +78,9 @@ Future<ProviderLinkResult> resolveProviderCredentialCollision({
   required Future<String?> Function() establishDestination,
 }) async {
   final sourceToken = sourceIsAnonymous ? await captureSourceToken() : null;
-  final anonymousSourceMigration =
-      sourceToken == null ? null : AnonymousSourceMigration(uid: sourceUid, token: sourceToken);
+  final anonymousSourceMigration = sourceToken == null
+      ? null
+      : AnonymousSourceMigration(uid: sourceUid, token: sourceToken);
   final destinationUid = await establishDestination();
   return ProviderLinkResult(destinationUid: destinationUid, anonymousSourceMigration: anonymousSourceMigration);
 }
@@ -84,11 +90,13 @@ class AuthService {
   static AuthService get instance => _instance;
 
   AuthService._internal()
-      : _tokenGateway = _FirebaseAuthTokenGateway(),
-        _refreshAttemptTimeout = _defaultRefreshAttemptTimeout,
-        _refreshDelay = _defaultRefreshDelay,
-        _recordTelemetry = _recordProductionTelemetry,
-        _telemetryContextProvider = _productionTelemetryContext;
+    : _tokenGateway = _FirebaseAuthTokenGateway(),
+      _refreshAttemptTimeout = _defaultRefreshAttemptTimeout,
+      _refreshDelay = _defaultRefreshDelay,
+      _recordTelemetry = _recordProductionTelemetry,
+      _telemetryContextProvider = _productionTelemetryContext,
+      _prepareSiriSignOut = SiriIntegration.current.prepareForSignOut,
+      _siriPreparationTimeout = const Duration(seconds: 2);
 
   @visibleForTesting
   AuthService.forTesting({
@@ -97,11 +105,15 @@ class AuthService {
     Duration? refreshAttemptTimeout,
     AuthTelemetryRecorder? recordTelemetry,
     AuthTelemetryContextProvider? telemetryContextProvider,
-  })  : _tokenGateway = tokenGateway,
-        _refreshAttemptTimeout = refreshAttemptTimeout ?? _defaultRefreshAttemptTimeout,
-        _refreshDelay = refreshDelay ?? _defaultRefreshDelay,
-        _recordTelemetry = recordTelemetry ?? ((eventName, properties) {}),
-        _telemetryContextProvider = telemetryContextProvider ?? (() => const {});
+    Future<void> Function()? prepareSiriSignOut,
+    Duration siriPreparationTimeout = const Duration(seconds: 2),
+  }) : _tokenGateway = tokenGateway,
+       _refreshAttemptTimeout = refreshAttemptTimeout ?? _defaultRefreshAttemptTimeout,
+       _refreshDelay = refreshDelay ?? _defaultRefreshDelay,
+       _recordTelemetry = recordTelemetry ?? ((eventName, properties) {}),
+       _telemetryContextProvider = telemetryContextProvider ?? (() => const {}),
+       _prepareSiriSignOut = prepareSiriSignOut ?? (() async {}),
+       _siriPreparationTimeout = siriPreparationTimeout;
 
   /// Replaces the production Firebase token gateway on the **singleton** for
   /// the local hermetic journey lane (SCA-488).
@@ -149,6 +161,20 @@ class AuthService {
   final AuthRefreshDelay _refreshDelay;
   final AuthTelemetryRecorder _recordTelemetry;
   final AuthTelemetryContextProvider _telemetryContextProvider;
+  final Future<void> Function() _prepareSiriSignOut;
+  final Duration _siriPreparationTimeout;
+
+  Future<void> _prepareSiriBestEffort() async {
+    try {
+      await _prepareSiriSignOut().timeout(_siriPreparationTimeout);
+    } catch (error) {
+      // The auth boundary must complete even when the optional native bridge
+      // is unavailable. A successfully persisted marker remains for launch
+      // maintenance; the auth-state callback still attempts the wipe.
+      Logger.debug('Siri sign-out preparation deferred: ${error.runtimeType}');
+    }
+  }
+
   final StreamController<AuthSessionExpiredEvent> _sessionExpiredController =
       StreamController<AuthSessionExpiredEvent>.broadcast(sync: true);
   Future<AuthTokenResult>? _refreshInFlight;
@@ -164,10 +190,10 @@ class AuthService {
   }
 
   static Map<String, dynamic> _productionTelemetryContext() => {
-        'platform': PlatformManager.instance.platform,
-        'app_version': PlatformManager.instance.appVersion,
-        'release_channel': Env.isTestFlight ? 'testflight' : (F.env == Environment.prod ? 'app_store' : 'dev'),
-      };
+    'platform': PlatformManager.instance.platform,
+    'app_version': PlatformManager.instance.appVersion,
+    'release_channel': Env.isTestFlight ? 'testflight' : (F.env == Environment.prod ? 'app_store' : 'dev'),
+  };
 
   /// Routes through the token gateway so the declared Firebase I/O seam
   /// covers identity reads too: the production gateway still answers from
@@ -227,8 +253,7 @@ class AuthService {
     try {
       // Sign out the current user first
       Logger.debug('Signing out current user...');
-      handleAuthUserChanged(null);
-      await FirebaseAuth.instance.signOut();
+      await signOutForAccountSwitch();
       Logger.debug('User signed out successfully.');
 
       final rawNonce = generateNonce();
@@ -293,8 +318,17 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    await _prepareSiriBestEffort();
     _invalidateRefreshes();
     _clearCachedIdentityAndAuth();
+    await _tokenGateway.signOut();
+  }
+
+  /// Credential collision and provider switching preserve their existing
+  /// non-Siri cache behavior, while fencing native Siri before Firebase exits.
+  Future<void> signOutForAccountSwitch() async {
+    await _prepareSiriBestEffort();
+    handleAuthUserChanged(null);
     await _tokenGateway.signOut();
   }
 
@@ -377,26 +411,28 @@ class AuthService {
     if (_localDevRecoveryInFlight) return;
     _localDevRecoveryInFlight = true;
 
-    unawaited(Future<void>.delayed(Duration.zero, () async {
-      try {
-        Logger.debug('local-dev: refresh failed, re-minting a session out of band');
-        final credential = await signInWithLocalDevToken();
-        final user = credential?.user;
-        if (user == null) return;
-        // Unforced: sign-in just populated a fresh token, so read the cached one
-        // rather than re-entering the forced-refresh path that just failed.
-        final token = await user.getIdToken();
-        if (token == null || token.isEmpty) return;
-        SharedPreferencesUtil().authToken = token;
-        _sessionExpired = false;
-        markAuthenticatedUser(user.uid);
-        Logger.debug('local-dev: session re-minted; the next request will use it');
-      } catch (e) {
-        Logger.debug('local-dev: re-mint failed: $e');
-      } finally {
-        _localDevRecoveryInFlight = false;
-      }
-    }));
+    unawaited(
+      Future<void>.delayed(Duration.zero, () async {
+        try {
+          Logger.debug('local-dev: refresh failed, re-minting a session out of band');
+          final credential = await signInWithLocalDevToken();
+          final user = credential?.user;
+          if (user == null) return;
+          // Unforced: sign-in just populated a fresh token, so read the cached one
+          // rather than re-entering the forced-refresh path that just failed.
+          final token = await user.getIdToken();
+          if (token == null || token.isEmpty) return;
+          SharedPreferencesUtil().authToken = token;
+          _sessionExpired = false;
+          markAuthenticatedUser(user.uid);
+          Logger.debug('local-dev: session re-minted; the next request will use it');
+        } catch (e) {
+          Logger.debug('local-dev: re-mint failed: $e');
+        } finally {
+          _localDevRecoveryInFlight = false;
+        }
+      }),
+    );
   }
 
   Future<AuthTokenResult> refreshIdToken() {
@@ -540,6 +576,7 @@ class AuthService {
   }
 
   Future<void> _runSessionExpiration() async {
+    await _prepareSiriBestEffort();
     try {
       await _tokenGateway.signOut();
     } catch (e) {
@@ -562,15 +599,17 @@ class AuthService {
 
       Logger.debug('Starting OAuth flow for provider: $provider');
 
-      final authUrl = Uri.parse('${Env.authApiBaseUrl}v1/auth/authorize').replace(
-        queryParameters: {
-          'provider': provider,
-          'redirect_uri': redirectUri,
-          'state': state,
-          'code_challenge': codeChallenge,
-          'code_challenge_method': 'S256',
-        },
-      ).toString();
+      final authUrl = Uri.parse('${Env.authApiBaseUrl}v1/auth/authorize')
+          .replace(
+            queryParameters: {
+              'provider': provider,
+              'redirect_uri': redirectUri,
+              'state': state,
+              'code_challenge': codeChallenge,
+              'code_challenge_method': 'S256',
+            },
+          )
+          .toString();
 
       Logger.debug('Authorization URL: $authUrl');
 
@@ -700,11 +739,18 @@ class AuthService {
       throw StateError('Local development sign-in is only available in the local_dev profile.');
     }
 
-    final response = await http.post(
-      Uri.parse('${Env.authApiBaseUrl}v1/auth/local-dev/custom-token'),
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {'uid': uid},
-    );
+    final response = await http
+        .post(
+          Uri.parse('${Env.authApiBaseUrl}v1/auth/local-dev/custom-token'),
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: {'uid': uid},
+        )
+        .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => throw StateError(
+            'Cannot reach the local development server. Connect the iPhone to the same Wi-Fi as the Mac and build with OMI_DEV_HOST set to the Mac address.',
+          ),
+        );
 
     if (response.statusCode == 404) {
       throw StateError(
@@ -720,6 +766,19 @@ class AuthService {
     final customToken = decoded['custom_token'] as String?;
     if (customToken == null || customToken.isEmpty) {
       throw Exception('Local development sign-in returned no custom token');
+    }
+
+    // Check reachability before the side-effecting Firebase sign-in. Timing out
+    // signInWithCustomToken would not cancel it: a late success could create a
+    // session after the UI has already reported failure.
+    try {
+      await http
+          .get(Uri(scheme: 'http', host: Env.firebaseAuthEmulatorHost, port: Env.firebaseAuthEmulatorPort))
+          .timeout(const Duration(seconds: 8));
+    } catch (_) {
+      throw StateError(
+        'Cannot reach the local Firebase Auth emulator. Connect the iPhone to the same Wi-Fi as the Mac and build with OMI_DEV_HOST set to the Mac address.',
+      );
     }
 
     final credential = await FirebaseAuth.instance.signInWithCustomToken(customToken);
@@ -879,13 +938,15 @@ class AuthService {
           Logger.debug('Web platform detected - attempting updateProfile with caution');
 
           // Try with a timeout to prevent hanging
-          await user.updateProfile(displayName: fullName).timeout(
-            const Duration(seconds: 5),
-            onTimeout: () {
-              Logger.debug('updateProfile timed out on web platform');
-              throw TimeoutException('updateProfile timed out', const Duration(seconds: 5));
-            },
-          );
+          await user
+              .updateProfile(displayName: fullName)
+              .timeout(
+                const Duration(seconds: 5),
+                onTimeout: () {
+                  Logger.debug('updateProfile timed out on web platform');
+                  throw TimeoutException('updateProfile timed out', const Duration(seconds: 5));
+                },
+              );
         } else {
           await user.updateProfile(displayName: fullName);
         }
@@ -944,15 +1005,17 @@ class AuthService {
 
       Logger.debug('Starting OAuth linking flow for provider: $provider');
 
-      final authUrl = Uri.parse('${Env.authApiBaseUrl}v1/auth/authorize').replace(
-        queryParameters: {
-          'provider': provider,
-          'redirect_uri': redirectUri,
-          'state': state,
-          'code_challenge': codeChallenge,
-          'code_challenge_method': 'S256',
-        },
-      ).toString();
+      final authUrl = Uri.parse('${Env.authApiBaseUrl}v1/auth/authorize')
+          .replace(
+            queryParameters: {
+              'provider': provider,
+              'redirect_uri': redirectUri,
+              'state': state,
+              'code_challenge': codeChallenge,
+              'code_challenge_method': 'S256',
+            },
+          )
+          .toString();
 
       Logger.debug('Authorization URL: $authUrl');
 
@@ -1059,8 +1122,7 @@ class AuthService {
     final existingCred = e.credential;
 
     // Sign out current anonymous user
-    handleAuthUserChanged(null);
-    await FirebaseAuth.instance.signOut();
+    await signOutForAccountSwitch();
 
     // Sign in with existing account
     final result = await FirebaseAuth.instance.signInWithCredential(existingCred!);

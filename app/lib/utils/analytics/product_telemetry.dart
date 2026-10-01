@@ -33,7 +33,7 @@ enum ProductSurface {
   notification,
   integration,
   background,
-  unknown
+  unknown,
 }
 
 enum ProductOutcome { success, empty, failure, cancelled, superseded, unobserved }
@@ -48,7 +48,7 @@ enum ProductFailure {
   timeout,
   invalidResponse,
   incomplete,
-  unknown
+  unknown,
 }
 
 enum ProductValue {
@@ -59,55 +59,76 @@ enum ProductValue {
   memoryKept,
   feedbackHelpful,
   searchResultOpened,
-  recordingRecovered
+  recordingRecovered,
 }
 
 /// The application-facing typed boundary. Generated events own exact wire shapes;
 /// this object owns attempt lifetime, deduplication and identity fencing.
 class ProductTelemetry {
   ProductTelemetry({void Function(RegisteredEvent)? emit, DateTime Function()? now, int Function()? identityEpoch})
-      : _emit = emit ?? const TypedEvents().emit,
-        _now = now ?? DateTime.now,
-        _identityEpoch = identityEpoch ?? (() => AnalyticsManager.identityEpoch);
+    : _emit = emit ?? const TypedEvents().emit,
+      _now = now ?? DateTime.now,
+      _identityEpoch = identityEpoch ?? (() => AnalyticsManager.identityEpoch);
 
   static ProductTelemetry instance = ProductTelemetry();
   final void Function(RegisteredEvent) _emit;
   final DateTime Function() _now;
   final int Function() _identityEpoch;
 
-  void _send(RegisteredEvent event, [Map<String, Object>? attribution]) {
+  void _send(RegisteredEvent event) {
     try {
-      AnalyticsManager.withExperimentContext(
-          attribution ?? AnalyticsManager.captureExperimentContext(), () => _emit(event));
-    } catch (_) {/* Observation never changes product behavior. */}
+      _emit(event);
+    } catch (_) {
+      /* Observation never changes product behavior. */
+    }
   }
 
-  ProductAttempt start(ProductJourney journey,
-      {ProductSurface surface = ProductSurface.unknown, RecordReference? objectId}) {
-    final attempt =
-        ProductAttempt._(this, journey, surface, objectId, EventCorrelation.mint(), _now(), _identityEpoch());
-    _send(ProductJourneyStarted(
-      correlationId: attempt._correlation,
-      journey: ProductJourneyStartedJourney.values.byName(journey.name),
-      surface: ProductJourneyStartedSurface.values.byName(surface.name),
-      objectId: objectId,
-    ));
+  ProductAttempt start(
+    ProductJourney journey, {
+    ProductSurface surface = ProductSurface.unknown,
+    RecordReference? objectId,
+  }) {
+    final attempt = ProductAttempt._(
+      this,
+      journey,
+      surface,
+      objectId,
+      EventCorrelation.mint(),
+      _now(),
+      _identityEpoch(),
+    );
+    _send(
+      ProductJourneyStarted(
+        correlationId: attempt._correlation,
+        journey: ProductJourneyStartedJourney.values.byName(journey.name),
+        surface: ProductJourneyStartedSurface.values.byName(surface.name),
+        objectId: objectId,
+      ),
+    );
     return attempt;
   }
 
   void value(ProductValue kind, {ProductSurface surface = ProductSurface.unknown, RecordReference? objectId}) {
-    _send(ProductValueEvent(
-      kind: ProductValueEventKind.values.byName(kind.name),
-      surface: ProductValueEventSurface.values.byName(surface.name),
-      objectId: objectId,
-    ));
+    _send(
+      ProductValueEvent(
+        kind: ProductValueEventKind.values.byName(kind.name),
+        surface: ProductValueEventSurface.values.byName(surface.name),
+        objectId: objectId,
+      ),
+    );
   }
 }
 
 class ProductAttempt {
   ProductAttempt._(
-      this._owner, this.journey, this.surface, this._objectId, this._correlation, this._startedAt, this._epoch);
-  final Map<String, Object> _attribution = AnalyticsManager.captureExperimentContext();
+    this._owner,
+    this.journey,
+    this.surface,
+    this._objectId,
+    this._correlation,
+    this._startedAt,
+    this._epoch,
+  );
   final ProductTelemetry _owner;
   final ProductJourney journey;
   final ProductSurface surface;
@@ -132,13 +153,15 @@ class ProductAttempt {
   void firstResult() {
     if (_terminal || _firstResult || !_current) return;
     _firstResult = true;
-    _owner._send(ProductJourneyFirstResult(
-      correlationId: _correlation,
-      journey: ProductJourneyFirstResultJourney.values.byName(journey.name),
-      surface: ProductJourneyFirstResultSurface.values.byName(surface.name),
-      objectId: _objectId,
-      durationMs: _elapsed,
-    ));
+    _owner._send(
+      ProductJourneyFirstResult(
+        correlationId: _correlation,
+        journey: ProductJourneyFirstResultJourney.values.byName(journey.name),
+        surface: ProductJourneyFirstResultSurface.values.byName(surface.name),
+        objectId: _objectId,
+        durationMs: _elapsed,
+      ),
+    );
   }
 
   void complete(ProductOutcome outcome, {ProductFailure failure = ProductFailure.none, int? resultCount}) {
@@ -149,16 +172,16 @@ class ProductAttempt {
         ? (failure == ProductFailure.none ? ProductFailure.unknown : failure)
         : ProductFailure.none;
     _owner._send(
-        ProductJourneyOutcome(
-          correlationId: _correlation,
-          journey: ProductJourneyOutcomeJourney.values.byName(journey.name),
-          surface: ProductJourneyOutcomeSurface.values.byName(surface.name),
-          objectId: _objectId,
-          outcome: ProductJourneyOutcomeOutcome.values.byName(outcome.name),
-          failure: ProductJourneyOutcomeFailure.values.byName(normalizedFailure.name),
-          durationMs: _elapsed,
-          resultCount: resultCount == null ? -1 : math.max(0, resultCount),
-        ),
-        _attribution);
+      ProductJourneyOutcome(
+        correlationId: _correlation,
+        journey: ProductJourneyOutcomeJourney.values.byName(journey.name),
+        surface: ProductJourneyOutcomeSurface.values.byName(surface.name),
+        objectId: _objectId,
+        outcome: ProductJourneyOutcomeOutcome.values.byName(outcome.name),
+        failure: ProductJourneyOutcomeFailure.values.byName(normalizedFailure.name),
+        durationMs: _elapsed,
+        resultCount: resultCount == null ? -1 : math.max(0, resultCount),
+      ),
+    );
   }
 }

@@ -79,11 +79,7 @@ class _OnboardingIntroScreenState extends State<OnboardingIntroScreen> with Sing
                 ),
               ),
               const Spacer(flex: 2),
-              Text(
-                context.l10n.deviceOnboardingIntroTitle,
-                style: OmiType.title1,
-                textAlign: TextAlign.center,
-              ),
+              Text(context.l10n.deviceOnboardingIntroTitle, style: OmiType.title1, textAlign: TextAlign.center),
               const SizedBox(height: 12),
               Text(
                 context.l10n.deviceOnboardingIntroSubtitle,
@@ -94,7 +90,7 @@ class _OnboardingIntroScreenState extends State<OnboardingIntroScreen> with Sing
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const ExcludeSemantics(child: Icon(Icons.schedule, color: OmiColors.textSecondary, size: 16)),
+                  ExcludeSemantics(child: Icon(Icons.schedule, color: OmiColors.textSecondary, size: 16)),
                   const SizedBox(width: 6),
                   Text(
                     context.l10n.deviceOnboardingIntroDuration,

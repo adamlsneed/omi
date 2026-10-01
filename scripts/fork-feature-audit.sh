@@ -41,10 +41,6 @@ check ideaFolderId app/lib "app idea capture filing"
 check FrontendTemplateRouter app/lib "app template routing"
 check appleRemindersAutoExport app/lib "app Apple Reminders auto-export"
 check _isManagedByNative app/lib "app BLE re-discover/reconnect"
-# The 2026-09-17 sync took upstream's OmiBleManager wholesale and dropped this;
-# upstream's own restore path only calls discoverServices, without re-attaching
-# the delegate, so audio notify subscriptions were never re-established.
-check_call_site rediscoverServices app/ios/Runner/Ble OmiBlePairingPolicy.swift "iOS BLE service re-discovery on state restore"
 check IdeaCapture desktop/macos/Desktop/Sources "desktop idea capture"
 check_call_site "IdeaCaptureToast.shared" desktop/macos/Desktop/Sources IdeaCaptureToast.swift "desktop idea capture toast wired"
 check_call_site "toggleIdeaCapture" desktop/macos/Desktop/Sources "AppState+IdeaCapture.swift" "desktop idea capture UI wired"

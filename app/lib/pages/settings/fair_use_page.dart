@@ -65,25 +65,25 @@ class _FairUsePageState extends State<FairUsePage> {
       body: _isLoading
           ? const OmiLoadingState()
           : _error != null || _status == null
-              ? OmiErrorState(message: context.l10n.fairUseLoadError, onRetry: _loadStatus)
-              : RefreshIndicator(
-                  onRefresh: _loadStatus,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(OmiSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStatusBanner(),
-                        _buildUsageSection(),
-                        _buildBudgetSection(),
-                        _buildMessageBanner(),
-                        const SizedBox(height: OmiSpacing.xl),
-                        _buildAboutFooter(),
-                      ],
-                    ),
-                  ),
+          ? OmiErrorState(message: context.l10n.fairUseLoadError, onRetry: _loadStatus)
+          : RefreshIndicator(
+              onRefresh: _loadStatus,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(OmiSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStatusBanner(),
+                    _buildUsageSection(),
+                    _buildBudgetSection(),
+                    _buildMessageBanner(),
+                    const SizedBox(height: OmiSpacing.xl),
+                    _buildAboutFooter(),
+                  ],
                 ),
+              ),
+            ),
     );
   }
 
@@ -128,7 +128,10 @@ class _FairUsePageState extends State<FairUsePage> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(stageLabel, style: OmiType.subhead.copyWith(color: dotColor, fontWeight: FontWeight.w500)),
+              child: Text(
+                stageLabel,
+                style: OmiType.subhead.copyWith(color: dotColor, fontWeight: FontWeight.w500),
+              ),
             ),
             if (caseRef.isNotEmpty)
               Semantics(
@@ -150,7 +153,7 @@ class _FairUsePageState extends State<FairUsePage> {
                             style: OmiType.footnote.copyWith(color: OmiColors.textSecondary, fontFamily: 'monospace'),
                           ),
                           const SizedBox(width: OmiSpacing.xxs),
-                          const Icon(Icons.copy, size: 14, color: OmiColors.textSecondary),
+                          Icon(Icons.copy, size: 14, color: OmiColors.textSecondary),
                         ],
                       ),
                     ),
@@ -172,7 +175,7 @@ class _FairUsePageState extends State<FairUsePage> {
 
     return Container(
       padding: const EdgeInsets.all(OmiSpacing.lg),
-      decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
+      decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -210,8 +213,8 @@ class _FairUsePageState extends State<FairUsePage> {
     final barColor = pct >= 100
         ? OmiColors.danger
         : pct >= 80
-            ? OmiColors.warning
-            : OmiColors.accent;
+        ? OmiColors.warning
+        : OmiColors.accent;
     final l10n = context.l10n;
 
     return Column(
@@ -333,11 +336,11 @@ class _FairUsePageState extends State<FairUsePage> {
       padding: const EdgeInsets.only(top: OmiSpacing.sm),
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
+        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.info_outline, color: OmiColors.textSecondary, size: 16),
+            Icon(Icons.info_outline, color: OmiColors.textSecondary, size: 16),
             const SizedBox(width: 10),
             Expanded(
               child: Text(message, style: OmiType.footnote.copyWith(color: OmiColors.textSecondary, height: 1.4)),

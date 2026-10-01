@@ -131,7 +131,7 @@ class AppleRemindersService {
             result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing enabled flag", details: nil))
             return
         }
-        UserDefaults.standard.set(enabled, forKey: autoExportEnabledKey)
+        try? SafeDefaults.store(.bool(enabled), forKey: autoExportEnabledKey)
         result(true)
     }
 

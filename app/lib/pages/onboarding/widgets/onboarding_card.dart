@@ -30,9 +30,9 @@ class OnboardingCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: padding,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: OmiColors.surface0,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(OmiRadius.xl)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(OmiRadius.xl)),
       ),
       child: SafeArea(
         top: false,
@@ -42,8 +42,11 @@ class OnboardingCard extends StatelessWidget {
           children: [
             Flexible(
               child: SingleChildScrollView(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: crossAxisAlignment, children: content),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: crossAxisAlignment,
+                  children: content,
+                ),
               ),
             ),
             ...footer,
@@ -66,7 +69,10 @@ class OnboardingStep extends StatelessWidget {
     // Keep clear of the progress dots and back button drawn over the top of the step.
     return Padding(
       padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top + 64),
-      child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [Flexible(child: card)]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [Flexible(child: card)],
+      ),
     );
   }
 }

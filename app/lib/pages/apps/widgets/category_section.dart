@@ -66,10 +66,7 @@ class CategorySection extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
             child: Row(
               children: [
-                Text(
-                  categoryName,
-                  style: OmiType.title3,
-                ),
+                Text(categoryName, style: OmiType.title3),
                 const Spacer(),
                 if (showViewAll)
                   GestureDetector(
@@ -79,11 +76,13 @@ class CategorySection extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: const BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
+                          decoration: BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
                           child: Text(
                             context.l10n.all,
-                            style:
-                                OmiType.caption.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w600),
+                            style: OmiType.caption.copyWith(
+                              color: OmiColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         // const SizedBox(width: 8),
@@ -152,13 +151,13 @@ class SectionAppItemCard extends StatelessWidget {
               placeholder: (context, url) => Container(
                 width: 60,
                 height: 60,
-                decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
+                decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
               ),
               errorWidget: (context, url, error) => Container(
                 width: 60,
                 height: 60,
-                decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
-                child: const Icon(Icons.error_outline, color: OmiColors.textTertiary, size: 24),
+                decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
+                child: Icon(Icons.error_outline, color: OmiColors.textTertiary, size: 24),
               ),
             ),
             const SizedBox(width: 12),

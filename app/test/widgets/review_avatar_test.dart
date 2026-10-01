@@ -4,10 +4,12 @@ import 'package:omi/pages/apps/app_detail/widgets/review_avatar.dart';
 import 'package:omi/ui/omi_tokens.dart';
 
 Widget _wrap(Widget child) => MaterialApp(
-      home: Scaffold(body: Center(child: child)),
-    );
+  home: Scaffold(body: Center(child: child)),
+);
 
 void main() {
+  // These assertions describe the dark appearance; the app now starts light by default.
+  setUpAll(() => OmiColors.active = OmiPalette.dark);
   group('ReviewAvatar', () {
     testWidgets('renders the uppercased first initial of the username', (tester) async {
       await tester.pumpWidget(_wrap(const ReviewAvatar(seed: 'uid_1', username: 'jane')));

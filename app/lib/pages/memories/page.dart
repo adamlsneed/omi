@@ -24,7 +24,11 @@ import 'widgets/memory_management_sheet.dart';
 import 'widgets/memories_load_error.dart';
 
 class MemoriesPage extends StatefulWidget {
-  const MemoriesPage({super.key});
+  const MemoriesPage({super.key, this.showMindMap = true});
+
+  /// The live graph preview at the top. The graph needs a real canvas and network, so harnesses
+  /// that pump the page without them turn it off.
+  final bool showMindMap;
 
   @override
   State<MemoriesPage> createState() => MemoriesPageState();
@@ -105,12 +109,6 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
           ),
           const SizedBox(width: OmiSpacing.xxs),
           OmiIconButton.filled(
-            icon: const FaIcon(FontAwesomeIcons.brain, size: 16),
-            label: context.l10n.memoryGraph,
-            diameter: 40,
-            onPressed: loading ? null : () => routeToPage(context, const MemoryGraphPage()),
-          ),
-          OmiIconButton.filled(
             icon: const FaIcon(FontAwesomeIcons.sliders, size: 16),
             label: context.l10n.memoryManagement,
             diameter: 40,
@@ -132,8 +130,8 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
         title: searching
             ? l10n.noMemoriesFound
             : filtered
-                ? l10n.noMemoriesInCategories
-                : l10n.noMemoriesYet,
+            ? l10n.noMemoriesInCategories
+            : l10n.noMemoriesYet,
         action: OmiButton(
           key: const Key('memories_empty_action'),
           variant: searching || filtered ? OmiButtonVariant.secondary : OmiButtonVariant.primary,
@@ -141,8 +139,8 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
           label: searching
               ? l10n.clearSearch
               : filtered
-                  ? l10n.resetFilters
-                  : l10n.addFirstMemory,
+              ? l10n.resetFilters
+              : l10n.addFirstMemory,
           onPressed: () {
             if (searching) {
               _searchController.clear();
@@ -167,10 +165,7 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
       builder: (context, provider, _) {
         return Scaffold(
           backgroundColor: OmiColors.surface0,
-          appBar: AppBar(
-            leading: const OmiBackButton(),
-            title: Text(context.l10n.memories),
-          ),
+          appBar: AppBar(leading: const OmiBackButton(), title: Text(context.l10n.memories)),
           body: Stack(
             children: [
               RefreshIndicator(
@@ -190,6 +185,9 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
                         controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
+                          // The mind map leads the page (it moved here from Home); tap to expand.
+                          if (widget.showMindMap && provider.searchQuery.isEmpty && provider.memories.isNotEmpty)
+                            const SliverToBoxAdapter(child: MemoryMindMapPreview()),
                           SliverToBoxAdapter(child: _buildHeader(provider, loading: false)),
                           if (provider.memoryBeliefEnabled &&
                               provider.showHistory &&
@@ -223,9 +221,9 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
                                     provider: provider,
                                     onTap:
                                         (BuildContext context, Memory tappedMemory, MemoriesProvider tappedProvider) {
-                                      PlatformManager.instance.analytics.memoryListItemClicked(tappedMemory);
-                                      _showQuickEditSheet(context, tappedMemory, tappedProvider);
-                                    },
+                                          PlatformManager.instance.analytics.memoryListItemClicked(tappedMemory);
+                                          _showQuickEditSheet(context, tappedMemory, tappedProvider);
+                                        },
                                   );
                                 }, childCount: provider.filteredMemories.length),
                               ),
@@ -268,15 +266,12 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
         itemCount: 8, // Show 8 shimmer items
         itemBuilder: (context, index) {
           return ShimmerWithTimeout(
-            baseColor: AppStyles.backgroundSecondary,
-            highlightColor: AppStyles.backgroundTertiary,
+            baseColor: OmiColors.surface1,
+            highlightColor: OmiColors.surface3,
             child: Container(
               margin: const EdgeInsets.only(bottom: AppStyles.spacingM),
               height: 88, // Approximate height of a memory item
-              decoration: const BoxDecoration(
-                color: AppStyles.backgroundSecondary,
-                borderRadius: OmiRadius.mdAll,
-              ),
+              decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
             ),
           );
         },
@@ -301,6 +296,57 @@ class MemoriesPageState extends State<MemoriesPage> with AutomaticKeepAliveClien
       title: context.l10n.memoryManagement,
       padding: EdgeInsets.zero,
       builder: (context) => MemoryManagementSheet(provider: provider),
+    );
+  }
+}
+
+/// The mind map preview at the top of Memories: a non-interactive, zoomed-out graph that opens
+/// the full graph on tap.
+class MemoryMindMapPreview extends StatelessWidget {
+  const MemoryMindMapPreview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: context.l10n.memoryGraph,
+      child: GestureDetector(
+        key: const ValueKey('memories_mind_map_preview'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => routeToPage(context, const MemoryGraphPage(trackOpenEvent: false)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: ClipRRect(
+            borderRadius: OmiRadius.xlAll,
+            child: SizedBox(
+              height: 180,
+              child: Stack(
+                children: [
+                  const Positioned.fill(
+                    child: IgnorePointer(
+                      child: MemoryGraphPage(
+                        embedded: true,
+                        preview: true,
+                        showAppBar: false,
+                        showShareButton: false,
+                        trackOpenEvent: false,
+                        initialZoom: 0.6,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: ExcludeSemantics(
+                      child: Icon(Icons.open_in_full_rounded, size: 18, color: OmiColors.textTertiary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

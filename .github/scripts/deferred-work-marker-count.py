@@ -13,8 +13,9 @@ from pathlib import Path
 
 MARKERS = ("TO" "DO", "FIX" "ME", "HA" "CK")
 # `(?<!\.)` keeps member accesses like Swift's `.todo` enum case (or `tags.todo`)
-# from counting as deferred-work comment markers.
-MARKER_RE = re.compile(r"(?<!\.)\b(" + "|".join(MARKERS) + r")\b", re.IGNORECASE)
+# from counting as deferred-work comment markers; `(?!\.txt)` keeps the todo.txt
+# file format name (sdks/python-cli/examples) out as well.
+MARKER_RE = re.compile(r"(?<!\.)\b(" + "|".join(MARKERS) + r")\b(?!\.txt)", re.IGNORECASE)
 TRACKING_ISSUE_RE = re.compile(r"(?:https://github\.com/[^/\s]+/[^/\s]+/(?:issues|pull)/\d+|(?<!\w)#\d+\b)")
 
 EXCLUDED_DIR_NAMES = {

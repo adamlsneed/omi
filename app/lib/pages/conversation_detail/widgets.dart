@@ -33,7 +33,7 @@ String conversationDurationLabel(ServerConversation conversation, [AppLocalizati
 
 /// The conversation title, edited in place.
 ///
-/// One line with a Done key; an empty title shows the "Untitled Conversation" placeholder. The
+/// Up to two lines with a Done key; an empty title shows the "Untitled Conversation" placeholder. The
 /// edit is saved when editing ends — Done, or tapping away — and the outcome is announced
 /// ("Saved" / an error that restores the old title). Blank or unchanged text is not saved.
 class ConversationTitleField extends StatefulWidget {
@@ -41,7 +41,16 @@ class ConversationTitleField extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
 
-  const ConversationTitleField({super.key, required this.style, required this.controller, required this.focusNode});
+  /// Shown while the title is empty; "Untitled Conversation" when null.
+  final String? hintText;
+
+  const ConversationTitleField({
+    super.key,
+    required this.style,
+    required this.controller,
+    required this.focusNode,
+    this.hintText,
+  });
 
   @override
   State<ConversationTitleField> createState() => _ConversationTitleFieldState();
@@ -92,7 +101,8 @@ class _ConversationTitleFieldState extends State<ConversationTitleField> {
     return TextField(
       keyboardType: TextInputType.text,
       textInputAction: TextInputAction.done,
-      maxLines: 1,
+      minLines: 1,
+      maxLines: 2,
       focusNode: widget.focusNode,
       controller: widget.controller,
       onSubmitted: (_) => widget.focusNode?.unfocus(),
@@ -100,7 +110,8 @@ class _ConversationTitleFieldState extends State<ConversationTitleField> {
         border: const OutlineInputBorder(borderSide: BorderSide.none),
         contentPadding: EdgeInsets.zero,
         isDense: true,
-        hintText: context.l10n.untitledConversation,
+        hintText: widget.hintText ?? context.l10n.untitledConversation,
+        hintMaxLines: 1,
         hintStyle: widget.style.copyWith(color: OmiColors.textTertiary),
       ),
       style: widget.style,
@@ -135,9 +146,36 @@ class ReprocessDiscardedWidget extends StatelessWidget {
   }
 }
 
+/// "Summary failed" with Retry, for a row the server marked retryable: its summary pass failed on
+/// a transient error, so a reprocess can still succeed. Success replaces the conversation, which
+/// clears the marker and removes this widget.
+class SummaryRetryWidget extends StatelessWidget {
+  const SummaryRetryWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ConversationDetailProvider>(
+      builder: (context, provider, child) {
+        if (provider.loadingReprocessConversation && provider.reprocessConversationId == provider.conversation.id) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 18.0),
+            child: OmiLoadingState(label: context.l10n.summarizingConversation),
+          );
+        }
+        return _SummaryCallToAction(
+          key: const Key('conversation_detail_summary_retry'),
+          message: context.l10n.conversationSummaryFailed,
+          actionLabel: context.l10n.retry,
+          onPressed: () => provider.reprocessConversation(),
+        );
+      },
+    );
+  }
+}
+
 /// A centred sentence with one secondary button under it ("Summarize", "Generate Summary").
 class _SummaryCallToAction extends StatelessWidget {
-  const _SummaryCallToAction({required this.message, required this.actionLabel, required this.onPressed});
+  const _SummaryCallToAction({super.key, required this.message, required this.actionLabel, required this.onPressed});
 
   final String message;
   final String actionLabel;
@@ -293,17 +331,17 @@ class _AppResultDetailWidgetState extends State<AppResultDetailWidget> {
             child: content.isEmpty
                 ? _buildNoSummaryForApp(context)
                 : _isEditing
-                    ? _buildEditor(context)
-                    : GestureDetector(
-                        onDoubleTap: widget.onSaveSummarySelection == null || !selection.canEdit(widget.conversation)
-                            ? null
-                            : () => _startEditing(content),
-                        child: ConversationMarkdownWidget(
-                          content: content,
-                          searchQuery: widget.searchQuery,
-                          currentResultIndex: widget.currentResultIndex,
-                        ),
-                      ),
+                ? _buildEditor(context)
+                : GestureDetector(
+                    onDoubleTap: widget.onSaveSummarySelection == null || !selection.canEdit(widget.conversation)
+                        ? null
+                        : () => _startEditing(content),
+                    child: ConversationMarkdownWidget(
+                      content: content,
+                      searchQuery: widget.searchQuery,
+                      currentResultIndex: widget.currentResultIndex,
+                    ),
+                  ),
           ),
           if (content.isNotEmpty && !_isEditing) _buildAppAttribution(context, selection),
         ],
@@ -388,6 +426,9 @@ class GetAppsWidgets extends StatelessWidget {
         final selection = provider.getSummarySelection();
         final isRoutedSummary = provider.isRoutedSummaryActive;
         if (selection.kind == ConversationSummaryKind.empty) {
+          if (provider.conversation.showsSummaryRetry) {
+            return const SliverToBoxAdapter(child: SummaryRetryWidget());
+          }
           return SliverToBoxAdapter(child: child!);
         }
 
@@ -416,7 +457,7 @@ class GetAppsWidgets extends StatelessWidget {
                     padding: const EdgeInsets.only(left: OmiSpacing.xxs, bottom: OmiSpacing.sm),
                     child: Row(
                       children: [
-                        const OmiSpinner(size: OmiSpinnerSize.small, color: OmiColors.textSecondary),
+                        OmiSpinner(size: OmiSpinnerSize.small, color: OmiColors.textSecondary),
                         const SizedBox(width: OmiSpacing.xs),
                         Text(
                           context.l10n.templateRoutingApplyingLocalTemplate,
@@ -602,15 +643,15 @@ extension _AppResultDetailWidgetSliver on _AppResultDetailWidgetState {
         imageUrl: app.getImageUrl(),
         imageBuilder: (context, imageProvider) =>
             CircleAvatar(backgroundColor: OmiColors.textPrimary, radius: avatarRadius, backgroundImage: imageProvider),
-        errorWidget: (context, url, error) => const CircleAvatar(
+        errorWidget: (context, url, error) => CircleAvatar(
           backgroundColor: OmiColors.textPrimary,
           radius: avatarRadius,
-          child: Icon(Icons.error_outline_rounded, size: 12),
+          child: const Icon(Icons.error_outline_rounded, size: 12),
         ),
-        progressIndicatorBuilder: (context, url, progress) => const CircleAvatar(
+        progressIndicatorBuilder: (context, url, progress) => CircleAvatar(
           backgroundColor: OmiColors.surface2,
           radius: avatarRadius,
-          child: OmiSpinner(size: OmiSpinnerSize.small),
+          child: const OmiSpinner(size: OmiSpinnerSize.small),
         ),
       );
     } else {
@@ -660,10 +701,7 @@ extension _AppResultDetailWidgetSliver on _AppResultDetailWidgetState {
                   ],
                 ),
               ),
-              const SizedBox(
-                width: 42,
-                child: Icon(Icons.arrow_forward_ios, color: OmiColors.textPrimary, size: 20),
-              ),
+              SizedBox(width: 42, child: Icon(Icons.arrow_forward_ios, color: OmiColors.textPrimary, size: 20)),
             ],
           ),
         ),

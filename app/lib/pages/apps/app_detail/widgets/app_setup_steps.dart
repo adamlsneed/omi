@@ -49,7 +49,7 @@ class AppSetupSteps extends StatelessWidget {
                         ),
                         child: Center(
                           child: completed
-                              ? const FaIcon(FontAwesomeIcons.check, size: 14, color: OmiColors.success)
+                              ? FaIcon(FontAwesomeIcons.check, size: 14, color: OmiColors.success)
                               : Text(
                                   '${index + 1}',
                                   style: OmiType.subhead.copyWith(
@@ -75,12 +75,8 @@ class AppSetupSteps extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const ExcludeSemantics(
-                        child: FaIcon(
-                          FontAwesomeIcons.arrowUpRightFromSquare,
-                          size: 16,
-                          color: OmiColors.textTertiary,
-                        ),
+                      ExcludeSemantics(
+                        child: FaIcon(FontAwesomeIcons.arrowUpRightFromSquare, size: 16, color: OmiColors.textTertiary),
                       ),
                     ],
                   ),

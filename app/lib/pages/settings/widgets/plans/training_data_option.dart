@@ -35,8 +35,8 @@ class TrainingDataOptionCard extends StatelessWidget {
     final subtitle = approved
         ? l10n.trainingDataProgram
         : pending
-            ? l10n.yourRequestUnderReview
-            : l10n.shareDataForTraining;
+        ? l10n.yourRequestUnderReview
+        : l10n.shareDataForTraining;
     final VoidCallback? onTap = approved || pending
         ? () => routeToPage(context, TrainingProgramPage(title: l10n.omiTraining))
         : (isLoading ? null : onOptIn);
@@ -68,7 +68,7 @@ class TrainingDataOptionCard extends StatelessWidget {
                 if (!approved && !pending && isLoading)
                   const OmiSpinner(size: OmiSpinnerSize.small)
                 else
-                  const ExcludeSemantics(child: Icon(Icons.chevron_right, color: OmiColors.textSecondary)),
+                  ExcludeSemantics(child: Icon(Icons.chevron_right, color: OmiColors.textSecondary)),
               ],
             ),
           ),

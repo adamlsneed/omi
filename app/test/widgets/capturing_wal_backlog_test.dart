@@ -60,7 +60,7 @@ class _PhoneSync {
 
   Future<void> finalizeCurrentSession() async {}
 
-  Future<void> stampConversationId(int start, String id) async {}
+  Future<void> stampConversationId(int start, String id, {String? recordingSessionId}) async {}
 }
 
 class _Wal implements IWalService {
@@ -83,17 +83,17 @@ class _Syncs {
 
 class _BacklogCaptureProvider extends CaptureProvider {
   _BacklogCaptureProvider(_PhoneSync phone)
-      : super(
-          walService: _Wal(phone),
-          connectivity: CaptureConnectivityBoundary(
-            initiallyConnected: true,
-            changes: const Stream.empty(),
-            isConnected: () => true,
-          ),
-          bleListeners: _NoopBle(),
-          inProgressConversationLoader: () async {},
-          localSegmentStore: LocalSegmentStore.disabled(),
-        );
+    : super(
+        walService: _Wal(phone),
+        connectivity: CaptureConnectivityBoundary(
+          initiallyConnected: true,
+          changes: const Stream.empty(),
+          isConnected: () => true,
+        ),
+        bleListeners: _NoopBle(),
+        inProgressConversationLoader: () async {},
+        localSegmentStore: LocalSegmentStore.disabled(),
+      );
 }
 
 Wal _wal(int timerStart, {WalStatus status = WalStatus.miss, int seconds = 60}) {
