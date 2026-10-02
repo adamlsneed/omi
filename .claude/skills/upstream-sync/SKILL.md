@@ -5,6 +5,7 @@ description: Merge BasedHardware/omi upstream into the adamlsneed/omi fork, veri
 
 Follow `.github/agent-docs/upstream-sync.md` exactly, top to bottom. It is the single
 source of truth for this procedure and is shared with Codex; do not improvise steps
-around it or resolve conflicts it says to leave for Adam.
+around it. Resolve mechanical conflicts the way step 3 says; stop only on the product
+choices step 3 says to leave for Adam.
 
 End the run with the one outcome line the doc defines.

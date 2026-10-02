@@ -2,8 +2,8 @@
 
 The procedure every agent (Claude, Codex, others) follows to merge `BasedHardware/Omi`
 `upstream/main` into `adamlsneed/omi` and ship the desktop build. It runs unattended:
-it never resolves a conflict, never merges a PR that needs review, and never retries a
-failed release. Background, conflict-resolution rules, and the backend mirror policy
+it resolves mechanical conflicts itself (step 3), stops only on a product choice, never
+merges a PR that needs review, and never retries a failed release. Background, conflict-resolution rules, and the backend mirror policy
 live in `docs/developer/upstream-sync-and-backend-policy.mdx`.
 
 Every run ends with exactly one of these lines:
@@ -101,40 +101,63 @@ git -C "$WT" merge --no-ff --no-edit -m "Merge upstream BasedHardware/omi into $
 
 Merge, never rebase. Do not create backup branches; the PR is the safety net.
 
-## 3. Conflict: brief and stop
+## 3. Conflict: resolve the mechanical ones, stop only on a product choice
 
-If the merge reports any conflict (including ones rerere resolved from a recorded
-resolution), resolve nothing. Write the brief, abort, file it, stop.
+Adam does not read per-file conflict briefs (2026-10-01: #137 sat unread a week while 611
+more upstream commits piled up behind it). Classify every conflicted file, resolve the
+mechanical ones in the worktree, and stop only when a real product choice is left.
 
 ```bash
 git -C "$WT" diff --name-only --diff-filter=U   # conflicted files
 git -C "$WT" rerere status                      # files rerere already has a resolution for
 ```
 
-For each conflicted file, the brief gives:
+**Mechanical (resolve it, per the Conflict Resolution Rules in the policy doc):**
 
-- **Upstream changed:** `git log --oneline $MB..upstream/main -- <file>` plus a one or
-  two sentence summary of `git diff $MB upstream/main -- <file>`.
-- **Fork changed:** the same against `origin/main`, naming the fork feature involved
-  (see `scripts/fork-feature-audit.sh` and the runbook's Current Fork Notes).
-- **Suggested resolution:** per the runbook's Conflict Resolution Rules (backend always
-  takes upstream exactly; l10n ARBs combine both key sets; generated files take upstream
-  and regenerate; if upstream fixed the same issue, drop the fork copy). Never suggest a
-  wholesale `--theirs` for a file that carries unrelated fork work: it deletes every fork
-  hunk in the file, not just the conflicting one.
-- Whether rerere has a recorded resolution for it.
+- Both sides changed the same region for unrelated reasons: keep both.
+- Upstream restructured the code a fork feature lives in: re-slot the fork hunk into
+  upstream's new structure (new function split, new coordinator, new header layout).
+  The fork's own tests say where it belongs; run them.
+- Upstream fixed the same issue the fork had patched: take upstream, delete the fork
+  copy with its tests, audit checks, manifest entries and docs, and say so in the PR.
+- Upstream deleted or renamed a file the fork only touched incidentally: follow upstream.
+- `backend/`: upstream exactly. L10n ARBs: both key sets. Generated files: upstream, then
+  regenerate. Formatter-only differences: whatever the pinned formatter produces.
+- A new upstream check that fails only on fork-owned files (a baseline, an inventory, a
+  lint rule): fix the fork side and list it under "Merge fallout" in the PR body.
 
-Then:
+Never resolve with a wholesale `--theirs` or `--ours` on a file that carries unrelated
+fork work; resolve hunk by hunk and diff the result against both parents.
+
+**Product choice (stop):** a fork behavior and an upstream behavior contradict each
+other and keeping both is impossible, or taking upstream would change what Adam sees or
+relies on (upstream removes a feature the fork turned on, flips a default the fork set
+the other way, moves a fork control somewhere it no longer applies). Resolve every
+mechanical file first, then:
 
 ```bash
 git -C "$WT" merge --abort
 git worktree remove "$WT" && { git branch -d "$BR" || echo "kept local branch $BR"; }
 gh issue create -R adamlsneed/omi --label upstream-sync \
-  --title "Upstream sync conflict ($DATE, ${MB:0:10}..$(git rev-parse --short=10 upstream/main))" \
-  --body-file <brief.md>
+  --title "Upstream sync needs a product decision ($DATE, ${MB:0:10}..$(git rev-parse --short=10 upstream/main))" \
+  --body-file <decision.md>
 ```
 
-End with `Conflict: <issue URL>`.
+The issue is for Adam, in plain language, one short section per choice: what he would
+notice under each option, and a recommendation. No file names, hunks or commands; one
+line at the end saying how many other files were mechanical and will be handled by the
+next run. Record nothing with rerere for the product-choice file. End with
+`Conflict: <issue URL>`.
+
+**All mechanical:** commit the merge and continue to step 4. The PR body gets a
+"Conflict resolutions" table (file, what upstream changed, what was kept, verified by).
+A resolution that then fails step 4 is a Needs review with the failing output, not a
+conflict brief.
+
+Hooks during the merge commit: the staged-file formatter reformats upstream backend test
+files and would break the exact backend mirror. After the commit, run
+`git checkout upstream/main -- backend/` and `git commit --amend --no-edit --no-verify`;
+that is the only `--no-verify` an unattended run may use, and the PR body says so.
 
 ## 4. Verify (clean merge)
 
