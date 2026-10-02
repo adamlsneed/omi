@@ -982,6 +982,11 @@ checks:
     triggers: [".github/scripts/desktop-codemagic-failure-recovery.py", ".github/scripts/desktop-codemagic-recovery-profiles.json", ".github/scripts/test_desktop_codemagic_failure_recovery.py", ".github/workflows/desktop_codemagic_failure_recovery.yml", "desktop/macos/scripts/rehearse-desktop-release.sh", "desktop/macos/scripts/smoke-signed-desktop-artifact.sh", "desktop/macos/scripts/agent-runtime-payload.sh", "desktop/macos/tests/test-signed-artifact-smoke.sh", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "failed desktop Codemagic builds must emit a credential-safe exact-build recovery capsule and prescribe a manual rehearsal only for locally reproducible gates"
+  - id: desktop-bundled-ffmpeg-fetch-tests
+    command: ["bash", "desktop/macos/tests/test-ensure-bundled-ffmpeg.sh"]
+    triggers: ["desktop/macos/scripts/ensure-bundled-ffmpeg.sh", "desktop/macos/tests/test-ensure-bundled-ffmpeg.sh", "desktop/macos/release.sh", "scripts/fork/redeploy-omi-dev.sh", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "fork: the first Omi Dev redeploy after the 2026-10-01 sync rolled back because the bundle audit now requires the gitignored ffmpeg resource that only upstream's Codemagic lane downloaded"
   - id: desktop-release-rehearsal-contract
     command: ["bash", "desktop/macos/tests/test-desktop-release-rehearsal.sh"]
     triggers: ["desktop/macos/scripts/rehearse-desktop-release.sh", "desktop/macos/tests/test-desktop-release-rehearsal.sh", ".github/checks-manifest.yaml"]

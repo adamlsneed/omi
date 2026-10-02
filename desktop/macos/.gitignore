@@ -53,6 +53,7 @@ scripts/*
 !scripts/omi-dev-smoke.sh
 !scripts/test-omi-dev-smoke.sh
 !scripts/release-appcast.sh
+!scripts/ensure-bundled-ffmpeg.sh
 
 # Swift compiler diagnostics cache
 *.dia

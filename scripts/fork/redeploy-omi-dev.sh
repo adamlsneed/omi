@@ -150,6 +150,12 @@ fi
 
 capture_marker="$(mktemp /tmp/omi-dev-redeploy-marker.XXXXXX)"
 
+step "Bundled ffmpeg (scripts/ensure-bundled-ffmpeg.sh)"
+# run.sh's bundle audit rejects a build without the gitignored ffmpeg resource.
+if ! (cd "$ROOT/desktop/macos" && bash scripts/ensure-bundled-ffmpeg.sh); then
+  fail_deploy "ensure-bundled-ffmpeg.sh failed"
+fi
+
 step "Build and install (run.sh --yolo --full --no-wait; log: $LOG)"
 start=$SECONDS
 # A linked worktree otherwise deploys to an isolated omi-<worktree> bundle and port.

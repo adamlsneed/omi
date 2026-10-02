@@ -126,6 +126,9 @@ step "Building agent (npm ci + tsc)"
 step "Preparing bundled Node.js runtime"
 bash scripts/prepare-node-resource.sh
 
+step "Preparing bundled ffmpeg"
+bash scripts/ensure-bundled-ffmpeg.sh
+
 step "Building Swift app (swift build -c release)"
 xcrun swift build -c release --package-path Desktop
 
