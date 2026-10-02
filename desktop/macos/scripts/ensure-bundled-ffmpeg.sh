@@ -25,8 +25,10 @@ ffmpeg_is_runnable() {
   [ -x "$binary" ] || return 1
   local description
   description="$(file "$binary" 2>/dev/null || true)"
+  # `file` says "shell script text executable" on macOS and "shell script, ASCII text
+  # executable" on Linux; both are the test fixture, never a real build input.
   case "$description" in
-    *"$HOST_ARCH"*|*"universal binary"*|*"script text"*) ;;
+    *"$HOST_ARCH"*|*"universal binary"*|*"script"*) ;;
     *) return 1 ;;
   esac
   "$binary" -version >/dev/null 2>&1
