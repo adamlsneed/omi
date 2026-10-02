@@ -38,10 +38,8 @@ class _PhoneSetupNumberPageState extends State<PhoneSetupNumberPage> {
     super.dispose();
   }
 
-  PhoneNumberInput get _parsed => parsePhoneNumberInput(
-        raw: _phoneController.text,
-        isoCode: _selectedCountry.codeAlpha2,
-      );
+  PhoneNumberInput get _parsed =>
+      parsePhoneNumberInput(raw: _phoneController.text, isoCode: _selectedCountry.codeAlpha2);
 
   bool get _isValid => _parsed.isValid;
 
@@ -80,18 +78,14 @@ class _PhoneSetupNumberPageState extends State<PhoneSetupNumberPage> {
       if (provider.verificationStatus == 'verified') {
         await provider.loadVerifiedNumbers();
         if (!mounted) return;
-        Navigator.of(context).pushAndRemoveUntil(
-          omiPageRoute(builder: (_) => const _AlreadyVerifiedRedirect()),
-          (route) => route.isFirst,
-        );
+        Navigator.of(
+          context,
+        ).pushAndRemoveUntil(omiPageRoute(builder: (_) => const _AlreadyVerifiedRedirect()), (route) => route.isFirst);
         return;
       }
 
       setState(() => _isLoading = false);
-      routeToPage(
-        context,
-        PhoneSetupVerifyPage(phoneNumber: _fullNumber, validationCode: provider.validationCode),
-      );
+      routeToPage(context, PhoneSetupVerifyPage(phoneNumber: _fullNumber, validationCode: provider.validationCode));
     } else {
       setState(() {
         _isLoading = false;
@@ -123,7 +117,7 @@ class _PhoneSetupNumberPageState extends State<PhoneSetupNumberPage> {
               ),
               const SizedBox(height: 40),
               Container(
-                decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
+                decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.lgAll),
                 child: Row(
                   children: [
                     Semantics(
@@ -143,7 +137,7 @@ class _PhoneSetupNumberPageState extends State<PhoneSetupNumberPage> {
                               const SizedBox(width: 6),
                               Text('+${_selectedCountry.telephoneCode}', style: OmiType.callout),
                               const SizedBox(width: OmiSpacing.xxs),
-                              const Icon(Icons.arrow_drop_down, color: OmiColors.textTertiary, size: 20),
+                              Icon(Icons.arrow_drop_down, color: OmiColors.textTertiary, size: 20),
                             ],
                           ),
                         ),
@@ -276,13 +270,10 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Text(
-                            '+${c.telephoneCode}',
-                            style: OmiType.subhead.copyWith(color: OmiColors.textTertiary),
-                          ),
+                          Text('+${c.telephoneCode}', style: OmiType.subhead.copyWith(color: OmiColors.textTertiary)),
                           if (isSelected) ...[
                             const SizedBox(width: OmiSpacing.xs),
-                            const Icon(Icons.check, color: OmiColors.textPrimary, size: 20),
+                            Icon(Icons.check, color: OmiColors.textPrimary, size: 20),
                           ],
                         ],
                       ),

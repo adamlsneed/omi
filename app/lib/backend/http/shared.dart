@@ -71,9 +71,10 @@ Future<String> getAuthHeader({bool expireTerminalSession = true}) async {
       jwtExpiry(storedToken) ?? DateTime.fromMillisecondsSinceEpoch(SharedPreferencesUtil().tokenExpirationTime);
   bool hasAuthToken = storedToken.isNotEmpty;
 
-  bool isExpirationDateValid = !(expiry.isBefore(DateTime.now()) ||
-      expiry.isAtSameMomentAs(DateTime.fromMillisecondsSinceEpoch(0)) ||
-      (expiry.isBefore(DateTime.now().add(const Duration(minutes: 5))) && expiry.isAfter(DateTime.now())));
+  bool isExpirationDateValid =
+      !(expiry.isBefore(DateTime.now()) ||
+          expiry.isAtSameMomentAs(DateTime.fromMillisecondsSinceEpoch(0)) ||
+          (expiry.isBefore(DateTime.now().add(const Duration(minutes: 5))) && expiry.isAfter(DateTime.now())));
 
   if (!hasAuthToken || !isExpirationDateValid) {
     final refreshResult = await AuthService.instance.refreshIdToken();
@@ -203,39 +204,64 @@ Future<http.StreamedResponse> makeRawApiCall({
   required String url,
   required String method,
   Map<String, String> headers = const {},
+  String body = '',
+  bool signOutOn401 = true,
+  Future<void>? abortTrigger,
+  Duration timeout = const Duration(minutes: 5),
 }) async {
   final requireAuthCheck = _isRequiredAuthCheck(url);
   try {
     var builtHeaders = await buildHeaders(
       requireAuthCheck: requireAuthCheck,
       fromHeaders: headers,
+      expireTerminalSession: signOutOn401,
       url: url,
       method: method,
     );
-    var request = http.Request(method, Uri.parse(url));
-    request.headers.addAll(builtHeaders);
-    var response = await HttpPoolManager.instance.sendStreaming(request);
+    var request = _buildStreamingRequest(url, builtHeaders, body, method, abortTrigger);
+    var response = await HttpPoolManager.instance.sendStreaming(request, timeout: timeout);
     if (requireAuthCheck && response.statusCode == 401) {
       response = await refreshAndReplayAfter401(
         firstResponse: response,
         statusCode: (value) => value.statusCode,
         disposeUnauthorizedResponse: _drainStreamedResponse,
-        expireTerminalSession: true,
+        expireTerminalSession: signOutOn401,
         replay: () async {
-          builtHeaders = await buildHeaders(requireAuthCheck: true, fromHeaders: headers, url: url, method: method);
-          request = http.Request(method, Uri.parse(url));
-          request.headers.addAll(builtHeaders);
-          return HttpPoolManager.instance.sendStreaming(request);
+          builtHeaders = await buildHeaders(
+            requireAuthCheck: true,
+            fromHeaders: headers,
+            expireTerminalSession: signOutOn401,
+            url: url,
+            method: method,
+          );
+          request = _buildStreamingRequest(url, builtHeaders, body, method, abortTrigger);
+          return HttpPoolManager.instance.sendStreaming(request, timeout: timeout);
         },
       );
       if (response.statusCode == 401) return _authUnavailableStreamedResponse();
     }
     return response;
   } on AuthTokenUnavailableException catch (e) {
-    await _handleAuthUnavailable(e, expireTerminalSession: true);
+    await _handleAuthUnavailable(e, expireTerminalSession: signOutOn401);
     Logger.debug('Authenticated raw request blocked before send: ${e.result.runtimeType}');
     return _authUnavailableStreamedResponse();
   }
+}
+
+http.Request _buildStreamingRequest(
+  String url,
+  Map<String, String> headers,
+  String body,
+  String method,
+  Future<void>? abortTrigger,
+) {
+  final request = http.AbortableRequest(method, Uri.parse(url), abortTrigger: abortTrigger);
+  request.headers.addAll(headers);
+  if (method != 'GET' && body.isNotEmpty) {
+    request.headers['Content-Type'] = 'application/json';
+    request.body = body;
+  }
+  return request;
 }
 
 Future<void> _drainStreamedResponse(http.StreamedResponse response) async {
@@ -276,9 +302,9 @@ Future<void> _handleAuthUnavailable(
     AuthTokenMissingUser() => null,
     AuthTokenMissingToken() => const AuthSessionExpiredEvent(reason: AuthSessionExpirationReason.missingToken),
     AuthTokenTerminalFailure(:final code) => AuthSessionExpiredEvent(
-        reason: AuthSessionExpirationReason.terminalTokenFailure,
-        code: code,
-      ),
+      reason: AuthSessionExpirationReason.terminalTokenFailure,
+      code: code,
+    ),
     _ => null,
   };
   if (event != null) await AuthService.instance.expireSession(event);

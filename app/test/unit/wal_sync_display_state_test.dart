@@ -24,6 +24,8 @@ void main() {
       WalStatus.corrupted,
       WalStatus.outsideRecoveryWindow,
       WalStatus.unsupportedAudio,
+      // B5 terminal-upload spec: a definitive endpoint refusal cannot resume automatically.
+      WalStatus.uploadRejected,
     };
 
     test('isSyncing wins over every non-terminal status', () {
@@ -71,6 +73,14 @@ void main() {
           reason: 'retryCount=$r must not downgrade it back to the failed/tap-Retry loop',
         );
       }
+    });
+
+    test('uploadRejected wins over a stale syncing flag', () {
+      expect(
+        makeWal(status: WalStatus.uploadRejected, isSyncing: true).syncDisplayState,
+        WalSyncDisplayState.uploadRejected,
+        reason: 'audio the server definitively refused must never render as an active upload',
+      );
     });
 
     test('uploaded -> uploaded (processing on server)', () {
@@ -122,10 +132,7 @@ void main() {
     });
 
     test('a single healthy WAL reports its own state', () {
-      expect(
-        worstSessionSyncState([makeWal(status: WalStatus.miss)]),
-        WalSyncDisplayState.waiting,
-      );
+      expect(worstSessionSyncState([makeWal(status: WalStatus.miss)]), WalSyncDisplayState.waiting);
     });
 
     test('failed outranks retrying, syncing and waiting', () {
@@ -152,10 +159,7 @@ void main() {
     });
 
     test('corrupted and outsideRecoveryWindow are terminal like failed', () {
-      expect(
-        worstSessionSyncState([makeWal(status: WalStatus.corrupted)]),
-        WalSyncDisplayState.corrupted,
-      );
+      expect(worstSessionSyncState([makeWal(status: WalStatus.corrupted)]), WalSyncDisplayState.corrupted);
       expect(
         worstSessionSyncState([makeWal(status: WalStatus.outsideRecoveryWindow)]),
         WalSyncDisplayState.outsideRecoveryWindow,

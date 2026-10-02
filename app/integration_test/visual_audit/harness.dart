@@ -1,3 +1,4 @@
+import 'package:omi/ui/ui.dart';
 // Visual audit harness: real production widgets, synthetic local I/O, one registry of scenarios.
 // How to run it and how to add a scenario: app/e2e/SKILL.md, "Visual audit".
 //
@@ -149,29 +150,35 @@ class AuditRun {
   /// Pumps [page] inside the production theme and localizations, with a broad inert provider
   /// roster. [providers] come last, so they win the lookup for the types they seed.
   Future<void> pump(Widget page, {List<SingleChildWidget> providers = const [], bool scaffold = true}) async {
+    OmiColors.active = OmiColors.forBrightness(_auditLight ? Brightness.light : Brightness.dark);
     tester.view.physicalSize = auditViewport;
     tester.view.devicePixelRatio = 1;
-    await tester.pumpWidget(MultiProvider(
-      providers: [..._suite.providers(), ...providers],
-      child: RepaintBoundary(
-        key: _surface,
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          navigatorKey: globalNavigatorKey,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: const [Locale('en')],
-          // The app's own theme at this revision; Android font metrics (Roboto).
-          theme: _suite.theme(),
-          home: scaffold ? Scaffold(backgroundColor: _suite.hostBackground, body: page) : page,
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [..._suite.providers(), ...providers],
+        child: RepaintBoundary(
+          key: _surface,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            navigatorKey: globalNavigatorKey,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: const [Locale('en')],
+            // The app's own theme at this revision; Android font metrics (Roboto).
+            theme: _auditLight ? buildOmiTheme(brightness: Brightness.light) : _suite.theme(),
+            home: scaffold ? Scaffold(backgroundColor: _suite.hostBackground, body: page) : page,
+          ),
         ),
       ),
-    ));
+    );
     await settle();
   }
 
   /// Pumps a neutral host whose only job is to open [open] (a sheet or dialog), then opens it.
-  Future<void> pumpHost(void Function(BuildContext context) open,
-      {List<SingleChildWidget> providers = const [], Color? background}) async {
+  Future<void> pumpHost(
+    void Function(BuildContext context) open, {
+    List<SingleChildWidget> providers = const [],
+    Color? background,
+  }) async {
     await pump(
       Scaffold(
         backgroundColor: background,
@@ -254,6 +261,7 @@ class AuditRun {
 }
 
 Directory? _outputDir;
+final bool _auditLight = Platform.environment['OMI_AUDIT_BRIGHTNESS'] == 'light';
 
 /// Registers one test per scenario. With [output] set, writes `<id>*.png` and `frames.json` there;
 /// without it (the smoke test), renders every scenario and writes nothing.
@@ -277,9 +285,9 @@ void runAuditScenarios(AuditSuite suite, {List<AuditScenario>? only, Directory? 
       // timers before tearDowns run, and 16 s of fake time outlasts the pooled HTTP client's 15 s
       // idle timer. A live binding would wait in real time and does not check timers.
       await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(tester.binding is AutomatedTestWidgetsFlutterBinding
-          ? const Duration(seconds: 16)
-          : const Duration(seconds: 1));
+      await tester.pump(
+        tester.binding is AutomatedTestWidgetsFlutterBinding ? const Duration(seconds: 16) : const Duration(seconds: 1),
+      );
       expect(shots, isNotEmpty, reason: '${scenario.id} captured nothing');
       if (output == null) return;
       for (final shot in shots) {

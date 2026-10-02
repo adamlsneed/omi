@@ -192,12 +192,13 @@ class OmiDeviceConnection extends DeviceConnection {
 
         for (int i = 0; i < totalEntries; i++) {
           int baseIndex = i * 4;
-          var result = ((storageValue[baseIndex] |
-                      (storageValue[baseIndex + 1] << 8) |
-                      (storageValue[baseIndex + 2] << 16) |
-                      (storageValue[baseIndex + 3] << 24)) &
-                  0xFFFFFFFF)
-              .toSigned(32);
+          var result =
+              ((storageValue[baseIndex] |
+                          (storageValue[baseIndex + 1] << 8) |
+                          (storageValue[baseIndex + 2] << 16) |
+                          (storageValue[baseIndex + 3] << 24)) &
+                      0xFFFFFFFF)
+                  .toSigned(32);
           storageLengths.add(result);
         }
       }
@@ -232,12 +233,7 @@ class OmiDeviceConnection extends DeviceConnection {
         return null;
       }
 
-      final status = StorageStatus(
-        totalUsedBytes: totalBytes,
-        fileCount: fileCount,
-        freeBytes: 0,
-        statusFlags: 0,
-      );
+      final status = StorageStatus(totalUsedBytes: totalBytes, fileCount: fileCount, freeBytes: 0, statusFlags: 0);
       Logger.debug('OmiDeviceConnection: $status');
       return status;
     } catch (e) {
@@ -409,16 +405,17 @@ class OmiDeviceConnection extends DeviceConnection {
         completer.complete(info);
       });
 
-      await transport.writeCharacteristic(
-        storageDataStreamServiceUuid,
-        storageDataStreamCharacteristicUuid,
-        [RingProtocol.cmdInfo],
-      );
+      await transport.writeCharacteristic(storageDataStreamServiceUuid, storageDataStreamCharacteristicUuid, [
+        RingProtocol.cmdInfo,
+      ]);
 
-      return await completer.future.timeout(const Duration(seconds: 5), onTimeout: () {
-        Logger.debug('OmiDeviceConnection: getRingInfo timeout');
-        return null;
-      });
+      return await completer.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          Logger.debug('OmiDeviceConnection: getRingInfo timeout');
+          return null;
+        },
+      );
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error getting ring info: $e');
       return null;
@@ -468,10 +465,13 @@ class OmiDeviceConnection extends DeviceConnection {
       );
       Logger.debug('OmiDeviceConnection: CMD_RING_ADVANCE seq=$newReadSeq');
 
-      return await completer.future.timeout(const Duration(seconds: 5), onTimeout: () {
-        Logger.debug('OmiDeviceConnection: advanceRing timeout');
-        return false;
-      });
+      return await completer.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          Logger.debug('OmiDeviceConnection: advanceRing timeout');
+          return false;
+        },
+      );
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error advancing ring: $e');
       return false;
@@ -498,17 +498,18 @@ class OmiDeviceConnection extends DeviceConnection {
         completer.complete(status == 0);
       });
 
-      await transport.writeCharacteristic(
-        storageDataStreamServiceUuid,
-        storageDataStreamCharacteristicUuid,
-        [RingProtocol.cmdClear],
-      );
+      await transport.writeCharacteristic(storageDataStreamServiceUuid, storageDataStreamCharacteristicUuid, [
+        RingProtocol.cmdClear,
+      ]);
       Logger.debug('OmiDeviceConnection: CMD_RING_CLEAR');
 
-      return await completer.future.timeout(const Duration(seconds: 5), onTimeout: () {
-        Logger.debug('OmiDeviceConnection: clearRing timeout');
-        return false;
-      });
+      return await completer.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          Logger.debug('OmiDeviceConnection: clearRing timeout');
+          return false;
+        },
+      );
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error clearing ring: $e');
       return false;
@@ -782,18 +783,20 @@ class OmiDeviceConnection extends DeviceConnection {
 
             for (int i = 0; i < 6; i++) {
               int baseIndex = i * 8;
-              var result = ((value[baseIndex] |
-                          (value[baseIndex + 1] << 8) |
-                          (value[baseIndex + 2] << 16) |
-                          (value[baseIndex + 3] << 24)) &
-                      0xFFFFFFFF)
-                  .toSigned(32);
-              var temp = ((value[baseIndex + 4] |
-                          (value[baseIndex + 5] << 8) |
-                          (value[baseIndex + 6] << 16) |
-                          (value[baseIndex + 7] << 24)) &
-                      0xFFFFFFFF)
-                  .toSigned(32);
+              var result =
+                  ((value[baseIndex] |
+                              (value[baseIndex + 1] << 8) |
+                              (value[baseIndex + 2] << 16) |
+                              (value[baseIndex + 3] << 24)) &
+                          0xFFFFFFFF)
+                      .toSigned(32);
+              var temp =
+                  ((value[baseIndex + 4] |
+                              (value[baseIndex + 5] << 8) |
+                              (value[baseIndex + 6] << 16) |
+                              (value[baseIndex + 7] << 24)) &
+                          0xFFFFFFFF)
+                      .toSigned(32);
               double axisValue = result + (temp / 1000000);
               accelerometerData.add(axisValue);
             }
@@ -926,10 +929,7 @@ class OmiDeviceConnection extends DeviceConnection {
 
   Future<bool> readChargingStatus() async {
     try {
-      final value = await transport.readCharacteristic(
-        settingsServiceUuid,
-        settingsChargingStatusCharacteristicUuid,
-      );
+      final value = await transport.readCharacteristic(settingsServiceUuid, settingsChargingStatusCharacteristicUuid);
       return value.isNotEmpty && value[0] == 1;
     } catch (e) {
       Logger.debug('OmiDeviceConnection: Error reading charging status: $e');
@@ -941,10 +941,7 @@ class OmiDeviceConnection extends DeviceConnection {
     required void Function(bool isCharging) onChargingStatusChange,
   }) async {
     try {
-      final stream = transport.getCharacteristicStream(
-        settingsServiceUuid,
-        settingsChargingStatusCharacteristicUuid,
-      );
+      final stream = transport.getCharacteristicStream(settingsServiceUuid, settingsChargingStatusCharacteristicUuid);
       return stream.listen((value) {
         if (value.isNotEmpty) {
           onChargingStatusChange(value[0] == 1);
@@ -954,6 +951,27 @@ class OmiDeviceConnection extends DeviceConnection {
       Logger.debug('OmiDeviceConnection: Error setting up charging status listener: $e');
       return null;
     }
+  }
+
+  /// CV1 publishes its nRF FICR device ID as exactly 16 hex characters.
+  /// Only that shape is accepted: this connection also serves other
+  /// Omi-protocol devices, and any constant or fallback serial they report
+  /// (e.g. the firmware's "unknown") would merge every unit into one
+  /// analytics hardware_id.
+  static final RegExp _unitIdPattern = RegExp(r'^[0-9A-F]{16}$');
+
+  /// Bounds the serial read so a missing native callback cannot stall setup.
+  static const Duration _serialReadTimeout = Duration(seconds: 3);
+
+  /// Parses a DIS Serial Number String read into a CV1 unit ID, or null when
+  /// it is not a 16-hex-character ID or is a single repeated digit (unset FICR).
+  @visibleForTesting
+  static String? parseSerialNumber(List<int> value) {
+    if (value.isEmpty) return null;
+    final serial = String.fromCharCodes(value).replaceAll('\u0000', '').trim().toUpperCase();
+    if (!_unitIdPattern.hasMatch(serial)) return null;
+    if (serial.split('').toSet().length == 1) return null;
+    return serial;
   }
 
   /// Get device information from Omi device
@@ -1011,6 +1029,21 @@ class OmiDeviceConnection extends DeviceConnection {
         }
       } catch (e) {
         Logger.debug('OmiDeviceConnection: Error reading manufacturer name: $e');
+      }
+
+      // Read serial number (0x2A25). CV1 firmware that exposes the per-unit
+      // hardware ID serves it here; older firmware has no such characteristic
+      // and the transport returns an empty read, leaving serialNumber unset.
+      try {
+        final serialValue = await transport
+            .readCharacteristic(deviceInformationServiceUuid, serialNumberCharacteristicUuid)
+            .timeout(_serialReadTimeout);
+        final serial = parseSerialNumber(serialValue);
+        if (serial != null) {
+          deviceInfo['serialNumber'] = serial;
+        }
+      } catch (e) {
+        Logger.debug('OmiDeviceConnection: Error reading serial number: $e');
       }
 
       // Check if device has image streaming capability (for OpenGlass/OmiGlass detection)

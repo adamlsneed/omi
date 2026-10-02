@@ -7,7 +7,7 @@ import 'package:omi/ui/omi_tokens.dart';
 
 /// What a button does, which decides how loud it is.
 enum OmiButtonVariant {
-  /// The one main action on a screen or sheet: white fill, black label.
+  /// The one main action on a screen or sheet: neutral accent fill and inverse label.
   primary,
 
   /// Other actions next to a primary, or the only action on a quiet surface (empty/error states).
@@ -86,11 +86,11 @@ class OmiButton extends StatefulWidget {
     this.leading,
     this.isLoading = false,
     this.expand = false,
-  })  : variant = OmiButtonVariant.secondary,
-        colors = null,
-        width = null,
-        height = null,
-        labelStyle = null;
+  }) : variant = OmiButtonVariant.secondary,
+       colors = null,
+       width = null,
+       height = null,
+       labelStyle = null;
 
   const OmiButton.destructive({
     super.key,
@@ -101,11 +101,11 @@ class OmiButton extends StatefulWidget {
     this.leading,
     this.isLoading = false,
     this.expand = false,
-  })  : variant = OmiButtonVariant.destructive,
-        colors = null,
-        width = null,
-        height = null,
-        labelStyle = null;
+  }) : variant = OmiButtonVariant.destructive,
+       colors = null,
+       width = null,
+       height = null,
+       labelStyle = null;
 
   const OmiButton.tertiary({
     super.key,
@@ -116,11 +116,11 @@ class OmiButton extends StatefulWidget {
     this.leading,
     this.isLoading = false,
     this.expand = false,
-  })  : variant = OmiButtonVariant.tertiary,
-        colors = null,
-        width = null,
-        height = null,
-        labelStyle = null;
+  }) : variant = OmiButtonVariant.tertiary,
+       colors = null,
+       width = null,
+       height = null,
+       labelStyle = null;
 
   /// See [OmiButtonVariant.toolbar].
   const OmiButton.toolbar({
@@ -132,11 +132,11 @@ class OmiButton extends StatefulWidget {
     this.leading,
     this.isLoading = false,
     this.expand = false,
-  })  : variant = OmiButtonVariant.toolbar,
-        colors = null,
-        width = null,
-        height = null,
-        labelStyle = null;
+  }) : variant = OmiButtonVariant.toolbar,
+       colors = null,
+       width = null,
+       height = null,
+       labelStyle = null;
 
   final String label;
 
@@ -202,12 +202,14 @@ class _OmiButtonState extends State<OmiButton> {
   }
 
   void _report(Object error, StackTrace stack) {
-    FlutterError.reportError(FlutterErrorDetails(
-      exception: error,
-      stack: stack,
-      library: 'omi ui',
-      context: ErrorDescription('while running OmiButton "${widget.label}" onPressed'),
-    ));
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'omi ui',
+        context: ErrorDescription('while running OmiButton "${widget.label}" onPressed'),
+      ),
+    );
   }
 
   ({Color background, Color foreground}) _colors(bool enabled) {

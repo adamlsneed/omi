@@ -39,19 +39,14 @@ class LanguageSelectionDialog {
       showCloseButton: !isRequired,
       isDismissible: !isRequired,
       enableDrag: !isRequired,
-      builder: (sheetContext) => _PrimaryLanguagePicker(
-        homeProvider: homeProvider,
-        showSingleLanguageWarning: showSingleLanguageWarning,
-      ),
+      builder: (sheetContext) =>
+          _PrimaryLanguagePicker(homeProvider: homeProvider, showSingleLanguageWarning: showSingleLanguageWarning),
     );
   }
 }
 
 class _PrimaryLanguagePicker extends StatefulWidget {
-  const _PrimaryLanguagePicker({
-    required this.homeProvider,
-    required this.showSingleLanguageWarning,
-  });
+  const _PrimaryLanguagePicker({required this.homeProvider, required this.showSingleLanguageWarning});
 
   final HomeProvider homeProvider;
   final bool showSingleLanguageWarning;
@@ -67,8 +62,9 @@ class _PrimaryLanguagePickerState extends State<_PrimaryLanguagePicker> {
   final ScrollController _scrollController = ScrollController();
 
   // Preset the selected language if the user has one
-  late String? _selected =
-      widget.homeProvider.userPrimaryLanguage.isNotEmpty ? widget.homeProvider.userPrimaryLanguage : null;
+  late String? _selected = widget.homeProvider.userPrimaryLanguage.isNotEmpty
+      ? widget.homeProvider.userPrimaryLanguage
+      : null;
   late String? _selectedName = _selected != null ? widget.homeProvider.getLanguageName(_selected!) : null;
 
   @override
@@ -100,8 +96,8 @@ class _PrimaryLanguagePickerState extends State<_PrimaryLanguagePicker> {
       _filtered = q.isEmpty
           ? _languages
           : _languages
-              .where((lang) => lang.key.toLowerCase().contains(q) || lang.value.toLowerCase().contains(q))
-              .toList();
+                .where((lang) => lang.key.toLowerCase().contains(q) || lang.value.toLowerCase().contains(q))
+                .toList();
     });
   }
 
@@ -145,7 +141,7 @@ class _PrimaryLanguagePickerState extends State<_PrimaryLanguagePicker> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: OmiColors.textTertiary, size: 18),
+                Icon(Icons.info_outline, color: OmiColors.textTertiary, size: 18),
                 const SizedBox(width: OmiSpacing.xs),
                 Expanded(
                   child: Text(
@@ -174,7 +170,7 @@ class _PrimaryLanguagePickerState extends State<_PrimaryLanguagePicker> {
                     final isSelected = _selected == language.value;
                     return ListTile(
                       title: Text(language.key, style: OmiType.body),
-                      trailing: isSelected ? const Icon(Icons.check_circle, color: OmiColors.textPrimary) : null,
+                      trailing: isSelected ? Icon(Icons.check_circle, color: OmiColors.textPrimary) : null,
                       selected: isSelected,
                       selectedTileColor: OmiColors.surface2,
                       shape: const RoundedRectangleBorder(borderRadius: OmiRadius.smAll),

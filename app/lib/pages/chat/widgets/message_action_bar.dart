@@ -24,12 +24,12 @@ enum FeedbackReason {
   const FeedbackReason(this.key);
 
   String label(AppLocalizations l10n) => switch (this) {
-        FeedbackReason.tooVerbose => l10n.feedbackReasonTooVerbose,
-        FeedbackReason.incorrectOrHallucination => l10n.feedbackReasonIncorrect,
-        FeedbackReason.notHelpfulOrIrrelevant => l10n.feedbackReasonNotHelpful,
-        FeedbackReason.didntFollowInstructions => l10n.feedbackReasonIgnoredInstructions,
-        FeedbackReason.other => l10n.cancelReasonOther,
-      };
+    FeedbackReason.tooVerbose => l10n.feedbackReasonTooVerbose,
+    FeedbackReason.incorrectOrHallucination => l10n.feedbackReasonIncorrect,
+    FeedbackReason.notHelpfulOrIrrelevant => l10n.feedbackReasonNotHelpful,
+    FeedbackReason.didntFollowInstructions => l10n.feedbackReasonIgnoredInstructions,
+    FeedbackReason.other => l10n.cancelReasonOther,
+  };
 }
 
 /// The body of the "What went wrong?" sheet shown for a thumbs-down: a reason (required), an
@@ -102,7 +102,7 @@ class _FeedbackBottomSheetState extends State<FeedbackBottomSheet> {
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: OmiSpacing.xxs),
-            decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+            decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
             child: TextField(
               controller: _commentController,
               style: OmiType.subhead.copyWith(height: 1.4),

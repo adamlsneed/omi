@@ -24,6 +24,7 @@ import 'package:omi/services/wals/wal_interfaces.dart';
 import 'package:omi/utils/enums.dart';
 
 import '../../support/capture/capture_replay_world.dart';
+import '../../support/capture/scripted_device_connection.dart';
 import '../../support/capture/virtual_capture_time.dart';
 import '../../spine/c1_async_boundaries_test.dart' show HeldLocation;
 import '../../spine/c1_location_completion_test.dart' show PhoneSpy, WalSpy;
@@ -40,7 +41,7 @@ CaptureDependencies _deps({
 }) {
   final clock = world?.clock ?? VirtualClock(DateTime.utc(2026));
   return CaptureDependencies(
-    ensureDeviceConnection: (_) async => null,
+    ensureDeviceConnection: (_) async => world?.deviceConnection,
     wal: world?.wal ?? _InertWal(),
     phoneMic: world?.mic ?? _InertMic(),
     batchSupported: false,
@@ -54,20 +55,22 @@ CaptureDependencies _deps({
     scheduling: world?.scheduler ?? ManualScheduler(clock: clock),
     preferences: SharedPreferencesUtil(),
     ble: _NoopBle(),
-    openSocket: ({
-      required codec,
-      required sampleRate,
-      required language,
-      required force,
-      source,
-      clientConversationId,
-      customSttConfig,
-    }) async =>
-        null,
+    openSocket:
+        ({
+          required codec,
+          required sampleRate,
+          required language,
+          required force,
+          source,
+          clientConversationId,
+          customSttConfig,
+        }) async => null,
     openConversationSocket: open,
-    owner: owner ??
+    owner:
+        owner ??
         CaptureSessionOwner(
-          coordinator: coordinator ??
+          coordinator:
+              coordinator ??
               RecordingTransferCoordinator(
                 reconcile: () async {},
                 discover: () async {},
@@ -78,7 +81,8 @@ CaptureDependencies _deps({
           startForeground: () async {},
           stopForeground: () async {},
         ),
-    location: location ??
+    location:
+        location ??
         ConversationLocationCapture(
           isLocationServiceEnabled: () async => false,
           checkPermission: () async => LocationPermission.denied,
@@ -113,12 +117,12 @@ class _NoopBle implements CaptureBleListeners {
 
 class _ImmediateLocation extends ConversationLocationCapture {
   _ImmediateLocation(this.fix)
-      : super(
-          isLocationServiceEnabled: () async => true,
-          checkPermission: () async => LocationPermission.always,
-          requestPermission: () async => LocationPermission.always,
-          upload: (_) async => true,
-        );
+    : super(
+        isLocationServiceEnabled: () async => true,
+        checkPermission: () async => LocationPermission.always,
+        requestPermission: () async => LocationPermission.always,
+        upload: (_) async => true,
+      );
   final Geolocation fix;
   @override
   Future<Geolocation?> capture({bool promptIfDenied = true}) async => fix;
@@ -154,20 +158,21 @@ void main() {
       var opens = 0;
       final deps = _deps(
         world: world,
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          opens++;
-          await gate.future;
-          return null;
-        },
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              opens++;
+              await gate.future;
+              return null;
+            },
       );
       final p = composeCaptureProvider(deps);
       p.updateRecordingState(RecordingState.systemAudioRecord);
@@ -195,24 +200,25 @@ void main() {
       final transports = <ScriptedPureSocket>[];
       final deps = _deps(
         world: world,
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          opens++;
-          await gate.future;
-          final transport = ScriptedPureSocket();
-          transports.add(transport);
-          final socket = TranscriptSegmentSocketService.withSocket(sampleRate, codec, language, transport);
-          await socket.start();
-          return socket;
-        },
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              opens++;
+              await gate.future;
+              final transport = ScriptedPureSocket();
+              transports.add(transport);
+              final socket = TranscriptSegmentSocketService.withSocket(sampleRate, codec, language, transport);
+              await socket.start();
+              return socket;
+            },
       );
       final p = composeCaptureProvider(deps);
       p.updateRecordingState(RecordingState.systemAudioRecord);
@@ -245,41 +251,48 @@ void main() {
     final world = await CaptureReplayWorld.boot(tempDir: dir);
     try {
       world.disposeController();
+      world.deviceConnection = ScriptedDeviceConnection();
       final gate = Completer<BleAudioCodec>();
       var opens = 0;
+      var holdCodec = false;
       final deps = _deps(
         world: world,
-        codec: (_) => gate.future,
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          opens++;
-          return null;
-        },
+        codec: (_) => holdCodec ? gate.future : Future.value(BleAudioCodec.pcm16),
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              opens++;
+              return null;
+            },
       );
       final p = composeCaptureProvider(deps);
       final device = BtDevice(id: 'synthetic-device', name: 'fixture', type: DeviceType.omi, rssi: -50);
-      p.updateRecordingDevice(device);
-      p.updateRecordingState(RecordingState.deviceRecord);
+      await p.streamDeviceRecording(device: device);
+      expect(p.liveCaptureSource, 'omi');
+      final initialOpens = opens;
+      holdCodec = true;
       final before = deps.owner.token;
       final pending = p.reconnectActiveCaptureForTesting();
       await pumpEventQueue();
       p.updateRecordingDevice(null);
       p.updateRecordingDevice(device);
-      p.updateRecordingState(RecordingState.deviceRecord);
-      expect(deps.owner.isCurrent(before), isFalse);
+      expect(deps.owner.isCurrent(before), isTrue);
       gate.complete(BleAudioCodec.pcm16);
       await pending;
-      expect(opens, 0);
-      await p.reconnectActiveCaptureForTesting();
-      expect(opens, 1);
+      await p.pendingSourceSwitch;
+      expect(opens, initialOpens);
+      expect(deps.owner.isCurrent(before), isFalse);
+      holdCodec = false;
+      await p.streamDeviceRecording(device: device);
+      expect(opens, initialOpens + 1);
       p.dispose();
     } finally {
       await world.dispose();
@@ -422,19 +435,20 @@ void main() {
             return refresh.future;
           },
         ),
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          opens++;
-          return null;
-        },
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              opens++;
+              return null;
+            },
       );
       final p = composeCaptureProvider(deps);
       p.updateRecordingState(RecordingState.systemAudioRecord);
@@ -479,25 +493,26 @@ void main() {
       final d = _deps(
         world: world,
         owner: owner,
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          final socket = TranscriptSegmentSocketService.withSocket(
-            sampleRate,
-            codec,
-            language,
-            ScriptedPureSocket(),
-          );
-          await socket.start();
-          return socket;
-        },
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              final socket = TranscriptSegmentSocketService.withSocket(
+                sampleRate,
+                codec,
+                language,
+                ScriptedPureSocket(),
+              );
+              await socket.start();
+              return socket;
+            },
       );
       final deps = CaptureDependencies(
         wal: WalSpy(phone),
@@ -561,19 +576,20 @@ void main() {
       final deps = _deps(
         world: world,
         location: _ImmediateLocation(geo),
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          received.add(geolocation);
-          return null;
-        },
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              received.add(geolocation);
+              return null;
+            },
       );
       final p = composeCaptureProvider(deps);
       await p.streamRecording();
@@ -608,23 +624,29 @@ void main() {
     CaptureDependencies wedgeDeps(CaptureReplayWorld world, List<ScriptedPureSocket> transports) {
       return _deps(
         world: world,
-        open: ({
-          required codec,
-          required sampleRate,
-          required language,
-          required force,
-          source,
-          clientConversationId,
-          customSttConfig,
-          geolocation,
-        }) async {
-          final transport = ScriptedPureSocket();
-          transports.add(transport);
-          final socket =
-              TranscriptSegmentSocketService.withSocket(sampleRate, codec, language, transport, source: source);
-          await socket.start();
-          return socket;
-        },
+        open:
+            ({
+              required codec,
+              required sampleRate,
+              required language,
+              required force,
+              source,
+              clientConversationId,
+              customSttConfig,
+              geolocation,
+            }) async {
+              final transport = ScriptedPureSocket();
+              transports.add(transport);
+              final socket = TranscriptSegmentSocketService.withSocket(
+                sampleRate,
+                codec,
+                language,
+                transport,
+                source: source,
+              );
+              await socket.start();
+              return socket;
+            },
       );
     }
 
@@ -633,16 +655,17 @@ void main() {
       final world = await CaptureReplayWorld.boot(tempDir: dir);
       try {
         world.disposeController();
+        world.deviceConnection = ScriptedDeviceConnection();
         final detected = <Map<String, Object>>[];
         final monitor = installMonitor(detected);
         final transports = <ScriptedPureSocket>[];
         final p = composeCaptureProvider(wedgeDeps(world, transports));
         final device = BtDevice(id: 'omi-1', name: 'Omi', type: DeviceType.omi, rssi: -50);
-        p.updateRecordingDevice(device);
-        p.updateRecordingState(RecordingState.deviceRecord);
+        await p.streamDeviceRecording(device: device);
+        expect(p.liveCaptureSource, 'omi');
 
         for (var i = 0; i < 3; i++) {
-          await p.reconnectActiveCaptureForTesting();
+          if (i != 0) await p.reconnectActiveCaptureForTesting();
           expect(transports, hasLength(i + 1));
           transports.last.emitClose();
           await pumpEventQueue();

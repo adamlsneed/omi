@@ -65,7 +65,7 @@ class PaymentMethodCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
+                  decoration: BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
                   child: icon,
                 ),
                 const SizedBox(width: OmiSpacing.md),
@@ -73,10 +73,7 @@ class PaymentMethodCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: OmiType.headline,
-                      ),
+                      Text(title, style: OmiType.headline),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -88,10 +85,10 @@ class PaymentMethodCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (isActive) ...[
-                              const Icon(Icons.check_circle, color: OmiColors.success, size: 16),
+                              Icon(Icons.check_circle, color: OmiColors.success, size: 16),
                               const SizedBox(width: 4),
                             ] else if (isConnected && !isActive) ...[
-                              const Icon(Icons.circle, color: OmiColors.textSecondary, size: 16),
+                              Icon(Icons.circle, color: OmiColors.textSecondary, size: 16),
                               const SizedBox(width: 4),
                             ],
                             Text(
@@ -118,7 +115,7 @@ class PaymentMethodCard extends StatelessWidget {
                 ],
                 if (!isActive && isConnected) ...[
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: OmiColors.textSecondary),
+                    icon: Icon(Icons.more_vert, color: OmiColors.textSecondary),
                     tooltip: context.l10n.moreOptions,
                     onSelected: (value) {
                       if (value == 'update') {

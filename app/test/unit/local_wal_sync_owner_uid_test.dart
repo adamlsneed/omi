@@ -19,11 +19,13 @@ class _FakeListener implements IWalSyncListener {
 }
 
 Wal _wal({required int start, String? ownerUid}) => Wal(
-      timerStart: start,
-      codec: BleAudioCodec.opus,
-      seconds: 30,
-      ownerUid: ownerUid,
-    );
+  timerStart: start,
+  codec: BleAudioCodec.opus,
+  seconds: 30,
+  storage: WalStorage.disk,
+  status: WalStatus.miss,
+  ownerUid: ownerUid,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -62,11 +64,7 @@ void main() {
     });
 
     test('fromJson tolerates a missing owner_uid (pre-upgrade data)', () {
-      final restored = Wal.fromJson({
-        'timer_start': 1000,
-        'codec': 'BleAudioCodec.opus',
-        'seconds': 30,
-      });
+      final restored = Wal.fromJson({'timer_start': 1000, 'codec': 'BleAudioCodec.opus', 'seconds': 30});
       expect(restored.ownerUid, isNull);
     });
 
@@ -76,46 +74,95 @@ void main() {
     });
   });
 
-  test('full account handover: foreign records are not admitted, stay on disk; null and legacy records load for anyone',
-      () async {
-    // Account A session: one stamped live WAL, one unstamped (pre-upgrade), one legacy.
+  test(
+    'full account handover: foreign records are not admitted, stay on disk; null and legacy records load for anyone',
+    () async {
+      // Account A session: one stamped live WAL, one unstamped (pre-upgrade), one legacy.
+      SharedPreferences.setMockInitialValues({'uid': 'account-a'});
+      await SharedPreferencesUtil.init();
+      final syncA = LocalWalSyncImpl(_FakeListener());
+      syncA.testWals = [
+        _wal(start: 1000, ownerUid: 'account-a'),
+        _wal(start: 2000, ownerUid: null),
+        _wal(start: 3000, ownerUid: 'legacy'),
+      ];
+      await WalFileManager.saveWals([...syncA.testWals]);
+
+      // Account A logs out: retiring records get back-stamped with A's uid.
+      syncA.clearUserData();
+      var onDisk = await WalFileManager.loadWals();
+      final stamped = onDisk.where((w) => w.timerStart == 1000).toList();
+      expect(stamped, isNotEmpty);
+      expect(stamped.first.ownerUid, 'account-a', reason: 'clearUserData back-stamps unstamped retiring records');
+
+      // Process death + account B signs in on the same device.
+      SharedPreferences.setMockInitialValues({'uid': 'account-b'});
+      await SharedPreferencesUtil.init();
+      final syncB = LocalWalSyncImpl(_FakeListener());
+      syncB.start();
+      await syncB.walReady;
+
+      // B's session admits only null/legacy records; A-stamped stays parked.
+      expect(syncB.testWals.map((w) => w.timerStart), containsAll([2000, 3000]));
+      expect(
+        syncB.testWals.map((w) => w.timerStart),
+        isNot(contains(1000)),
+        reason: 'account A-stamped record must not enter B session',
+      );
+
+      // B persists something: A's record must survive on disk (side list).
+      syncB.testWals = [...syncB.testWals, _wal(start: 5000, ownerUid: 'account-b')];
+      await WalFileManager.saveWals([...syncB.testWals, ...onDisk.where((w) => w.timerStart == 1000)]);
+      onDisk = await WalFileManager.loadWals();
+      expect(
+        onDisk.map((w) => w.timerStart),
+        containsAll([1000, 2000, 3000, 5000]),
+        reason: 'no account data is lost across the handover',
+      );
+    },
+  );
+
+  test('logout and account-switch churn stays within the shared unsynced retention cap', () async {
+    var persisted = <Wal>[];
+
     SharedPreferences.setMockInitialValues({'uid': 'account-a'});
     await SharedPreferencesUtil.init();
-    final syncA = LocalWalSyncImpl(_FakeListener());
-    syncA.testWals = [
-      _wal(start: 1000, ownerUid: 'account-a'),
-      _wal(start: 2000, ownerUid: null),
-      _wal(start: 3000, ownerUid: 'legacy'),
-    ];
-    await WalFileManager.saveWals([...syncA.testWals]);
-
-    // Account A logs out: retiring records get back-stamped with A's uid.
+    final syncA = LocalWalSyncImpl(
+      _FakeListener(),
+      persistWals: (wals) async => persisted = List<Wal>.from(wals),
+      loadWals: () async => <Wal>[],
+    );
+    syncA.testWals = List.generate(400, (index) => _wal(start: index, ownerUid: 'account-a'));
     syncA.clearUserData();
-    var onDisk = await WalFileManager.loadWals();
-    final stamped = onDisk.where((w) => w.timerStart == 1000).toList();
-    expect(stamped, isNotEmpty);
-    expect(stamped.first.ownerUid, 'account-a', reason: 'clearUserData back-stamps unstamped retiring records');
 
-    // Process death + account B signs in on the same device.
     SharedPreferences.setMockInitialValues({'uid': 'account-b'});
     await SharedPreferencesUtil.init();
-    final syncB = LocalWalSyncImpl(_FakeListener());
-    syncB.start();
-    await syncB.walReady;
+    syncA.testWals = List.generate(400, (index) => _wal(start: 1000 + index, ownerUid: 'account-b'));
+    await syncA.addExternalWal(_wal(start: 2000, ownerUid: 'account-b'), admittedGeneration: syncA.sessionGeneration);
 
-    // B's session admits only null/legacy records; A-stamped stays parked.
-    expect(syncB.testWals.map((w) => w.timerStart), containsAll([2000, 3000]));
-    expect(syncB.testWals.map((w) => w.timerStart), isNot(contains(1000)),
-        reason: 'account A-stamped record must not enter B session');
+    expect(persisted, hasLength(maxRetainedCaptureWalCount));
+    expect(
+      persisted.where((wal) => wal.ownerUid == 'account-a'),
+      hasLength(319),
+      reason: 'the oldest retired-account WALs must participate in the shared cap',
+    );
 
-    // B persists something: A's record must survive on disk (side list).
-    syncB.testWals = [...syncB.testWals, _wal(start: 5000, ownerUid: 'account-b')];
-    await WalFileManager.saveWals([
-      ...syncB.testWals,
-      ...onDisk.where((w) => w.timerStart == 1000),
-    ]);
-    onDisk = await WalFileManager.loadWals();
-    expect(onDisk.map((w) => w.timerStart), containsAll([1000, 2000, 3000, 5000]),
-        reason: 'no account data is lost across the handover');
+    SharedPreferences.setMockInitialValues({'uid': 'account-c'});
+    await SharedPreferencesUtil.init();
+    final syncC = LocalWalSyncImpl(
+      _FakeListener(),
+      persistWals: (wals) async => persisted = List<Wal>.from(wals),
+      loadWals: () async => List<Wal>.from(persisted),
+    );
+    syncC.start();
+    await syncC.walReady;
+
+    expect(syncC.testWals, isEmpty, reason: 'the retained account-B WALs are foreign to account C');
+    expect(
+      persisted,
+      hasLength(maxRetainedCaptureWalCount),
+      reason: 'foreign WALs loaded after an account switch remain inside the cap',
+    );
+    await syncC.stop();
   });
 }

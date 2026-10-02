@@ -260,7 +260,9 @@ class LeaveFlowNotice extends StatelessWidget {
               child: ExcludeSemantics(child: FaIcon(icon, size: 14, color: color)),
             ),
             const SizedBox(width: OmiSpacing.sm),
-            Expanded(child: Text(text, style: OmiType.footnote.copyWith(color: color, height: 1.5))),
+            Expanded(
+              child: Text(text, style: OmiType.footnote.copyWith(color: color, height: 1.5)),
+            ),
           ],
         ),
       ),
@@ -292,9 +294,11 @@ class LeaveFlowTextField extends StatelessWidget {
 }
 
 /// Input decoration shared by the leave flows' text fields.
-InputDecoration leaveFlowInputDecoration({String? hint, Color focusColor = OmiColors.textTertiary}) {
-  OutlineInputBorder border(Color color) =>
-      OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide(color: color));
+InputDecoration leaveFlowInputDecoration({String? hint, Color? focusColor}) {
+  OutlineInputBorder border(Color color) => OutlineInputBorder(
+    borderRadius: OmiRadius.mdAll,
+    borderSide: BorderSide(color: color),
+  );
   return InputDecoration(
     hintText: hint,
     hintStyle: OmiType.footnote.copyWith(color: OmiColors.textTertiary),
@@ -302,7 +306,7 @@ InputDecoration leaveFlowInputDecoration({String? hint, Color focusColor = OmiCo
     fillColor: OmiColors.surface1,
     border: border(OmiColors.border),
     enabledBorder: border(OmiColors.border),
-    focusedBorder: border(focusColor),
+    focusedBorder: border(focusColor ?? OmiColors.textTertiary),
     counterStyle: OmiType.caption.copyWith(color: OmiColors.textTertiary),
     contentPadding: const EdgeInsets.all(OmiSpacing.md),
   );
@@ -320,7 +324,7 @@ class _IconBadge extends StatelessWidget {
       child: Container(
         width: 36,
         height: 36,
-        decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
+        decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
         child: Center(child: FaIcon(icon, size: 14, color: color)),
       ),
     );

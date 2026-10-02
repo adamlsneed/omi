@@ -10,7 +10,7 @@ class ChangelogSheet extends StatefulWidget {
   final Future<List<Announcement>> Function()? changelogsFuture;
 
   const ChangelogSheet({super.key, this.changelogs, this.changelogsFuture})
-      : assert(changelogs != null || changelogsFuture != null);
+    : assert(changelogs != null || changelogsFuture != null);
 
   /// Show the changelog sheet as a modal bottom sheet with pre-loaded data.
   static Future<void> show(BuildContext context, List<Announcement> changelogs) {
@@ -108,26 +108,26 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
             child: _isLoading
                 ? _buildLoadingState()
                 : _failed
-                    ? OmiErrorState(
-                        message: context.l10n.couldNotLoadWhatsNew,
-                        onRetry: () {
-                          setState(() {
-                            _isLoading = true;
-                            _failed = false;
-                          });
-                          return _loadChangelogs();
-                        },
-                      )
-                    : PageView.builder(
-                        controller: _pageController,
-                        itemCount: _orderedChangelogs.length,
-                        onPageChanged: (index) {
-                          setState(() => _currentPage = index);
-                        },
-                        itemBuilder: (context, index) {
-                          return _buildChangelogPage(_orderedChangelogs[index]);
-                        },
-                      ),
+                ? OmiErrorState(
+                    message: context.l10n.couldNotLoadWhatsNew,
+                    onRetry: () {
+                      setState(() {
+                        _isLoading = true;
+                        _failed = false;
+                      });
+                      return _loadChangelogs();
+                    },
+                  )
+                : PageView.builder(
+                    controller: _pageController,
+                    itemCount: _orderedChangelogs.length,
+                    onPageChanged: (index) {
+                      setState(() => _currentPage = index);
+                    },
+                    itemBuilder: (context, index) {
+                      return _buildChangelogPage(_orderedChangelogs[index]);
+                    },
+                  ),
           ),
           if (!_isLoading && !_failed) _buildFooter(),
         ],
@@ -144,7 +144,7 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(OmiSpacing.lg, 0, OmiSpacing.xxs, OmiSpacing.xxs),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: OmiColors.surface2, width: 1)),
       ),
       child: Row(
@@ -157,14 +157,13 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
                   child: Container(
                     width: 180,
                     height: 22,
-                    decoration: const BoxDecoration(
-                      color: OmiColors.surface2,
-                      borderRadius: OmiRadius.smAll,
-                    ),
+                    decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
                   ),
                 )
-              : Expanded(child: Semantics(header: true, child: Text(title, style: OmiType.headline))),
-          const OmiCloseButton(color: OmiColors.textSecondary),
+              : Expanded(
+                  child: Semantics(header: true, child: Text(title, style: OmiType.headline)),
+                ),
+          OmiCloseButton(color: OmiColors.textSecondary),
         ],
       ),
     );
@@ -188,20 +187,14 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
                   Container(
                     width: 24,
                     height: 24,
-                    decoration: const BoxDecoration(
-                      color: OmiColors.surface2,
-                      borderRadius: OmiRadius.smAll,
-                    ),
+                    decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
                   ),
                   const SizedBox(width: 12),
                   // Title placeholder
                   Expanded(
                     child: Container(
                       height: 20,
-                      decoration: const BoxDecoration(
-                        color: OmiColors.surface2,
-                        borderRadius: OmiRadius.smAll,
-                      ),
+                      decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
                     ),
                   ),
                 ],
@@ -214,19 +207,13 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
                   children: [
                     Container(
                       height: 14,
-                      decoration: const BoxDecoration(
-                        color: OmiColors.surface2,
-                        borderRadius: OmiRadius.smAll,
-                      ),
+                      decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       height: 14,
                       width: MediaQuery.of(context).size.width * 0.6,
-                      decoration: const BoxDecoration(
-                        color: OmiColors.surface2,
-                        borderRadius: OmiRadius.smAll,
-                      ),
+                      decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.smAll),
                     ),
                   ],
                 ),
@@ -266,22 +253,14 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
           children: [
             ExcludeSemantics(child: Text(item.icon ?? '✨', style: OmiType.title3)),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                item.title,
-                style: OmiType.headline.copyWith(height: 1.3),
-              ),
-            ),
+            Expanded(child: Text(item.title, style: OmiType.headline.copyWith(height: 1.3))),
           ],
         ),
         const SizedBox(height: 8),
         // Description
         Padding(
           padding: const EdgeInsets.only(left: 32),
-          child: Text(
-            item.description,
-            style: OmiType.subhead.copyWith(color: OmiColors.textSecondary, height: 1.5),
-          ),
+          child: Text(item.description, style: OmiType.subhead.copyWith(color: OmiColors.textSecondary, height: 1.5)),
         ),
       ],
     );
@@ -294,7 +273,7 @@ class _ChangelogSheetState extends State<ChangelogSheet> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(OmiSpacing.md, OmiSpacing.md, OmiSpacing.md, OmiSpacing.md),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: OmiColors.surface2, width: 1)),
       ),
       child: Row(

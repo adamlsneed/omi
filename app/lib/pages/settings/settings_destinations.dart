@@ -7,6 +7,7 @@ import 'package:omi/backend/preferences.dart';
 import 'package:omi/pages/announcements/changelog_sheet.dart';
 import 'package:omi/pages/conversations/auto_sync_page.dart';
 import 'package:omi/pages/conversations/sync_page.dart';
+import 'package:omi/pages/goals/goals_page.dart';
 import 'package:omi/pages/memories/page.dart';
 import 'package:omi/pages/onboarding/speech_profile_widget.dart';
 import 'package:omi/pages/payments/payments_page.dart';
@@ -20,7 +21,6 @@ import 'package:omi/pages/settings/delete_account.dart';
 import 'package:omi/pages/settings/developer.dart';
 import 'package:omi/pages/settings/device_settings.dart';
 import 'package:omi/pages/settings/frontend_template_routing_settings_page.dart';
-import 'package:omi/pages/settings/home_screen_settings_page.dart';
 import 'package:omi/pages/settings/import_history_page.dart';
 import 'package:omi/pages/settings/integrations_page.dart';
 import 'package:omi/pages/settings/language_settings_page.dart';
@@ -78,6 +78,8 @@ Future<void> openSettingsDestination(BuildContext context, SettingsDestination d
       await routeToPage(context, const PermissionsPage());
     case SettingsDestination.memories:
       await routeToPage(context, const MemoriesPage());
+    case SettingsDestination.goals:
+      await routeToPage(context, const GoalsPage());
     case SettingsDestination.language:
       await routeToPage(context, const LanguageSettingsPage());
     case SettingsDestination.customVocabulary:
@@ -97,8 +99,6 @@ Future<void> openSettingsDestination(BuildContext context, SettingsDestination d
       await ConversationTimeoutDialog.show(context);
     case SettingsDestination.templateRouting:
       await routeToPage(context, const FrontendTemplateRoutingSettingsPage());
-    case SettingsDestination.homeScreen:
-      await routeToPage(context, const HomeScreenSettingsPage());
     case SettingsDestination.phoneCalls:
       await routeToPage(context, const PhoneCallSettingsPage());
     case SettingsDestination.dataPrivacy:

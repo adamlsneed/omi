@@ -24,23 +24,25 @@ const _page = 'lib/pages/conversations/conversations_page.dart (ConversationsPag
 
 /// A ConversationProvider already holding [items], grouped by date, whose deletes succeed locally.
 List<SingleChildWidget> _listProviders(List<ServerConversation> items) {
-  final provider = ConversationProvider(
-    conversationListFetcher: () async => (items: items, ok: true),
-    isSignedIn: () => true,
-  )
-    ..conversationDeleteFetcherOverride = ((_) async => true)
-    ..conversations = items
-    ..groupConversationsByDate();
+  final provider =
+      ConversationProvider(conversationListFetcher: () async => (items: items, ok: true), isSignedIn: () => true)
+        ..conversationDeleteFetcherOverride = ((_) async => true)
+        ..conversations = items
+        ..groupConversationsByDate();
   return [
     ChangeNotifierProvider<ConversationProvider>.value(value: provider),
     ChangeNotifierProvider(create: (_) => FolderProvider(foldersFetcher: () async => <Folder>[])),
   ];
 }
 
-const _twoSourceGroup = CaptureGroup(id: 'group-1', primaryId: 'grouped-a', members: [
-  CaptureGroupMember(id: 'grouped-a', source: 'desktop'),
-  CaptureGroupMember(id: 'grouped-a-omi', source: 'omi'),
-]);
+const _twoSourceGroup = CaptureGroup(
+  id: 'group-1',
+  primaryId: 'grouped-a',
+  members: [
+    CaptureGroupMember(id: 'grouped-a', source: 'desktop'),
+    CaptureGroupMember(id: 'grouped-a-omi', source: 'omi'),
+  ],
+);
 
 final conversationsScenarios = <AuditScenario>[
   AuditScenario(
@@ -48,7 +50,7 @@ final conversationsScenarios = <AuditScenario>[
     title: 'Conversations list, row menu and swipe to delete',
     page: _page,
     state: 'Three conversations on one day: a titled one, an untitled one and a discarded one; discarded shown',
-    prefs: {'showGoalTrackerEnabled': false, 'showDiscardedMemories': true},
+    prefs: {'showDiscardedMemories': true},
     run: (a) async {
       final items = [
         auditConversation('a', title: 'Design catch-up with Alex'),
@@ -81,7 +83,6 @@ final conversationsScenarios = <AuditScenario>[
     title: 'Grouped capture row, its Recordings/Separate menu and the Separate confirmation',
     page: _page,
     state: 'One conversation recorded by two sources (desktop and pendant) collapsed into one capture group',
-    prefs: {'showGoalTrackerEnabled': false},
     run: (a) async {
       final grouped = auditConversation('grouped-a', title: 'Standup with the team', captureGroup: _twoSourceGroup);
       await a.pump(const ConversationsPage(requestInitialLoad: false), providers: _listProviders([grouped]));
@@ -108,7 +109,8 @@ final conversationsScenarios = <AuditScenario>[
         stats: DayStats(totalConversations: 5, actionItemsCount: 3),
       );
       await a.pump(
-          DailyRecapsPage(fetchSummaries: ({int limit = 20, int offset = 0}) async => (items: [summary], ok: true)));
+        DailyRecapsPage(fetchSummaries: ({int limit = 20, int offset = 0}) async => (items: [summary], ok: true)),
+      );
       await a.shot('Open Daily Recaps');
     },
   ),

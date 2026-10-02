@@ -12,7 +12,6 @@ import 'package:omi/backend/schema/structured.dart';
 import 'package:omi/l10n/app_localizations.dart';
 import 'package:omi/pages/conversations/conversation_actions.dart';
 import 'package:omi/pages/conversations/widgets/conversation_list_item.dart';
-import 'package:omi/pages/conversations/widgets/date_filter_chip.dart';
 import 'package:omi/pages/conversations/widgets/date_list_item.dart';
 import 'package:omi/providers/conversation_provider.dart';
 import 'package:omi/ui/ui.dart';
@@ -69,11 +68,11 @@ void main() {
   }
 
   Widget deleteButton(List<ServerConversation> conversations) => Builder(
-        builder: (context) => TextButton(
-          onPressed: () => deleteConversationsWithUndo(context, conversations),
-          child: const Center(child: Text('delete')),
-        ),
-      );
+    builder: (context) => TextButton(
+      onPressed: () => deleteConversationsWithUndo(context, conversations),
+      child: const Center(child: Text('delete')),
+    ),
+  );
 
   group('delete with Undo (D5)', () {
     testWidgets('Undo restores the conversation and nothing is deleted on the server', (tester) async {
@@ -157,7 +156,10 @@ void main() {
       captureGroup: const CaptureGroup(
         id: 'event-1',
         primaryId: 'a',
-        members: [CaptureGroupMember(id: 'a', source: 'desktop'), CaptureGroupMember(id: 'b', source: 'omi')],
+        members: [
+          CaptureGroupMember(id: 'a', source: 'desktop'),
+          CaptureGroupMember(id: 'b', source: 'omi'),
+        ],
       ),
     );
     provider.conversations = [grouped];
@@ -179,10 +181,12 @@ void main() {
 
   testWidgets('Separate… from a grouped row separates on confirm and reloads the list', (tester) async {
     final separated = <String>[];
-    rowSeparationController = () => CaptureGroupSeparationController(separate: (id) async {
-          separated.add(id);
-          return CaptureGroupSeparationResult.separated;
-        });
+    rowSeparationController = () => CaptureGroupSeparationController(
+      separate: (id) async {
+        separated.add(id);
+        return CaptureGroupSeparationResult.separated;
+      },
+    );
     addTearDown(() => rowSeparationController = CaptureGroupSeparationController.new);
     final grouped = ServerConversation(
       id: 'a',
@@ -192,7 +196,10 @@ void main() {
       captureGroup: const CaptureGroup(
         id: 'event-1',
         primaryId: 'a',
-        members: [CaptureGroupMember(id: 'a', source: 'desktop'), CaptureGroupMember(id: 'b', source: 'omi')],
+        members: [
+          CaptureGroupMember(id: 'a', source: 'desktop'),
+          CaptureGroupMember(id: 'b', source: 'omi'),
+        ],
       ),
     );
     provider.conversations = [grouped];
@@ -240,21 +247,5 @@ void main() {
   testWidgets('today gets a day header (hub audit #16)', (tester) async {
     await pump(tester, DateListItem(date: DateTime.now(), isFirst: true));
     expect(find.text('Today'), findsOneWidget);
-  });
-
-  testWidgets('the active date filter is a removable chip (hub audit #23)', (tester) async {
-    await pump(tester, const ConversationDateFilterChip());
-    expect(find.byKey(const Key('conversation_date_filter_chip')), findsNothing);
-
-    provider.selectedStartDate = DateTime(2026, 9, 1);
-    provider.selectedEndDate = DateTime(2026, 9, 7);
-    provider.notifyListeners();
-    await tester.pump();
-
-    expect(find.text('Sep 1, 2026 – Sep 7, 2026'), findsOneWidget);
-    await tester.tap(find.byTooltip('Remove Filter'));
-    await tester.pump();
-    expect(provider.selectedStartDate, isNull);
-    await tester.pumpAndSettle();
   });
 }

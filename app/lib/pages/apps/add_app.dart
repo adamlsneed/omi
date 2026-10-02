@@ -78,11 +78,7 @@ class _AddAppPageState extends State<AddAppPage> {
               },
             ),
             const SizedBox(height: OmiSpacing.xs),
-            OmiButton.tertiary(
-              label: l10n.notNow,
-              expand: true,
-              onPressed: () => Navigator.pop(sheetContext),
-            ),
+            OmiButton.tertiary(label: l10n.notNow, expand: true, onPressed: () => Navigator.pop(sheetContext)),
           ],
         ),
       ),
@@ -316,8 +312,9 @@ class _AddAppPageState extends State<AddAppPage> {
                             OmiSettingsGroup(
                               children: [
                                 OmiSettingsRow.toggle(
-                                  leading:
-                                      FaIcon(provider.makeAppPublic ? FontAwesomeIcons.globe : FontAwesomeIcons.lock),
+                                  leading: FaIcon(
+                                    provider.makeAppPublic ? FontAwesomeIcons.globe : FontAwesomeIcons.lock,
+                                  ),
                                   title: l10n.makePublic,
                                   subtitle: provider.makeAppPublic ? l10n.anyoneCanDiscover : l10n.onlyYouCanUse,
                                   value: provider.makeAppPublic,
@@ -338,7 +335,7 @@ class _AddAppPageState extends State<AddAppPage> {
                               AppFormCard(
                                 child: Row(
                                   children: [
-                                    const Text('\$', style: OmiType.title3),
+                                    Text('\$', style: OmiType.title3),
                                     const SizedBox(width: OmiSpacing.xs),
                                     Expanded(
                                       child: TextField(
@@ -354,8 +351,10 @@ class _AddAppPageState extends State<AddAppPage> {
                                         ),
                                       ),
                                     ),
-                                    Text(l10n.perMonth,
-                                        style: OmiType.footnote.copyWith(color: OmiColors.textSecondary)),
+                                    Text(
+                                      l10n.perMonth,
+                                      style: OmiType.footnote.copyWith(color: OmiColors.textSecondary),
+                                    ),
                                   ],
                                 ),
                               ),

@@ -35,13 +35,7 @@ enum MemoryReviewSource {
 /// requests are id-addressed. Such a row stays pending until a verdict is
 /// written, and the card never renders untappable control chrome.
 class MemoryReviewCard extends StatefulWidget {
-  const MemoryReviewCard({
-    super.key,
-    required this.items,
-    required this.source,
-    this.impressionKey,
-    this.title,
-  });
+  const MemoryReviewCard({super.key, required this.items, required this.source, this.impressionKey, this.title});
 
   final List<MemoryReviewItem> items;
   final MemoryReviewSource source;
@@ -315,7 +309,7 @@ class _MemoryReviewCardState extends State<MemoryReviewCard> {
       key: Key('memory_review_row_${item.memoryId}'),
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
+      decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -370,9 +364,9 @@ class _MemoryReviewCardState extends State<MemoryReviewCard> {
       autofocus: true,
       style: OmiType.subhead,
       cursorColor: OmiColors.accent,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         isDense: true,
-        contentPadding: EdgeInsets.symmetric(vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
         enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: OmiColors.border)),
         focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: OmiColors.accent)),
       ),
@@ -436,9 +430,9 @@ class _MemoryReviewCardState extends State<MemoryReviewCard> {
           label: context.l10n.memoryReviewFix,
           onTap: enabled
               ? () => setState(() {
-                    _failed.remove(item.memoryId);
-                    _editors[item.memoryId] = TextEditingController(text: _contentOf(item, memory));
-                  })
+                  _failed.remove(item.memoryId);
+                  _editors[item.memoryId] = TextEditingController(text: _contentOf(item, memory));
+                })
               : null,
         ),
       ],
@@ -450,8 +444,8 @@ class _MemoryReviewCardState extends State<MemoryReviewCard> {
     final color = onTap == null
         ? OmiColors.textDisabled
         : emphasized
-            ? OmiColors.textPrimary
-            : OmiColors.textSecondary;
+        ? OmiColors.textPrimary
+        : OmiColors.textSecondary;
     return Semantics(
       button: true,
       enabled: onTap != null,

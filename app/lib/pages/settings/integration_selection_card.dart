@@ -28,7 +28,7 @@ class IntegrationSelectionCard extends StatelessWidget {
           color: OmiColors.surface1,
           shape: RoundedRectangleBorder(
             borderRadius: OmiRadius.mdAll,
-            side: isSelected ? const BorderSide(color: OmiColors.accent, width: 2) : BorderSide.none,
+            side: isSelected ? BorderSide(color: OmiColors.accent, width: 2) : BorderSide.none,
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -40,7 +40,7 @@ class IntegrationSelectionCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(child: Text(label, style: OmiType.callout)),
-                    if (isSelected) const Icon(Icons.check_circle, color: OmiColors.accent, size: 24),
+                    if (isSelected) Icon(Icons.check_circle, color: OmiColors.accent, size: 24),
                   ],
                 ),
               ),
@@ -63,7 +63,7 @@ class IntegrationSelectionEmpty extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(OmiSpacing.lg),
-      decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
+      decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.mdAll),
       child: Text(
         message,
         textAlign: TextAlign.center,
@@ -91,9 +91,11 @@ class IntegrationConnectedBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: OmiColors.success, size: 16),
+          Icon(Icons.check_circle, color: OmiColors.success, size: 16),
           const SizedBox(width: OmiSpacing.xs),
-          Expanded(child: Text(message, style: OmiType.footnote.copyWith(color: OmiColors.success))),
+          Expanded(
+            child: Text(message, style: OmiType.footnote.copyWith(color: OmiColors.success)),
+          ),
         ],
       ),
     );
@@ -120,7 +122,10 @@ class IntegrationStatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.sm, vertical: 6),
       decoration: BoxDecoration(color: background, borderRadius: OmiRadius.pillAll),
-      child: Text(label, style: OmiType.footnote.copyWith(color: foreground, fontWeight: FontWeight.w500)),
+      child: Text(
+        label,
+        style: OmiType.footnote.copyWith(color: foreground, fontWeight: FontWeight.w500),
+      ),
     );
   }
 }

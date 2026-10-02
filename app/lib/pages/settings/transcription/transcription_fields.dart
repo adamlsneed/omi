@@ -20,7 +20,9 @@ class TranscriptionFieldLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: OmiSpacing.xs),
       child: Row(
         children: [
-          Expanded(child: Text(text, style: OmiType.footnote.copyWith(color: OmiColors.textTertiary))),
+          Expanded(
+            child: Text(text, style: OmiType.footnote.copyWith(color: OmiColors.textTertiary)),
+          ),
           if (trailing != null) trailing!,
         ],
       ),
@@ -46,8 +48,10 @@ class TranscriptionHelpText extends StatelessWidget {
 
 /// The filled, bordered field decoration used on the page.
 InputDecoration transcriptionInputDecoration({String? hint, Widget? suffixIcon}) {
-  OutlineInputBorder border(Color color) =>
-      OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide(color: color));
+  OutlineInputBorder border(Color color) => OutlineInputBorder(
+    borderRadius: OmiRadius.mdAll,
+    borderSide: BorderSide(color: color),
+  );
   return InputDecoration(
     hintText: hint,
     hintStyle: OmiType.subhead.copyWith(color: OmiColors.textTertiary),
@@ -171,8 +175,13 @@ class TranscriptionAutocompleteField extends StatelessWidget {
 
 /// A full-width dropdown in the page's field style.
 class TranscriptionDropdown<T> extends StatelessWidget {
-  const TranscriptionDropdown(
-      {super.key, required this.value, required this.items, required this.onChanged, this.hint});
+  const TranscriptionDropdown({
+    super.key,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.hint,
+  });
 
   final T? value;
   final List<DropdownMenuItem<T>> items;
@@ -195,7 +204,7 @@ class TranscriptionDropdown<T> extends StatelessWidget {
           isExpanded: true,
           dropdownColor: OmiColors.surface2,
           style: OmiType.subhead,
-          icon: const Icon(Icons.keyboard_arrow_down, color: OmiColors.textTertiary),
+          icon: Icon(Icons.keyboard_arrow_down, color: OmiColors.textTertiary),
           items: items,
           onChanged: onChanged,
         ),
@@ -220,7 +229,7 @@ class TranscriptionOptionLabel extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(left: OmiSpacing.xs),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: const BoxDecoration(color: OmiColors.successSurface, borderRadius: OmiRadius.smAll),
+            decoration: BoxDecoration(color: OmiColors.successSurface, borderRadius: OmiRadius.smAll),
             child: Text(
               context.l10n.live,
               style: OmiType.caption.copyWith(color: OmiColors.success, fontWeight: FontWeight.w600),
@@ -326,12 +335,14 @@ class TranscriptionJsonCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Flexible(child: Text(title, style: OmiType.subhead.copyWith(fontWeight: FontWeight.w500))),
+                        Flexible(
+                          child: Text(title, style: OmiType.subhead.copyWith(fontWeight: FontWeight.w500)),
+                        ),
                         if (isCustomized) ...[
                           const SizedBox(width: OmiSpacing.xs),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: const BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
+                            decoration: BoxDecoration(color: OmiColors.surface3, borderRadius: OmiRadius.smAll),
                             child: Text(context.l10n.modified, style: OmiType.caption),
                           ),
                         ],
@@ -347,7 +358,7 @@ class TranscriptionJsonCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: OmiColors.textTertiary),
+              Icon(Icons.chevron_right, color: OmiColors.textTertiary),
             ],
           ),
         ),
@@ -369,7 +380,7 @@ class TranscriptionSaveBar extends StatelessWidget {
       // The SafeArea below adds the system inset; adding it here as well left
       // twice the inset of dead space under the content on inset devices.
       padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.lg, vertical: OmiSpacing.md),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: OmiColors.surface0,
         border: Border(top: BorderSide(color: OmiColors.border)),
       ),

@@ -23,6 +23,9 @@ import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/widgets/apple_watch_setup_bottom_sheet.dart';
 
+@visibleForTesting
+Future<void> retryOfflineSavedDevice(Future<void> Function() connect) => connect();
+
 class FoundDevices extends StatefulWidget {
   final bool isFromOnboarding;
   final VoidCallback goNext;
@@ -330,8 +333,10 @@ class _FoundDevicesState extends State<FoundDevices> {
                           color: provider.batteryPercentage <= 25 ? OmiColors.danger : OmiColors.textSecondary,
                         ),
                         const SizedBox(width: OmiSpacing.xxs),
-                        Text('${provider.batteryPercentage}%',
-                            style: OmiType.body.copyWith(fontWeight: FontWeight.w500)),
+                        Text(
+                          '${provider.batteryPercentage}%',
+                          style: OmiType.body.copyWith(fontWeight: FontWeight.w500),
+                        ),
                       ],
                     ),
                   ),
@@ -442,7 +447,7 @@ class _FoundDevicesState extends State<FoundDevices> {
                           Padding(
                             padding: const EdgeInsets.only(right: 16.0),
                             child: isConnecting
-                                ? const OmiSpinner(size: OmiSpinnerSize.small, color: OmiColors.onAccent)
+                                ? OmiSpinner(size: OmiSpinnerSize.small, color: OmiColors.onAccent)
                                 : const SizedBox.shrink(),
                           ),
                         ],

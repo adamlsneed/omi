@@ -1,4 +1,7 @@
 import asyncio
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -11,7 +14,11 @@ from models.speaker_tag_prompts import (
     SpeakerTagPromptOrigin as O,
     SpeakerTagPromptQualityOutcome as Q,
 )
+from utils import executors
+from utils import speaker_sample
 from utils.speaker_tag_prompts import service
+from utils.stt import pre_recorded
+from utils.executors import ExecutorSaturatedError, MonitoredThreadPoolExecutor
 
 NOW = datetime(2026, 9, 24, 12, 0, tzinfo=timezone.utc)
 
@@ -44,8 +51,11 @@ class World:
 
         def assign(uid, conversation_id, **kwargs):
             self.assignments.append(kwargs)
-            segments = [{'id': 's1', 'start': 0, 'end': 9}, {'id': 's2', 'start': 9, 'end': 12}]
-            return {'transcript_segments': segments}, ['s1', 's2'], [], []
+            segments = [
+                {'id': 's1', 'speaker_id': 1, 'start': 0, 'end': 9},
+                {'id': 's2', 'speaker_id': 1, 'start': 9, 'end': 12},
+            ]
+            return {'id': conversation_id, 'transcript_segments': segments}, ['s1', 's2'], [], []
 
         monkeypatch.setattr(service.conversations_db, 'assign_conversation_speaker', assign)
 
@@ -71,7 +81,13 @@ def test_thats_me_labels_owner_and_queues_owner_voice_sample(monkeypatch):
     world = World(monkeypatch, paid=False)
     response = service.apply_answer('u', _request(K.owner_check, O.unnamed, A.me), world.schedule, NOW)
     assert world.assignments == [
-        {'person_id': None, 'is_user': True, 'speaker_id': 1, 'use_for_speech_training': False}
+        {
+            'person_id': None,
+            'is_user': True,
+            'speaker_id': 1,
+            'use_for_speech_training': False,
+            'evidence_source': 'card',
+        }
     ]
     assert world.scheduled[0][0] is service.store_owner_voice_sample
     assert response.voice_sample_queued and response.quality_outcome == Q.owner_missed
@@ -112,7 +128,13 @@ def test_rejecting_an_automatic_label_clears_it(monkeypatch):
     world = World(monkeypatch)
     response = service.apply_answer('u', _request(K.owner_check, O.auto_user, A.not_me), world.schedule, NOW)
     assert world.assignments == [
-        {'person_id': None, 'is_user': False, 'speaker_id': 1, 'use_for_speech_training': False}
+        {
+            'person_id': None,
+            'is_user': False,
+            'speaker_id': 1,
+            'use_for_speech_training': False,
+            'evidence_source': 'card',
+        }
     ]
     assert response.quality_outcome == Q.owner_auto_rejected
 
@@ -188,6 +210,318 @@ def test_owner_clip_window_keeps_text_of_a_long_segment_cropped_to_the_clip():
         ]
     }
     assert service.owner_clip_window(conversation, ['a']) == (10.0, 20.0, 'one long owner turn')
+
+
+def test_clip_verification_cache_reuses_verdict_and_invalidates_on_audio_change(monkeypatch):
+    row = {'id': 'c1', 'audio_files': [{'chunk_timestamps': [10.0], 'duration': 20.0}]}
+    cache = {}
+    checks = []
+    downloads = []
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: cache.get(key))
+    monkeypatch.setattr(service.redis_db, 'set_generic_cache', lambda key, value, ttl: cache.__setitem__(key, value))
+    monkeypatch.setattr(
+        service,
+        'conversation_clip_pcm',
+        lambda *args: downloads.append(1) or b'\x01\x00' * (service.CLIP_SAMPLE_RATE * 5),
+    )
+
+    async def verify(audio, sample_rate, expected_text, language=None):
+        checks.append(expected_text)
+        return ('one two three four five', True, 'ok')
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample', verify)
+    for _ in range(2):
+        assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'one two three four five')
+    assert len(checks) == 1 and len(downloads) == 2
+    row['audio_files'][0]['duration'] = 21.0
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'one two three four five')
+    assert len(checks) == 2
+
+
+def test_positive_cache_never_authorizes_different_clip_bytes(monkeypatch):
+    row = {'id': 'c1', 'audio_files': [{'chunk_timestamps': [10.0], 'duration': 20.0}]}
+    cache = {}
+    pcm = [b'\x01\x00' * (service.CLIP_SAMPLE_RATE * 5)]
+    checks = []
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: cache.get(key))
+    monkeypatch.setattr(service.redis_db, 'set_generic_cache', lambda key, value, ttl: cache.__setitem__(key, value))
+    monkeypatch.setattr(service, 'conversation_clip_pcm', lambda *args: pcm[0])
+
+    async def verify(audio, sample_rate, expected_text, language=None):
+        checks.append(1)
+        return ('matching words', len(checks) == 1, 'ok' if len(checks) == 1 else 'text_mismatch')
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample', verify)
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'matching words') == pcm[0]
+    pcm[0] = b'\x02\x00' * (service.CLIP_SAMPLE_RATE * 5)
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'matching words') is None
+    assert len(checks) == 2
+
+
+def test_clip_verification_rejects_mismatch_and_caches_negative(monkeypatch):
+    row = {'id': 'c1', 'audio_files': [{'chunk_timestamps': [10.0], 'duration': 20.0}]}
+    cache = {}
+    checks = []
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: cache.get(key))
+    monkeypatch.setattr(service.redis_db, 'set_generic_cache', lambda key, value, ttl: cache.__setitem__(key, value))
+    monkeypatch.setattr(service, 'conversation_clip_pcm', lambda *args: b'\x00\x00' * (service.CLIP_SAMPLE_RATE * 5))
+
+    async def verify(audio, sample_rate, expected_text, language=None):
+        checks.append(1)
+        return ('unrelated words', False, 'text_mismatch: containment=0.00')
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample', verify)
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'one two three four five') is None
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'one two three four five') is None
+    assert len(checks) == 1
+    assert list(cache.values())[0]['valid'] is False
+
+
+def test_negative_cache_rechecks_changed_pcm_under_same_manifest(monkeypatch):
+    row = {'id': 'c1', 'audio_files': [{'chunk_timestamps': [10.0], 'duration': 20.0}]}
+    cache = {}
+    pcm = [b'\x01\x00' * (service.CLIP_SAMPLE_RATE * 5)]
+    checks = []
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: cache.get(key))
+    monkeypatch.setattr(service.redis_db, 'set_generic_cache', lambda key, value, ttl: cache.__setitem__(key, value))
+    monkeypatch.setattr(service, 'conversation_clip_pcm', lambda *args: pcm[0])
+
+    async def verify(audio, sample_rate, expected_text, language=None):
+        checks.append(1)
+        return (
+            'one two three four five' if len(checks) == 2 else 'wrong speech elsewhere',
+            len(checks) == 2,
+            'ok' if len(checks) == 2 else 'text_mismatch',
+        )
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample', verify)
+    for _ in range(2):
+        assert service.verified_clip_pcm('u', row, 1, 6, 'one two three four five') is None
+    assert len(checks) == 1
+    pcm[0] = b'\x02\x00' * (service.CLIP_SAMPLE_RATE * 5)
+    assert service.verified_clip_pcm('u', row, 1, 6, 'one two three four five') == pcm[0]
+    assert len(checks) == 2
+
+
+def test_clip_match_rejects_short_subset_of_long_expected_text(monkeypatch):
+    row = {'id': 'c1', 'audio_files': []}
+    pcm = b'\x01\x00' * (service.CLIP_SAMPLE_RATE * 5)
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: None)
+    monkeypatch.setattr(service.redis_db, 'set_generic_cache', lambda *args, **kwargs: None)
+
+    async def verify(audio, sample_rate, expected_text, language=None):
+        return ('one two three four five', True, 'ok')
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample', verify)
+    assert service.verified_clip_pcm('u', row, 0, 5, 'one two three four five', pcm) == pcm
+    assert (
+        service.verified_clip_pcm('u', row, 0, 5, 'one two three four five six seven eight nine ten eleven twelve', pcm)
+        is None
+    )
+    assert service.verified_clip_pcm('u', row, 0, 5, 'completely different spoken words today', pcm) is None
+
+
+def test_clip_expected_text_trims_long_segment_to_clip_window():
+    row = {
+        'transcript_segments': [
+            {
+                'speaker_id': 0,
+                'start': 0,
+                'end': 20,
+                'text': 'one two three four five six seven eight nine ten eleven twelve',
+            }
+        ]
+    }
+    text = service.clip_expected_text(row, 0, 10)
+    assert text.startswith('one two')
+    assert 'twelve' not in text
+
+    cjk = {
+        'transcript_segments': [
+            {'speaker_id': 0, 'start': 0, 'end': 20, 'text': '今天我们一起讨论如何安排下周的工作会议和项目计划'}
+        ]
+    }
+    assert len(service.clip_expected_text(cjk, 0, 10)) < len(cjk['transcript_segments'][0]['text'])
+
+
+def test_prompt_list_verification_budget_returns_without_empty_cooldown(monkeypatch):
+    world = World(monkeypatch)
+    started = NOW - timedelta(hours=1)
+    row = {
+        'id': 'slow',
+        'started_at': started,
+        'status': 'completed',
+        'audio_files': [{'chunk_timestamps': [started.timestamp()], 'duration': 20.0}],
+        'transcript_segments': [
+            {'id': 's1', 'speaker_id': 0, 'start': 0, 'end': 10, 'text': 'one two three four five six seven eight'}
+        ],
+    }
+    monkeypatch.setattr(service.conversations_db, 'get_conversations', lambda *args, **kwargs: [row])
+    monkeypatch.setattr(service, 'LIST_VERIFY_BUDGET_SECONDS', 0.02)
+    release = threading.Event()
+    started_verify = threading.Event()
+
+    def slow_verify(*args, **kwargs):
+        started_verify.set()
+        release.wait(timeout=1)
+        return None
+
+    monkeypatch.setattr(service, 'verified_clip_pcm', slow_verify)
+    for shared in (executors.postprocess_executor, executors.sync_executor, executors.storage_executor):
+        monkeypatch.setattr(
+            shared, 'submit', lambda *args, **kwargs: pytest.fail('verification used a shared executor')
+        )
+    try:
+        began = time.monotonic()
+        response = service.get_prompts('u', NOW)
+        assert time.monotonic() - began < 0.5
+        assert started_verify.is_set()
+        assert response.status == 'no_candidates'
+        assert 'last_empty_check_at' not in world.state
+    finally:
+        release.set()
+
+
+def test_list_verification_pool_is_bounded_and_dedupes_inflight(monkeypatch):
+    pool = MonitoredThreadPoolExecutor(name='tag-test', max_workers=1, max_queue_size=1)
+    monkeypatch.setattr(service, 'speaker_tag_verify_executor', pool)
+    started = threading.Event()
+    release = threading.Event()
+    calls = []
+
+    def slow_verify(uid, row, start, end, text, *, verification_deadline):
+        calls.append(row['id'])
+        started.set()
+        release.wait(timeout=2)
+        return b'valid'
+
+    monkeypatch.setattr(service, 'verified_clip_pcm', slow_verify)
+    deadline = time.monotonic() + 1
+    try:
+        row = {'id': 'same', 'audio_files': [{'duration': 20}]}
+        with ThreadPoolExecutor(max_workers=4) as callers:
+            duplicates = list(
+                callers.map(
+                    lambda _: service._submit_list_verification('u', row, 0, 5, 'same words', deadline), range(4)
+                )
+            )
+        assert started.wait(timeout=1)
+        assert all(future is duplicates[0] for future in duplicates)
+        assert calls == ['same']
+
+        queued = service._submit_list_verification('u', {'id': 'queued'}, 0, 5, 'other words', deadline)
+        assert pool.active_count == 1
+        assert pool._work_queue.qsize() == 1
+        with pytest.raises(ExecutorSaturatedError):
+            service._submit_list_verification('u', {'id': 'rejected'}, 0, 5, 'third words', deadline)
+        assert service._submit_list_verification('u', row, 0, 5, 'same words', deadline) is duplicates[0]
+    finally:
+        release.set()
+        pool.shutdown(wait=True)
+    assert queued.done()
+
+
+def test_verification_stt_runs_inline_with_one_budgeted_provider_attempt(monkeypatch):
+    def forbidden_shared_pool(*args, **kwargs):
+        pytest.fail('verification submitted STT to a shared executor')
+
+    monkeypatch.setattr(speaker_sample, 'run_blocking', forbidden_shared_pool)
+    words = [{'text': word, 'speaker': 'SPEAKER_00'} for word in 'one two three four five'.split()]
+    monkeypatch.setattr(speaker_sample, 'deepgram_prerecorded_from_bytes', lambda *args, **kwargs: words)
+    result = speaker_sample.verify_and_transcribe_sample_in_worker(
+        b'wave', 16000, 'one two three four five', None, time.monotonic() + 1
+    )
+    assert result == ('one two three four five', True, 'ok')
+
+    attempts = []
+
+    class SlowProvider:
+        def __init__(self, timeout):
+            attempts.append(timeout)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def post(self, *args, **kwargs):
+            raise TimeoutError('provider timed out')
+
+    monkeypatch.setenv('MODULATE_API_KEY', 'test-only')
+    monkeypatch.setattr(pre_recorded, 'require_provider_environment', lambda _: None)
+    monkeypatch.setattr(pre_recorded.httpx, 'Client', SlowProvider)
+    with pre_recorded.verification_stt_deadline(time.monotonic() + 0.5):
+        with pytest.raises(RuntimeError, match='after 1 attempts'):
+            pre_recorded.modulate_prerecorded_from_bytes(b'wave')
+    assert len(attempts) == 1
+    assert 0 < attempts[0].read <= 0.5
+
+    attempts.clear()
+    monkeypatch.setenv('HOSTED_PARAKEET_API_URL', 'https://invalid.example')
+    with pre_recorded.verification_stt_deadline(time.monotonic() + 0.5):
+        with pytest.raises(RuntimeError, match='after 1 attempts'):
+            pre_recorded.parakeet_prerecorded_from_bytes(b'wave')
+    assert len(attempts) == 1
+    assert 0 < attempts[0].read <= 0.5
+
+
+def test_truncated_clip_is_rejected_before_transcription(monkeypatch):
+    row = {'id': 'c1', 'audio_files': [{'chunk_timestamps': [10.0], 'duration': 20.0}]}
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: None)
+    monkeypatch.setattr(service, 'conversation_clip_pcm', lambda *args: b'\x00\x00' * service.CLIP_SAMPLE_RATE)
+    called = []
+
+    async def verify(*args, **kwargs):
+        called.append(1)
+        return ('one two three four five', True, 'ok')
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample', verify)
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'one two three four five') is None
+    assert called == []
+
+
+def test_clip_download_error_skips_prompt_without_leaking_content(monkeypatch, caplog):
+    row = {'id': 'c1', 'audio_files': [{'chunk_timestamps': [10.0], 'duration': 20.0}]}
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: None)
+
+    def fail(*args):
+        raise RuntimeError('private sample data')
+
+    monkeypatch.setattr(service, 'conversation_clip_pcm', fail)
+    assert service.verified_clip_pcm('u', row, 1.0, 6.0, 'one two three four five') is None
+    assert 'private sample data' not in caplog.text
+
+
+def test_get_prompts_excludes_misaligned_merged_sync_audio(monkeypatch):
+    World(monkeypatch)
+    started = NOW - timedelta(hours=1)
+    row = {
+        'id': 'merged',
+        'started_at': started,
+        'status': 'completed',
+        'sync_live_target': True,
+        'sync_merged_from': ['donor'],
+        'audio_files': [{'chunk_timestamps': [started.timestamp(), started.timestamp() + 88.2], 'duration': 92.3}],
+        'conversation_audio': {'spans': [{'wall_offset': 0, 'len': 149.4}]},
+        'transcript_segments': [
+            {'id': 's1', 'speaker_id': 0, 'start': 10.28, 'end': 20.28, 'text': 'Please confirm these spoken words'}
+        ],
+    }
+    monkeypatch.setattr(service.conversations_db, 'get_conversations', lambda *args, **kwargs: [row])
+    monkeypatch.setattr(service.redis_db, 'get_generic_cache', lambda key: None)
+    monkeypatch.setattr(service.redis_db, 'set_generic_cache', lambda key, value, ttl: None)
+    monkeypatch.setattr(service, 'conversation_clip_pcm', lambda *args: b'\x01\x00' * (10 * 16000))
+    checked = []
+
+    def verify(audio, sample_rate, expected_text, language, deadline):
+        checked.append(expected_text)
+        return ('Static and coughing', False, 'text_mismatch: containment=0.00')
+
+    monkeypatch.setattr(service, 'verify_and_transcribe_sample_in_worker', verify)
+    response = service.get_prompts('u', NOW)
+    assert response.status == 'no_candidates'
+    assert checked == ['Please confirm these spoken words']
 
 
 def test_owner_clip_window_requires_clean_owner_stretch():
@@ -334,3 +668,130 @@ def test_owner_sample_rejected_by_quality_gate_is_not_pooled(monkeypatch):
         service.voice_profiles_db, 'add_owner_voice_confirmation', lambda *a, **k: pytest.fail('must not pool')
     )
     assert asyncio.run(service.store_owner_voice_sample('u', 'c1', ['a'])) == 'rejected_quality'
+
+
+def test_someone_else_with_a_person_is_the_correction_path(monkeypatch):
+    world = World(monkeypatch)
+    request = _request(K.confirm_person, O.auto_person, A.someone_else, person_id='p1', suggested_person_id='p9')
+    response = service.apply_answer('u', request, world.schedule, NOW)
+    assert world.assignments[0]['person_id'] == 'p1' and world.assignments[0]['evidence_source'] == 'card'
+    assert response.person_id == 'p1' and response.quality_outcome == Q.person_auto_corrected
+    new = _request(K.confirm_person, O.auto_person, A.someone_else, name='Dana', suggested_person_id='p9')
+    response = service.apply_answer('u', new, world.schedule, NOW)
+    assert world.created[-1]['name'] == 'Dana' and response.person_id == world.created[-1]['id']
+
+
+def test_not_a_person_clears_an_automatic_label_and_is_remembered(monkeypatch):
+    world = World(monkeypatch)
+    ignored = []
+    monkeypatch.setattr(service.voice_profiles_db, 'record_ignored_voice', lambda *args, **kwargs: ignored.append(args))
+    response = service.apply_answer('u', _request(K.confirm_person, O.auto_person, A.not_a_person), world.schedule, NOW)
+    assert world.assignments == [
+        {
+            'person_id': None,
+            'is_user': False,
+            'speaker_id': 1,
+            'use_for_speech_training': False,
+            'evidence_source': 'card',
+        }
+    ]
+    assert ignored == [('u', 'c1', 1, NOW)] and world.answered == ['pid']
+    assert response.quality_outcome == Q.person_auto_corrected
+    # Revalidate even unnamed prompts: the stored label may have changed since it was served.
+    service.apply_answer('u', _request(K.identify, O.unnamed, A.not_a_person), world.schedule, NOW)
+    assert len(world.assignments) == 2 and len(ignored) == 2
+
+
+def test_not_a_person_on_owner_check_is_free(monkeypatch):
+    world = World(monkeypatch, paid=False)
+    monkeypatch.setattr(service.voice_profiles_db, 'record_ignored_voice', lambda *args, **kwargs: None)
+    response = service.apply_answer('u', _request(K.owner_check, O.unnamed, A.not_a_person), world.schedule, NOW)
+    assert response.quality_outcome == Q.unknown_voice
+
+
+def test_not_a_person_rejects_a_conversation_outside_the_authenticated_account(monkeypatch):
+    World(monkeypatch)
+    markers = []
+    monkeypatch.setattr(service.voice_profiles_db, 'record_ignored_voice', lambda *args, **kw: markers.append(args))
+
+    def missing(uid, conversation_id, **kwargs):
+        assert uid == 'u' and conversation_id == 'foreign'
+        raise LookupError('Conversation not found')
+
+    monkeypatch.setattr(service.conversations_db, 'assign_conversation_speaker', missing)
+    with pytest.raises(LookupError):
+        service.apply_answer('u', _request(K.identify, O.unnamed, A.not_a_person, conversation_id='foreign'))
+    assert markers == []
+
+
+def test_ignored_voices_list_skips_deleted_conversations_and_restore_forgets_answers(monkeypatch):
+    state = {
+        'ignored_voices': {
+            'c1:1': {'conversation_id': 'c1', 'speaker_id': 1, 'ignored_at': NOW},
+            'c2:3': {'conversation_id': 'c2', 'speaker_id': 3, 'ignored_at': NOW - timedelta(hours=1)},
+            'bad': {'conversation_id': 'c3'},
+        }
+    }
+    monkeypatch.setattr(service.voice_profiles_db, 'get_tag_prompt_state', lambda uid: state)
+    monkeypatch.setattr(
+        service.conversations_db,
+        'get_conversations_by_id_without_photos',
+        lambda uid, ids: [
+            {'id': 'c1', 'structured': {'title': ' TV night '}, 'started_at': NOW},
+            {'id': 'c2', 'deleted': True},
+        ],
+    )
+    voices = service.list_ignored_voices('u').voices
+    assert [(v.conversation_id, v.speaker_id, v.conversation_title) for v in voices] == [('c1', 1, 'TV night')]
+    removed = []
+    monkeypatch.setattr(service.voice_profiles_db, 'remove_ignored_voice', lambda *args: removed.append(args) or True)
+    assert service.restore_ignored_voice('u', 'c1', 1)
+    uid, conversation_id, speaker_id, prompt_ids = removed[0]
+    assert (uid, conversation_id, speaker_id) == ('u', 'c1', 1)
+    assert set(prompt_ids) == {service.prompt_id('c1', 1, kind) for kind in K}
+
+
+def test_ignored_voices_limit_applies_after_missing_and_deleted_conversations(monkeypatch):
+    entries = [
+        {'conversation_id': f'c{i}', 'speaker_id': 1, 'ignored_at': NOW - timedelta(minutes=i)} for i in range(120)
+    ]
+    state = {'ignored_voices': {f"{entry['conversation_id']}:1": entry for entry in entries}}
+    monkeypatch.setattr(service.voice_profiles_db, 'get_tag_prompt_state', lambda uid: state)
+
+    def conversations(uid, ids):
+        assert uid == 'u'
+        return [{'id': cid, 'deleted': int(cid[1:]) < 60} for cid in ids if cid != 'c60']
+
+    monkeypatch.setattr(service.conversations_db, 'get_conversations_by_id_without_photos', conversations)
+    result = service.list_ignored_voices('u').voices
+    assert len(result) == service.IGNORED_VOICES_LIST_LIMIT
+    assert [voice.conversation_id for voice in result] == [f'c{i}' for i in range(61, 111)]
+
+
+def test_ignored_voice_uses_the_merged_survivor_and_resolved_speaker(monkeypatch):
+    World(monkeypatch)
+    markers = []
+
+    def assign(uid, conversation_id, **kwargs):
+        assert uid == 'u' and conversation_id == 'donor' and kwargs['speaker_id'] == 1
+        return (
+            {
+                'id': 'survivor',
+                'manual_speaker_assignments': {'generation': 7},
+                'transcript_segments': [
+                    {'id': 's1', 'speaker_id': 8},
+                    {'id': 's2', 'speaker_id': 8},
+                    {'id': 'other', 'speaker_id': 1},
+                ],
+            },
+            ['s1', 's2'],
+            [],
+            [],
+        )
+
+    monkeypatch.setattr(service.conversations_db, 'assign_conversation_speaker', assign)
+    monkeypatch.setattr(
+        service.voice_profiles_db, 'record_ignored_voice', lambda *args, **kwargs: markers.append((args, kwargs))
+    )
+    service.apply_answer('u', _request(K.identify, O.unnamed, A.not_a_person, conversation_id='donor'), now=NOW)
+    assert markers == [(('u', 'survivor', 8, NOW), {'assignment_generation': 7})]

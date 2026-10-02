@@ -79,7 +79,7 @@ class FilterBottomSheet extends StatelessWidget {
               // Bottom buttons
               Container(
                 padding: const EdgeInsets.fromLTRB(OmiSpacing.lg, OmiSpacing.md, OmiSpacing.lg, OmiSpacing.xs),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(top: BorderSide(color: OmiColors.border, width: 1)),
                 ),
                 child: Row(
@@ -268,12 +268,9 @@ class FilterBottomSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isSelected ? OmiColors.textPrimary : Colors.transparent,
-                      border: Border.all(
-                        color: isSelected ? OmiColors.textPrimary : OmiColors.textTertiary,
-                        width: 2,
-                      ),
+                      border: Border.all(color: isSelected ? OmiColors.textPrimary : OmiColors.textTertiary, width: 2),
                     ),
-                    child: isSelected ? const Icon(Icons.check, size: 12, color: OmiColors.onAccent) : null,
+                    child: isSelected ? Icon(Icons.check, size: 12, color: OmiColors.onAccent) : null,
                   ),
                   const SizedBox(width: OmiSpacing.sm),
                   Text(

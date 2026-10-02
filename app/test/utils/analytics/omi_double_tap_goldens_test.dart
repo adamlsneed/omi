@@ -27,12 +27,12 @@ void fireOmiDoubleTapFeatures(AnalyticsManager analytics) {
 }
 
 List<List<Object>> omiDoubleTapGoldens(Map<String, Object> globals) => [
-      for (final feature in omiDoubleTapFeatures)
-        [
-          'Omi Double Tap',
-          {...globals, 'feature': feature},
-        ],
-    ];
+  for (final feature in omiDoubleTapFeatures)
+    [
+      'Omi Double Tap',
+      {...globals, 'feature': feature},
+    ],
+];
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -59,11 +59,8 @@ void main() {
     fireOmiDoubleTapFeatures(AnalyticsManager());
     await AnalyticsManager.flushPending(force: true);
     await AnalyticsManager.flushPending(force: true);
-    final globals = <String, Object>{
-      'app_platform': PlatformService.isIOS ? 'ios' : (PlatformService.isAndroid ? 'android' : 'unknown'),
-      'app_version': '2.3.4',
-      'app_build': '567',
-    };
+    final platformName = PlatformService.isIOS ? 'ios' : (PlatformService.isAndroid ? 'android' : 'unknown');
+    final globals = <String, Object>{'app_platform': platformName, 'app_version': '2.3.4', 'app_build': '567'};
     expect(_emissionPayloads(adapter.events), omiDoubleTapGoldens(globals));
     expect(adapter.events, hasLength(omiDoubleTapFeatures.length));
     expect(
@@ -76,8 +73,8 @@ void main() {
 }
 
 List<List<Object>> _emissionPayloads(List<_RecordedEvent> events) => [
-      for (final event in events) [event.eventName, event.properties],
-    ];
+  for (final event in events) [event.eventName, event.properties],
+];
 
 class _FakeAnalyticsAdapter implements AnalyticsAdapter {
   final List<_RecordedEvent> events = [];

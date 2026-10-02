@@ -82,19 +82,13 @@ class _CapabilityAppsPageState extends State<CapabilityAppsPage> {
                   Container(
                     width: 140,
                     height: 20,
-                    decoration: const BoxDecoration(
-                      color: OmiColors.surface1,
-                      borderRadius: OmiRadius.smAll,
-                    ),
+                    decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.smAll),
                   ),
                   const Spacer(),
                   Container(
                     width: 40,
                     height: 20,
-                    decoration: const BoxDecoration(
-                      color: OmiColors.surface1,
-                      borderRadius: OmiRadius.smAll,
-                    ),
+                    decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.smAll),
                   ),
                 ],
               ),
@@ -121,10 +115,7 @@ class _CapabilityAppsPageState extends State<CapabilityAppsPage> {
                       Container(
                         width: 60,
                         height: 60,
-                        decoration: const BoxDecoration(
-                          color: OmiColors.surface1,
-                          borderRadius: OmiRadius.smAll,
-                        ),
+                        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.smAll),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -135,19 +126,13 @@ class _CapabilityAppsPageState extends State<CapabilityAppsPage> {
                             Container(
                               width: double.infinity,
                               height: 16,
-                              decoration: const BoxDecoration(
-                                color: OmiColors.surface1,
-                                borderRadius: OmiRadius.smAll,
-                              ),
+                              decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.smAll),
                             ),
                             const SizedBox(height: 4),
                             Container(
                               width: 80,
                               height: 12,
-                              decoration: const BoxDecoration(
-                                color: OmiColors.surface1,
-                                borderRadius: OmiRadius.smAll,
-                              ),
+                              decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.smAll),
                             ),
                           ],
                         ),
@@ -156,10 +141,7 @@ class _CapabilityAppsPageState extends State<CapabilityAppsPage> {
                       Container(
                         width: 60,
                         height: 28,
-                        decoration: const BoxDecoration(
-                          color: OmiColors.surface1,
-                          borderRadius: OmiRadius.pillAll,
-                        ),
+                        decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.pillAll),
                       ),
                     ],
                   ),
@@ -191,9 +173,7 @@ class _CapabilityAppsPageState extends State<CapabilityAppsPage> {
 
   Widget _buildContent() {
     if (_totalCount == 0 && _loadFailed) {
-      return _buildScrollableState(
-        OmiErrorState(message: context.l10n.unableToLoadApps, onRetry: _loadCapabilityApps),
-      );
+      return _buildScrollableState(OmiErrorState(message: context.l10n.unableToLoadApps, onRetry: _loadCapabilityApps));
     }
     if (_totalCount == 0) {
       return _buildScrollableState(

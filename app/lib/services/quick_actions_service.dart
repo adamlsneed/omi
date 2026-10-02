@@ -6,6 +6,7 @@ import 'package:quick_actions/quick_actions.dart';
 
 import 'package:omi/app_globals.dart';
 import 'package:omi/pages/action_items/widgets/action_item_form_sheet.dart';
+import 'package:omi/pages/chat/chat_route.dart';
 import 'package:omi/pages/chat/page.dart';
 import 'package:omi/pages/settings/device_settings.dart';
 import 'package:omi/providers/capture_provider.dart';
@@ -69,10 +70,7 @@ class QuickActionsService {
         localizedTitle: isDeviceConnected ? l10n.deviceSettings : l10n.connectDevice,
       ),
       if (isDeviceConnected)
-        ShortcutItem(
-          type: isMuted ? _kUnmute : _kMute,
-          localizedTitle: isMuted ? l10n.phoneUnmute : l10n.mute,
-        ),
+        ShortcutItem(type: isMuted ? _kUnmute : _kMute, localizedTitle: isMuted ? l10n.phoneUnmute : l10n.mute),
       ShortcutItem(type: _kVoiceMode, localizedTitle: l10n.voiceMode),
       ShortcutItem(type: _kAskOmi, localizedTitle: l10n.quickActionAskOmi),
       ShortcutItem(type: _kAddTask, localizedTitle: l10n.addTask),
@@ -92,10 +90,10 @@ class QuickActionsService {
         break;
       // D1: chat is a normal pushed page everywhere.
       case _kAskOmi:
-        routeToPage(context, const ChatPage(isPivotBottom: false));
+        openChatSheet(context, const ChatPage(isPivotBottom: false, startFresh: true));
         break;
       case _kVoiceMode:
-        routeToPage(context, const ChatPage(isPivotBottom: false, autoStartVoice: true));
+        openChatSheet(context, const ChatPage(isPivotBottom: false, startFresh: true, autoStartVoice: true));
         break;
       case _kMute:
         _toggleMute(context, mute: true);
@@ -116,7 +114,7 @@ class QuickActionsService {
   void _navigateToTasksAndOpenSheet(NavigatorState navigator, BuildContext context) {
     // The Tasks tab lives in the Home underneath; show it before opening the sheet over it.
     navigator.popUntil((route) => route.isFirst);
-    Provider.of<HomeProvider>(context, listen: false).setIndex(2);
+    Provider.of<HomeProvider>(context, listen: false).setIndex(HomeProvider.tasksTab);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = globalNavigatorKey.currentContext;

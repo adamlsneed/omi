@@ -120,7 +120,10 @@ class _PermissionRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: OmiSpacing.xxs),
           decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: OmiRadius.mdAll),
-          child: Text(label, style: OmiType.caption.copyWith(color: color, fontWeight: FontWeight.w600)),
+          child: Text(
+            label,
+            style: OmiType.caption.copyWith(color: color, fontWeight: FontWeight.w600),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -161,7 +164,7 @@ class AppChatToolsCard extends StatelessWidget {
           for (final tool in tools)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.sm, vertical: OmiSpacing.xs),
-              decoration: const BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
+              decoration: BoxDecoration(color: OmiColors.surface2, borderRadius: OmiRadius.mdAll),
               child: Text(
                 formatToolName(tool.name),
                 style: OmiType.footnote.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w500),

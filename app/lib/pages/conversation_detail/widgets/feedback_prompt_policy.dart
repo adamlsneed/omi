@@ -37,15 +37,17 @@ class FeedbackPromptPolicy {
     DateTime Function()? now,
     String? Function()? ownerKey,
     this.sampleFraction = defaultSampleFraction,
-  })  : _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance,
-        _now = now ?? DateTime.now,
-        _ownerKey = ownerKey ?? (() => AnalyticsManager.currentIdentity) {
+  }) : _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance,
+       _now = now ?? DateTime.now,
+       _ownerKey = ownerKey ?? (() => AnalyticsManager.currentIdentity) {
     if (sampleFraction < 0 || sampleFraction > 1) {
       throw ArgumentError.value(sampleFraction, 'sampleFraction', 'must be between 0 and 1');
     }
   }
 
-  static final FeedbackPromptPolicy instance = FeedbackPromptPolicy();
+  /// Replacement point for tests, mirroring [ProductTelemetry.instance]: the
+  /// serial queue must not carry a future across a test's fake-async zone.
+  static FeedbackPromptPolicy instance = FeedbackPromptPolicy();
 
   static const double defaultSampleFraction = 0.25;
   static const Duration cooldown = Duration(days: 7);

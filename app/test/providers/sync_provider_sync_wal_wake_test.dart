@@ -5,6 +5,7 @@ import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/backend/schema/conversation.dart';
 import 'package:omi/l10n/app_localizations_en.dart';
 import 'package:omi/providers/sync_provider.dart';
+import 'package:omi/services/capture/capture_wedge_monitor.dart';
 import 'package:omi/services/wals/recording_transfer_coordinator.dart';
 import 'package:omi/services/wals/sync_rate_limiter.dart';
 import 'package:omi/services/wals/sync_transfer_keep_alive.dart';
@@ -72,6 +73,46 @@ class _FakeWalService implements IWalService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('stale phone WAL inventory is reported to upload-health monitoring', () async {
+    SharedPreferences.setMockInitialValues({});
+    await SharedPreferencesUtil.init();
+    SyncRateLimiter.instance.clear();
+    final now = DateTime.utc(2026, 9, 26, 12);
+    final events = <String>[];
+    var recoveryWakes = 0;
+    final monitor = CaptureWedgeMonitor(
+      now: () => now,
+      featureGate: () async => false,
+      track: (event, properties) => events.add(event),
+      bleRetry: (_) async {},
+      transferRetry: () async => recoveryWakes++,
+      appBuild: () => 'test',
+      platform: () => 'ios',
+    );
+    final wal = Wal(
+      timerStart: now.subtract(const Duration(hours: 3)).millisecondsSinceEpoch ~/ 1000,
+      codec: BleAudioCodec.opus,
+      seconds: 60,
+      status: WalStatus.miss,
+      storage: WalStorage.disk,
+    );
+
+    final provider = SyncProvider(
+      walService: _FakeWalService(_FakeSyncs([wal])),
+      startBackgroundSync: false,
+      captureWedgeMonitor: monitor,
+    );
+    await provider.initialized;
+    await pumpEventQueue();
+
+    expect(recoveryWakes, 1);
+    expect(events, contains('Capture Wedge Detected'));
+    // Upload silence is telemetry-only; the pending-transcriptions chip is its user-facing surface.
+    expect(monitor.visiblePrompt, isNull);
+    provider.dispose();
+    monitor.dispose();
+  });
+
   test('syncWal 202 wakes the transfer coordinator for reconciliation', () async {
     SharedPreferences.setMockInitialValues({});
     await SharedPreferencesUtil.init();
@@ -95,12 +136,9 @@ void main() {
     await provider.syncWal(wal);
 
     expect(syncs.syncWalCalls, 1);
-    expect(
-        wakes,
-        [
-          WakeTrigger.cooldownElapsed,
-        ],
-        reason: 'successful syncWal must wake coordinator so uploaded WALs reconcile');
+    expect(wakes, [
+      WakeTrigger.cooldownElapsed,
+    ], reason: 'successful syncWal must wake coordinator so uploaded WALs reconcile');
     provider.dispose();
   });
 
@@ -136,12 +174,9 @@ void main() {
     expect(provider.syncState.hasError, isFalse);
     expect(provider.syncState.isIdle, isTrue);
     expect(wal.status, WalStatus.miss);
-    expect(
-        wakes,
-        [
-          WakeTrigger.cooldownElapsed,
-        ],
-        reason: 'transient localUploadFailures must emit exactly one re-arm wake from _performSync');
+    expect(wakes, [
+      WakeTrigger.cooldownElapsed,
+    ], reason: 'transient localUploadFailures must emit exactly one re-arm wake from _performSync');
     provider.dispose();
   });
 
@@ -308,11 +343,7 @@ void main() {
       },
     );
 
-    final provider = SyncProvider(
-      walService: _FakeWalService(syncs),
-      startBackgroundSync: false,
-      keepAlive: keepAlive,
-    );
+    final provider = SyncProvider(walService: _FakeWalService(syncs), startBackgroundSync: false, keepAlive: keepAlive);
     await provider.initialized;
 
     final upload = provider.syncWal(wal);

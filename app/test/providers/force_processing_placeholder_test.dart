@@ -42,7 +42,7 @@ class _GatedPhoneSync {
 
   Future<void> finalizeCurrentSession() => finalizeGate.future;
 
-  Future<void> stampConversationId(int start, String id) async {
+  Future<void> stampConversationId(int start, String id, {String? recordingSessionId}) async {
     stampCalls++;
   }
 
@@ -144,11 +144,7 @@ void main() {
   test('removes the id 0 placeholder when processing returns null', () async {
     final finalize = Completer<void>();
     final actions = _RecordingActions();
-    final provider = _provider(
-      actions: actions,
-      finalizeGate: finalize,
-      process: () async => null,
-    );
+    final provider = _provider(actions: actions, finalizeGate: finalize, process: () async => null);
     addTearDown(provider.dispose);
 
     final pending = provider.forceProcessingCurrentConversation();

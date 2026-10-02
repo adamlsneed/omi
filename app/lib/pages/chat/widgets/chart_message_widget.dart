@@ -28,15 +28,12 @@ class ChartMessageWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: OmiColors.surface1,
         borderRadius: OmiRadius.lgAll,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: OmiColors.textPrimary.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            chartData.title,
-            style: OmiType.subhead.copyWith(fontWeight: FontWeight.w600),
-          ),
+          Text(chartData.title, style: OmiType.subhead.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 20),
           SizedBox(height: 200, child: chartData.chartType == 'bar' ? _buildBarChart() : _buildLineChart()),
         ],
@@ -93,7 +90,8 @@ class ChartMessageWidget extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: _niceInterval(minY, maxY),
-          getDrawingHorizontalLine: (value) => FlLine(color: Colors.white.withValues(alpha: 0.06), strokeWidth: 1),
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: OmiColors.textPrimary.withValues(alpha: 0.06), strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -183,7 +181,8 @@ class ChartMessageWidget extends StatelessWidget {
           show: true,
           drawVerticalLine: false,
           horizontalInterval: _niceInterval(0, maxY),
-          getDrawingHorizontalLine: (value) => FlLine(color: Colors.white.withValues(alpha: 0.06), strokeWidth: 1),
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: OmiColors.textPrimary.withValues(alpha: 0.06), strokeWidth: 1),
         ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),

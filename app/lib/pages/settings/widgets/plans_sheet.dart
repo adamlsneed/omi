@@ -182,7 +182,10 @@ class _PlansSheetState extends State<PlansSheet> {
               Text(l10n.downgradeLimitationsHeading, textAlign: TextAlign.start, style: OmiType.subhead),
               const SizedBox(height: OmiSpacing.xs),
               PlanDialogLine(
-                  icon: FontAwesomeIcons.carBattery, text: l10n.downgradeLimitBattery, color: OmiColors.danger),
+                icon: FontAwesomeIcons.carBattery,
+                text: l10n.downgradeLimitBattery,
+                color: OmiColors.danger,
+              ),
               PlanDialogLine(
                 icon: FontAwesomeIcons.triangleExclamation,
                 text: l10n.downgradeLimitQuality,
@@ -190,14 +193,20 @@ class _PlansSheetState extends State<PlansSheet> {
               ),
               PlanDialogLine(icon: FontAwesomeIcons.clock, text: l10n.downgradeLimitDelay, color: OmiColors.danger),
               PlanDialogLine(
-                  icon: FontAwesomeIcons.userSlash, text: l10n.downgradeLimitSpeakers, color: OmiColors.danger),
+                icon: FontAwesomeIcons.userSlash,
+                text: l10n.downgradeLimitSpeakers,
+                color: OmiColors.danger,
+              ),
             ],
           ),
         ),
         actions: [
           OmiDialogAction(label: l10n.cancel, isDefault: true, onPressed: () => Navigator.of(ctx).pop(false)),
           OmiDialogAction(
-              label: l10n.downgradeAnyway, isDestructive: true, onPressed: () => Navigator.of(ctx).pop(true)),
+            label: l10n.downgradeAnyway,
+            isDestructive: true,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
         ],
       ),
     );
@@ -225,13 +234,13 @@ class _PlansSheetState extends State<PlansSheet> {
     Map<String, dynamic>? selectedPlanData;
     if (tierId != null) {
       selectedPlanData = plans.cast<Map<String, dynamic>>().firstWhereOrNull(
-            (plan) => plan['plan_id'] == tierId && plan['interval'] == (isYearly ? 'year' : 'month'),
-          );
+        (plan) => plan['plan_id'] == tierId && plan['interval'] == (isYearly ? 'year' : 'month'),
+      );
     }
     // Fallback to old behavior (first plan matching interval) for backwards compat
     selectedPlanData ??= plans.cast<Map<String, dynamic>>().firstWhereOrNull(
-          (plan) => plan['interval'] == (isYearly ? 'year' : 'month'),
-        );
+      (plan) => plan['interval'] == (isYearly ? 'year' : 'month'),
+    );
 
     if (selectedPlanData == null) {
       OmiFeedback.error(context, context.l10n.selectedPlanNotAvailable);
@@ -446,9 +455,7 @@ class _PlansSheetState extends State<PlansSheet> {
   /// Plan cards, their loading placeholder, or the failure state with Try Again.
   Widget _plansOrPlaceholder(UsageProvider usageProvider) {
     if (usageProvider.isLoadingPlans) {
-      return const Column(
-        children: [PlanOptionShimmer(), SizedBox(height: 18), PlanOptionShimmer()],
-      );
+      return const Column(children: [PlanOptionShimmer(), SizedBox(height: 18), PlanOptionShimmer()]);
     }
     if (usageProvider.availablePlans != null) {
       return _buildTierPlanCards(availablePlans: usageProvider.availablePlans!);
@@ -506,7 +513,7 @@ class _PlansSheetState extends State<PlansSheet> {
 
         return DecoratedBox(
           // Paints the sheet surface itself too, for hosts that present it without showOmiSheet.
-          decoration: const BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.sheetTop),
+          decoration: BoxDecoration(color: OmiColors.surface1, borderRadius: OmiRadius.sheetTop),
           child: SizedBox(
             height: MediaQuery.sizeOf(context).height * 0.85,
             child: ListView(
@@ -707,8 +714,10 @@ class _PlansSheetState extends State<PlansSheet> {
   }
 
   Widget _buildPromoCodeField() {
-    OutlineInputBorder border(Color color) =>
-        OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide(color: color));
+    OutlineInputBorder border(Color color) => OutlineInputBorder(
+      borderRadius: OmiRadius.mdAll,
+      borderSide: BorderSide(color: color),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -723,9 +732,7 @@ class _PlansSheetState extends State<PlansSheet> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const ExcludeSemantics(
-                    child: Icon(Icons.local_offer_outlined, color: OmiColors.textSecondary, size: 18),
-                  ),
+                  ExcludeSemantics(child: Icon(Icons.local_offer_outlined, color: OmiColors.textSecondary, size: 18)),
                   const SizedBox(width: OmiSpacing.xs),
                   Text(l10n.promoCode, style: OmiType.subhead.copyWith(color: OmiColors.textSecondary)),
                   const SizedBox(width: OmiSpacing.xxs),

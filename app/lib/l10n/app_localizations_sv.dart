@@ -2500,12 +2500,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get detailedDiagnosticMessages => 'Detaljerade diagnostiska meddelanden';
 
   @override
-  String get autoCreateSpeakers => 'Skapa talare automatiskt';
-
-  @override
-  String get autoCreateWhenNameDetected => 'Skapa automatiskt när namn upptäcks';
-
-  @override
   String get followUpQuestions => 'Uppföljningsfrågor';
 
   @override
@@ -10340,12 +10334,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get syncStatusUnsupportedAudio => 'Ljudet kunde inte läsas — kan inte synkroniseras';
 
   @override
-  String get conversationTitleDidntGenerate => 'Title didn\'t generate';
-
-  @override
-  String get conversationReprocess => 'Reprocess';
-
-  @override
   String chatStarterPrompt(String kind) {
     String _temp0 = intl.Intl.selectLogic(
       kind,
@@ -11408,9 +11396,6 @@ class AppLocalizationsSv extends AppLocalizations {
       'Transkriptioner är inte tillgängliga, inspelningen fortsätter på enheten och bearbetas senare';
 
   @override
-  String get transcriptionUnavailableSavingOnDevice => 'Transkription inte tillgänglig · sparas på enheten';
-
-  @override
   String transcriptionsPendingFraction(int pending, int total) {
     return 'Transkriptioner i kö $pending/$total';
   }
@@ -11468,5 +11453,898 @@ class AppLocalizationsSv extends AppLocalizations {
   String get openCall => 'Öppna samtal';
 
   @override
-  String get captureRecoveryBanner => 'Ljudet från hänget når inte appen — tryck för att reparera';
+  String get captureRecoveryBanner => 'Omi skickar inget ljud — tryck för att ansluta igen';
+
+  @override
+  String get phoneRecordingBlockedByPendantBatch =>
+      'Stoppa Transcribe Later på ditt hängsmycke innan du spelar in med telefonen.';
+
+  @override
+  String get captureNotTranscribing => 'Transkriberar inte';
+
+  @override
+  String get captureAudioSavedTranscribesLater => 'Ljud sparat, transkriberas senare';
+
+  @override
+  String get captureStillRecording => 'Spelar fortfarande in';
+
+  @override
+  String get captureMicInUseElsewhere => 'Mikrofonen används av en annan app';
+
+  @override
+  String get captureMicInterruptedDetail =>
+      'Ett samtal eller en annan app tog mikrofonen, så Omi kan inte höra just nu. Omi fortsätter av sig själv när mikrofonen är ledig. Allt som spelats in innan är säkert.';
+
+  @override
+  String get captureCustomSttUnreachableDetail =>
+      'Din egen tal-till-text-tjänst går inte att nå. Omi behåller ljudet på den här telefonen och skickar det när tjänsten är tillbaka. Inget går förlorat.';
+
+  @override
+  String get captureStarting => 'Startar…';
+
+  @override
+  String get capturePhoneStorageFull => 'Telefonens lagring är full';
+
+  @override
+  String get captureStorageAlmostFull => 'Lagringen är nästan full';
+
+  @override
+  String get capturePendantDisconnectedDetail =>
+      'Hängsmycket tappade anslutningen till den här telefonen. Omi ansluter igen av sig själv när hängsmycket är på och i närheten. Allt som spelats in innan är säkert.';
+
+  @override
+  String participantsSummaryUncounted(String name) {
+    return '$name och andra';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyTitle => 'Lyssna på Omis svar';
+
+  @override
+  String get deviceOnboardingVoiceReplySample => 'Uppfattat. Ditt nästa möte börjar om tjugo minuter.';
+
+  @override
+  String get deviceOnboardingAllSetTitle => 'Allt är klart';
+
+  @override
+  String get deviceOnboardingAllSetSubtitle => 'Tryck på en rad för att granska eller ändra den.';
+
+  @override
+  String get deviceOnboardingAllSetSinglePressBadge => '1×';
+
+  @override
+  String get deviceOnboardingAllSetDoublePressBadge => '2×';
+
+  @override
+  String get deviceOnboardingVoiceReplySubtitle => 'När du frågar med knappen kan Omi läsa sitt svar högt.';
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewIdle => 'Hör ditt sista svar';
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewPlaying => 'Spelar upp ditt senaste svar...';
+
+  @override
+  String deviceOnboardingVoiceReplyPreviewThroughDevice(String device) {
+    return 'Via $device';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewThroughPhoneSpeaker => 'Genom telefonens högtalare';
+
+  @override
+  String get deviceOnboardingVoiceReplyPreviewThroughCurrentOutput => 'Genom den aktuella ljudutgången';
+
+  @override
+  String get deviceOnboardingVoiceReplyOffDescription => 'Svaren stannar på skärmen. Ingenting talas.';
+
+  @override
+  String get deviceOnboardingVoiceReplyHeadphonesDescription =>
+      'Privat. Talar endast via AirPods, Bluetooth eller trådbundna hörlurar.';
+
+  @override
+  String get deviceOnboardingVoiceReplyAlwaysDescription =>
+      'Använder telefonens högtalare när inga hörlurar är anslutna.';
+
+  @override
+  String get deviceOnboardingVoiceReplyStatusOff => 'Omi kommer att vara tyst. Svaren visas fortfarande i appen.';
+
+  @override
+  String deviceOnboardingVoiceReplyStatusHeadphonesConnected(String device) {
+    return '$device ansluten. Omi kommer att tala här.';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyStatusHeadphonesDisconnected =>
+      'Inga hörlurar anslutna. Omi förblir tyst tills du ansluter några.';
+
+  @override
+  String deviceOnboardingVoiceReplyStatusAlwaysHeadphones(String device) {
+    return 'Spelas upp till $device.';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyStatusAlwaysSpeaker => 'Spelas högt genom telefonens högtalare.';
+
+  @override
+  String deviceOnboardingVoiceReplySettingsHint(String settings, String voiceResponse) {
+    return 'Du kan ändra detta när som helst i $settings › $voiceResponse';
+  }
+
+  @override
+  String deviceOnboardingAllSetReplayHint(String settings, String deviceSettings, String deviceTutorial) {
+    return 'Spela om den här turnén när som helst i $settings › $deviceSettings › $deviceTutorial';
+  }
+
+  @override
+  String get deviceOnboardingVoiceReplyGenericHeadphones => 'Hörlurar';
+
+  @override
+  String get usageListened => 'Listened';
+
+  @override
+  String get usageWordsHeard => 'Words heard';
+
+  @override
+  String get usageTasksNotes => 'Tasks & notes';
+
+  @override
+  String get usagePeakHour => 'Peak hour';
+
+  @override
+  String get usageBestDay => 'Best day';
+
+  @override
+  String get usageBestMonth => 'Best month';
+
+  @override
+  String get usageBestYear => 'Best year';
+
+  @override
+  String get usageMinutes => 'minuter';
+
+  @override
+  String get usageWords => 'Words';
+
+  @override
+  String get usageTasks => 'Uppgifter';
+
+  @override
+  String get usageMonth => 'Denna månad';
+
+  @override
+  String get usageYear => 'Detta år';
+
+  @override
+  String get usageAll => 'All tid';
+
+  @override
+  String get usageNow => 'now';
+
+  @override
+  String get usageChatThisMonth => 'Chat this month';
+
+  @override
+  String get appearance => 'Utseende';
+
+  @override
+  String get appearanceSystem => 'System';
+
+  @override
+  String get appearanceLight => 'Ljust';
+
+  @override
+  String get appearanceDark => 'Mörkt';
+
+  @override
+  String get chatDiscardRecording => 'Förkasta';
+
+  @override
+  String get voiceQuestionNoSpeech => 'Jag uppfattade inte det — försök igen';
+
+  @override
+  String get siriIndexSetting => 'Use Omi with Siri & Apple Intelligence';
+
+  @override
+  String get siriIndexSettingDescription =>
+      'Allow Siri to find your conversations, memories, and tasks on this device. Turning this off removes them from Apple search.';
+
+  @override
+  String get sendToSupport => 'Send to support';
+
+  @override
+  String get deviceDiagnosticsUploadDescription =>
+      'Review the diagnostics JSON below. It includes your device identifier, connection history, battery readings, firmware diagnostics, and BLE events. No audio or transcripts are included.';
+
+  @override
+  String get deviceDiagnosticsTicket => 'Support ticket code';
+
+  @override
+  String get deviceDiagnosticsUploadFailed => 'Could not send diagnostics to support. Please try again.';
+
+  @override
+  String get feedbackGiveFeedback => 'Give feedback';
+
+  @override
+  String get feedbackAllGood => 'All good';
+
+  @override
+  String get feedbackChatWithUs => 'More detail? Chat with us';
+
+  @override
+  String get feedbackReasonSummaryInaccurate => 'Inaccurate';
+
+  @override
+  String get feedbackReasonSummaryIncomplete => 'Incomplete';
+
+  @override
+  String get feedbackReasonSummaryIrrelevant => 'Not relevant';
+
+  @override
+  String get feedbackReasonSummaryWrongContext => 'Wrong context';
+
+  @override
+  String get feedbackReasonSummaryOther => 'Something else';
+
+  @override
+  String get feedbackReasonRecordingMissingAudio => 'Missing audio';
+
+  @override
+  String get feedbackReasonRecordingPoorTranscription => 'Poor transcription';
+
+  @override
+  String get feedbackReasonRecordingWrongSpeaker => 'Wrong speaker';
+
+  @override
+  String get feedbackReasonRecordingDelayedOrStuck => 'Delayed or stuck';
+
+  @override
+  String get feedbackReasonRecordingFragmentedOrDuplicated => 'Fragmented or duplicated';
+
+  @override
+  String get feedbackReasonRecordingOther => 'Something else';
+
+  @override
+  String get searchPeople => 'Sök personer';
+
+  @override
+  String addQueryAsNewPerson(String query) {
+    return 'Lägg till \"$query\" som en ny person';
+  }
+
+  @override
+  String showAllPeople(int count) {
+    return 'Visa alla $count personer';
+  }
+
+  @override
+  String chatGreeting(String name) {
+    return 'Hej $name, fråga vad du vill';
+  }
+
+  @override
+  String get activity => 'Aktivitet';
+
+  @override
+  String get places => 'Platser';
+
+  @override
+  String get recaps => 'Sammanfattningar';
+
+  @override
+  String get recent => 'Senaste';
+
+  @override
+  String get searchPartialFailure => 'Vissa resultat kunde inte läsas in';
+
+  @override
+  String get peopleSearchPlaceholder => 'Sök personer';
+
+  @override
+  String get peopleNotHeardYet => 'Inte hörd ännu';
+
+  @override
+  String get peopleRecent => 'Senaste';
+
+  @override
+  String get deletePeopleMessage =>
+      'Detta tar bort deras röstprover och kan inte ångras. Deras repliker i tidigare samtal blir namnlösa talare.';
+
+  @override
+  String get personTalkTime => 'Taltid';
+
+  @override
+  String get personLastHeard => 'Senast hörd';
+
+  @override
+  String deletePeopleTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ta bort $count personer?',
+      one: 'Ta bort 1 person?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get peopleFilterNeedsVoice => 'Röst saknas';
+
+  @override
+  String peopleCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personer',
+      one: '1 person',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get noMatchingPeople => 'Inga matchande personer';
+
+  @override
+  String get deselectAll => 'Avmarkera alla';
+
+  @override
+  String get voiceRecognitionSettings => 'Röstigenkänning';
+
+  @override
+  String get greetingMorning => 'God morgon';
+
+  @override
+  String get greetingAfternoon => 'God eftermiddag';
+
+  @override
+  String get greetingEvening => 'God kväll';
+
+  @override
+  String greetingWithName(String greeting, String name) {
+    return '$greeting, $name';
+  }
+
+  @override
+  String get whatDoYouWantToKnow => 'Vad vill du veta?';
+
+  @override
+  String get askSuggestDecide => 'Vad bestämde jag i dag?';
+
+  @override
+  String get askSuggestOwe => 'Vad är jag fortfarande skyldig folk?';
+
+  @override
+  String get askSuggestNotice => 'Vad märkte Omi?';
+
+  @override
+  String get pastChats => 'Tidigare chattar';
+
+  @override
+  String get newChat => 'Ny chatt';
+
+  @override
+  String get startFresh => 'Börja om';
+
+  @override
+  String get noPastChats => 'Dina chattar med Omi visas här.';
+
+  @override
+  String get deleteChatQuestion => 'Radera den här chatten?';
+
+  @override
+  String get deleteChatMessage => 'Den försvinner från tidigare chattar för gott.';
+
+  @override
+  String get deleteChat => 'Radera chatt';
+
+  @override
+  String get appsAskWith => 'Fråga Omi med';
+
+  @override
+  String conversationsTodayCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count samtal i dag.',
+      one: '1 samtal i dag.',
+      zero: 'Inga samtal i dag.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get meetingScreenshotsTitle => 'Vad som visades på skärmen';
+
+  @override
+  String get meetingScreenshotFallbackCaption => 'Skärmbild från det här mötet';
+
+  @override
+  String get deleteMeetingScreenshotTitle => 'Radera skärmbilden?';
+
+  @override
+  String get deleteMeetingScreenshotMessage =>
+      'Skärmbilden tas bort från anteckningen för det här mötet. Det går inte att ångra.';
+
+  @override
+  String get conversationSummaryFailed => 'Sammanfattningen misslyckades';
+
+  @override
+  String get reconnectionsRecent => 'Återanslutningar (senaste 7 dagarna)';
+
+  @override
+  String get failedConnections => 'Misslyckade anslutningar';
+
+  @override
+  String get failedConnectionsRecent => 'Misslyckade anslutningar (senaste 7 dagarna)';
+
+  @override
+  String diagnosticsCountSincePairing(int count) {
+    return '$count sedan kopplingen';
+  }
+
+  @override
+  String get peopleFilterLowConfidence => 'Låg säkerhet';
+
+  @override
+  String get peopleFilterPinned => 'Fästa';
+
+  @override
+  String peoplePinnedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fästa',
+      one: '1 fäst',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get confidenceConfirmed => 'Bekräftad';
+
+  @override
+  String get confidenceLikely => 'Trolig';
+
+  @override
+  String get confidenceUnverified => 'Overifierad';
+
+  @override
+  String confidenceMeterLabel(String level) {
+    return 'Säkerhet: $level';
+  }
+
+  @override
+  String confidenceReasonLabeled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Du har märkt $count gånger',
+      one: 'Du har märkt en gång',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confidenceReasonPicked(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vald i $count förslag',
+      one: 'Vald i 1 förslag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String confidenceReasonAutoConfirmed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Du bekräftade $count matchningar',
+      one: 'Du bekräftade 1 matchning',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get confidenceReasonAutoOnly => 'Bara automatiskt matchad, aldrig bekräftad';
+
+  @override
+  String get confidenceReasonNeverConfirmed => 'Aldrig bekräftad';
+
+  @override
+  String get confidenceReasonCorrected => 'Du korrigerade matchningen';
+
+  @override
+  String get confidenceReasonVoiceReady => 'röst klar';
+
+  @override
+  String get confidenceReasonNeedsVoice => 'behöver röst';
+
+  @override
+  String get confidenceReasonNotHeard => 'ännu inte hörd';
+
+  @override
+  String get confidenceSheetTitle => 'Säkerhet';
+
+  @override
+  String confidenceSummaryConfirmed(String name) {
+    return 'Omi känner igen rösten hos $name, och du har bekräftat den.';
+  }
+
+  @override
+  String confidenceSummaryLikely(String name) {
+    return 'Omi känner oftast igen rösten hos $name, men du har bara bekräftat den några gånger.';
+  }
+
+  @override
+  String confidenceSummaryUnverified(String name) {
+    return 'Inget du gjort stöder $name än.';
+  }
+
+  @override
+  String get confidenceEvidenceHeader => 'Underlag';
+
+  @override
+  String evidenceManualLabels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Märkt av dig i $count konversationer',
+      one: 'Märkt av dig i 1 konversation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceCardConfirms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ja på $count förslag',
+      one: 'Ja på 1 förslag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceCardPicks(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Vald i $count förslag',
+      one: 'Vald i 1 förslag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceAutoConfirmed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Bekräftade $count automatiska matchningar',
+      one: 'Bekräftade 1 automatisk matchning',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceAutoCorrected(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count matchningar flyttade till någon annan',
+      one: '1 matchning flyttad till någon annan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String evidenceAutoUnconfirmed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count automatiska matchningar som ingen bekräftat',
+      one: '1 automatisk matchning som ingen bekräftat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get evidenceVoiceReady => 'Röstprov klart';
+
+  @override
+  String get evidenceNoVoice => 'Inget röstprov än';
+
+  @override
+  String get evidenceNotHeard => 'Inte hörd i någon konversation än';
+
+  @override
+  String get evidenceNothing => 'Du har inte märkt eller bekräftat personen än';
+
+  @override
+  String get effectCountsALot => 'Väger tungt';
+
+  @override
+  String get effectCounts => 'Räknas';
+
+  @override
+  String get effectCountsALittle => 'Räknas lite';
+
+  @override
+  String get effectBarelyCounts => 'Räknas knappt';
+
+  @override
+  String get effectCountsAgainst => 'Räknas emot';
+
+  @override
+  String get effectNeeded => 'Behövs för Bekräftad';
+
+  @override
+  String get confidenceToReachConfirmed => 'För att nå Bekräftad';
+
+  @override
+  String confidenceNextVoice(String name) {
+    return 'Omi behöver också ett röstprov av $name. Märk personen med Kom ihåg röster påslaget.';
+  }
+
+  @override
+  String confidenceIsConfirmed(String name) {
+    return '$name är Bekräftad. Omi fortsätter lära sig av varje märkning.';
+  }
+
+  @override
+  String get confidenceFootnote =>
+      'Bara dina svar påverkar säkerheten mycket. Automatiska matchningar räknas knappt på egen hand.';
+
+  @override
+  String get personWhyConfidence => 'Varför?';
+
+  @override
+  String pinPersonTitle(String name) {
+    return 'Fäst $name';
+  }
+
+  @override
+  String pinPersonSubtitle(String name) {
+    return 'Behåll $name och förvänta dig personen i dina konversationer';
+  }
+
+  @override
+  String get pinPersonHonestLine => 'Omi ber dig bekräfta nära matchningar i stället för att gissa.';
+
+  @override
+  String get pinAction => 'Fäst';
+
+  @override
+  String get unpinAction => 'Lossa';
+
+  @override
+  String personPinnedToast(String name) {
+    return '$name fäst';
+  }
+
+  @override
+  String personUnpinnedToast(String name) {
+    return '$name lossad';
+  }
+
+  @override
+  String whyConfidenceMenu(String level) {
+    return 'Varför $level?';
+  }
+
+  @override
+  String deletePersonNamedTitle(String name) {
+    return 'Radera $name?';
+  }
+
+  @override
+  String deletePinnedPersonMessage(String name) {
+    return '$name är fäst. Röstproverna tas bort, Omi slutar känna igen personen och tidigare transkriptioner visar den som en namnlös talare. Det går inte att ångra.';
+  }
+
+  @override
+  String deleteNamedPerson(String name) {
+    return 'Radera $name';
+  }
+
+  @override
+  String get selectPeople => 'Välj personer';
+
+  @override
+  String get cleanUpEllipsis => 'Rensa upp…';
+
+  @override
+  String cleanUpUnsureCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personer som Omi är osäker på',
+      one: '1 person som Omi är osäker på',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cleanUpBannerBody => 'Mest felhörda namn. Granska dem och ta bort de som inte är riktiga.';
+
+  @override
+  String get reviewAction => 'Granska';
+
+  @override
+  String get cleanUpTitle => 'Rensa upp';
+
+  @override
+  String cleanUpLead(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Omi är osäker på de här $count personerna. De flesta är namn som hörts fel i transkriptioner. Avmarkera alla du vill behålla.',
+      one: 'Omi är osäker på den här personen. Avmarkera personen om du vill behålla den.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cleanUpPinnedNote => 'Fästa personer ingår aldrig i Rensa upp.';
+
+  @override
+  String deletePeopleCountAction(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Radera $count personer',
+      one: 'Radera 1 person',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String peopleDeletedToast(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count personer raderade',
+      one: '1 person raderad',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cleanUpNothingTitle => 'Inget att rensa upp';
+
+  @override
+  String get cleanUpNothingMessage => 'Omi är inte osäker på någon just nu.';
+
+  @override
+  String get selectAllSkipsPinned => 'Markera alla hoppar över fästa personer. Radera dem en i taget från deras sida.';
+
+  @override
+  String get pinnedNotSelectable => 'Fäst, kan inte väljas';
+
+  @override
+  String get ignoredVoicesTitle => 'Ignorerade röster';
+
+  @override
+  String get ignoredVoicesSubtitle => 'TV, poddar och andra röster du markerat som Inte en person';
+
+  @override
+  String get ignoredVoicesEmpty => 'Inga ignorerade röster';
+
+  @override
+  String get restoreAction => 'Återställ';
+
+  @override
+  String get voiceRestoredToast => 'Omi kan fråga om den här rösten igen';
+
+  @override
+  String get speakerTagPromptSomeoneElse => 'Någon annan…';
+
+  @override
+  String get speakerTagPromptNotAPerson => 'Inte en person';
+
+  @override
+  String get speakerTagPromptNotSureAction => 'Osäker';
+
+  @override
+  String get speakerTagPromptThatsMeAction => 'Det är jag';
+
+  @override
+  String get speakerTagPromptClosestVoices => 'Närmaste röster';
+
+  @override
+  String get speakerTagPromptRecentPeople => 'Personer du pratat med nyligen';
+
+  @override
+  String get voiceMatchClose => 'Nära matchning';
+
+  @override
+  String get voiceMatchPossible => 'Möjlig matchning';
+
+  @override
+  String get voiceMatchWeak => 'Svag matchning';
+
+  @override
+  String voiceMatchMeterLabel(String level) {
+    return 'Röstmatchning: $level';
+  }
+
+  @override
+  String get speakerTagPromptHintIdentify => 'Varje svar lär Omi en röst och ökar personens säkerhet.';
+
+  @override
+  String speakerTagPromptHintConfirm(String name) {
+    return 'Ja ökar säkerheten för $name.';
+  }
+
+  @override
+  String get speakerTagPromptHintOwner =>
+      'Håller din egen röstprofil skarp, så att Omi aldrig döper dig till någon annan.';
+
+  @override
+  String speakerTagPromptSavedAs(String name) {
+    return 'Sparad som $name';
+  }
+
+  @override
+  String get speakerTagPromptSavedAsYou => 'Sparad som du';
+
+  @override
+  String get speakerTagPromptIgnoredNote => 'Omi frågar inte om den här rösten igen';
+
+  @override
+  String speakerTagPromptLabeledToast(String name) {
+    return 'Märkt som $name';
+  }
+
+  @override
+  String get speakerTagPromptLabeledYouToast => 'Märkt som du';
+
+  @override
+  String get speakerTagPromptNotAPersonToast => 'Markerad som inte en person';
+
+  @override
+  String get speakerTagPromptRejectedToast => 'Märkningen borttagen';
+
+  @override
+  String get whoIsItTitle => 'Vem är det?';
+
+  @override
+  String get newPersonEllipsis => 'Ny person…';
+
+  @override
+  String addNamedPersonAction(String name) {
+    return 'Lägg till ”$name”';
+  }
+
+  @override
+  String get everyoneHeader => 'Alla';
+
+  @override
+  String speakerSuggestionChip(String name) {
+    return '$name?';
+  }
+
+  @override
+  String get speakerSuggestionAppliesToSpeaker => 'Gäller alla repliker från den här talaren';
+
+  @override
+  String get collapseAction => 'Dölj';
+
+  @override
+  String get speakerTagPromptNotMeAction => 'Inte jag';
+
+  @override
+  String confidenceNextLabels(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Märk dem i $count konversationer till.',
+      one: 'Märk dem i 1 konversation till.',
+    );
+    return '$_temp0';
+  }
 }

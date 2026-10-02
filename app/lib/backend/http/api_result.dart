@@ -29,13 +29,12 @@ class ApiProblem {
   final int? statusCode;
   final Duration? retryAfter;
   bool get retryable => switch (kind) {
-        ApiProblemKind.transport ||
-        ApiProblemKind.authTransient ||
-        ApiProblemKind.rateLimited ||
-        ApiProblemKind.server =>
-          true,
-        _ => false,
-      };
+    ApiProblemKind.transport ||
+    ApiProblemKind.authTransient ||
+    ApiProblemKind.rateLimited ||
+    ApiProblemKind.server => true,
+    _ => false,
+  };
 
   @override
   String toString() => 'ApiProblem($kind, statusCode: $statusCode)';
@@ -46,9 +45,10 @@ sealed class ApiResult<T> {
 }
 
 final class ApiSuccess<T> extends ApiResult<T> {
-  const ApiSuccess(this.data, {this.rejectedRows = 0});
+  const ApiSuccess(this.data, {this.rejectedRows = 0, this.truncated = false});
   final T data;
   final int rejectedRows;
+  final bool truncated;
 }
 
 final class ApiFailure<T> extends ApiResult<T> {
@@ -76,15 +76,15 @@ class ApiExecutionSeams {
 }
 
 ApiProblemKind _kindForStatus(int statusCode) => switch (statusCode) {
-      401 => ApiProblemKind.authTerminal,
-      403 => ApiProblemKind.forbidden,
-      404 => ApiProblemKind.notFound,
-      402 => ApiProblemKind.paymentRequired,
-      422 => ApiProblemKind.unprocessable,
-      429 => ApiProblemKind.rateLimited,
-      >= 500 && <= 599 => ApiProblemKind.server,
-      _ => ApiProblemKind.rejected,
-    };
+  401 => ApiProblemKind.authTerminal,
+  403 => ApiProblemKind.forbidden,
+  404 => ApiProblemKind.notFound,
+  402 => ApiProblemKind.paymentRequired,
+  422 => ApiProblemKind.unprocessable,
+  429 => ApiProblemKind.rateLimited,
+  >= 500 && <= 599 => ApiProblemKind.server,
+  _ => ApiProblemKind.rejected,
+};
 
 ApiFailure<T> _authFailure<T>(AuthTokenResult result) {
   final transient = result is AuthTokenTransientFailure;
@@ -108,9 +108,9 @@ Duration? _retryAfter(http.Response response, DateTime Function() now) {
   }
 }
 
-ApiResult<T> _decodeSuccess<T>(String body, T Function(String) decode) {
+ApiResult<T> _decodeSuccess<T>(String body, T Function(String) decode, {bool truncated = false}) {
   try {
-    return ApiSuccess(decode(body));
+    return ApiSuccess(decode(body), truncated: truncated);
   } on FormatException {
     return const ApiFailure(ApiProblem(ApiProblemKind.decode));
   }
@@ -118,7 +118,7 @@ ApiResult<T> _decodeSuccess<T>(String body, T Function(String) decode) {
 
 ApiResult<T> _classifyResponse<T>(http.Response response, T Function(String) decode, DateTime Function() now) {
   if (response.statusCode >= 200 && response.statusCode < 300) {
-    return _decodeSuccess(response.body, decode);
+    return _decodeSuccess(response.body, decode, truncated: isOmiListTruncated(response));
   }
   final kind = _kindForStatus(response.statusCode);
   return ApiFailure(

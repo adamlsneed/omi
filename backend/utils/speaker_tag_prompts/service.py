@@ -8,17 +8,27 @@ saving other people's voices), the owner through a clip that must pass the same
 transcription check before it is pooled into the owner's voiceprint.
 """
 
+import asyncio
+import hashlib
+import json
 import logging
+import threading
+import time
 import uuid
+from concurrent.futures import Future, TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
+from config.speaker_prior import pinned_speaker_prior_enabled
 from database import conversations as conversations_db
+from database import redis_db
 from database import users as users_db
 from database import voice_profiles as voice_profiles_db
 from models.speaker_tag_prompts import (
+    IgnoredVoice,
+    IgnoredVoicesResponse,
     SpeakerTagPromptAnswer,
     SpeakerTagPromptAnswerRequest,
     SpeakerTagPromptAnswerResponse,
@@ -28,6 +38,8 @@ from models.speaker_tag_prompts import (
     SpeakerTagPromptsResponse,
 )
 from utils.manual_speaker_assignments import teaching_segment_ids
+from models.person_confidence import SOURCE_CARD
+from utils.text_utils import compute_text_containment
 from utils.observability.speaker_tag_prompts import (
     SPEAKER_TAG_PROMPT_ANSWERS,
     SPEAKER_TAG_PROMPT_QUALITY,
@@ -35,17 +47,27 @@ from utils.observability.speaker_tag_prompts import (
     SPEAKER_TAG_PROMPT_SETS,
     SPEAKER_TAG_PROMPT_VOICE_SAMPLES,
     SPEAKER_TAG_PROMPTS_SERVED,
+    SPEAKER_TAG_PROMPTS_SKIPPED,
     VOICE_PROFILE_SETTING_CHANGES,
 )
 from utils.product_telemetry import emit_product_event
-from utils.executors import db_executor, run_blocking, storage_executor, sync_executor
+from utils.executors import (
+    ExecutorSaturatedError,
+    db_executor,
+    run_blocking,
+    speaker_tag_verify_executor,
+    storage_executor,
+    submit_with_context,
+    sync_executor,
+)
 from utils.speaker_identification import extract_speaker_samples
-from utils.speaker_sample import verify_and_transcribe_sample
+from utils.speaker_sample import verify_and_transcribe_sample, verify_and_transcribe_sample_in_worker
 from utils.speaker_tag_prompts.clips import CLIP_SAMPLE_RATE, conversation_clip_pcm, pcm_to_wav
 from utils.speaker_tag_prompts.selection import (
     MAX_CLIP_SECONDS,
     MIN_CLIP_SECONDS,
     PROMPT_WINDOW,
+    prompt_id,
     speaker_id_of,
     select_prompts,
 )
@@ -60,6 +82,12 @@ DISMISSED_COOLDOWN = timedelta(days=7)
 DISMISSALS_BEFORE_BACKOFF = 3
 EMPTY_RECHECK = timedelta(hours=2)
 RECENT_CONVERSATION_LIMIT = 30
+VERIFY_CACHE_SECONDS = 12 * 60 * 60
+VERIFY_ERROR_CACHE_SECONDS = 5 * 60
+LIST_VERIFY_BUDGET_SECONDS = 8.0
+MIN_EXPECTED_CONTAINMENT = 0.7
+_inflight_verifications: Dict[str, Future[Optional[bytes]]] = {}
+_inflight_lock = threading.RLock()
 
 ScheduleTask = Callable[..., None]
 
@@ -82,16 +110,159 @@ def named_speaker_prompts_allowed(uid: str) -> bool:
 
 
 def _cooldown_until(state: Dict[str, Any]) -> Optional[datetime]:
-    last_shown = state.get('last_shown_at')
-    if not isinstance(last_shown, datetime):
+    last_shown = voice_profiles_db.as_utc(state.get('last_shown_at'))
+    if last_shown is None:
         return None
     streak = int(state.get('consecutive_dismissals') or 0)
     wait = DISMISSED_COOLDOWN if streak >= DISMISSALS_BEFORE_BACKOFF else SHOW_COOLDOWN
     return last_shown + wait
 
 
+def _verification_cache_key(uid: str, conversation: Mapping[str, Any], start: float, end: float, text: str) -> str:
+    # Hash every private field and the current audio manifest. Nothing identifying
+    # or transcribed enters Redis keys or metrics labels in plaintext.
+    payload = json.dumps(
+        [uid, conversation['id'], start, end, text, conversation.get('audio_files'), conversation.get('language')],
+        sort_keys=True,
+        default=str,
+    )
+    return 'speaker_tag_clip_v2:' + hashlib.sha256(payload.encode()).hexdigest()
+
+
+def clip_expected_text(conversation: Mapping[str, Any], start: float, end: float) -> str:
+    """The overlapping single-speaker transcript used to check a requested clip."""
+    relevant = [
+        segment
+        for segment in conversation.get('transcript_segments') or []
+        if float(segment.get('start') or 0) < end and float(segment.get('end') or 0) > start
+    ]
+    if not relevant or len({speaker_id_of(segment) for segment in relevant}) != 1:
+        return ''
+    excerpts = []
+    for segment in relevant:
+        raw_text = (segment.get('text') or '').strip()
+        words = raw_text.split()
+        unspaced = len(words) == 1 and len(raw_text) >= 12
+        if unspaced:
+            words = list(raw_text)
+        segment_start = float(segment.get('start') or 0)
+        segment_end = float(segment.get('end') or 0)
+        duration = segment_end - segment_start
+        if duration > 0 and words:
+            # Segment boundaries can be much wider than the cut. Keep a small
+            # boundary margin for word timing uncertainty, but do not require a
+            # ten-second clip to contain a whole minute-long segment.
+            first = max(0, int((start - segment_start) / duration * len(words)) - 2)
+            last = min(len(words), int((end - segment_start) / duration * len(words)) + 3)
+            words = words[first:last]
+        excerpts.append(''.join(words) if unspaced else ' '.join(words))
+    return ' '.join(excerpts).strip()
+
+
+def verified_clip_pcm(
+    uid: str,
+    conversation: Mapping[str, Any],
+    start: float,
+    end: float,
+    expected_text: str,
+    pcm: Optional[bytes] = None,
+    verification_deadline: Optional[float] = None,
+) -> Optional[bytes]:
+    """Return playable PCM only after a matching transcription or cached verdict."""
+    if not expected_text:
+        SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason='verify_failed').inc()
+        return None
+    if verification_deadline is not None and time.monotonic() >= verification_deadline:
+        raise FutureTimeoutError()
+    key = _verification_cache_key(uid, conversation, start, end, expected_text)
+    cached = redis_db.get_generic_cache(key)
+    try:
+        pcm = pcm if pcm is not None else conversation_clip_pcm(uid, conversation, start, end)
+    except Exception as error:
+        logger.warning('speaker tag clip verification failed error_type=%s', type(error).__name__)
+        SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason='verify_error').inc()
+        return None
+    # A legacy file's encoded-size duration can overstate the decoded tail.
+    # Reject a truncated cut even if its first seconds happen to transcribe.
+    minimum_bytes = max(0, int((end - start - 0.02) * CLIP_SAMPLE_RATE)) * 2
+    if not pcm or len(pcm) < minimum_bytes:
+        SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason='uncovered').inc()
+        return None
+    pcm_digest = hashlib.sha256(pcm).hexdigest()
+    if verification_deadline is not None and time.monotonic() >= verification_deadline:
+        raise FutureTimeoutError()
+    if isinstance(cached, dict) and cached.get('pcm_sha256') == pcm_digest:
+        if cached.get('valid') is False:
+            SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason=cached.get('reason', 'verify_failed')).inc()
+            return None
+        if cached.get('valid') is True:
+            return pcm
+    try:
+        if verification_deadline is None:
+            _transcript, valid, reason = asyncio.run(
+                verify_and_transcribe_sample(
+                    pcm_to_wav(pcm), CLIP_SAMPLE_RATE, expected_text, language=conversation.get('language')
+                )
+            )
+        else:
+            _transcript, valid, reason = verify_and_transcribe_sample_in_worker(
+                pcm_to_wav(pcm), CLIP_SAMPLE_RATE, expected_text, conversation.get('language'), verification_deadline
+            )
+    except Exception:
+        SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason='verify_error').inc()
+        redis_db.set_generic_cache(
+            key, {'pcm_sha256': pcm_digest, 'valid': False, 'reason': 'verify_error'}, ttl=VERIFY_ERROR_CACHE_SECONDS
+        )
+        return None
+    if verification_deadline is not None and time.monotonic() >= verification_deadline:
+        raise FutureTimeoutError()
+    if valid:
+        valid = bool(_transcript) and compute_text_containment(expected_text, _transcript) >= MIN_EXPECTED_CONTAINMENT
+    if not valid:
+        is_error = reason.startswith('transcription_failed')
+        SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason='verify_error' if is_error else 'verify_failed').inc()
+        redis_db.set_generic_cache(
+            key,
+            {'pcm_sha256': pcm_digest, 'valid': False, 'reason': 'verify_error' if is_error else 'verify_failed'},
+            ttl=VERIFY_ERROR_CACHE_SECONDS if is_error else VERIFY_CACHE_SECONDS,
+        )
+        return None
+    redis_db.set_generic_cache(key, {'pcm_sha256': pcm_digest, 'valid': True}, ttl=VERIFY_CACHE_SECONDS)
+    return pcm
+
+
+def _submit_list_verification(
+    uid: str, conversation: Mapping[str, Any], start: float, end: float, expected_text: str, deadline: float
+) -> Future[Optional[bytes]]:
+    """Share identical checks and reject distinct work when the small pool is full."""
+    key = _verification_cache_key(uid, conversation, start, end, expected_text)
+    with _inflight_lock:
+        existing = _inflight_verifications.get(key)
+        if existing is not None:
+            return existing
+        future = submit_with_context(
+            speaker_tag_verify_executor,
+            verified_clip_pcm,
+            uid,
+            conversation,
+            start,
+            end,
+            expected_text,
+            verification_deadline=deadline,
+        )
+        _inflight_verifications[key] = future
+
+        def clear(done: Future[Optional[bytes]]) -> None:
+            with _inflight_lock:
+                if _inflight_verifications.get(key) is done:
+                    del _inflight_verifications[key]
+
+        future.add_done_callback(clear)
+        return future
+
+
 def get_prompts(uid: str, now: Optional[datetime] = None) -> SpeakerTagPromptsResponse:
-    now = now or datetime.now(timezone.utc)
+    now = voice_profiles_db.as_utc(now) or datetime.now(timezone.utc)
     settings, owner_has_voice = voice_profiles_db.get_voice_profile_context(uid)
     save_others = settings['save_other_voice_profiles']
     if not settings['speaker_tag_prompts_enabled']:
@@ -109,8 +280,8 @@ def get_prompts(uid: str, now: Optional[datetime] = None) -> SpeakerTagPromptsRe
             save_other_voice_profiles=save_others,
             next_eligible_at=cooldown_until,
         )
-    last_empty = state.get('last_empty_check_at')
-    if isinstance(last_empty, datetime) and last_empty + EMPTY_RECHECK > now:
+    last_empty = voice_profiles_db.as_utc(state.get('last_empty_check_at'))
+    if last_empty is not None and last_empty + EMPTY_RECHECK > now:
         SPEAKER_TAG_PROMPT_REQUESTS.labels(status='recently_checked').inc()
         return SpeakerTagPromptsResponse(
             status='no_candidates',
@@ -128,7 +299,39 @@ def get_prompts(uid: str, now: Optional[datetime] = None) -> SpeakerTagPromptsRe
         start_date=now - PROMPT_WINDOW,
         end_date=now,
     )
-    people = {person['id']: person.get('name') or '' for person in users_db.get_people(uid) if person.get('id')}
+    stored_people = [person for person in users_db.get_people(uid) if person.get('id')]
+    people = {person['id']: person.get('name') or '' for person in stored_people}
+    pinned = {person['id'] for person in stored_people if person.get('pinned') is True}
+    deadline = time.monotonic() + LIST_VERIFY_BUDGET_SECONDS
+    timed_out = False
+
+    def verify_in_budget(conversation: Mapping[str, Any], prompt: Any, _expected: str) -> bool:
+        nonlocal timed_out
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            timed_out = True
+            return False
+        try:
+            future = _submit_list_verification(
+                uid,
+                conversation,
+                prompt.clip_start,
+                prompt.clip_end,
+                clip_expected_text(conversation, prompt.clip_start, prompt.clip_end),
+                deadline,
+            )
+            return future.result(timeout=remaining) is not None
+        except FutureTimeoutError:
+            timed_out = True
+            return False
+        except ExecutorSaturatedError:
+            timed_out = True
+            return False
+        except Exception as error:
+            logger.warning('speaker tag list verification failed error_type=%s', type(error).__name__)
+            timed_out = True
+            return False
+
     prompts = select_prompts(
         conversations,
         now=now,
@@ -136,9 +339,15 @@ def get_prompts(uid: str, now: Optional[datetime] = None) -> SpeakerTagPromptsRe
         named_allowed=named_allowed,
         answered=voice_profiles_db.answered_prompt_ids(state, now),
         people=people,
+        pinned=pinned,
+        ignored=voice_profiles_db.ignored_voice_keys(state),
+        prior_enabled=pinned_speaker_prior_enabled(),
+        verify=verify_in_budget,
+        on_skip=lambda reason: SPEAKER_TAG_PROMPTS_SKIPPED.labels(reason=reason).inc(),
     )
     if not prompts:
-        voice_profiles_db.mark_tag_prompts_empty(uid, now)
+        if not timed_out:
+            voice_profiles_db.mark_tag_prompts_empty(uid, now)
         SPEAKER_TAG_PROMPT_REQUESTS.labels(status='no_candidates').inc()
         return SpeakerTagPromptsResponse(
             status='no_candidates', first_time=first_time, save_other_voice_profiles=save_others
@@ -195,6 +404,7 @@ _ALLOWED_ANSWERS = {
         SpeakerTagPromptAnswer.new_person,
         SpeakerTagPromptAnswer.someone_else,
         SpeakerTagPromptAnswer.skip,
+        SpeakerTagPromptAnswer.not_a_person,
     },
     SpeakerTagPromptKind.confirm_person: {
         SpeakerTagPromptAnswer.me,
@@ -202,6 +412,7 @@ _ALLOWED_ANSWERS = {
         SpeakerTagPromptAnswer.new_person,
         SpeakerTagPromptAnswer.someone_else,
         SpeakerTagPromptAnswer.skip,
+        SpeakerTagPromptAnswer.not_a_person,
     },
     SpeakerTagPromptKind.identify: {
         SpeakerTagPromptAnswer.me,
@@ -209,9 +420,20 @@ _ALLOWED_ANSWERS = {
         SpeakerTagPromptAnswer.new_person,
         SpeakerTagPromptAnswer.someone_else,
         SpeakerTagPromptAnswer.skip,
+        SpeakerTagPromptAnswer.not_a_person,
     },
 }
 _NAMED_ANSWERS = {SpeakerTagPromptAnswer.person, SpeakerTagPromptAnswer.new_person}
+
+
+def effective_answer(request: SpeakerTagPromptAnswerRequest) -> SpeakerTagPromptAnswer:
+    """ "Someone else" that names who it is behaves like picking that person (the correction path)."""
+    if request.answer == SpeakerTagPromptAnswer.someone_else:
+        if request.person_id:
+            return SpeakerTagPromptAnswer.person
+        if request.name:
+            return SpeakerTagPromptAnswer.new_person
+    return request.answer
 
 
 def quality_outcome(
@@ -241,8 +463,10 @@ def quality_outcome(
     return Q.unknown_voice
 
 
-def _resolve_person(uid: str, request: SpeakerTagPromptAnswerRequest) -> Tuple[str, Dict[str, Any]]:
-    if request.answer == SpeakerTagPromptAnswer.person:
+def _resolve_person(
+    uid: str, request: SpeakerTagPromptAnswerRequest, answer: SpeakerTagPromptAnswer
+) -> Tuple[str, Dict[str, Any]]:
+    if answer == SpeakerTagPromptAnswer.person:
         if not request.person_id:
             raise TagPromptInvalid('person_id is required')
         found: Optional[Dict[str, Any]] = users_db.get_person(uid, request.person_id)
@@ -270,7 +494,9 @@ def apply_answer(
 ) -> SpeakerTagPromptAnswerResponse:
     """Apply one answer. ``schedule(fn, **kwargs)`` runs slow voice work after the response."""
     now = now or datetime.now(timezone.utc)
-    answer = request.answer
+    if request.answer not in _ALLOWED_ANSWERS[request.kind]:
+        raise TagPromptInvalid(f'{request.answer.value} is not a valid answer for {request.kind.value}')
+    answer = effective_answer(request)
     if answer not in _ALLOWED_ANSWERS[request.kind]:
         raise TagPromptInvalid(f'{answer.value} is not a valid answer for {request.kind.value}')
     needs_named = request.kind != SpeakerTagPromptKind.owner_check or answer in _NAMED_ANSWERS
@@ -281,12 +507,13 @@ def apply_answer(
     person_enrolled = False
     voice_sample_queued = False
     if answer in _NAMED_ANSWERS:
-        person_id, person = _resolve_person(uid, request)
+        person_id, person = _resolve_person(uid, request, answer)
         person_enrolled = bool(person.get('speaker_embedding'))
 
     clears_auto_label = request.origin != SpeakerTagPromptOrigin.unnamed and answer in {
         SpeakerTagPromptAnswer.not_me,
         SpeakerTagPromptAnswer.someone_else,
+        SpeakerTagPromptAnswer.not_a_person,
     }
     if answer == SpeakerTagPromptAnswer.me:
         conversation, resolved = _assign(uid, request, is_user=True, person_id=None, train=False)
@@ -317,9 +544,24 @@ def apply_answer(
             )
             SPEAKER_TAG_PROMPT_VOICE_SAMPLES.labels(target='person', outcome='queued').inc()
             voice_sample_queued = True
-    elif clears_auto_label:
+    elif clears_auto_label or answer == SpeakerTagPromptAnswer.not_a_person:
         # The automatic label was wrong: record an explicit "not the owner / not them".
-        _assign(uid, request, is_user=False, person_id=None, train=False)
+        conversation, resolved = _assign(uid, request, is_user=False, person_id=None, train=False)
+        if answer == SpeakerTagPromptAnswer.not_a_person:
+            resolved_ids = set(resolved)
+            speaker_ids = {
+                speaker_id_of(segment)
+                for segment in conversation.get('transcript_segments') or []
+                if segment.get('id') in resolved_ids
+            }
+            for speaker_id in sorted(speaker_ids):
+                voice_profiles_db.record_ignored_voice(
+                    uid,
+                    conversation['id'],
+                    speaker_id,
+                    now,
+                    assignment_generation=(conversation.get('manual_speaker_assignments') or {}).get('generation'),
+                )
 
     outcome = quality_outcome(
         request.origin,
@@ -364,8 +606,49 @@ def _assign(
         is_user=is_user,
         speaker_id=request.speaker_id,
         use_for_speech_training=train,
+        evidence_source=SOURCE_CARD,
     )
     return raw, resolved
+
+
+# ---------------------------------------------------------------------------
+# Ignored voices ("Not a Person")
+# ---------------------------------------------------------------------------
+
+IGNORED_VOICES_LIST_LIMIT = 50
+
+
+def list_ignored_voices(uid: str) -> IgnoredVoicesResponse:
+    entries = voice_profiles_db.ignored_voices(voice_profiles_db.get_tag_prompt_state(uid))
+    ids = list(dict.fromkeys(entry['conversation_id'] for entry in entries))
+    conversations = (
+        {c.get('id'): c for c in conversations_db.get_conversations_by_id_without_photos(uid, ids) if c} if ids else {}
+    )
+    voices = []
+    for entry in entries:
+        conversation = conversations.get(entry['conversation_id'])
+        if not conversation or conversation.get('deleted'):
+            continue
+        voices.append(
+            IgnoredVoice(
+                conversation_id=entry['conversation_id'],
+                speaker_id=entry['speaker_id'],
+                ignored_at=voice_profiles_db.as_utc(entry.get('ignored_at')) or datetime.now(timezone.utc),
+                conversation_title=((conversation.get('structured') or {}).get('title') or '').strip(),
+                conversation_started_at=voice_profiles_db.as_utc(
+                    conversation.get('started_at') or conversation.get('created_at')
+                ),
+            )
+        )
+        if len(voices) == IGNORED_VOICES_LIST_LIMIT:
+            break
+    return IgnoredVoicesResponse(voices=voices)
+
+
+def restore_ignored_voice(uid: str, conversation_id: str, speaker_id: int) -> bool:
+    """Undo "Not a Person"; Omi may ask about this voice again."""
+    prompt_ids = [prompt_id(conversation_id, speaker_id, kind) for kind in SpeakerTagPromptKind]
+    return voice_profiles_db.remove_ignored_voice(uid, conversation_id, speaker_id, prompt_ids)
 
 
 # ---------------------------------------------------------------------------
@@ -422,7 +705,15 @@ def owner_clip_window(conversation: Dict[str, Any], segment_ids: List[str]) -> O
 
 
 async def store_owner_voice_sample(uid: str, conversation_id: str, segment_ids: List[str]) -> str:
-    """Verify a "That's me" clip and pool it into the owner's voiceprint. Returns the outcome label."""
+    """Verify a "That's me" clip and pool it into the owner's voiceprint. Returns the outcome label.
+
+    The outcome is attributable: beyond the Prometheus counter, one log line
+    names the outcome with the conversation id (never the uid). The
+    2026-09-25 incident left a client-side "succeeded=true" answer with no
+    owner_voice_confirmation and no trace beyond an unlabeled counter; the
+    recording session id is not on this path (prompts are answered after the
+    socket closed), so the conversation id is the join key.
+    """
     outcome = 'error'
     try:
         conversation = await run_blocking(db_executor, conversations_db.get_conversation, uid, conversation_id)
@@ -465,3 +756,8 @@ async def store_owner_voice_sample(uid: str, conversation_id: str, segment_ids: 
         return outcome
     finally:
         SPEAKER_TAG_PROMPT_VOICE_SAMPLES.labels(target='owner', outcome=outcome).inc()
+        logger.info(
+            'speaker tag prompt owner sample outcome=%s conversation=%s',
+            outcome,
+            conversation_id,
+        )

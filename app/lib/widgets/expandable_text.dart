@@ -13,7 +13,7 @@ class ExpandableTextWidget extends StatefulWidget {
   final int maxLines;
   final String? expandText;
   final String? collapseText;
-  final Color linkColor;
+  final Color? linkColor;
 
   const ExpandableTextWidget({
     super.key,
@@ -22,7 +22,7 @@ class ExpandableTextWidget extends StatefulWidget {
     this.maxLines = 3,
     this.expandText,
     this.collapseText,
-    this.linkColor = OmiColors.textSecondary,
+    this.linkColor,
     required this.isExpanded,
     required this.toggleExpand,
   });
@@ -54,9 +54,9 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget> {
               a: widget.style,
               p: widget.style,
               blockquote: widget.style.copyWith(backgroundColor: Colors.transparent, color: Colors.black),
-              blockquoteDecoration: const BoxDecoration(
+              blockquoteDecoration: BoxDecoration(
                 color: OmiColors.surface3,
-                borderRadius: BorderRadius.all(Radius.circular(4)),
+                borderRadius: const BorderRadius.all(Radius.circular(4)),
               ),
               code: widget.style.copyWith(
                 backgroundColor: Colors.transparent,
@@ -68,8 +68,8 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget> {
             data: widget.isExpanded
                 ? widget.text
                 : widget.text.length > maxChars
-                    ? widget.text.substring(0, maxChars)
-                    : widget.text,
+                ? widget.text.substring(0, maxChars)
+                : widget.text,
           ),
           // Text(
           //   widget.text,
@@ -85,7 +85,7 @@ class _ExpandableTextWidgetState extends State<ExpandableTextWidget> {
                 child: Text(
                   widget.isExpanded ? collapseLabel : expandLabel,
                   style: TextStyle(
-                    color: widget.linkColor,
+                    color: widget.linkColor ?? OmiColors.textSecondary,
                     fontWeight: FontWeight.w500,
                     fontSize: widget.style.fontSize,
                   ),
