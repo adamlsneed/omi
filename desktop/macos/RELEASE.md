@@ -18,7 +18,11 @@ is signed/notarized/distributed differently.
    ```
    App-specific password: appleid.apple.com → Sign-In & Security → App-Specific Passwords.
 2. `gh auth status` must be authenticated (for publishing the release + cask).
-3. Tap repo already exists: https://github.com/adamlsneed/homebrew-omi
+3. Nothing for ffmpeg: `release.sh` runs `scripts/ensure-bundled-ffmpeg.sh`, which downloads the
+   gitignored `Desktop/Sources/Resources/ffmpeg` (host arch, same source as upstream's Codemagic
+   lane) when it is missing or does not run. `scripts/fork/redeploy-omi-dev.sh` does the same
+   before `run.sh`, whose bundle audit rejects a build without it.
+4. Tap repo already exists: https://github.com/adamlsneed/homebrew-omi
 
 ## Cut a release
 ```
