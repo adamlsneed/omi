@@ -1,3 +1,0 @@
-{
-  "change": "Local release and Omi Dev builds fetch the bundled ffmpeg resource themselves instead of failing the bundle audit"
-}
