@@ -653,6 +653,13 @@ export class PiMonoAdapter implements HarnessAdapter {
     // (execute_sql, semantic_search, etc.) that forward to Swift.
     // The shared runtime process sets the pipe in process.env before starting pi-mono.
 
+    // A session's working directory is pinned when the session is created and can be
+    // deleted later; spawning into a missing cwd fails with ENOENT on every turn.
+    if (this.currentWorkingDirectory && !existsSync(this.currentWorkingDirectory)) {
+      process.stderr.write(`[pi-mono] working directory missing, recreating: ${this.currentWorkingDirectory}\n`);
+      mkdirSync(this.currentWorkingDirectory, { recursive: true });
+    }
+
     this.process = spawn(this.piPath, args, {
       stdio: ["pipe", "pipe", "pipe"],
       env,
@@ -679,14 +686,14 @@ export class PiMonoAdapter implements HarnessAdapter {
       });
     }
 
-    this.process.on("exit", (code: number | null) => {
-      process.stderr.write(`[pi-mono] process exited with code ${code}\n`);
+    const proc = this.process;
+    const processGone = (reason: string) => {
       this.process = null;
       this.readline = null;
       this.sessions.clear();
       // Reject pending requests
       for (const [, req] of this.pendingRequests) {
-        req.reject(new Error(`pi-mono process exited (code ${code})`));
+        req.reject(new Error(reason));
       }
       this.pendingRequests.clear();
       this.activePromptGeneration = 0;
@@ -694,6 +701,20 @@ export class PiMonoAdapter implements HarnessAdapter {
       this.finishPublicWebProgress(this.activePublicWebTurn, "failed");
       this.activePublicWebTurn = null;
       rmSync(this.contextFilePath, { force: true });
+    };
+
+    this.process.on("exit", (code: number | null) => {
+      process.stderr.write(`[pi-mono] process exited with code ${code}\n`);
+      processGone(`pi-mono process exited (code ${code})`);
+    });
+
+    // Without a listener, a failed spawn is an uncaught exception that takes down the
+    // whole agent runtime. A spawn failure emits no "exit", so clean up here instead.
+    this.process.on("error", (error: Error) => {
+      process.stderr.write(`[pi-mono] process error: ${error.message}\n`);
+      if (this.process === proc && proc.pid === undefined) {
+        processGone(`pi-mono process failed to start: ${error.message}`);
+      }
     });
   }
 
