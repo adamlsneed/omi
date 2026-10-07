@@ -1,3 +1,0 @@
-{
-  "change": "Chat keeps working when the folder a chat session was started in is deleted; the folder is recreated instead of every answer failing"
-}
