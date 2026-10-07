@@ -9361,7 +9361,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String enableDeviceWifi(String deviceName) {
-    return 'डिवाइस WiFi सक्षम करें';
+    return '$deviceName का WiFi सक्षम करें';
   }
 
   @override

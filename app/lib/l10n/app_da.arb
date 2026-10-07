@@ -3052,7 +3052,7 @@
     "wifiSyncFailed": "WiFi-synkronisering mislykkedes",
     "wifiSync": "WiFi-synkronisering",
     "wifiConnectionFailedTitle": "WiFi-forbindelse mislykkedes",
-    "enableDeviceWifi": "Aktivér WiFi på enheden",
+    "enableDeviceWifi": "Aktivér WiFi på {deviceName}",
     "switchedToFastTransfer": "Skiftet til hurtig overførsel",
     "fastTransferEnabled": "Hurtig overførsel aktiveret",
     "enableFastTransfer": "Aktiver hurtig overførsel",

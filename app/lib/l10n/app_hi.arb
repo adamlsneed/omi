@@ -3019,7 +3019,7 @@
     "wifiSyncFailed": "WiFi सिंक विफल",
     "wifiSync": "वाईफाई सिंक",
     "wifiConnectionFailedTitle": "WiFi कनेक्शन विफल",
-    "enableDeviceWifi": "डिवाइस WiFi सक्षम करें",
+    "enableDeviceWifi": "{deviceName} का WiFi सक्षम करें",
     "switchedToFastTransfer": "तेज़ ट्रांसफर पर स्विच किया गया",
     "fastTransferEnabled": "फास्ट ट्रांसफर सक्षम",
     "enableFastTransfer": "फास्ट ट्रांसफर सक्षम करें",

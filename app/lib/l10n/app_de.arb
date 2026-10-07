@@ -3010,7 +3010,7 @@
     "wifiSyncFailed": "WLAN-Synchronisierung fehlgeschlagen",
     "wifiSync": "WLAN-Synchronisierung",
     "wifiConnectionFailedTitle": "WLAN-Verbindung fehlgeschlagen",
-    "enableDeviceWifi": "Geräte-WLAN aktivieren",
+    "enableDeviceWifi": "WLAN von {deviceName} aktivieren",
     "switchedToFastTransfer": "Auf Schnellübertragung umgeschaltet",
     "fastTransferEnabled": "Schnelle Übertragung aktiviert",
     "enableFastTransfer": "Schnelle Übertragung aktivieren",

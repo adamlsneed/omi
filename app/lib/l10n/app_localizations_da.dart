@@ -9371,7 +9371,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String enableDeviceWifi(String deviceName) {
-    return 'Aktivér WiFi på enheden';
+    return 'Aktivér WiFi på $deviceName';
   }
 
   @override

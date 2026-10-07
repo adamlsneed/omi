@@ -9456,7 +9456,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String enableDeviceWifi(String deviceName) {
-    return 'Geräte-WLAN aktivieren';
+    return 'WLAN von $deviceName aktivieren';
   }
 
   @override
