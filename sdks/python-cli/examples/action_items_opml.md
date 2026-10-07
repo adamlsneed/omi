@@ -20,7 +20,7 @@ This recipe extracts action items from your Omi device history and converts them
    ```bash
    python action_items_to_opml.py action_items.json omi_tasks.opml
    ```
-   
+
    *Alternatively, pipe the JSON directly:*
    ```bash
    omi --json action-item list | python action_items_to_opml.py - omi_tasks.opml

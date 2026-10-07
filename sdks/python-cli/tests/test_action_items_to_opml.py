@@ -89,14 +89,14 @@ class TestActionItemsToOpml(unittest.TestCase):
     def test_cli_invocation(self):
         with open("test_input.json", "w", encoding="utf-8") as f:
             json.dump([{"description": "CLI Task"}], f)
-        
+
         subprocess.run([sys.executable, str(recipe_path), "test_input.json", self.test_output], check=True)
-        
+
         self.assertTrue(os.path.exists(self.test_output))
         with open(self.test_output, "r", encoding="utf-8") as f:
             content = f.read()
             self.assertIn("CLI Task", content)
-            
+
         os.remove("test_input.json")
 
 if __name__ == '__main__':
