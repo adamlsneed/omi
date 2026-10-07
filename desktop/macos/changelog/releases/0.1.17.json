@@ -1,0 +1,8 @@
+{
+  "version": "0.1.17",
+  "date": "2026-10-07",
+  "changes": [
+    "Chat keeps working when the folder a chat session was started in is deleted; the folder is recreated instead of every answer failing",
+    "Synced upstream BasedHardware desktop changes through v0.12.450 (2026-10-07)"
+  ]
+}
