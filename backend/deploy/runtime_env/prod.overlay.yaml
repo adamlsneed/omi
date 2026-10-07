@@ -4,27 +4,110 @@ compute_project: based-hardware
 data_plane_project: based-hardware
 overlay:
   llm_gateway:
+    env:
+      # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+      PROACTIVITY_V2_POSTHOG_TOKEN:
+        value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+        category: rollout
+      PROACTIVITY_V2_POSTHOG_HOST:
+        value: https://us.posthog.com
+        category: rollout
+      PROACTIVITY_REDIS_HOST:
+        config_map:
+          name: prod-omi-backend-config
+          key: REDIS_DB_HOST
+      PROACTIVITY_REDIS_PORT:
+        value: '13151'
+        category: service_discovery
+      PROACTIVITY_REDIS_PASSWORD:
+        secret:
+          name: prod-omi-backend-secrets
+          key: REDIS_DB_PASSWORD
+      LLM_GATEWAY_ACCOUNTING_ENABLED:
+        value: 'true'
+        category: rollout
+      OMI_CUSTOMER_DATA_PROJECT:
+        value: based-hardware
+        category: service_discovery
+      POSTHOG_HOST:
+        value: https://us.posthog.com
+        category: telemetry
+      MENTOR_PIPELINE:
+        value: cohort
+        category: rollout
     static_address_name: prod-omi-self-hosted-llm-ip-address
   gke:
     backend-listen:
       env:
+        CONVERSATION_SMART_MERGE_WALLCLOCK_GAP_MODE: {value: 'shadow', category: rollout}
+        # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+        PROACTIVITY_V2_POSTHOG_TOKEN:
+          value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+          category: rollout
+        PROACTIVITY_V2_POSTHOG_HOST:
+          value: https://us.posthog.com
+          category: rollout
+        POSTHOG_PROJECT_API_KEY:
+          secret:
+            name: prod-omi-backend-secrets
+            key: POSTHOG_PROJECT_API_KEY
+        PROACTIVITY_REDIS_HOST:
+          config_map:
+            name: prod-omi-backend-config
+            key: REDIS_DB_HOST
+        PROACTIVITY_REDIS_PORT:
+          value: '13151'
+          category: service_discovery
+        PROACTIVITY_REDIS_PASSWORD:
+          secret:
+            name: prod-omi-backend-secrets
+            key: REDIS_DB_PASSWORD
+        POSTHOG_HOST:
+          value: https://us.posthog.com
+          category: telemetry
+        MENTOR_PIPELINE:
+          value: cohort
+          category: rollout
+        AUDIO_TIMELINE_SPANS: {value: 'true', category: rollout}
+        LIVE_SPEAKER_SPAN_RESOLUTION: {value: 'true', category: rollout}
+        LIVE_CAPTURE_WINDOW_RETENTION: {value: 'false', category: rollout}
+        LIVE_CAPTURE_WINDOW_STRICT_PROJECTION: {value: 'false', category: rollout}
+        LIVE_CAPTURE_WINDOW_MERGE_PRESERVATION: {value: 'false', category: rollout}
+        LIVE_CAPTURE_WINDOW_MERGE_UNION: {value: 'true', category: rollout}
+        LIVE_CAPTURE_WINDOW_TRANSLATOR_SENDS: {value: 'true', category: rollout}
+        SPEAKER_MATCH_SCORES_ENABLED:
+          value: 'true'
+          category: rollout
+        OMI_SHAPED_AGENT_MODE:
+          value: 'cohort'
+          category: rollout
+        SONIOX_CAPTURE_AXIS_DIAGNOSTICS: {value: 'true', category: rollout}
+        SONIOX_WIRE_LEDGER: {value: 'true', category: rollout}
+        SONIOX_ORDERED_FINALIZE: {value: 'false', category: rollout}
+        CAPTURE_EVIDENCE_V1_DARK_WRITE: {value: 'true', category: rollout}
+        MENTOR_GATE_DEBOUNCE_ENABLED:
+          value: 'true'
+          category: rollout
         LISTEN_RECONNECT_BUDGET_PER_MIN:
           value: '6'
           category: reliability
         # 2026-09-26 incident: with the code-fixed order, a Modulate breaker opening sent
         # new sessions to Deepgram (402 since 09-14) and then streaming Parakeet (no ready
         # frame, 0 connects since 08-26), so they got no transcript. The configured order
-        # The allocated windowed TDT cohort precedes the unchanged vendor order;
-        # otherwise Soniox is second after Modulate. Canary allocation follows the
+        # Prefer healthy Soniox as the static fallback while the cost router is
+        # in shadow; Modulate precedes the retired Deepgram tail. Allocation follows the
         # gated ramp in docs/operational/windowed-live-stt.md (5% on 2026-09-29;
         # rolled back to 0% on 2026-10-01 for a first-text latency regression;
-        # back to 5% after the posting-cadence fix #20043; 25% on 2026-10-01).
+        # back to 5% after the posting-cadence fix #20043; 25% on 2026-10-01;
+        # 50% on 2026-10-02 after the batch-pressure quorum fix #20208; 100% of
+        # eligible sessions later that day, with the per-pod session cap raised
+        # 8 -> 16 because listen pods were overflowing at the cap every hour).
         STT_CONNECT_ORDER_FROM_CONFIG:
           value: 'true'
         PARAKEET_WINDOW_ALLOCATION_PERCENT:
-          value: '25'
+          value: '100'
         PARAKEET_WINDOW_MAX_SESSIONS:
-          value: '8'
+          value: '16'
         PARAKEET_WINDOW_FIRST_TEXT_DEADLINE_SECONDS:
           value: '12'
           category: reliability
@@ -37,8 +120,24 @@ overlay:
           value: parakeet-window,modulate-velma-2,soniox,dg-nova-3
         STT_RESILIENT_RECONNECT:
           value: 'false'
+        STT_FAILOVER_RECOVERY_ENABLED:
+          value: 'true'
+          category: rollout
+        # 2026-10-06: prod listen only, after a 3h51m 5-pod canary (0 restarts,
+        # 0 reopen failures, reopen p95 0.24s). Unset or zero elsewhere means off.
+        SONIOX_IDLE_CLOSE_SECONDS:
+          value: '45'
+          category: rollout
         STT_ROUTING_MODE:
-          value: shadow
+          value: 'on'
+        # 2026-10-06: sticky-UID ON ramp, gated per step on the
+        # omi_stt_routing_cohort_* counters (GATES.md): 5%/25%/50% holds were
+        # clean; this commit completes the ramp at 100%.
+        STT_ROUTING_ON_PERCENT:
+          value: '100'
+        STT_NO_TEXT_RESCUE_ENABLED:
+          value: 'true'
+          category: rollout
         SONIOX_MONTHLY_CEILING_USD:
           value: '10000'
         # 2026-09-28: learn each user's expected languages from observed output. About 75% of
@@ -149,16 +248,25 @@ overlay:
           value: '100'
           category: rollout
         CONVERSATION_RELEVANCE_KEEP_ALL_PERCENT:
-          value: '0'
+          value: '20'
+          category: rollout
+        CONVERSATION_RELEVANCE_JEV_ENABLED:
+          value: 'true'
+          category: rollout
+        CONVERSATION_RELEVANCE_JEV_PERCENT:
+          value: '100'
+          category: rollout
+        MEETING_NOTES_EPISODE_EVIDENCE_ENABLED:
+          value: 'true'
+          category: rollout
+        MEETING_NOTES_EPISODE_EVIDENCE_PERCENT:
+          value: '1'
           category: rollout
         CONVERSATION_RELEVANCE_JEV_SHADOW_DAILY_CAP:
           value: '60000'
           category: rollout
         MEMORY_OWNER_JEV_SHADOW_DAILY_CAP:
           value: '60000'
-          category: rollout
-        CONVERSATION_RELEVANCE_JEV_UID_ALLOWLIST:
-          value: ''
           category: rollout
         CAPTURE_JEV_SHADOW_ENABLED:
           value: 'true'
@@ -177,6 +285,55 @@ overlay:
           category: rollout
     pusher:
       env:
+        CONVERSATION_SMART_MERGE_WALLCLOCK_GAP_MODE: {value: 'shadow', category: rollout}
+        # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+        PROACTIVITY_V2_POSTHOG_TOKEN:
+          value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+          category: rollout
+        PROACTIVITY_V2_POSTHOG_HOST:
+          value: https://us.posthog.com
+          category: rollout
+        POSTHOG_PROJECT_API_KEY:
+          secret:
+            name: prod-omi-backend-secrets
+            key: POSTHOG_PROJECT_API_KEY
+        PROACTIVITY_REDIS_HOST:
+          config_map:
+            name: prod-omi-backend-config
+            key: REDIS_DB_HOST
+        PROACTIVITY_REDIS_PORT:
+          value: '13151'
+          category: service_discovery
+        PROACTIVITY_REDIS_PASSWORD:
+          secret:
+            name: prod-omi-backend-secrets
+            key: REDIS_DB_PASSWORD
+        POSTHOG_HOST:
+          value: https://us.posthog.com
+          category: telemetry
+        MENTOR_PIPELINE:
+          value: cohort
+          category: rollout
+        AUDIO_TIMELINE_SPANS: {value: 'true', category: rollout}
+        LIVE_SPEAKER_SPAN_RESOLUTION: {value: 'true', category: rollout}
+        LIVE_CAPTURE_WINDOW_RETENTION: {value: 'false', category: rollout}
+        LIVE_CAPTURE_WINDOW_STRICT_PROJECTION: {value: 'false', category: rollout}
+        LIVE_CAPTURE_WINDOW_MERGE_PRESERVATION: {value: 'false', category: rollout}
+        LIVE_CAPTURE_WINDOW_MERGE_UNION: {value: 'true', category: rollout}
+        LIVE_CAPTURE_WINDOW_TRANSLATOR_SENDS: {value: 'true', category: rollout}
+        SPEAKER_MATCH_SCORES_ENABLED:
+          value: 'true'
+          category: rollout
+        OMI_SHAPED_AGENT_MODE:
+          value: 'cohort'
+          category: rollout
+        SONIOX_CAPTURE_AXIS_DIAGNOSTICS: {value: 'true', category: rollout}
+        SONIOX_WIRE_LEDGER: {value: 'true', category: rollout}
+        SONIOX_ORDERED_FINALIZE: {value: 'false', category: rollout}
+        CAPTURE_EVIDENCE_V1_DARK_WRITE: {value: 'true', category: rollout}
+        MENTOR_GATE_DEBOUNCE_ENABLED:
+          value: 'true'
+          category: rollout
         TRANSCRIPTION_SHADOW_ENABLED:
           value: 'true'
           category: rollout
@@ -226,16 +383,25 @@ overlay:
           value: '100'
           category: rollout
         CONVERSATION_RELEVANCE_KEEP_ALL_PERCENT:
-          value: '0'
+          value: '20'
+          category: rollout
+        CONVERSATION_RELEVANCE_JEV_ENABLED:
+          value: 'true'
+          category: rollout
+        CONVERSATION_RELEVANCE_JEV_PERCENT:
+          value: '100'
+          category: rollout
+        MEETING_NOTES_EPISODE_EVIDENCE_ENABLED:
+          value: 'true'
+          category: rollout
+        MEETING_NOTES_EPISODE_EVIDENCE_PERCENT:
+          value: '1'
           category: rollout
         CONVERSATION_RELEVANCE_JEV_SHADOW_DAILY_CAP:
           value: '60000'
           category: rollout
         MEMORY_OWNER_JEV_SHADOW_DAILY_CAP:
           value: '60000'
-          category: rollout
-        CONVERSATION_RELEVANCE_JEV_UID_ALLOWLIST:
-          value: ''
           category: rollout
         CAPTURE_JEV_SHADOW_ENABLED:
           value: 'true'
@@ -301,6 +467,22 @@ overlay:
       name: prod-omi-backend-config
   desktop_backend:
     env:
+      # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+      PROACTIVITY_V2_POSTHOG_TOKEN:
+        value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+        category: rollout
+      PROACTIVITY_V2_POSTHOG_HOST:
+        value: https://us.posthog.com
+        category: rollout
+      OMI_CUSTOMER_DATA_PROJECT:
+        value: based-hardware
+        category: service_discovery
+      POSTHOG_HOST:
+        value: https://us.posthog.com
+        category: telemetry
+      MENTOR_PIPELINE:
+        value: cohort
+        category: rollout
       FREE_TIER_LOCAL_PROCESSING:
         value: 'false'
       FREE_TIER_LOCAL_PROCESSING_COHORT:
@@ -308,8 +490,6 @@ overlay:
       FREE_TIER_EMERGENCY_STOP:
         value: 'false'
       MEMORY_BELIEF_MODEL_ENABLED:
-        value: 'false'
-      BASIC_PLAN_GATE_PROACTIVITY_ENABLED:
         value: 'false'
       BASIC_PLAN_GATE_PROXY_EMBED_ENABLED:
         value: 'false'
@@ -328,8 +508,13 @@ overlay:
           env_var: CLOUD_RUN_VPC_NETWORK
         --subnet:
           env_var: CLOUD_RUN_VPC_SUBNET
+    # Keep Cloud Run secret mounts identical to main. V2 reuses each host's
+    # existing REDIS_DB_* client. V2 cohort reads use only the dedicated public
+    # token above; provider admission leases remain on the GKE gateway.
     services:
       backend:
+        # Attached runtime identity (credential hygiene D4 phase 2): same contract as backend-sync.
+        service_account: backend-runtime@based-hardware.iam.gserviceaccount.com
         secrets:
           DESKTOP_PREVIEW_PUBLISH_KEY:
             secret: DESKTOP_PREVIEW_PUBLISH_KEY
@@ -344,6 +529,44 @@ overlay:
             secret: SCREEN_FRAME_SIGNING_SECRET
             version: latest
         env:
+          CONVERSATION_SMART_MERGE_WALLCLOCK_GAP_MODE: {value: 'shadow', category: rollout}
+          # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+          PROACTIVITY_V2_POSTHOG_TOKEN:
+            value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+            category: rollout
+          PROACTIVITY_V2_POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: rollout
+          POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: telemetry
+          MENTOR_PIPELINE:
+            value: cohort
+            category: rollout
+          AUDIO_TIMELINE_SPANS: {value: 'false', category: rollout}
+          LIVE_SPEAKER_SPAN_RESOLUTION: {value: 'true', category: rollout}
+          LIVE_CAPTURE_WINDOW_RETENTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_STRICT_PROJECTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_PRESERVATION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_UNION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_TRANSLATOR_SENDS: {value: 'false', category: rollout}
+          SPEAKER_MATCH_SCORES_ENABLED:
+            value: 'true'
+            category: rollout
+          OMI_SHAPED_AGENT_MODE:
+            value: 'cohort'
+            category: rollout
+          SONIOX_CAPTURE_AXIS_DIAGNOSTICS: {value: 'false', category: rollout}
+          SONIOX_WIRE_LEDGER: {value: 'false', category: rollout}
+          SONIOX_ORDERED_FINALIZE: {value: 'false', category: rollout}
+          CAPTURE_EVIDENCE_V1_DARK_WRITE: {value: 'true', category: rollout}
+          MENTOR_GATE_DEBOUNCE_ENABLED:
+            value: 'true'
+            category: rollout
+          # Keyless custom tokens (/v1/auth/token) are signed through IAM signBlob as this account;
+          # naming it avoids relying on metadata discovery. Inert while a key credential is mounted.
+          FIREBASE_SIGNER_SERVICE_ACCOUNT:
+            value: backend-runtime@based-hardware.iam.gserviceaccount.com
           PUBLIC_SHARED_CONVERSATION_CHAT_MODE:
             value: 'gateway'
           SCREEN_FRAME_EGRESS_ENABLED:
@@ -455,16 +678,25 @@ overlay:
             value: '100'
             category: rollout
           CONVERSATION_RELEVANCE_KEEP_ALL_PERCENT:
-            value: '0'
+            value: '20'
+            category: rollout
+          CONVERSATION_RELEVANCE_JEV_ENABLED:
+            value: 'true'
+            category: rollout
+          CONVERSATION_RELEVANCE_JEV_PERCENT:
+            value: '100'
+            category: rollout
+          MEETING_NOTES_EPISODE_EVIDENCE_ENABLED:
+            value: 'true'
+            category: rollout
+          MEETING_NOTES_EPISODE_EVIDENCE_PERCENT:
+            value: '1'
             category: rollout
           CONVERSATION_RELEVANCE_JEV_SHADOW_DAILY_CAP:
             value: '60000'
             category: rollout
           MEMORY_OWNER_JEV_SHADOW_DAILY_CAP:
             value: '60000'
-            category: rollout
-          CONVERSATION_RELEVANCE_JEV_UID_ALLOWLIST:
-            value: ''
             category: rollout
           CAPTURE_JEV_SHADOW_ENABLED:
             value: 'true'
@@ -484,7 +716,7 @@ overlay:
       backend-sync:
         # Attached runtime identity (credential hygiene D4). The deploy pins it and removes
         # SERVICE_ACCOUNT_JSON/GOOGLE_APPLICATION_CREDENTIALS; every secret and bucket this
-        # service reads needs its own grant to this account. `backend` waits for its own cut-over.
+        # service reads needs its own grant to this account. Every backend Cloud Run service is pinned.
         service_account: backend-runtime@based-hardware.iam.gserviceaccount.com
         forbidden_env:
         - BASIC_TIER_MINUTES_LIMIT_PER_MONTH
@@ -492,6 +724,36 @@ overlay:
         - BASIC_TIER_INSIGHTS_GAINED_LIMIT_PER_MONTH
         - BASIC_TIER_MEMORIES_CREATED_LIMIT_PER_MONTH
         env:
+          CONVERSATION_SMART_MERGE_WALLCLOCK_GAP_MODE: {value: 'shadow', category: rollout}
+          SYNC_PHASE_METRICS_EXPORT_ENABLED: {value: 'true', category: telemetry}
+          SYNC_PHASE_METRICS_PROJECT: {value: based-hardware, category: telemetry}
+          # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+          PROACTIVITY_V2_POSTHOG_TOKEN:
+            value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+            category: rollout
+          PROACTIVITY_V2_POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: rollout
+          POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: telemetry
+          MENTOR_PIPELINE:
+            value: cohort
+            category: rollout
+          AUDIO_TIMELINE_SPANS: {value: 'false', category: rollout}
+          LIVE_SPEAKER_SPAN_RESOLUTION: {value: 'true', category: rollout}
+          LIVE_CAPTURE_WINDOW_RETENTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_STRICT_PROJECTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_PRESERVATION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_UNION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_TRANSLATOR_SENDS: {value: 'false', category: rollout}
+          SPEAKER_MATCH_SCORES_ENABLED:
+            value: 'true'
+            category: rollout
+          SONIOX_CAPTURE_AXIS_DIAGNOSTICS: {value: 'false', category: rollout}
+          SONIOX_WIRE_LEDGER: {value: 'false', category: rollout}
+          SONIOX_ORDERED_FINALIZE: {value: 'false', category: rollout}
+          CAPTURE_EVIDENCE_V1_DARK_WRITE: {value: 'true', category: rollout}
           LISTEN_FINALIZATION_DURABLE_ATTEMPT_CAP_ENABLED:
             value: 'true'
             category: rollout
@@ -584,16 +846,25 @@ overlay:
             value: '100'
             category: rollout
           CONVERSATION_RELEVANCE_KEEP_ALL_PERCENT:
-            value: '0'
+            value: '20'
+            category: rollout
+          CONVERSATION_RELEVANCE_JEV_ENABLED:
+            value: 'true'
+            category: rollout
+          CONVERSATION_RELEVANCE_JEV_PERCENT:
+            value: '100'
+            category: rollout
+          MEETING_NOTES_EPISODE_EVIDENCE_ENABLED:
+            value: 'true'
+            category: rollout
+          MEETING_NOTES_EPISODE_EVIDENCE_PERCENT:
+            value: '1'
             category: rollout
           CONVERSATION_RELEVANCE_JEV_SHADOW_DAILY_CAP:
             value: '60000'
             category: rollout
           MEMORY_OWNER_JEV_SHADOW_DAILY_CAP:
             value: '60000'
-            category: rollout
-          CONVERSATION_RELEVANCE_JEV_UID_ALLOWLIST:
-            value: ''
             category: rollout
           CAPTURE_JEV_SHADOW_ENABLED:
             value: 'true'
@@ -618,6 +889,36 @@ overlay:
         - BASIC_TIER_INSIGHTS_GAINED_LIMIT_PER_MONTH
         - BASIC_TIER_MEMORIES_CREATED_LIMIT_PER_MONTH
         env:
+          CONVERSATION_SMART_MERGE_WALLCLOCK_GAP_MODE: {value: 'shadow', category: rollout}
+          SYNC_PHASE_METRICS_EXPORT_ENABLED: {value: 'true', category: telemetry}
+          SYNC_PHASE_METRICS_PROJECT: {value: based-hardware, category: telemetry}
+          # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+          PROACTIVITY_V2_POSTHOG_TOKEN:
+            value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+            category: rollout
+          PROACTIVITY_V2_POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: rollout
+          POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: telemetry
+          MENTOR_PIPELINE:
+            value: cohort
+            category: rollout
+          AUDIO_TIMELINE_SPANS: {value: 'false', category: rollout}
+          LIVE_SPEAKER_SPAN_RESOLUTION: {value: 'true', category: rollout}
+          LIVE_CAPTURE_WINDOW_RETENTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_STRICT_PROJECTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_PRESERVATION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_UNION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_TRANSLATOR_SENDS: {value: 'false', category: rollout}
+          SPEAKER_MATCH_SCORES_ENABLED:
+            value: 'true'
+            category: rollout
+          SONIOX_CAPTURE_AXIS_DIAGNOSTICS: {value: 'false', category: rollout}
+          SONIOX_WIRE_LEDGER: {value: 'false', category: rollout}
+          SONIOX_ORDERED_FINALIZE: {value: 'false', category: rollout}
+          CAPTURE_EVIDENCE_V1_DARK_WRITE: {value: 'true', category: rollout}
           PUBLIC_SHARED_CONVERSATION_CHAT_MODE:
             value: 'gateway'
           OMI_CUSTOMER_DATA_PROJECT:
@@ -689,16 +990,25 @@ overlay:
             value: '100'
             category: rollout
           CONVERSATION_RELEVANCE_KEEP_ALL_PERCENT:
-            value: '0'
+            value: '20'
+            category: rollout
+          CONVERSATION_RELEVANCE_JEV_ENABLED:
+            value: 'true'
+            category: rollout
+          CONVERSATION_RELEVANCE_JEV_PERCENT:
+            value: '100'
+            category: rollout
+          MEETING_NOTES_EPISODE_EVIDENCE_ENABLED:
+            value: 'true'
+            category: rollout
+          MEETING_NOTES_EPISODE_EVIDENCE_PERCENT:
+            value: '1'
             category: rollout
           CONVERSATION_RELEVANCE_JEV_SHADOW_DAILY_CAP:
             value: '60000'
             category: rollout
           MEMORY_OWNER_JEV_SHADOW_DAILY_CAP:
             value: '60000'
-            category: rollout
-          CONVERSATION_RELEVANCE_JEV_UID_ALLOWLIST:
-            value: ''
             category: rollout
           CAPTURE_JEV_SHADOW_ENABLED:
             value: 'true'
@@ -723,6 +1033,34 @@ overlay:
         - BASIC_TIER_INSIGHTS_GAINED_LIMIT_PER_MONTH
         - BASIC_TIER_MEMORIES_CREATED_LIMIT_PER_MONTH
         env:
+          CONVERSATION_SMART_MERGE_WALLCLOCK_GAP_MODE: {value: 'shadow', category: rollout}
+          # Public client token, scoped to v2 cohort reads only (PostHog project 302298).
+          PROACTIVITY_V2_POSTHOG_TOKEN:
+            value: phc_z3qUFhGUgYIOMYnfxVSrLmYISQvbgph8iREQv3sez3Y
+            category: rollout
+          PROACTIVITY_V2_POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: rollout
+          POSTHOG_HOST:
+            value: https://us.posthog.com
+            category: telemetry
+          MENTOR_PIPELINE:
+            value: cohort
+            category: rollout
+          AUDIO_TIMELINE_SPANS: {value: 'false', category: rollout}
+          LIVE_SPEAKER_SPAN_RESOLUTION: {value: 'true', category: rollout}
+          LIVE_CAPTURE_WINDOW_RETENTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_STRICT_PROJECTION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_PRESERVATION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_MERGE_UNION: {value: 'false', category: rollout}
+          LIVE_CAPTURE_WINDOW_TRANSLATOR_SENDS: {value: 'false', category: rollout}
+          SPEAKER_MATCH_SCORES_ENABLED:
+            value: 'true'
+            category: rollout
+          SONIOX_CAPTURE_AXIS_DIAGNOSTICS: {value: 'false', category: rollout}
+          SONIOX_WIRE_LEDGER: {value: 'false', category: rollout}
+          SONIOX_ORDERED_FINALIZE: {value: 'false', category: rollout}
+          CAPTURE_EVIDENCE_V1_DARK_WRITE: {value: 'true', category: rollout}
           PUBLIC_SHARED_CONVERSATION_CHAT_MODE:
             value: 'gateway'
           OMI_CUSTOMER_DATA_PROJECT:
@@ -778,6 +1116,29 @@ overlay:
         flags:
           --service-account: backend-jobs-runtime@based-hardware.iam.gserviceaccount.com
         env:
+          OMI_CUSTOMER_DATA_PROJECT:
+            value: based-hardware
+          PINECONE_INDEX_NAME:
+            value: memories-backend
+      x-connector-sync-job:
+        # backend-runtime already mounts the X OAuth and RapidAPI secrets on the
+        # Cloud Run API. backend-jobs-runtime does not, so this job cannot use
+        # the notifications identity without a new secret grant.
+        flags:
+          --service-account: backend-runtime@based-hardware.iam.gserviceaccount.com
+        secrets:
+          REDIS_DB_PASSWORD:
+            secret: REDIS_DB_PASSWORD
+            version: latest
+        env:
+          REDIS_DB_HOST:
+            value: redis-13151.c1.us-central1-2.gce.redns.redis-cloud.com
+          REDIS_DB_PORT:
+            value: '13151'
+          # The canonical intake fence reads MEMORY_ENABLED; without it the job's
+          # memory writes 503 with 'globally paused'.
+          MEMORY_ENABLED:
+            value: 'on'
           OMI_CUSTOMER_DATA_PROJECT:
             value: based-hardware
           PINECONE_INDEX_NAME:
@@ -869,6 +1230,7 @@ overlay:
     workflow_files:
     - .github/workflows/gcp_backend.yml
     - .github/workflows/gcp_notifications_job.yml
+    - .github/workflows/gcp_x_connector_sync_job.yml
     - .github/workflows/gcp_memory_maintenance_job.yml
     - .github/workflows/gcp_frame_request_retention_job.yml
     - .github/workflows/gcp_daily_memory_sweep_job.yml

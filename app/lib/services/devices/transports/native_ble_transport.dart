@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:omi/gen/pigeon_communicator.g.dart';
 import 'package:omi/services/bridges/ble_bridge.dart';
@@ -16,7 +17,7 @@ const _captureAudioSilenceResubscribeLimit = 1;
 /// Uses the intent-based manageDevice/unmanageDevice API.
 /// Native owns the connection lifecycle (retry, reconnect, bonding).
 /// This transport is long-lived
-class NativeBleTransport extends DeviceTransport {
+class NativeBleTransport extends DeviceTransport implements CaptureSubscriptionErrors {
   final String _peripheralUuid;
   final bool requiresBond;
   final BleHostApi _hostApi;
@@ -39,9 +40,30 @@ class NativeBleTransport extends DeviceTransport {
   bool _isManagedByNative = false;
   Timer? _audioLivenessTimer;
   int _audioSilenceResubscribes = 0;
+  int _subscriptionGeneration = 0;
+  bool _nativeIngressOwned = false;
+  final Map<String, Object> subscriptionFailures = {};
+  final _audioSubscriptionErrors = StreamController<Object>.broadcast();
+  @override
+  Stream<Object> get audioSubscriptionErrors => Stream.multi((consumer) {
+        final subscription = _audioSubscriptionErrors.stream.listen(consumer.add, onDone: consumer.close);
+        // Some adapters subscribe during connection setup, before capture binds.
+        // Replay only failures belonging to the current connection generation.
+        for (final entry in subscriptionFailures.entries) {
+          if (isBleAudioCharacteristicUuid(entry.key.split(':').last)) consumer.add(entry.value);
+        }
+        consumer.onCancel = subscription.cancel;
+      }, isBroadcast: true);
+  final Map<String, int> _pendingSubscriptions = {};
+
+  bool _nativeOwnsAudioHealth(String characteristicUuid) =>
+      defaultTargetPlatform == TargetPlatform.iOS &&
+      BleBridge.instance.nativeOwnsIngress(_peripheralUuid) &&
+      characteristicUuid.toLowerCase() == '19b10001-e8f2-537e-4f6c-d104768a1214';
 
   NativeBleTransport(this._peripheralUuid, {this.requiresBond = false, BleHostApi? hostApi})
-    : _hostApi = hostApi ?? BleHostApi() {
+      : _hostApi = hostApi ?? BleHostApi() {
+    BleBridge.instance.addIngressListener(_ingressOwnershipChanged);
     BleBridge.instance.registerPeripheral(
       peripheralUuid: _peripheralUuid,
       onConnectionState: _handleConnectionState,
@@ -60,7 +82,7 @@ class NativeBleTransport extends DeviceTransport {
 
   @override
   Future<void> connect() async {
-    if (_state == DeviceTransportState.connected) return;
+    if (_state == DeviceTransportState.connected && await isConnected()) return;
 
     if (!await BluetoothReadiness.instance.ensureReady(BluetoothUse.connection)) {
       throw BluetoothAdapterUnavailableException(BluetoothReadiness.instance.state);
@@ -69,6 +91,10 @@ class NativeBleTransport extends DeviceTransport {
     _updateState(DeviceTransportState.connecting);
 
     _deviceReadyCompleter = Completer<List<BleService>>();
+    final deviceReady = _deviceReadyCompleter!.future;
+    // A disconnect can arrive while the platform's manageDevice reply is pending.
+    // Observe that error immediately; the await below still delivers it to connect's caller.
+    deviceReady.ignore();
 
     try {
       await _hostApi.manageDevice(_peripheralUuid, requiresBond);
@@ -82,7 +108,7 @@ class NativeBleTransport extends DeviceTransport {
     }
 
     try {
-      _services = await _deviceReadyCompleter!.future.timeout(
+      _services = await deviceReady.timeout(
         const Duration(seconds: 60),
         onTimeout: () => throw TimeoutException('Device ready timeout after 60s'),
       );
@@ -98,8 +124,8 @@ class NativeBleTransport extends DeviceTransport {
 
   @override
   Future<void> disconnect() async {
-    final needsCleanup =
-        _state != DeviceTransportState.disconnected ||
+    _subscriptionGeneration++;
+    final needsCleanup = _state != DeviceTransportState.disconnected ||
         _isManagedByNative ||
         _streamControllers.isNotEmpty ||
         _activeSubscriptionKeys.isNotEmpty;
@@ -186,31 +212,60 @@ class NativeBleTransport extends DeviceTransport {
     return StreamController<List<int>>.broadcast(
       onListen: () {
         _activeSubscriptionKeys.add(key);
-        if (_hasCharacteristic(serviceUuid, characteristicUuid)) {
-          _subscribeCharacteristic(serviceUuid, characteristicUuid);
+        if (_state == DeviceTransportState.connected) {
+          unawaited(_subscribeCharacteristic(serviceUuid, characteristicUuid));
         }
       },
       onCancel: () {
         _activeSubscriptionKeys.remove(key);
-        if (_hasCharacteristic(serviceUuid, characteristicUuid)) {
+        if (_state == DeviceTransportState.connected) {
           _unsubscribeCharacteristic(serviceUuid, characteristicUuid);
         }
       },
     );
   }
 
+  // Bound missing native callbacks without changing the platform's GATT lifetime.
+  static const subscriptionTimeout = Duration(seconds: 20);
+
   Future<void> _subscribeCharacteristic(String serviceUuid, String characteristicUuid, {bool force = false}) async {
     final key = '${serviceUuid.toLowerCase()}:${characteristicUuid.toLowerCase()}';
     if (!force && _subscribedSubscriptionKeys.contains(key)) return;
-    _subscribedSubscriptionKeys.add(key);
+    final generation = _subscriptionGeneration;
+    if (_pendingSubscriptions[key] == generation) return;
+    _pendingSubscriptions[key] = generation;
+    Object? failure;
     try {
-      await _hostApi.subscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid);
       if (isBleAudioCharacteristicUuid(characteristicUuid)) {
+        final gate = beforeAudioResubscribe;
+        if (gate != null) await gate(characteristicUuid);
+        if (generation != _subscriptionGeneration) return;
+      }
+      await _hostApi.subscribeCharacteristic(_peripheralUuid, serviceUuid, characteristicUuid).then((_) {
+        if (generation == _subscriptionGeneration &&
+            failure is TimeoutException &&
+            identical(subscriptionFailures[key], failure)) {
+          subscriptionFailures.remove(key);
+        }
+      }).timeout(subscriptionTimeout);
+      if (generation != _subscriptionGeneration) return;
+      _subscribedSubscriptionKeys.add(key);
+      subscriptionFailures.remove(key);
+      if (isBleAudioCharacteristicUuid(characteristicUuid) && !_nativeOwnsAudioHealth(characteristicUuid)) {
         _armAudioLivenessWatch();
       }
     } catch (e) {
+      if (generation != _subscriptionGeneration) return;
       _subscribedSubscriptionKeys.remove(key);
+      failure = e;
+      subscriptionFailures[key] = e;
+      if (isBleAudioCharacteristicUuid(characteristicUuid)) {
+        _audioSubscriptionErrors.add(e);
+        if (!_nativeOwnsAudioHealth(characteristicUuid)) _armAudioLivenessWatch();
+      }
       Logger.debug('[NativeBleTransport] Failed to subscribe $serviceUuid:$characteristicUuid: $e');
+    } finally {
+      if (_pendingSubscriptions[key] == generation) _pendingSubscriptions.remove(key);
     }
   }
 
@@ -262,13 +317,16 @@ class NativeBleTransport extends DeviceTransport {
 
   @override
   Future<void> dispose() async {
+    _subscriptionGeneration++;
     _audioLivenessTimer?.cancel();
+    BleBridge.instance.removeIngressListener(_ingressOwnershipChanged);
     // Unregister before the first await. `disconnect()` yields, and a caller that
     // replaces this transport with a new one for the same peripheral registers in
     // that gap; unregistering afterwards would tear down the replacement's
     // callbacks and leave the new transport deaf to every native event.
     BleBridge.instance.unregisterPeripheral(_peripheralUuid);
     await disconnect();
+    await _audioSubscriptionErrors.close();
     _activeSubscriptionKeys.clear();
     _subscribedSubscriptionKeys.clear();
     _closeAllStreams();
@@ -308,9 +366,11 @@ class NativeBleTransport extends DeviceTransport {
 
   void _handleConnectionState(bool connected, String? error) {
     if (!connected) {
+      _subscriptionGeneration++;
       // Native subscriptions died with the link. _activeSubscriptionKeys is
       // listener-driven and survives so ready/reconnect can re-subscribe.
       _subscribedSubscriptionKeys.clear();
+      subscriptionFailures.clear();
       _audioLivenessTimer?.cancel();
       _audioSilenceResubscribes = 0;
       _services = [];
@@ -324,6 +384,9 @@ class NativeBleTransport extends DeviceTransport {
   }
 
   void _handleDeviceReady(List<BleService> services) {
+    _subscriptionGeneration++;
+    _subscribedSubscriptionKeys.clear();
+    subscriptionFailures.clear();
     if (_deviceReadyCompleter != null && !_deviceReadyCompleter!.isCompleted) {
       // Initial connection
       _services = services;
@@ -340,11 +403,13 @@ class NativeBleTransport extends DeviceTransport {
   void _subscribeActiveCharacteristics() {
     for (final key in _activeSubscriptionKeys) {
       final parts = key.split(':');
-      if (parts.length == 2 && _hasCharacteristic(parts[0], parts[1])) {
-        _subscribeCharacteristic(parts[0], parts[1]);
+      if (parts.length == 2) {
+        unawaited(_subscribeCharacteristic(parts[0], parts[1]));
       }
     }
   }
+
+  Future<void> Function(String characteristicUuid)? beforeAudioResubscribe;
 
   void _resubscribeAfterReconnect(List<BleService> services) {
     if (_isResubscribing) return;
@@ -354,6 +419,7 @@ class NativeBleTransport extends DeviceTransport {
       _services = services;
 
       // Native re-emits ready for a link that is already up, so keep live controllers.
+      final controlSubscriptions = <Future<void>>[];
       for (final key in _activeSubscriptionKeys) {
         final parts = key.split(':');
         if (parts.length == 2) {
@@ -361,11 +427,20 @@ class NativeBleTransport extends DeviceTransport {
           if (controller == null || controller.isClosed) {
             _streamControllers[key] = _createStreamController(parts[0], parts[1], key);
           }
-          if (_hasCharacteristic(parts[0], parts[1])) {
-            _subscribeCharacteristic(parts[0], parts[1]);
+          if (!isBleAudioCharacteristicUuid(parts[1])) {
+            controlSubscriptions.add(_subscribeCharacteristic(parts[0], parts[1]));
           }
         }
       }
+      unawaited(
+        Future.wait(controlSubscriptions).then((_) {
+          for (final key in _activeSubscriptionKeys) {
+            final parts = key.split(':');
+            if (parts.length != 2 || !isBleAudioCharacteristicUuid(parts[1])) continue;
+            unawaited(_subscribeCharacteristic(parts[0], parts[1]));
+          }
+        }),
+      );
 
       _updateState(DeviceTransportState.connected);
       _audioSilenceResubscribes = 0;
@@ -389,8 +464,22 @@ class NativeBleTransport extends DeviceTransport {
   bool get _hasAudioSubscription {
     return _activeSubscriptionKeys.any((key) {
       final parts = key.split(':');
-      return parts.length == 2 && isBleAudioCharacteristicUuid(parts[1]);
+      return parts.length == 2 &&
+          _streamControllers[key]?.hasListener == true &&
+          isBleAudioCharacteristicUuid(parts[1]) &&
+          !_nativeOwnsAudioHealth(parts[1]);
     });
+  }
+
+  void _ingressOwnershipChanged() {
+    final owned = _nativeOwnsAudioHealth(audioDataStreamCharacteristicUuid);
+    if (owned == _nativeIngressOwned) return;
+    _nativeIngressOwned = owned;
+    if (!_hasAudioSubscription) {
+      _audioLivenessTimer?.cancel();
+    } else if (_audioLivenessTimer?.isActive != true) {
+      _armAudioLivenessWatch();
+    }
   }
 
   void _armAudioLivenessWatch() {
@@ -402,13 +491,21 @@ class NativeBleTransport extends DeviceTransport {
   }
 
   void _onAudioLivenessTimeout() {
-    if (_state != DeviceTransportState.connected) return;
+    if (_state != DeviceTransportState.connected || !_hasAudioSubscription) return;
+    // Waiting for the native confirmation is not a retry. In particular its
+    // confirmation wait must not consume the one retry at the 4-second watch.
+    if (_pendingSubscriptions.entries.any(
+      (entry) => entry.value == _subscriptionGeneration && isBleAudioCharacteristicUuid(entry.key.split(':').last),
+    )) {
+      _armAudioLivenessWatch();
+      return;
+    }
     if (_audioSilenceResubscribes < _captureAudioSilenceResubscribeLimit) {
       _audioSilenceResubscribes++;
       Logger.debug('[NativeBleTransport] no audio after reconnect, retrying CCCD subscribe once');
       for (final key in _activeSubscriptionKeys) {
         final parts = key.split(':');
-        if (parts.length == 2 && isBleAudioCharacteristicUuid(parts[1]) && _hasCharacteristic(parts[0], parts[1])) {
+        if (parts.length == 2 && isBleAudioCharacteristicUuid(parts[1]) && !_nativeOwnsAudioHealth(parts[1])) {
           unawaited(_subscribeCharacteristic(parts[0], parts[1], force: true));
         }
       }

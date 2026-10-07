@@ -4123,6 +4123,32 @@
         "title": "AssistantSettingsResponse",
         "type": "object"
       },
+      "AssistantVoicePreference": {
+        "properties": {
+          "voice_id": {
+            "title": "Voice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voice_id"
+        ],
+        "title": "AssistantVoicePreference",
+        "type": "object"
+      },
+      "AssistantVoicePreferenceUpdate": {
+        "properties": {
+          "voice_id": {
+            "title": "Voice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voice_id"
+        ],
+        "title": "AssistantVoicePreferenceUpdate",
+        "type": "object"
+      },
       "AudioDownloadPendingResponse": {
         "properties": {
           "poll_after_ms": {
@@ -5203,6 +5229,119 @@
             "description": "Meeting notes/description from calendar",
             "title": "Notes"
           },
+          "participant_sources": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeetingParticipantSources"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Participant provenance retained before calendar/screen context merging"
+          },
+          "participants": {
+            "description": "List of meeting participants",
+            "items": {
+              "$ref": "#/components/schemas/MeetingParticipant"
+            },
+            "title": "Participants",
+            "type": "array"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Meeting platform (Zoom, Teams, Google Meet, etc.)",
+            "title": "Platform"
+          },
+          "start_time": {
+            "description": "Meeting start time",
+            "format": "date-time",
+            "title": "Start Time",
+            "type": "string"
+          },
+          "title": {
+            "description": "Meeting title from calendar",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "calendar_event_id",
+          "title",
+          "start_time",
+          "duration_minutes"
+        ],
+        "title": "CalendarMeetingContext",
+        "type": "object"
+      },
+      "CalendarMeetingContext-Output": {
+        "description": "Calendar meeting metadata to provide context for conversation processing",
+        "properties": {
+          "calendar_event_id": {
+            "description": "System calendar event ID",
+            "title": "Calendar Event Id",
+            "type": "string"
+          },
+          "calendar_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "system_calendar",
+            "description": "Calendar source (system_calendar, google, outlook, etc.)",
+            "title": "Calendar Source"
+          },
+          "duration_minutes": {
+            "description": "Meeting duration in minutes",
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "meeting_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL to join the meeting",
+            "title": "Meeting Link"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Meeting notes/description from calendar",
+            "title": "Notes"
+          },
+          "participant_sources": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeetingParticipantSources"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Participant provenance retained before calendar/screen context merging"
+          },
           "participants": {
             "description": "List of meeting participants",
             "items": {
@@ -5335,6 +5474,23 @@
           }
         },
         "title": "CancelSubscriptionRequest",
+        "type": "object"
+      },
+      "CandidateAcceptanceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "summary_item": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SummaryTaskReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "CandidateAcceptanceRequest",
         "type": "object"
       },
       "CandidateAction": {
@@ -11053,6 +11209,16 @@
       },
       "DailySummarySettingsResponse": {
         "properties": {
+          "depth": {
+            "default": "brief",
+            "enum": [
+              "brief",
+              "normal",
+              "deep"
+            ],
+            "title": "Depth",
+            "type": "string"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
@@ -11071,6 +11237,22 @@
       },
       "DailySummarySettingsUpdate": {
         "properties": {
+          "depth": {
+            "anyOf": [
+              {
+                "enum": [
+                  "brief",
+                  "normal",
+                  "deep"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
           "enabled": {
             "anyOf": [
               {
@@ -11095,6 +11277,46 @@
           }
         },
         "title": "DailySummarySettingsUpdate",
+        "type": "object"
+      },
+      "DailySummarySettingsUpdateResponse": {
+        "properties": {
+          "depth": {
+            "anyOf": [
+              {
+                "enum": [
+                  "brief",
+                  "normal",
+                  "deep"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "DailySummarySettingsUpdateResponse",
         "type": "object"
       },
       "DailySummaryTestResponse": {
@@ -12666,6 +12888,35 @@
           "end"
         ],
         "title": "DeveloperTranscriptSegment",
+        "type": "object"
+      },
+      "DeviceToolResultRequest": {
+        "description": "A client's result for one in-flight device tool call.",
+        "properties": {
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "DeviceToolResultRequest",
+        "type": "object"
+      },
+      "DeviceToolResultResponse": {
+        "description": "Acknowledgement that a device tool result was handed over.",
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "DeviceToolResultResponse",
         "type": "object"
       },
       "DiagnosticsReceipt": {
@@ -16391,229 +16642,6 @@
         "title": "JITErrorClass",
         "type": "string"
       },
-      "JITProactivityEventReceipt": {
-        "additionalProperties": false,
-        "properties": {
-          "account_generation": {
-            "minimum": 0.0,
-            "title": "Account Generation",
-            "type": "integer"
-          },
-          "budget_day": {
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "title": "Budget Day",
-            "type": "string"
-          },
-          "budget_timezone": {
-            "default": "UTC",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Budget Timezone",
-            "type": "string"
-          },
-          "candidate_id": {
-            "title": "Candidate Id",
-            "type": "string"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "device_id": {
-            "title": "Device Id",
-            "type": "string"
-          },
-          "event_id": {
-            "title": "Event Id",
-            "type": "string"
-          },
-          "feedback_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Feedback Id"
-          },
-          "operation": {
-            "enum": [
-              "planned_notification",
-              "ambient_notification",
-              "nano_triage",
-              "full_turn"
-            ],
-            "title": "Operation",
-            "type": "string"
-          },
-          "parent_event_id": {
-            "anyOf": [
-              {
-                "pattern": "^[0-9a-f]{64}$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Event Id"
-          },
-          "request_hash": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Request Hash",
-            "type": "string"
-          },
-          "schema_version": {
-            "const": "jit_proactivity_event.v1",
-            "default": "jit_proactivity_event.v1",
-            "title": "Schema Version",
-            "type": "string"
-          },
-          "trigger_memory_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trigger Memory Id"
-          },
-          "trigger_revision": {
-            "anyOf": [
-              {
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trigger Revision"
-          },
-          "uid": {
-            "title": "Uid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "uid",
-          "event_id",
-          "candidate_id",
-          "operation",
-          "account_generation",
-          "budget_day",
-          "device_id",
-          "created_at",
-          "request_hash"
-        ],
-        "title": "JITProactivityEventReceipt",
-        "type": "object"
-      },
-      "JITProactivityReservationEnvelope": {
-        "additionalProperties": false,
-        "properties": {
-          "receipt": {
-            "$ref": "#/components/schemas/JITProactivityEventReceipt"
-          },
-          "reserved": {
-            "title": "Reserved",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "reserved",
-          "receipt"
-        ],
-        "title": "JITProactivityReservationEnvelope",
-        "type": "object"
-      },
-      "JITProactivityReservationRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "account_generation": {
-            "minimum": 0.0,
-            "title": "Account Generation",
-            "type": "integer"
-          },
-          "candidate_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Candidate Id",
-            "type": "string"
-          },
-          "device_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Device Id",
-            "type": "string"
-          },
-          "event_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Event Id",
-            "type": "string"
-          },
-          "operation": {
-            "enum": [
-              "planned_notification",
-              "ambient_notification",
-              "nano_triage",
-              "full_turn"
-            ],
-            "title": "Operation",
-            "type": "string"
-          },
-          "parent_event_id": {
-            "anyOf": [
-              {
-                "pattern": "^[0-9a-f]{64}$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Event Id"
-          },
-          "trigger_memory_id": {
-            "anyOf": [
-              {
-                "maxLength": 256,
-                "minLength": 1,
-                "pattern": "^[^/]+$",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trigger Memory Id"
-          },
-          "trigger_revision": {
-            "anyOf": [
-              {
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trigger Revision"
-          }
-        },
-        "required": [
-          "event_id",
-          "candidate_id",
-          "operation",
-          "account_generation",
-          "device_id"
-        ],
-        "title": "JITProactivityReservationRequest",
-        "type": "object"
-      },
       "JITRolloutDecisionEnvelope": {
         "additionalProperties": false,
         "properties": {
@@ -16681,208 +16709,6 @@
           "prompt"
         ],
         "title": "JITTriggerActionEnvelope",
-        "type": "object"
-      },
-      "JITTriggerFeedbackEnvelope": {
-        "additionalProperties": false,
-        "properties": {
-          "applied": {
-            "title": "Applied",
-            "type": "boolean"
-          },
-          "receipt": {
-            "$ref": "#/components/schemas/JITTriggerFeedbackReceipt"
-          },
-          "trigger_memory_id": {
-            "title": "Trigger Memory Id",
-            "type": "string"
-          },
-          "trigger_revision": {
-            "minimum": 1.0,
-            "title": "Trigger Revision",
-            "type": "integer"
-          },
-          "trigger_status": {
-            "title": "Trigger Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "applied",
-          "trigger_memory_id",
-          "trigger_revision",
-          "trigger_status",
-          "receipt"
-        ],
-        "title": "JITTriggerFeedbackEnvelope",
-        "type": "object"
-      },
-      "JITTriggerFeedbackReceipt": {
-        "additionalProperties": false,
-        "properties": {
-          "account_generation": {
-            "minimum": 0.0,
-            "title": "Account Generation",
-            "type": "integer"
-          },
-          "action": {
-            "enum": [
-              "useful",
-              "false_positive",
-              "snooze",
-              "disable",
-              "missed_or_late"
-            ],
-            "title": "Action",
-            "type": "string"
-          },
-          "applied_trigger_revision": {
-            "anyOf": [
-              {
-                "minimum": 1.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applied Trigger Revision"
-          },
-          "event_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Event Id",
-            "type": "string"
-          },
-          "expected_trigger_revision": {
-            "minimum": 1.0,
-            "title": "Expected Trigger Revision",
-            "type": "integer"
-          },
-          "feedback_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Feedback Id",
-            "type": "string"
-          },
-          "recorded_at": {
-            "format": "date-time",
-            "title": "Recorded At",
-            "type": "string"
-          },
-          "request_hash": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Request Hash",
-            "type": "string"
-          },
-          "schema_version": {
-            "const": "jit_trigger_feedback.v1",
-            "default": "jit_trigger_feedback.v1",
-            "title": "Schema Version",
-            "type": "string"
-          },
-          "snoozed_until": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Snoozed Until"
-          },
-          "trigger_memory_id": {
-            "title": "Trigger Memory Id",
-            "type": "string"
-          },
-          "uid": {
-            "title": "Uid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "uid",
-          "feedback_id",
-          "event_id",
-          "trigger_memory_id",
-          "account_generation",
-          "expected_trigger_revision",
-          "action",
-          "recorded_at",
-          "request_hash"
-        ],
-        "title": "JITTriggerFeedbackReceipt",
-        "type": "object"
-      },
-      "JITTriggerFeedbackRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "account_generation": {
-            "minimum": 0.0,
-            "title": "Account Generation",
-            "type": "integer"
-          },
-          "action": {
-            "enum": [
-              "useful",
-              "false_positive",
-              "snooze",
-              "disable",
-              "missed_or_late"
-            ],
-            "title": "Action",
-            "type": "string"
-          },
-          "event_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Event Id",
-            "type": "string"
-          },
-          "feedback_id": {
-            "pattern": "^[0-9a-f]{64}$",
-            "title": "Feedback Id",
-            "type": "string"
-          },
-          "recorded_at": {
-            "format": "date-time",
-            "title": "Recorded At",
-            "type": "string"
-          },
-          "snoozed_until": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Snoozed Until"
-          },
-          "trigger_memory_id": {
-            "maxLength": 256,
-            "minLength": 1,
-            "pattern": "^[^/]+$",
-            "title": "Trigger Memory Id",
-            "type": "string"
-          },
-          "trigger_revision": {
-            "minimum": 1.0,
-            "title": "Trigger Revision",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "feedback_id",
-          "event_id",
-          "trigger_memory_id",
-          "account_generation",
-          "trigger_revision",
-          "action",
-          "recorded_at"
-        ],
-        "title": "JITTriggerFeedbackRequest",
         "type": "object"
       },
       "JITTriggerSnapshotEnvelope": {
@@ -18263,6 +18089,20 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "scopes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scopes"
           }
         },
         "required": [
@@ -18385,6 +18225,61 @@
           }
         },
         "title": "McpOauthGrantsResponse",
+        "type": "object"
+      },
+      "McpPersonMutationResponse": {
+        "properties": {
+          "dismissed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dismissed"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "person_id": {
+            "title": "Person Id",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "person_id"
+        ],
+        "title": "McpPersonMutationResponse",
+        "type": "object"
+      },
+      "McpPersonRenameRequest": {
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "McpPersonRenameRequest",
         "type": "object"
       },
       "McpRefreshToolsResponse": {
@@ -18788,6 +18683,41 @@
           }
         },
         "title": "MeetingParticipant",
+        "type": "object"
+      },
+      "MeetingParticipantSources": {
+        "description": "Source sets, not attendance: None means that source was not supplied.",
+        "properties": {
+          "expected_calendar": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MeetingParticipant"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Calendar"
+          },
+          "observed_screen_listing": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MeetingParticipant"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Screen Listing"
+          }
+        },
+        "title": "MeetingParticipantSources",
         "type": "object"
       },
       "Memory": {
@@ -20956,6 +20886,123 @@
         "title": "NormalizedRect",
         "type": "object"
       },
+      "NoteClaim": {
+        "properties": {
+          "evidence_ids": {
+            "description": "Smallest sufficient episode evidence IDs",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "evidence_sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/NoteEvidenceRef"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Server-authored source metadata; model may omit",
+            "title": "Evidence Sources"
+          },
+          "provenance": {
+            "enum": [
+              "said",
+              "shown",
+              "written",
+              "inferred"
+            ],
+            "title": "Provenance",
+            "type": "string"
+          },
+          "target": {
+            "description": "JSON pointer to a visible field, e.g. /sections/0/body_markdown",
+            "title": "Target",
+            "type": "string"
+          },
+          "text": {
+            "description": "Exact factual clause within that field",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target",
+          "text",
+          "evidence_ids",
+          "provenance"
+        ],
+        "title": "NoteClaim",
+        "type": "object"
+      },
+      "NoteEvidenceRef": {
+        "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "diarization_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diarization Key"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          }
+        },
+        "required": [
+          "id",
+          "source_kind"
+        ],
+        "title": "NoteEvidenceRef",
+        "type": "object"
+      },
       "NotificationSettingsResponse": {
         "properties": {
           "enabled": {
@@ -22024,9 +22071,43 @@
             ],
             "title": "Updated At"
           },
+          "voice_learning_state": {
+            "default": "unknown",
+            "enum": [
+              "learned",
+              "pending",
+              "needs_more_speech",
+              "disabled",
+              "unknown"
+            ],
+            "title": "Voice Learning State",
+            "type": "string"
+          },
+          "voice_needed_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Needed Seconds"
+          },
           "voice_readiness": {
             "$ref": "#/components/schemas/VoiceReadiness",
             "default": "unknown"
+          },
+          "voice_speech_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Speech Seconds"
           }
         },
         "required": [
@@ -22540,6 +22621,217 @@
           "scopes"
         ],
         "title": "ProactiveNotification",
+        "type": "object"
+      },
+      "ProactivityFeedItem": {
+        "additionalProperties": false,
+        "properties": {
+          "acted": {
+            "title": "Acted",
+            "type": "boolean"
+          },
+          "body": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "dismissed": {
+            "title": "Dismissed",
+            "type": "boolean"
+          },
+          "feedback": {
+            "enum": [
+              "none",
+              "thumbs_up",
+              "thumbs_down"
+            ],
+            "title": "Feedback",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "producer": {
+            "title": "Producer",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ProactivityTarget"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "producer",
+          "created_at",
+          "title",
+          "body",
+          "target",
+          "acted",
+          "dismissed",
+          "feedback"
+        ],
+        "title": "ProactivityFeedItem",
+        "type": "object"
+      },
+      "ProactivityFeedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProactivityFeedItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "title": "Next Cursor",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "server_time": {
+            "title": "Server Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "items",
+          "next_cursor",
+          "has_more",
+          "server_time"
+        ],
+        "title": "ProactivityFeedResponse",
+        "type": "object"
+      },
+      "ProactivityOutcomeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "shown",
+              "opened",
+              "accepted",
+              "thumbs_up",
+              "replied",
+              "thumbs_down",
+              "producer_disabled",
+              "dismissed",
+              "timeout"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "channel": {
+            "enum": [
+              "feed",
+              "push"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "surface": {
+            "enum": [
+              "ios",
+              "android",
+              "macos",
+              "windows"
+            ],
+            "title": "Surface",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "action",
+          "surface",
+          "channel"
+        ],
+        "title": "ProactivityOutcomeRequest",
+        "type": "object"
+      },
+      "ProactivityOutcomeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "acted_24h": {
+            "title": "Acted 24H",
+            "type": "boolean"
+          },
+          "item_id": {
+            "title": "Item Id",
+            "type": "string"
+          },
+          "negative": {
+            "title": "Negative",
+            "type": "boolean"
+          },
+          "recorded": {
+            "title": "Recorded",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item_id",
+          "recorded",
+          "acted_24h",
+          "negative"
+        ],
+        "title": "ProactivityOutcomeResponse",
+        "type": "object"
+      },
+      "ProactivityTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^/]+$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "conversation",
+              "action_item"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "title": "ProactivityTarget",
         "type": "object"
       },
       "ProcessConversationRequest": {
@@ -23661,6 +23953,49 @@
         "title": "ReferralLinkResponse",
         "type": "object"
       },
+      "RejectSpeakerRequest": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "not_me",
+              "not_person",
+              "not_a_person"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Id"
+          },
+          "segment_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Ids"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "RejectSpeakerRequest",
+        "type": "object"
+      },
       "ReorderFoldersRequest": {
         "description": "Request model for reordering folders.",
         "properties": {
@@ -24636,6 +24971,88 @@
         "title": "ScreenFrameSubjectIn",
         "type": "object"
       },
+      "ScreenTaskAdmissionResponse": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "lease_seconds": {
+            "default": 55,
+            "title": "Lease Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "ScreenTaskAdmissionResponse",
+        "type": "object"
+      },
+      "ScreenTaskGateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "app_name": {
+            "default": "",
+            "maxLength": 128,
+            "title": "App Name",
+            "type": "string"
+          },
+          "ocr_text": {
+            "maxLength": 12000,
+            "title": "Ocr Text",
+            "type": "string"
+          },
+          "related_tasks": {
+            "items": {
+              "maxLength": 576,
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Related Tasks",
+            "type": "array"
+          },
+          "user_context": {
+            "default": "",
+            "maxLength": 1024,
+            "title": "User Context",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ocr_text"
+        ],
+        "title": "ScreenTaskGateRequest",
+        "type": "object"
+      },
+      "ScreenTaskGateResponse": {
+        "properties": {
+          "audit_sample": {
+            "title": "Audit Sample",
+            "type": "boolean"
+          },
+          "gate_outcome": {
+            "enum": [
+              "passed",
+              "rejected",
+              "fail_open"
+            ],
+            "title": "Gate Outcome",
+            "type": "string"
+          },
+          "should_extract": {
+            "title": "Should Extract",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "should_extract",
+          "gate_outcome",
+          "audit_sample"
+        ],
+        "title": "ScreenTaskGateResponse",
+        "type": "object"
+      },
       "SearchConversationsResponse": {
         "properties": {
           "current_page": {
@@ -25022,6 +25439,20 @@
               }
             ]
           },
+          "device_tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Tools"
+          },
           "file_ids": {
             "anyOf": [
               {
@@ -25341,9 +25772,43 @@
             "title": "Completed",
             "type": "boolean"
           },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
           "description": {
             "title": "Description",
             "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
           }
         },
         "required": [
@@ -25792,6 +26257,34 @@
         "title": "SharedPluginResult",
         "type": "object"
       },
+      "SharedSection": {
+        "description": "Public note content, without internal transcript evidence IDs.",
+        "properties": {
+          "body_markdown": {
+            "title": "Body Markdown",
+            "type": "string"
+          },
+          "heading": {
+            "title": "Heading",
+            "type": "string"
+          },
+          "kind": {
+            "default": "main",
+            "enum": [
+              "main",
+              "side_notes"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "heading",
+          "body_markdown"
+        ],
+        "title": "SharedSection",
+        "type": "object"
+      },
       "SharedStructured": {
         "description": "Public share projection of conversation structure.",
         "properties": {
@@ -25851,6 +26344,13 @@
               "$ref": "#/components/schemas/SharedParticipant"
             },
             "title": "Participants",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SharedSection"
+            },
+            "title": "Sections",
             "type": "array"
           },
           "title": {
@@ -27120,6 +27620,21 @@
             "description": "The kind of meeting, when the capture is a meeting",
             "title": "Meeting Type"
           },
+          "note_claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/NoteClaim"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Episode claim provenance; absent on legacy notes",
+            "title": "Note Claims"
+          },
           "overview": {
             "default": "",
             "description": "A brief overview of the conversation, highlighting the key details from it",
@@ -27351,6 +27866,37 @@
         ],
         "title": "SubscriptionStatus",
         "type": "string"
+      },
+      "SummaryTaskReference": {
+        "additionalProperties": false,
+        "description": "The summary row the reader explicitly chose, not a client-authored task.",
+        "properties": {
+          "action_item_index": {
+            "minimum": 0.0,
+            "title": "Action Item Index",
+            "type": "integer"
+          },
+          "conversation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "expected_description": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Expected Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "action_item_index",
+          "expected_description"
+        ],
+        "title": "SummaryTaskReference",
+        "type": "object"
       },
       "SyncBatchItem": {
         "properties": {
@@ -29462,6 +30008,22 @@
             ],
             "title": "Speaker Id"
           },
+          "speaker_label_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "manual",
+                  "auto",
+                  "carried"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Label Source"
+          },
           "speech_profile_processed": {
             "default": true,
             "title": "Speech Profile Processed",
@@ -29906,6 +30468,45 @@
           "text"
         ],
         "title": "TtsSynthesizeRequest",
+        "type": "object"
+      },
+      "TtsVoice": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TtsVoice",
+        "type": "object"
+      },
+      "TtsVoiceCatalog": {
+        "properties": {
+          "default_voice_id": {
+            "title": "Default Voice Id",
+            "type": "string"
+          },
+          "voices": {
+            "items": {
+              "$ref": "#/components/schemas/TtsVoice"
+            },
+            "title": "Voices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "voices",
+          "default_voice_id"
+        ],
+        "title": "TtsVoiceCatalog",
         "type": "object"
       },
       "TtsVoiceSettings": {
@@ -30913,6 +31514,17 @@
             "title": "Conversations",
             "type": "array"
           },
+          "export_complete": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Complete"
+          },
           "frame_requests": {
             "items": {
               "additionalProperties": true,
@@ -31572,6 +32184,80 @@
           "status"
         ],
         "title": "VerifyPhoneNumberResponse",
+        "type": "object"
+      },
+      "VoiceMatch": {
+        "properties": {
+          "clip_end": {
+            "title": "Clip End",
+            "type": "number"
+          },
+          "clip_start": {
+            "title": "Clip Start",
+            "type": "number"
+          },
+          "conversation_id": {
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "match_level": {
+            "enum": [
+              "strong",
+              "likely"
+            ],
+            "title": "Match Level",
+            "type": "string"
+          },
+          "segment_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Segment Ids",
+            "type": "array"
+          },
+          "speaker_id": {
+            "title": "Speaker Id",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "talk_seconds": {
+            "title": "Talk Seconds",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "title",
+          "started_at",
+          "speaker_id",
+          "talk_seconds",
+          "segment_ids",
+          "clip_start",
+          "clip_end",
+          "match_level"
+        ],
+        "title": "VoiceMatch",
+        "type": "object"
+      },
+      "VoiceMatchesResponse": {
+        "properties": {
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceMatch"
+            },
+            "title": "Matches",
+            "type": "array"
+          }
+        },
+        "title": "VoiceMatchesResponse",
         "type": "object"
       },
       "VoiceMessageTranscriptionResponse": {
@@ -32378,6 +33064,41 @@
           "status"
         ],
         "title": "WrappedStatusResponse",
+        "type": "object"
+      },
+      "routers__desktop_tts_updates__TtsSynthesizeRequest": {
+        "properties": {
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "voice_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Id"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TtsSynthesizeRequest",
         "type": "object"
       },
       "routers__focus_sessions__ScreenActivityRow": {
@@ -39273,7 +39994,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/CalendarMeetingContext"
+                    "$ref": "#/components/schemas/CalendarMeetingContext-Output"
                   },
                   "title": "Response List Calendar Meetings V1 Calendar Meetings Get",
                   "type": "array"
@@ -39449,7 +40170,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CalendarMeetingContext"
+                  "$ref": "#/components/schemas/CalendarMeetingContext-Output"
                 }
               }
             },
@@ -40033,6 +40754,115 @@
         ]
       }
     },
+    "/v1/candidates/from-conversation": {
+      "post": {
+        "description": "Prepare only; the reader must separately accept to materialize a task.",
+        "operationId": "prepare_conversation_task_candidate_v1_candidates_from_conversation_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Account-Generation",
+            "required": true,
+            "schema": {
+              "minimum": 0,
+              "title": "X-Account-Generation",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummaryTaskReference"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Prepare Conversation Task Candidate",
+        "tags": [
+          "candidates"
+        ]
+      }
+    },
     "/v1/candidates/integrations/drain": {
       "post": {
         "operationId": "drain_candidate_integrations_v1_candidates_integrations_drain_post",
@@ -40372,6 +41202,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CandidateAcceptanceRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Request"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -41874,9 +42721,15 @@
             "name": "include_discarded",
             "required": false,
             "schema": {
-              "default": true,
-              "title": "Include Discarded",
-              "type": "boolean"
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Include Discarded"
             }
           },
           {
@@ -44948,6 +45801,111 @@
         "summary": "Get Shared Conversation Screenshots",
         "tags": [
           "screen_frames"
+        ]
+      }
+    },
+    "/v1/conversations/{conversation_id}/speakers/{speaker_id}/reject": {
+      "post": {
+        "operationId": "reject_speaker_label_v1_conversations__conversation_id__speakers__speaker_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "speaker_id",
+            "required": true,
+            "schema": {
+              "title": "Speaker Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectSpeakerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conversation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Reject Speaker Label",
+        "tags": [
+          "conversations"
         ]
       }
     },
@@ -52421,7 +53379,7 @@
     },
     "/v1/jit/proactivity/reservations": {
       "post": {
-        "description": "Reserve one content-free cross-device budget immediately before work.",
+        "deprecated": true,
         "operationId": "reserve_jit_proactivity_v1_jit_proactivity_reservations_post",
         "parameters": [
           {
@@ -52465,7 +53423,86 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JITProactivityReservationRequest"
+                "additionalProperties": false,
+                "properties": {
+                  "account_generation": {
+                    "minimum": 0.0,
+                    "title": "Account Generation",
+                    "type": "integer"
+                  },
+                  "candidate_id": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "title": "Candidate Id",
+                    "type": "string"
+                  },
+                  "device_id": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "title": "Device Id",
+                    "type": "string"
+                  },
+                  "event_id": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "title": "Event Id",
+                    "type": "string"
+                  },
+                  "operation": {
+                    "enum": [
+                      "planned_notification",
+                      "ambient_notification",
+                      "nano_triage",
+                      "full_turn"
+                    ],
+                    "title": "Operation",
+                    "type": "string"
+                  },
+                  "parent_event_id": {
+                    "anyOf": [
+                      {
+                        "pattern": "^[0-9a-f]{64}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Parent Event Id"
+                  },
+                  "trigger_memory_id": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "pattern": "^[^/]+$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Trigger Memory Id"
+                  },
+                  "trigger_revision": {
+                    "anyOf": [
+                      {
+                        "minimum": 1.0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Trigger Revision"
+                  }
+                },
+                "required": [
+                  "event_id",
+                  "candidate_id",
+                  "operation",
+                  "account_generation",
+                  "device_id"
+                ],
+                "title": "JITProactivityReservationRequest",
+                "type": "object"
               }
             }
           },
@@ -52476,20 +53513,203 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JITProactivityReservationEnvelope"
+                  "additionalProperties": false,
+                  "properties": {
+                    "receipt": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "account_generation": {
+                          "minimum": 0.0,
+                          "title": "Account Generation",
+                          "type": "integer"
+                        },
+                        "budget_day": {
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                          "title": "Budget Day",
+                          "type": "string"
+                        },
+                        "budget_timezone": {
+                          "default": "UTC",
+                          "maxLength": 64,
+                          "minLength": 1,
+                          "title": "Budget Timezone",
+                          "type": "string"
+                        },
+                        "candidate_id": {
+                          "title": "Candidate Id",
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "format": "date-time",
+                          "title": "Created At",
+                          "type": "string"
+                        },
+                        "device_id": {
+                          "title": "Device Id",
+                          "type": "string"
+                        },
+                        "event_id": {
+                          "title": "Event Id",
+                          "type": "string"
+                        },
+                        "feedback_id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Feedback Id"
+                        },
+                        "operation": {
+                          "enum": [
+                            "planned_notification",
+                            "ambient_notification",
+                            "nano_triage",
+                            "full_turn"
+                          ],
+                          "title": "Operation",
+                          "type": "string"
+                        },
+                        "parent_event_id": {
+                          "anyOf": [
+                            {
+                              "pattern": "^[0-9a-f]{64}$",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Parent Event Id"
+                        },
+                        "request_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "title": "Request Hash",
+                          "type": "string"
+                        },
+                        "schema_version": {
+                          "const": "jit_proactivity_event.v1",
+                          "default": "jit_proactivity_event.v1",
+                          "title": "Schema Version",
+                          "type": "string"
+                        },
+                        "trigger_memory_id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Trigger Memory Id"
+                        },
+                        "trigger_revision": {
+                          "anyOf": [
+                            {
+                              "minimum": 1.0,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Trigger Revision"
+                        },
+                        "uid": {
+                          "title": "Uid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "uid",
+                        "event_id",
+                        "candidate_id",
+                        "operation",
+                        "account_generation",
+                        "budget_day",
+                        "device_id",
+                        "created_at",
+                        "request_hash"
+                      ],
+                      "title": "JITProactivityEventReceipt",
+                      "type": "object"
+                    },
+                    "reserved": {
+                      "title": "Reserved",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "reserved",
+                    "receipt"
+                  ],
+                  "title": "JITProactivityReservationEnvelope",
+                  "type": "object"
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Historical success schema only. This retired endpoint always returns 410."
           },
           "401": {
             "$ref": "#/components/responses/Error401"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
           },
           "422": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "properties": {
+                    "detail": {
+                      "items": {
+                        "properties": {
+                          "loc": {
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            "title": "Location",
+                            "type": "array"
+                          },
+                          "msg": {
+                            "title": "Message",
+                            "type": "string"
+                          },
+                          "type": {
+                            "title": "Error Type",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "loc",
+                          "msg",
+                          "type"
+                        ],
+                        "title": "ValidationError",
+                        "type": "object"
+                      },
+                      "title": "Detail",
+                      "type": "array"
+                    }
+                  },
+                  "title": "HTTPValidationError",
+                  "type": "object"
                 }
               }
             },
@@ -52580,7 +53800,7 @@
     },
     "/v1/jit/trigger-feedback": {
       "post": {
-        "description": "Persist one explicit, content-free user feedback event.\n\nThis privacy/user-authority path intentionally remains available while the\nproactive rollout is disabled or killed. It performs no matching, model\nwork, notification, or automatic trigger rewrite.",
+        "deprecated": true,
         "operationId": "post_jit_trigger_feedback_v1_jit_trigger_feedback_post",
         "parameters": [
           {
@@ -52624,7 +53844,75 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JITTriggerFeedbackRequest"
+                "additionalProperties": false,
+                "properties": {
+                  "account_generation": {
+                    "minimum": 0.0,
+                    "title": "Account Generation",
+                    "type": "integer"
+                  },
+                  "action": {
+                    "enum": [
+                      "useful",
+                      "false_positive",
+                      "snooze",
+                      "disable",
+                      "missed_or_late"
+                    ],
+                    "title": "Action",
+                    "type": "string"
+                  },
+                  "event_id": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "title": "Event Id",
+                    "type": "string"
+                  },
+                  "feedback_id": {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "title": "Feedback Id",
+                    "type": "string"
+                  },
+                  "recorded_at": {
+                    "format": "date-time",
+                    "title": "Recorded At",
+                    "type": "string"
+                  },
+                  "snoozed_until": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Snoozed Until"
+                  },
+                  "trigger_memory_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "pattern": "^[^/]+$",
+                    "title": "Trigger Memory Id",
+                    "type": "string"
+                  },
+                  "trigger_revision": {
+                    "minimum": 1.0,
+                    "title": "Trigger Revision",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "feedback_id",
+                  "event_id",
+                  "trigger_memory_id",
+                  "account_generation",
+                  "trigger_revision",
+                  "action",
+                  "recorded_at"
+                ],
+                "title": "JITTriggerFeedbackRequest",
+                "type": "object"
               }
             }
           },
@@ -52635,20 +53923,193 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JITTriggerFeedbackEnvelope"
+                  "additionalProperties": false,
+                  "properties": {
+                    "applied": {
+                      "title": "Applied",
+                      "type": "boolean"
+                    },
+                    "receipt": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "account_generation": {
+                          "minimum": 0.0,
+                          "title": "Account Generation",
+                          "type": "integer"
+                        },
+                        "action": {
+                          "enum": [
+                            "useful",
+                            "false_positive",
+                            "snooze",
+                            "disable",
+                            "missed_or_late"
+                          ],
+                          "title": "Action",
+                          "type": "string"
+                        },
+                        "applied_trigger_revision": {
+                          "anyOf": [
+                            {
+                              "minimum": 1.0,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Applied Trigger Revision"
+                        },
+                        "event_id": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "title": "Event Id",
+                          "type": "string"
+                        },
+                        "expected_trigger_revision": {
+                          "minimum": 1.0,
+                          "title": "Expected Trigger Revision",
+                          "type": "integer"
+                        },
+                        "feedback_id": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "title": "Feedback Id",
+                          "type": "string"
+                        },
+                        "recorded_at": {
+                          "format": "date-time",
+                          "title": "Recorded At",
+                          "type": "string"
+                        },
+                        "request_hash": {
+                          "pattern": "^[0-9a-f]{64}$",
+                          "title": "Request Hash",
+                          "type": "string"
+                        },
+                        "schema_version": {
+                          "const": "jit_trigger_feedback.v1",
+                          "default": "jit_trigger_feedback.v1",
+                          "title": "Schema Version",
+                          "type": "string"
+                        },
+                        "snoozed_until": {
+                          "anyOf": [
+                            {
+                              "format": "date-time",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "title": "Snoozed Until"
+                        },
+                        "trigger_memory_id": {
+                          "title": "Trigger Memory Id",
+                          "type": "string"
+                        },
+                        "uid": {
+                          "title": "Uid",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "uid",
+                        "feedback_id",
+                        "event_id",
+                        "trigger_memory_id",
+                        "account_generation",
+                        "expected_trigger_revision",
+                        "action",
+                        "recorded_at",
+                        "request_hash"
+                      ],
+                      "title": "JITTriggerFeedbackReceipt",
+                      "type": "object"
+                    },
+                    "trigger_memory_id": {
+                      "title": "Trigger Memory Id",
+                      "type": "string"
+                    },
+                    "trigger_revision": {
+                      "minimum": 1.0,
+                      "title": "Trigger Revision",
+                      "type": "integer"
+                    },
+                    "trigger_status": {
+                      "title": "Trigger Status",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "applied",
+                    "trigger_memory_id",
+                    "trigger_revision",
+                    "trigger_status",
+                    "receipt"
+                  ],
+                  "title": "JITTriggerFeedbackEnvelope",
+                  "type": "object"
                 }
               }
             },
-            "description": "Successful Response"
+            "description": "Historical success schema only. This retired endpoint always returns 410."
           },
           "401": {
             "$ref": "#/components/responses/Error401"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
           },
           "422": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "properties": {
+                    "detail": {
+                      "items": {
+                        "properties": {
+                          "loc": {
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            "title": "Location",
+                            "type": "array"
+                          },
+                          "msg": {
+                            "title": "Message",
+                            "type": "string"
+                          },
+                          "type": {
+                            "title": "Error Type",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "loc",
+                          "msg",
+                          "type"
+                        ],
+                        "title": "ValidationError",
+                        "type": "object"
+                      },
+                      "title": "Detail",
+                      "type": "array"
+                    }
+                  },
+                  "title": "HTTPValidationError",
+                  "type": "object"
                 }
               }
             },
@@ -52665,7 +54126,7 @@
     },
     "/v1/jit/trigger-snapshot": {
       "get": {
-        "description": "Return an exhaustive action-bearing watchlist only for admitted owners.",
+        "description": "Retired proactivity surface; preserve the disabled client envelope.",
         "operationId": "get_jit_trigger_snapshot_v1_jit_trigger_snapshot_get",
         "parameters": [
           {
@@ -55041,6 +56502,122 @@
         ]
       }
     },
+    "/v1/mcp/people/{person_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_person_v1_mcp_people__person_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpPersonMutationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "description": "Person not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Dismiss Person",
+        "tags": [
+          "mcp"
+        ]
+      }
+    },
+    "/v1/mcp/people/{person_id}/name": {
+      "patch": {
+        "operationId": "rename_person_v1_mcp_people__person_id__name_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpPersonRenameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpPersonMutationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Rename Person",
+        "tags": [
+          "mcp"
+        ]
+      }
+    },
     "/v1/mcp/profile": {
       "get": {
         "description": "Omi's cached high-level user profile, if one has been generated.",
@@ -57119,6 +58696,196 @@
         ]
       }
     },
+    "/v1/proactivity/feed": {
+      "get": {
+        "operationId": "get_proactivity_feed",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 1024,
+              "title": "Cursor",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProactivityFeedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Get Proactivity Feed"
+      }
+    },
+    "/v1/proactivity/items/{item_id}/outcomes": {
+      "post": {
+        "operationId": "record_proactivity_outcome",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProactivityOutcomeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProactivityOutcomeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Record Proactivity Outcome"
+      }
+    },
     "/v1/screen-activity": {
       "get": {
         "description": "List the user's captured screen-activity rows, optionally filtered to a single day and/or app.\n\nThe rows are captured by the desktop app and only ever read back internally (MCP); this\nexposes them to the user's own first-party client. A bad date is rejected with 422.",
@@ -57674,6 +59441,164 @@
         "tags": [
           "screen_frames"
         ]
+      }
+    },
+    "/v1/screen-task/admission": {
+      "get": {
+        "operationId": "screen_task_admission_v1_screen_task_admission_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenTaskAdmissionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Screen Task Admission"
+      }
+    },
+    "/v1/screen-task/gate": {
+      "post": {
+        "operationId": "screen_task_gate_v1_screen_task_gate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenTaskGateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenTaskGateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Screen Task Gate"
       }
     },
     "/v1/search/overview": {
@@ -60819,6 +62744,168 @@
         ]
       }
     },
+    "/v1/tts/synthesize": {
+      "post": {
+        "operationId": "tts_synthesize_v1_tts_synthesize_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/routers__desktop_tts_updates__TtsSynthesizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "MP3 audio stream."
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Tts Synthesize"
+      }
+    },
+    "/v1/tts/voices": {
+      "get": {
+        "operationId": "list_tts_voices_v1_tts_voices_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TtsVoiceCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "List Tts Voices",
+        "tags": [
+          "tts"
+        ]
+      }
+    },
     "/v1/users/ai-profile": {
       "get": {
         "operationId": "get_ai_profile_v1_users_ai_profile_get",
@@ -62270,7 +64357,7 @@
     },
     "/v1/users/daily-summary-settings": {
       "get": {
-        "description": "Get user's daily summary notification settings.\n\nReturns:\n    - enabled: Whether daily summary notifications are enabled (default: True)\n    - hour: Preferred hour in user's local timezone (0-23, default: 22 for 10 PM)",
+        "description": "Get user's daily summary notification settings.\n\nReturns:\n    - enabled: Whether daily summary notifications are enabled (default: True)\n    - hour: Preferred hour in user's local timezone (0-23, default: 22 for 10 PM)\n    - depth: Recap detail level (brief by default)",
         "operationId": "get_daily_summary_settings_v1_users_daily_summary_settings_get",
         "parameters": [
           {
@@ -62346,7 +64433,7 @@
         ]
       },
       "patch": {
-        "description": "Update user's daily summary notification settings.\n\nParameters:\n    - enabled: Enable/disable daily summary notifications\n    - hour: Preferred hour in local timezone (0-23).\n            Examples: 22 (10 PM), 8 (8 AM), 18 (6 PM)\n\nNote: Hour is stored as local time. The system determines when to send\nbased on the user's timezone and will send the summary at the correct local time",
+        "description": "Update user's daily summary notification settings.\n\nParameters:\n    - enabled: Enable/disable daily summary notifications\n    - hour: Preferred hour in local timezone (0-23).\n            Examples: 22 (10 PM), 8 (8 AM), 18 (6 PM)\n    - depth: brief, normal, or deep for newly generated recaps\n\nNote: Hour is stored as local time. The system determines when to send\nbased on the user's timezone and will send the summary at the correct local time",
         "operationId": "update_daily_summary_settings_v1_users_daily_summary_settings_patch",
         "parameters": [
           {
@@ -62401,7 +64488,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserStatusResponse"
+                  "$ref": "#/components/schemas/DailySummarySettingsUpdateResponse"
                 }
               }
             },
@@ -63211,9 +65298,21 @@
     },
     "/v1/users/export": {
       "get": {
-        "description": "Export all user data for GDPR/CCPA compliance from a disk-backed spool.",
+        "description": "Export all user data for GDPR/CCPA compliance.",
         "operationId": "export_all_user_data_v1_users_export_get",
         "parameters": [
+          {
+            "description": "Stream the export lazily instead of spooling it server-side before headers. When true, clients MUST verify the body ends with the \"export_complete\": true completion suffix; a truncated body is a failed export even after HTTP 200.",
+            "in": "query",
+            "name": "stream",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Stream the export lazily instead of spooling it server-side before headers. When true, clients MUST verify the body ends with the \"export_complete\": true completion suffix; a truncated body is a failed export even after HTTP 200.",
+              "title": "Stream",
+              "type": "boolean"
+            }
+          },
           {
             "in": "header",
             "name": "authorization",
@@ -66412,6 +68511,95 @@
         ]
       }
     },
+    "/v1/users/people/{person_id}/voice-matches": {
+      "get": {
+        "operationId": "get_person_voice_matches_v1_users_people__person_id__voice_matches_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceMatchesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Get Person Voice Matches",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
     "/v1/users/preferences/app": {
       "put": {
         "description": "Sets the user's preferred app for future processing.",
@@ -67454,6 +69642,168 @@
         "summary": "Update Transcription Preferences Endpoint",
         "tags": [
           "v1"
+        ]
+      }
+    },
+    "/v1/users/voice": {
+      "get": {
+        "operationId": "get_user_voice_v1_users_voice_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantVoicePreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Get User Voice",
+        "tags": [
+          "tts"
+        ]
+      },
+      "patch": {
+        "operationId": "update_user_voice_v1_users_voice_patch",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantVoicePreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantVoicePreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Update User Voice",
+        "tags": [
+          "tts"
         ]
       }
     },
@@ -70983,6 +73333,103 @@
           }
         ],
         "summary": "Send Message",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
+    "/v2/messages/device-tool/{call_id}/result": {
+      "post": {
+        "description": "Deliver a client's result for an in-flight device tool call.\n\nThe awaiting tool coroutine may be on a different worker than this request,\nso the result is handed over through Redis rather than an in-process future.\nThe key is scoped by uid, so one user cannot answer another user's call.\n\nA result is only accepted for a call that is actually in flight for this uid.\nWithout that check the endpoint is a write primitive: an authenticated caller\ncould invent call ids and park an oversized value in shared Redis for each\none, at the full rate limit, for the length of the TTL.",
+        "operationId": "submit_device_tool_result_v2_messages_device_tool__call_id__result_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": false,
+            "schema": {
+              "title": "X-App-Platform",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Device-Id-Hash",
+            "required": false,
+            "schema": {
+              "title": "X-Device-Id-Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Version",
+            "required": false,
+            "schema": {
+              "title": "X-App-Version",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceToolResultRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceToolResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "firebaseBearer": []
+          }
+        ],
+        "summary": "Submit Device Tool Result",
         "tags": [
           "chat"
         ]

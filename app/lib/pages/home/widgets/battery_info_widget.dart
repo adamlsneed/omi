@@ -283,7 +283,9 @@ class _HomeRecordButtonState extends State<HomeRecordButton> {
     OmiHaptics.light();
     showOmiSheet<void>(
       context: context,
-      title: context.l10n.pendantIsListeningTitle,
+      title: context.read<CaptureProvider>().pendantCaptureVerified
+          ? context.l10n.pendantIsListeningTitle
+          : CaptureSources.label(context, 'omi'),
       builder: (sheetContext) => PendantListeningSheet(
         onRecordWithPhone: () {
           Navigator.pop(sheetContext);
@@ -394,12 +396,12 @@ class _HomeRecordButtonState extends State<HomeRecordButton> {
                       decoration: BoxDecoration(color: OmiColors.textPrimary, borderRadius: _stopGlyphRadius),
                     )
                   : isInitialising
-                  ? const OmiSpinner(size: OmiSpinnerSize.small)
-                  : Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(color: OmiColors.textPrimary, shape: BoxShape.circle),
-                    ),
+                      ? const OmiSpinner(size: OmiSpinnerSize.small)
+                      : Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(color: OmiColors.textPrimary, shape: BoxShape.circle),
+                        ),
             ),
           ),
         );

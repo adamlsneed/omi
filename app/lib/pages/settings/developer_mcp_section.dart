@@ -171,7 +171,7 @@ class _McpKeysList extends StatelessWidget {
           return const Padding(padding: EdgeInsets.all(OmiSpacing.xl), child: OmiSpinner());
         }
         if (provider.error != null) {
-          return OmiErrorState(message: l10n.errorWithMessage(provider.error!), onRetry: () => provider.fetchKeys());
+          return OmiErrorState(message: l10n.couldNotLoadApiKeys, onRetry: () => provider.fetchKeys());
         }
         if (provider.keys.isEmpty) {
           return OmiEmptyState(

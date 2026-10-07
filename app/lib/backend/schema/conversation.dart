@@ -152,11 +152,9 @@ class ConversationPostProcessing {
 
   factory ConversationPostProcessing.fromJson(Map<String, dynamic> json) {
     return ConversationPostProcessing(
-      status:
-          ConversationPostProcessingStatus.values.asNameMap()[json['status']] ??
+      status: ConversationPostProcessingStatus.values.asNameMap()[json['status']] ??
           ConversationPostProcessingStatus.in_progress,
-      model:
-          ConversationPostProcessingModel.values.asNameMap()[json['model']] ??
+      model: ConversationPostProcessingModel.values.asNameMap()[json['model']] ??
           ConversationPostProcessingModel.fal_whisperx,
       failReason: json['fail_reason'],
     );
@@ -282,55 +280,6 @@ class CalendarEventLink {
   }
 
   Map<String, dynamic> toJson() => toGenerated().toJson();
-}
-
-/// A booked calendar event that has no recorded conversation (SCA-381).
-///
-/// The Conversations list renders these as an honest "Not captured" group
-/// beside the audio rows; they are calendar rows, never conversations.
-class CalendarCaptureGap {
-  final String eventId;
-  final String title;
-  final DateTime startTime;
-  final DateTime endTime;
-  final String status;
-  final String coverage;
-
-  CalendarCaptureGap({
-    required this.eventId,
-    required this.title,
-    required this.startTime,
-    required this.endTime,
-    this.status = 'confirmed',
-    this.coverage = 'not_captured',
-  });
-
-  factory CalendarCaptureGap.fromJson(Map<String, dynamic> json) {
-    return CalendarCaptureGap.fromGenerated(wire.GeneratedCalendarCaptureGap.fromJson(json));
-  }
-
-  factory CalendarCaptureGap.fromGenerated(wire.GeneratedCalendarCaptureGap generated) {
-    return CalendarCaptureGap(
-      eventId: generated.eventId,
-      title: generated.title,
-      startTime: generated.startTime,
-      endTime: generated.endTime,
-      status: generated.status,
-      coverage: generated.coverage,
-    );
-  }
-}
-
-/// Buckets capture gaps by the local day of their start, matching the
-/// conversation list's per-day grouping so a gap renders under its date header.
-Map<DateTime, List<CalendarCaptureGap>> groupCaptureGapsByLocalDay(List<CalendarCaptureGap> gaps) {
-  final byDay = <DateTime, List<CalendarCaptureGap>>{};
-  for (final gap in gaps) {
-    final local = gap.startTime.toLocal();
-    final day = DateTime(local.year, local.month, local.day);
-    (byDay[day] ??= <CalendarCaptureGap>[]).add(gap);
-  }
-  return byDay;
 }
 
 class AudioFile {
@@ -520,17 +469,16 @@ class ServerConversation {
     final rawSnippets = json['match_snippets'];
     final snippets = rawSnippets is List
         ? rawSnippets
-              .whereType<Map>()
-              .map((e) => TranscriptMatchSnippet.fromJson(Map<String, dynamic>.from(e)))
-              .toList()
+            .whereType<Map>()
+            .map((e) => TranscriptMatchSnippet.fromJson(Map<String, dynamic>.from(e)))
+            .toList()
         : const <TranscriptMatchSnippet>[];
     return ServerConversation.fromGenerated(
       generated,
       structured: structured,
       geolocation: json['geolocation'] is Map<String, dynamic> ? Geolocation.fromJson(json['geolocation']) : null,
       deleted: json['deleted'] ?? false,
-      siriVisibilityValid:
-          json['siri_visibility_valid'] != false &&
+      siriVisibilityValid: json['siri_visibility_valid'] != false &&
           (json['visibility'] == null || const ['private', 'shared', 'public'].contains(json['visibility'])),
       matchSnippets: snippets,
     );
@@ -564,14 +512,12 @@ class ServerConversation {
           ? null
           : ConversationAudioInfo.fromGenerated(generated.conversationAudio!),
       discarded: generated.discarded,
-      source: generated.source != null
-          ? ConversationSource.values.asNameMap()[generated.source]
-          : ConversationSource.omi,
+      source:
+          generated.source != null ? ConversationSource.values.asNameMap()[generated.source] : ConversationSource.omi,
       language: generated.language,
       deleted: deleted,
-      externalIntegration: generated.externalData != null
-          ? ConversationExternalData.fromJson(generated.externalData!)
-          : null,
+      externalIntegration:
+          generated.externalData != null ? ConversationExternalData.fromJson(generated.externalData!) : null,
       calendarEvent: generated.calendarEvent == null ? null : CalendarEventLink.fromGenerated(generated.calendarEvent!),
       status: generated.status != null
           ? ConversationStatus.values.asNameMap()[generated.status] ?? ConversationStatus.completed
@@ -583,9 +529,8 @@ class ServerConversation {
       siriVisibilityValid: siriVisibilityValid,
       matchSnippets: snippets,
       captureGroup: generated.captureGroup == null ? null : CaptureGroup.fromGenerated(generated.captureGroup!),
-      speakerResolution: generated.speakerResolution == null
-          ? null
-          : ConversationSpeakers.fromGenerated(generated.speakerResolution!),
+      speakerResolution:
+          generated.speakerResolution == null ? null : ConversationSpeakers.fromGenerated(generated.speakerResolution!),
       summaryRetryable: generated.summaryRetryable == true,
     );
   }
@@ -704,7 +649,11 @@ class ServerConversation {
   }
 
   String getTranscript({int? maxCount, bool generate = false}) {
-    var transcript = TranscriptSegment.segmentsAsString(transcriptSegments, includeTimestamps: true);
+    var transcript = TranscriptSegment.segmentsAsString(
+      transcriptSegments,
+      includeTimestamps: true,
+      unresolved: speakerResolution?.status == 'unavailable',
+    );
     if (maxCount != null && transcript.isNotEmpty) {
       transcript = transcript.substring(max(transcript.length - maxCount, 0));
     }

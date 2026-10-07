@@ -182,12 +182,11 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
             ),
             const SizedBox(height: OmiSpacing.xl),
             OmiSettingsGroup(
-              footer: l10n.pinPersonHonestLine,
               children: [
                 OmiSettingsRow.toggle(
                   key: const Key('person_pin_switch'),
-                  title: l10n.pinPersonTitle(person.name),
-                  subtitle: l10n.pinPersonSubtitle(person.name),
+                  title: l10n.pinAction,
+                  subtitle: l10n.pinPersonHonestLine,
                   value: person.pinned,
                   onChanged: (_) => togglePersonPinned(context, provider, person),
                 ),
@@ -209,8 +208,7 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
                   PersonSampleRow(
                     title: l10n.sampleNumber(j + 1),
                     transcript: j < transcripts.length ? transcripts[j] : null,
-                    playing:
-                        provider.currentPlayingPersonIndex == index &&
+                    playing: provider.currentPlayingPersonIndex == index &&
                         provider.currentPlayingIndex == j &&
                         provider.isPlaying,
                     onPlayPause: () => provider.playPause(index, j, sample),

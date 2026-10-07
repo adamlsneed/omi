@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:omi/services/wals/periodic_recording_sync.dart';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:omi/app_globals.dart';
@@ -50,6 +52,7 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
   final Future<void> Function() _startRecovery;
   final Future<void> Function(WakeTrigger trigger) _wakeTransfer;
   final SyncTransferKeepAlive _keepAlive;
+  PeriodicRecordingSync? _periodicSync;
   final CaptureWedgeMonitor _captureWedgeMonitor;
 
   /// Completes after WAL loading and startup fair-use reconciliation finish.
@@ -231,13 +234,13 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
   /// for being too old. Surfaced explicitly so a failure is never mistaken for
   /// a recording that simply hasn't synced yet.
   int get needsAttentionWalsCount => _countWhere(
-    (s) =>
-        s == WalSyncDisplayState.failed ||
-        s == WalSyncDisplayState.corrupted ||
-        s == WalSyncDisplayState.outsideRecoveryWindow ||
-        s == WalSyncDisplayState.unsupportedAudio ||
-        s == WalSyncDisplayState.uploadRejected,
-  );
+        (s) =>
+            s == WalSyncDisplayState.failed ||
+            s == WalSyncDisplayState.corrupted ||
+            s == WalSyncDisplayState.outsideRecoveryWindow ||
+            s == WalSyncDisplayState.unsupportedAudio ||
+            s == WalSyncDisplayState.uploadRejected,
+      );
 
   /// Durable HTTP refusals that automatic connectivity wakes must never retry.
   /// The Auto Sync Needs Attention chip renders this count through
@@ -360,6 +363,15 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
   // Flash page (Limitless) sync state
   bool get isFlashPageSyncing => _walService.getSyncs().isFlashPageSyncing;
 
+  /// Applies the auto-remove synced-copies retention preference immediately
+  /// (called when the user enables the toggle). Best-effort; failures are
+  /// swallowed — the sweep re-runs on the next sync pass regardless.
+  Future<void> applySyncedCopyRetention() async {
+    try {
+      await _walService.getSyncs().phone.applySyncedCopyRetention();
+    } catch (_) {}
+  }
+
   /// Get a WAL by ID from the current list
   Wal? getWalById(String walId) {
     try {
@@ -387,14 +399,14 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
     @visibleForTesting Future<void> Function(WakeTrigger trigger)? wakeTransfer,
     @visibleForTesting SyncTransferKeepAlive? keepAlive,
     @visibleForTesting CaptureWedgeMonitor? captureWedgeMonitor,
-  }) : _walServiceOverride = walService,
-       _uploadGate = uploadGate ?? SyncUploadGate.instance,
-       _startBackgroundSync = startBackgroundSync,
-       _waitForWalReady = waitForWalReady ?? ((phone) => phone.walReady),
-       _startRecovery = startRecovery ?? (() => RecordingTransferCoordinator.instance.wake(WakeTrigger.startup)),
-       _wakeTransfer = wakeTransfer ?? ((trigger) => RecordingTransferCoordinator.instance.wake(trigger)),
-       _keepAlive = keepAlive ?? SyncTransferKeepAlive.instance,
-       _captureWedgeMonitor = captureWedgeMonitor ?? CaptureWedgeMonitor.instance {
+  })  : _walServiceOverride = walService,
+        _uploadGate = uploadGate ?? SyncUploadGate.instance,
+        _startBackgroundSync = startBackgroundSync,
+        _waitForWalReady = waitForWalReady ?? ((phone) => phone.walReady),
+        _startRecovery = startRecovery ?? (() => RecordingTransferCoordinator.instance.wake(WakeTrigger.startup)),
+        _wakeTransfer = wakeTransfer ?? ((trigger) => RecordingTransferCoordinator.instance.wake(trigger)),
+        _keepAlive = keepAlive ?? SyncTransferKeepAlive.instance,
+        _captureWedgeMonitor = captureWedgeMonitor ?? CaptureWedgeMonitor.instance {
     _walService.subscribe(this, this);
     _audioPlayerUtils.addListener(_onAudioPlayerStateChanged);
     _rateLimitWasActive = SyncRateLimiter.instance.isLimited;
@@ -475,6 +487,12 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
         onTransferFinished: _keepAlive.release,
         onConnectivityRestored: _walService.getSyncs().phone.resetExhaustedAutoRetries,
       );
+      _periodicSync?.dispose();
+      _periodicSync = PeriodicRecordingSync(
+        coordinator: RecordingTransferCoordinator.instance,
+        cancel: () => _walService.getSyncs().cancelSync(),
+      );
+      unawaited(_periodicSync!.start());
       unawaited(_startRecovery());
     } catch (e) {
       Logger.debug('SyncProvider: attach recording transfer coordinator failed: $e');
@@ -581,9 +599,8 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
     if (!_isCurrent(generation)) return;
     _allWals = wals;
     Logger.debug('SyncProvider: Loaded ${_allWals.length} WALs (${missingWals.length} missing)');
-    final pendingLocal = _allWals
-        .where((wal) => wal.storage == WalStorage.disk && wal.status == WalStatus.miss)
-        .toList();
+    final pendingLocal =
+        _allWals.where((wal) => wal.storage == WalStorage.disk && wal.status == WalStatus.miss).toList();
     DateTime? oldestPendingAt;
     if (pendingLocal.isNotEmpty) {
       final oldestSeconds = pendingLocal.map((wal) => wal.timerStart).reduce((a, b) => a < b ? a : b);
@@ -595,8 +612,9 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
       if (risk != null) {
         _captureWedgeMonitor.observeStorageAtRisk(
           engagedAt: risk.engagedAt,
-          evictedCount: risk.evictedCount,
+          blockedCount: risk.blockedCount,
           retainedCount: risk.retainedCount,
+          reason: risk.reason,
         );
       }
     } catch (_) {
@@ -1178,6 +1196,7 @@ class SyncProvider extends ChangeNotifier implements IWalServiceListener, IWalSy
 
   @override
   void dispose() {
+    _periodicSync?.dispose();
     _isDisposed = true;
     _sessionGeneration++;
     _admittedWorkGeneration = -1;

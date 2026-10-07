@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/bt_device/bt_device.dart';
 import 'package:omi/services/devices/connectors/device_connection.dart';
+import 'package:omi/services/bridges/ble_bridge.dart';
 import 'package:omi/services/devices/discovery/apple_watch_discoverer.dart';
 import 'package:omi/services/devices/discovery/rayban_meta_discoverer.dart';
 import 'package:omi/services/devices/discovery/device_discoverer.dart';
@@ -41,7 +42,7 @@ typedef DeviceConnectionBuilder = DeviceConnection? Function(BtDevice device);
 
 class DeviceService {
   DeviceService({DeviceConnectionBuilder? connectionBuilder})
-    : _connectionBuilder = connectionBuilder ?? DeviceConnectionFactory.create;
+      : _connectionBuilder = connectionBuilder ?? DeviceConnectionFactory.create;
 
   final DeviceConnectionBuilder _connectionBuilder;
 
@@ -279,7 +280,7 @@ class DeviceService {
       }
 
       // Connected to this device — return it
-      if (existing?.status == DeviceConnectionState.connected) {
+      if (existing?.status == DeviceConnectionState.connected && await existing!.transport.isConnected()) {
         return existing;
       }
 
@@ -294,7 +295,18 @@ class DeviceService {
       if (!force) return null;
 
       try {
-        await _connectToDevice(deviceId);
+        if (existing != null && BleBridge.instance.preservesCaptureIntent(deviceId)) {
+          // Preserve the source and its listeners; native manageDevice will
+          // establish/discover a real link if the cached transport is down.
+          // Go through the connection (not the bare transport) so device setup
+          // such as the pendant time sync runs after the link returns, and a
+          // transport failure surfaces as DeviceConnectionException like the
+          // cold-connect path. Re-pass the service callback so later state
+          // changes keep reaching subscribers.
+          await existing.connect(onConnectionStateChanged: onDeviceConnectionStateChanged);
+        } else {
+          await _connectToDevice(deviceId);
+        }
       } on DeviceConnectionException catch (e) {
         Logger.debug(e.cause);
         return null;

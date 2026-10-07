@@ -30,11 +30,13 @@ RELEVANCE_DECISION_FIELD = 'relevance_decision'
 
 DecidedBy = Literal['policy', 'user', 'rule', 'model', 'jev', 'override']
 
-# Jev discards only when P(discard) = 1 - P(worth keeping) is above this. On the
-# owner's labels (2026-09-23) 0.95 lost none of 20 conversations he kept; on the
-# agent-labelled set the zero-loss point was 0.93, and calibration is poor, so
-# the margin is deliberately above it. Lowering it needs a re-measured set.
-JEV_DISCARD_THRESHOLD = 0.95
+# Jev discards only when P(discard) = 1 - P(worth keeping) is above this.
+# Re-measured 2026-10-05 on the owner's labels (EXP-004): tuned on 55 decided
+# 2026-10 labels, then checked once on 77 held-out 2026-09-23 labels, where 0.80
+# lost 3 of 20 kept conversations against 15-17 for the nano prompt, and kept
+# 10 of 57 noise. Its ranking is good (AUC ~0.85) but calibration is not, so
+# the cut is a measured cutoff, not a probability. Changing it needs a re-measure.
+JEV_DISCARD_THRESHOLD = 0.80
 
 
 @dataclass(frozen=True)
@@ -190,7 +192,28 @@ def decide_relevance(
         return replace(decision, model_tier_reached=True, arm=arm if record_arm or arm != 'nano' else None)
 
     if arm == 'keep_all':
-        return model_decision(keep('policy', 'keep_all_arm'))
+        # Keep regardless, but still ask nano (as the control path would) so the
+        # record carries the verdict nano would have acted on: the counterfactual.
+        failed = False
+
+        def on_keep_all_error(_error: Exception) -> None:
+            nonlocal failed
+            failed = True
+
+        adjacent_kept = neighbor()
+        would_discard = model_discards(on_keep_all_error, adjacent_kept)
+        decision = model_decision(keep('policy', 'keep_all_arm'))
+        if failed:
+            return decision
+        return replace(
+            decision,
+            nano_verdict='discard' if would_discard else 'keep',
+            nano_reason=(
+                'neighbor_fragment'
+                if would_discard and adjacent_kept
+                else 'model_discard' if would_discard else 'model_keep'
+            ),
+        )
 
     if jev_discard_probability is not None:
         p_discard = jev_discard_probability()

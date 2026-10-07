@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:omi/widgets/shimmer_with_timeout.dart';
 
 import 'package:omi/backend/http/api/conversations.dart';
+import 'package:omi/backend/http/streaming_error.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/app.dart';
 import 'package:omi/backend/schema/conversation.dart';
@@ -69,8 +70,7 @@ Widget _buildAppIcon(BuildContext context, String appId, {double size = 15, doub
   final appProvider = Provider.of<AppProvider>(context, listen: false);
   final messageProvider = Provider.of<MessageProvider>(context, listen: false);
   // Check both public apps and user's installed chat apps (includes private MCP apps)
-  final app =
-      appProvider.apps.firstWhereOrNull((a) => a.id == appId) ??
+  final app = appProvider.apps.firstWhereOrNull((a) => a.id == appId) ??
       messageProvider.chatApps.firstWhereOrNull((a) => a.id == appId);
 
   if (app != null) {
@@ -234,6 +234,8 @@ class AIMessage extends StatefulWidget {
   /// The reply failed; a localized error with [onRetry] replaces the raw server text.
   final bool replyFailed;
 
+  final ChatStreamFailureClass? replyFailure;
+
   /// Sends the user's message again. Null when the failed reply cannot be retried (voice).
   final VoidCallback? onRetry;
 
@@ -250,6 +252,7 @@ class AIMessage extends StatefulWidget {
     this.showThinkingAfterText = false,
     this.fetchConversation,
     this.replyFailed = false,
+    this.replyFailure,
     this.onRetry,
   });
 
@@ -268,7 +271,7 @@ class _AIMessageState extends State<AIMessage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.replyFailed) return ChatReplyError(onRetry: widget.onRetry);
+    if (widget.replyFailed) return ChatReplyError(failure: widget.replyFailure, onRetry: widget.onRetry);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -324,8 +327,7 @@ Widget buildMessageWidget(
   // the block list: day summaries, memory citations, and the initial-options
   // surface still render the normal body and must not render its text block a
   // second time below it.
-  final blocksReplaceBody =
-      hasRenderableBlocks &&
+  final blocksReplaceBody = hasRenderableBlocks &&
       message.memories.isEmpty &&
       message.type != MessageType.daySummary &&
       !displayOptions &&
@@ -764,34 +766,34 @@ class _MemoriesMessageWidgetState extends State<MemoriesMessageWidget> {
           ),
         widget.showTypingIndicator && widget.messageText == '…'
             ? (widget.message.thinkings.isNotEmpty
-                  ? const SizedBox.shrink()
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: shouldShowThinking ? _ThinkingLine(text: displayThinkingText) : const TypingIndicator(),
-                    ))
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: shouldShowThinking ? _ThinkingLine(text: displayThinkingText) : const TypingIndicator(),
+                  ))
             : widget.showTypingIndicator
-            ? const Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [SizedBox(width: 4), TypingIndicator(), Spacer()],
-              )
-            : Builder(
-                builder: (context) {
-                  String? selectedText;
-                  return SelectionArea(
-                    onSelectionChanged: (SelectedContent? selectedContent) {
-                      selectedText = selectedContent?.plainText;
+                ? const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [SizedBox(width: 4), TypingIndicator(), Spacer()],
+                  )
+                : Builder(
+                    builder: (context) {
+                      String? selectedText;
+                      return SelectionArea(
+                        onSelectionChanged: (SelectedContent? selectedContent) {
+                          selectedText = selectedContent?.plainText;
+                        },
+                        contextMenuBuilder: (context, selectableRegionState) {
+                          return omiSelectionMenuBuilder(context, selectableRegionState, (text) {
+                            widget.onAskOmi?.call(text);
+                          }, selectedText: selectedText);
+                        },
+                        child: getMarkdownWidget(context, widget.messageText, onAskOmi: widget.onAskOmi),
+                      );
                     },
-                    contextMenuBuilder: (context, selectableRegionState) {
-                      return omiSelectionMenuBuilder(context, selectableRegionState, (text) {
-                        widget.onAskOmi?.call(text);
-                      }, selectedText: selectedText);
-                    },
-                    child: getMarkdownWidget(context, widget.messageText, onAskOmi: widget.onAskOmi),
-                  );
-                },
-              ),
+                  ),
         if (widget.messageText.isNotEmpty && widget.messageText != '…' && !widget.showTypingIndicator)
           MessageActionBar(
             messageText: widget.messageText,
@@ -1169,7 +1171,9 @@ class InitialOptionWidget extends StatelessWidget {
 
 /// A reply that failed: a localized reason and Try Again, which sends the user's message again.
 class ChatReplyError extends StatelessWidget {
-  const ChatReplyError({super.key, this.onRetry});
+  const ChatReplyError({super.key, this.failure, this.onRetry});
+
+  final ChatStreamFailureClass? failure;
 
   /// Null when the message cannot be sent again from here (a voice message).
   final VoidCallback? onRetry;
@@ -1177,6 +1181,14 @@ class ChatReplyError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final reason = switch (failure) {
+      ChatStreamFailureClass.offline => l10n.chatReplyOffline,
+      ChatStreamFailureClass.server => l10n.chatReplyServerError,
+      ChatStreamFailureClass.timeout => l10n.chatReplyTimeout,
+      ChatStreamFailureClass.notSignedIn => l10n.chatReplyNotSignedIn,
+      ChatStreamFailureClass.quota => l10n.chatQuotaExceededReply,
+      _ => l10n.chatReplyFailed,
+    };
     return Semantics(
       liveRegion: true,
       child: Container(
@@ -1187,7 +1199,7 @@ class ChatReplyError extends StatelessWidget {
             ExcludeSemantics(child: Icon(Icons.error_outline_rounded, size: 20, color: OmiColors.danger)),
             const SizedBox(width: OmiSpacing.sm),
             Expanded(
-              child: Text(l10n.chatReplyFailed, style: OmiType.subhead.copyWith(color: OmiColors.textSecondary)),
+              child: Text(reason, style: OmiType.subhead.copyWith(color: OmiColors.textSecondary)),
             ),
             if (onRetry != null)
               Padding(

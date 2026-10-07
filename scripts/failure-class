@@ -157,6 +157,14 @@ def definitions_directory(root: Path) -> Path:
     return root / DEFINITIONS_RELATIVE_PATH
 
 
+def is_fork_disabled_workflow(root: Path, candidate: Path) -> bool:
+    """Fork policy: upstream deploy workflows the fork moved to
+    .github/disabled-workflows/ still exist; only their trigger location changed."""
+    return candidate.parts[:2] == (".github", "workflows") and (
+        root / ".github" / "disabled-workflows" / candidate.name
+    ).is_file()
+
+
 def validate_canonical_prevention_artifact(value: Any, path: Path, root: Path) -> list[dict[str, Any]]:
     """Return errors for the optional guard-artifact field.
 
@@ -196,7 +204,7 @@ def validate_canonical_prevention_artifact(value: Any, path: Path, root: Path) -
                     path=str(path),
                 )
             )
-        elif not (root / candidate).exists():
+        elif not (root / candidate).exists() and not is_fork_disabled_workflow(root, candidate):
             errors.append(
                 error(
                     "missing_canonical_prevention_artifact",

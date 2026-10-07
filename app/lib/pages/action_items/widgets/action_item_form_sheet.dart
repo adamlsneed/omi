@@ -34,6 +34,11 @@ Future<void> showActionItemFormSheet(
   );
 }
 
+const int _kTaskMaxLength = 4096;
+
+/// The character counter appears in the last 10% before [_kTaskMaxLength].
+const int _kTaskCounterThreshold = _kTaskMaxLength * 9 ~/ 10;
+
 /// Creates or edits one task. Explicit Cancel and Save; completion (edit mode) applies the moment
 /// it is ticked, like the list's checkbox. Delete is immediate with an Undo toast.
 ///
@@ -281,7 +286,7 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
               autofocus: true,
               maxLines: 5,
               minLines: 2,
-              maxLength: 4096,
+              maxLength: _kTaskMaxLength,
               textInputAction: TextInputAction.done,
               style: OmiType.callout.copyWith(height: 1.4),
               cursorColor: OmiColors.accent,
@@ -338,8 +343,8 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
                       days == 0
                           ? l10n.today
                           : days == 1
-                          ? l10n.tomorrow
-                          : l10n.nextWeek,
+                              ? l10n.tomorrow
+                              : l10n.nextWeek,
                     ),
                     onPressed: _isSaving ? null : () => _selectQuickDate(days),
                     backgroundColor: OmiColors.surface2,
@@ -348,14 +353,16 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
                   ),
               ],
             ),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: Text(
-                '${_textController.text.characters.length}/4096',
-                key: const Key('task_character_count'),
-                style: OmiType.caption.copyWith(color: OmiColors.textTertiary),
+            // The counter only matters near the limit: it shows in the last 10%.
+            if (_textController.text.characters.length >= _kTaskCounterThreshold)
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: Text(
+                  '${_textController.text.characters.length}/$_kTaskMaxLength',
+                  key: const Key('task_character_count'),
+                  style: OmiType.caption.copyWith(color: OmiColors.textTertiary),
+                ),
               ),
-            ),
             const SizedBox(height: OmiSpacing.sm),
             if (_saveFailed) ...[
               Semantics(
@@ -386,8 +393,8 @@ class _ActionItemFormSheetState extends State<ActionItemFormSheet> {
                     label: _saveFailed
                         ? l10n.tryAgain
                         : widget.isEditing
-                        ? l10n.save
-                        : l10n.addTask,
+                            ? l10n.save
+                            : l10n.addTask,
                   ),
                 ),
               ],
@@ -427,8 +434,8 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
         color: isSelected == true
             ? OmiColors.accent
             : isCurrentYear == true
-            ? OmiColors.surface3
-            : Colors.transparent,
+                ? OmiColors.surface3
+                : Colors.transparent,
         borderRadius: OmiRadius.smAll,
       ),
       child: Center(
@@ -439,8 +446,8 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
             color: isSelected == true
                 ? OmiColors.onAccent
                 : isDisabled == true
-                ? OmiColors.textDisabled
-                : OmiColors.textPrimary,
+                    ? OmiColors.textDisabled
+                    : OmiColors.textPrimary,
           ),
         ),
       ),
@@ -469,11 +476,11 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: OmiColors.accent,
-              onPrimary: OmiColors.onAccent,
-              surface: OmiColors.surface1,
-              onSurface: OmiColors.textPrimary,
-            ),
+                  primary: OmiColors.accent,
+                  onPrimary: OmiColors.onAccent,
+                  surface: OmiColors.surface1,
+                  onSurface: OmiColors.textPrimary,
+                ),
             timePickerTheme: TimePickerThemeData(
               backgroundColor: OmiColors.surface1,
               hourMinuteColor: WidgetStateColor.resolveWith(
@@ -562,21 +569,20 @@ class _DateTimePickerSheetState extends State<DateTimePickerSheet> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     CalendarDatePicker2(
-                      config:
-                          getDefaultCalendarConfig(
-                            firstDate: now,
-                            currentDate: now,
-                            lastDate: (widget.initialDateTime ?? now).add(const Duration(days: 365 * 5)),
-                            yearBuilder: yearBuilder,
-                          ).copyWith(
-                            // Neutral selection (INV-UI-1): white day, black numeral.
-                            selectedDayHighlightColor: OmiColors.accent,
-                            selectedDayTextStyle: OmiType.subhead.copyWith(
-                              color: OmiColors.onAccent,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            todayTextStyle: OmiType.subhead.copyWith(fontWeight: FontWeight.w700),
-                          ),
+                      config: getDefaultCalendarConfig(
+                        firstDate: now,
+                        currentDate: now,
+                        lastDate: (widget.initialDateTime ?? now).add(const Duration(days: 365 * 5)),
+                        yearBuilder: yearBuilder,
+                      ).copyWith(
+                        // Neutral selection (INV-UI-1): white day, black numeral.
+                        selectedDayHighlightColor: OmiColors.accent,
+                        selectedDayTextStyle: OmiType.subhead.copyWith(
+                          color: OmiColors.onAccent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        todayTextStyle: OmiType.subhead.copyWith(fontWeight: FontWeight.w700),
+                      ),
                       value: [_selectedDateTime],
                       onValueChanged: (dates) => setState(() {
                         _selectedDateTime = DateTime(

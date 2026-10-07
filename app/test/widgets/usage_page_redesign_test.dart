@@ -14,36 +14,36 @@ import 'package:omi/pages/settings/widgets/usage/usage_chart.dart';
 import 'package:omi/providers/usage_provider.dart';
 
 Widget app(Widget child, {UsageProvider? provider}) => ChangeNotifierProvider<UsageProvider>.value(
-  value: provider ?? UsageProvider(),
-  child: MaterialApp(
-    theme: ThemeData.dark(),
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-    supportedLocales: const [Locale('en')],
-    home: child,
-  ),
-);
+      value: provider ?? UsageProvider(),
+      child: MaterialApp(
+        theme: ThemeData.dark(),
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en')],
+        home: child,
+      ),
+    );
 
 UsageStats stats({int seconds = 30720, int words = 44910}) => UsageStats(
-  transcriptionSeconds: seconds,
-  speechSeconds: 0,
-  wordsTranscribed: words,
-  insightsGained: 714,
-  memoriesCreated: 60,
-);
+      transcriptionSeconds: seconds,
+      speechSeconds: 0,
+      wordsTranscribed: words,
+      insightsGained: 714,
+      memoriesCreated: 60,
+    );
 
 UsageHistoryPoint point(String date, {int words = 10}) => UsageHistoryPoint(
-  date: date,
-  transcriptionSeconds: 120,
-  speechSeconds: 0,
-  wordsTranscribed: words,
-  insightsGained: 3,
-  memoriesCreated: 1,
-);
+      date: date,
+      transcriptionSeconds: 120,
+      speechSeconds: 0,
+      wordsTranscribed: words,
+      insightsGained: 3,
+      memoriesCreated: 1,
+    );
 
 void main() {
   test('overlapping first timezone lookups send the resolved zone', () async {
@@ -110,20 +110,20 @@ void main() {
     final history = [point('2026-09-01', words: 100), point('2026-09-08', words: 9600)];
     UsageMetric selected = UsageMetric.words;
     Future<void> pump() => tester.pumpWidget(
-      app(
-        StatefulBuilder(
-          builder: (context, setState) => Scaffold(
-            body: UsageChart(
-              history: history,
-              period: 'monthly',
-              metric: selected,
-              now: now,
-              onMetricChanged: (value) => setState(() => selected = value),
+          app(
+            StatefulBuilder(
+              builder: (context, setState) => Scaffold(
+                body: UsageChart(
+                  history: history,
+                  period: 'monthly',
+                  metric: selected,
+                  now: now,
+                  onMetricChanged: (value) => setState(() => selected = value),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    );
+        );
     await pump();
     final chart = tester.widget<BarChart>(find.byType(BarChart));
     expect(chart.data.barGroups.length, 30);
@@ -395,5 +395,45 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(requests, ['today', 'all_time', 'all_time']);
+  });
+
+  testWidgets('a usage load failure still shows plan management when subscription loaded', (tester) async {
+    final provider = UsageProvider(
+      deviceTimeZone: () async => 'UTC',
+      usageRequest: ({required String period, required String? timeZone}) async => null,
+    );
+    provider.debugSetSubscription(UserSubscriptionResponse(
+      subscription: Subscription(plan: PlanType.architect, status: SubscriptionStatus.active),
+      transcriptionSecondsUsed: 0,
+      transcriptionSecondsLimit: 0,
+      wordsTranscribedUsed: 0,
+      wordsTranscribedLimit: 0,
+      insightsGainedUsed: 0,
+      insightsGainedLimit: 0,
+    ));
+    await provider.fetchUsageStats(period: 'today');
+
+    await tester.pumpWidget(app(const UsagePage(debugSkipFetch: true), provider: provider));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // The error state is showing (no usage data loaded)...
+    expect(find.text('Failed to load usage data. Please try again later.'), findsOneWidget);
+    // ...but the plan card, and its path to management/cancellation, stays reachable (#20621).
+    expect(find.text('Architect'), findsOneWidget);
+    expect(find.text('Manage Plan'), findsOneWidget);
+  });
+
+  testWidgets('a usage load failure with no subscription loaded shows only the error', (tester) async {
+    final provider = UsageProvider(
+      deviceTimeZone: () async => 'UTC',
+      usageRequest: ({required String period, required String? timeZone}) async => null,
+    );
+    await provider.fetchUsageStats(period: 'today');
+
+    await tester.pumpWidget(app(const UsagePage(debugSkipFetch: true), provider: provider));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Failed to load usage data. Please try again later.'), findsOneWidget);
+    expect(find.text('Manage Plan'), findsNothing);
   });
 }

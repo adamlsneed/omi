@@ -68,6 +68,9 @@ class WalFileManager {
             'uploaded_at',
             'source_frame_start',
             'source_clock_epoch',
+            'live_ring_id',
+            'live_ordinal_start',
+            'live_ordinal_end',
           ]) {
             if (entry[key] != null && entry[key] is! int) throw const FormatException();
           }

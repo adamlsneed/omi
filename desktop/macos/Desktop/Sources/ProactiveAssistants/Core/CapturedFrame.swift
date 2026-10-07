@@ -25,7 +25,9 @@ struct CapturedFrame: @unchecked Sendable {
   let windowTitle: String?
   let frameNumber: Int
   let captureTime: Date
+  let capturedUptime: TimeInterval
   let screenshotId: Int64?
+  let taskBinding: ScreenTaskFrameBinding?
 
   /// Reason this frame was captured. Stored with Rewind screenshots so later
   /// prompts and diagnostics can distinguish timer captures from event-driven captures.
@@ -39,16 +41,20 @@ struct CapturedFrame: @unchecked Sendable {
     windowTitle: String? = nil,
     frameNumber: Int,
     captureTime: Date = Date(),
+    capturedUptime: TimeInterval = ProcessInfo.processInfo.systemUptime,
     screenshotId: Int64? = nil,
-    captureTrigger: CaptureTrigger = .timer
+    captureTrigger: CaptureTrigger = .timer,
+    taskBinding: ScreenTaskFrameBinding? = nil
   ) {
     self.lazyData = LazyJPEGData(jpegData: jpegData)
     self.appName = appName
     self.windowTitle = windowTitle
     self.frameNumber = frameNumber
     self.captureTime = captureTime
+    self.capturedUptime = capturedUptime
     self.screenshotId = screenshotId
     self.captureTrigger = captureTrigger
+    self.taskBinding = taskBinding
   }
 
   init(
@@ -58,16 +64,20 @@ struct CapturedFrame: @unchecked Sendable {
     windowTitle: String? = nil,
     frameNumber: Int,
     captureTime: Date = Date(),
+    capturedUptime: TimeInterval = ProcessInfo.processInfo.systemUptime,
     screenshotId: Int64? = nil,
-    captureTrigger: CaptureTrigger = .timer
+    captureTrigger: CaptureTrigger = .timer,
+    taskBinding: ScreenTaskFrameBinding? = nil
   ) {
     self.lazyData = LazyJPEGData(cgImage: cgImage, quality: jpegQuality)
     self.appName = appName
     self.windowTitle = windowTitle
     self.frameNumber = frameNumber
     self.captureTime = captureTime
+    self.capturedUptime = capturedUptime
     self.screenshotId = screenshotId
     self.captureTrigger = captureTrigger
+    self.taskBinding = taskBinding
   }
 
   private final class LazyJPEGData: @unchecked Sendable {

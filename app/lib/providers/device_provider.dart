@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import 'package:omi/services/devices/charge_start_tracker.dart';
+import 'package:omi/services/wals/sync_wake_scope.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -75,6 +78,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   DateTime? _deviceSessionStartedAt;
   final BleDiagnosticsLoader _bleDiagnosticsLoader;
   final FindDeviceRunner _findDeviceRunner;
+  final Future<DeviceConnection?> Function(String) _chargingConnectionLoader;
   final CaptureWedgeMonitor _wedgeMonitor;
   final Set<String> _intentionalDisconnectDevices = {};
 
@@ -88,6 +92,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   StreamSubscription? _bleChargingStatusListener;
   int batteryLevel = -1;
   bool isCharging = false;
+  final _chargeStarts = ChargeStartTracker();
   int _lastNotifiedBatteryLevel = -1;
   DateTime? _lastBatteryNotifyTime;
   bool _hasLowBatteryAlerted = false;
@@ -143,9 +148,11 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     BleDiagnosticsLoader? bleDiagnosticsLoader,
     FindDeviceRunner? findDeviceRunner,
     CaptureWedgeMonitor? captureWedgeMonitor,
-  }) : _bleDiagnosticsLoader = bleDiagnosticsLoader ?? BleHostApi().getDeviceDiagnostics,
-       _findDeviceRunner = findDeviceRunner ?? _defaultFindDeviceRunner,
-       _wedgeMonitor = captureWedgeMonitor ?? CaptureWedgeMonitor.instance {
+    Future<DeviceConnection?> Function(String)? chargingConnectionLoader,
+  })  : _bleDiagnosticsLoader = bleDiagnosticsLoader ?? BleHostApi().getDeviceDiagnostics,
+        _findDeviceRunner = findDeviceRunner ?? _defaultFindDeviceRunner,
+        _chargingConnectionLoader = chargingConnectionLoader ?? ServiceManager.instance().device.ensureConnection,
+        _wedgeMonitor = captureWedgeMonitor ?? CaptureWedgeMonitor.instance {
     ServiceManager.instance().device.subscribe(this, this);
     BleBridge.instance.pairingLostCallback = _handlePairingLost;
   }
@@ -254,8 +261,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     final now = DateTime.now();
     final capture = captureProvider;
     final liveCaptureDevice = capture?.recordingDevice;
-    final endedDeviceWasLiveCapture =
-        endedDevice != null &&
+    final endedDeviceWasLiveCapture = endedDevice != null &&
         endedDevice.id == liveCaptureDevice?.id &&
         capture!.recordingState == RecordingState.deviceRecord &&
         !capture.isPaused &&
@@ -406,15 +412,13 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   }
 
   static Future<bool> _defaultFindDeviceRunner(BtDevice device) async {
-    final connection = await ServiceManager.instance().device
-        .ensureConnection(device.id)
-        .timeout(
-          const Duration(seconds: 5),
-          onTimeout: () {
-            Logger.debug('DeviceProvider: Timed out finding the active device connection');
-            return null;
-          },
-        );
+    final connection = await ServiceManager.instance().device.ensureConnection(device.id).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        Logger.debug('DeviceProvider: Timed out finding the active device connection');
+        return null;
+      },
+    );
     return await connection?.playFindDevicePattern() ?? false;
   }
 
@@ -461,13 +465,15 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
       connectedDevice!.id,
       onBatteryLevelChange: (int value) {
         if (!_isCurrent(generation)) return;
-        batteryLevel = value;
-        BatteryWidgetService().updateBatteryInfo(
-          deviceName: connectedDevice?.name ?? '',
-          batteryLevel: value,
-          deviceType: connectedDevice?.type.name ?? 'omi',
-          isConnected: true,
-        );
+        if (batteryLevel != value) {
+          batteryLevel = value;
+          BatteryWidgetService().updateBatteryInfo(
+            deviceName: connectedDevice?.name ?? '',
+            batteryLevel: value,
+            deviceType: connectedDevice?.type.name ?? 'omi',
+            isConnected: true,
+          );
+        }
         if (batteryLevel < 20 && !_hasLowBatteryAlerted) {
           _hasLowBatteryAlerted = true;
           final ctx = globalNavigatorKey.currentContext;
@@ -513,29 +519,47 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     notifyListeners();
   }
 
-  Future<void> initiateChargingStatusListener() async {
+  Future<void> initiateChargingStatusListener({bool allowCaptureResume = true}) async {
     final generation = _sessionGeneration;
     if (!_isCurrent(generation) || connectedDevice == null) return;
     _bleChargingStatusListener?.cancel();
 
-    var connection = await ServiceManager.instance().device.ensureConnection(connectedDevice!.id);
+    var connection = await _chargingConnectionLoader(connectedDevice!.id);
     if (!_isCurrent(generation)) return;
     if (connection == null) return;
+    // TODO(astra): non-Omi connections, including Friend Pendant, expose no charging-status API. (#5491)
     if (connection is! OmiDeviceConnection) return;
 
     final currentStatus = await connection.readChargingStatus();
     if (!_isCurrent(generation)) return;
-    if (isCharging != currentStatus) {
-      isCharging = currentStatus;
-      notifyListeners();
+    final allowInitialResume = allowCaptureResume && !SyncWakeScope.syncOnly;
+    var initialObservationDone = currentStatus != null;
+    // Failed reads are unknown: retain the last successful observation and UI state.
+    if (currentStatus != null) {
+      final chargeStarted = _chargeStarts.observe(connectedDevice!.id, currentStatus);
+      // An initial read made by a sync wake is observation, not a charge-start event.
+      if (chargeStarted && allowInitialResume) captureProvider?.onChargingStarted();
+      if (isCharging != currentStatus) {
+        isCharging = currentStatus;
+        notifyListeners();
+      }
+      BatteryWidgetService().updateChargingState(currentStatus);
     }
-    BatteryWidgetService().updateChargingState(currentStatus);
 
     _bleChargingStatusListener = await connection.getChargingStatusListener(
       onChargingStatusChange: (bool charging) {
         if (!_isCurrent(generation)) return;
+        // Firmware notifies its current byte on subscribe. After a failed read,
+        // that first sample inherits the initial read's observation-only gate.
+        // A later scope must defer transport work, not consume an authorized
+        // charge edge. Capture's scope-drop reconciliation owns that deferral.
+        final allowResume = initialObservationDone || allowInitialResume;
+        initialObservationDone = true;
+        final chargeStarted = _chargeStarts.observe(connectedDevice!.id, charging);
+        if (chargeStarted && allowResume) captureProvider?.onChargingStarted();
         if (isCharging != charging) {
           isCharging = charging;
+
           BatteryWidgetService().updateChargingState(charging);
           if (!charging) {
             _hasFullyChargedAlerted = false;
@@ -567,9 +591,8 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     // Throttle notifyListeners to reduce battery drain from excessive UI rebuilds
     // Only notify when: first reading, >=5% change, 15min elapsed, or crosses 20% threshold
     final delta = (_lastNotifiedBatteryLevel - value).abs();
-    final elapsed = _lastBatteryNotifyTime == null
-        ? const Duration(minutes: 999)
-        : currentTime.difference(_lastBatteryNotifyTime!);
+    final elapsed =
+        _lastBatteryNotifyTime == null ? const Duration(minutes: 999) : currentTime.difference(_lastBatteryNotifyTime!);
     final crossedLowBatteryThreshold =
         (value < 20 && _lastNotifiedBatteryLevel >= 20) || (value >= 20 && _lastNotifiedBatteryLevel < 20);
     final shouldNotify =
@@ -745,7 +768,11 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     setIsConnected(false);
     updateConnectingStatus(false);
 
-    captureProvider?.updateRecordingDevice(null);
+    // Recovery changes the link, not the user's capture intent. Retain the
+    // session (and Resume control) while native reports the physical link down.
+    if (disconnectedDeviceId == null || !BleBridge.instance.preservesCaptureIntent(disconnectedDeviceId)) {
+      captureProvider?.updateRecordingDevice(null);
+    }
 
     // Batch mode: the native writer finalizes the in-progress recording on
     // disconnect (.bin.part -> .bin). Rescan shortly after the rename completes
@@ -836,6 +863,7 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
   }
 
   void _onDeviceConnected(BtDevice device, int generation) async {
+    final syncOnly = SyncWakeScope.syncOnly;
     Logger.debug('_onConnected inside: $connectedDevice');
     if (!_isCurrent(generation)) return;
     final deviceSetup = setConnectedDevice(device);
@@ -872,13 +900,13 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
     // Then set up listeners for battery changes and charging status
     await initiateBleBatteryListener();
     if (!_isCurrent(generation)) return;
-    await initiateChargingStatusListener();
+    await initiateChargingStatusListener(allowCaptureResume: !syncOnly);
     if (!_isCurrent(generation)) return;
     if (batteryLevel != -1 && batteryLevel < 20) {
       _hasLowBatteryAlerted = false;
     }
     updateConnectingStatus(false);
-    await captureProvider?.streamDeviceRecording(device: normalizedDevice);
+    if (!syncOnly) await captureProvider?.streamDeviceRecording(device: normalizedDevice);
     if (!_isCurrent(generation)) return;
 
     await getDeviceInfo();
@@ -973,15 +1001,17 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
       if (WalSyncs.isRingBufferFirmware(fwVersion)) {
         final ringStatus = await connection.getRingStatus();
         if (!_isCurrent(generation)) return;
-        if (ringStatus != null) {
-          _ringStatus = ringStatus;
+        final info = connection.lastRingInfo;
+        final coherent = _coherentRingStatus(ringStatus, info);
+        if (coherent != null) {
+          _ringStatus = coherent;
           notifyListeners();
         }
-        if (ringStatus == null || ringStatus.unreadPackets <= 0) return;
+        if (coherent == null || coherent.unreadPackets <= 0) return;
         Logger.debug(
-          'DeviceProvider: Ring auto-sync detected ${ringStatus.unreadPackets} unread packets (${ringStatus.usedBytes} bytes)',
+          'DeviceProvider: Ring auto-sync detected ${coherent.unreadPackets} unread packets (${coherent.usedBytes} bytes)',
         );
-        onOfflineDataDetected?.call(device, ringStatus.unreadPackets, ringStatus.usedBytes);
+        onOfflineDataDetected?.call(device, coherent.unreadPackets, coherent.usedBytes);
         return;
       }
 
@@ -1010,16 +1040,36 @@ class DeviceProvider extends ChangeNotifier implements IDeviceServiceSubsciption
       final connection = await ServiceManager.instance().device.ensureConnection(deviceId);
       if (!_isCurrent(generation)) return;
       if (connection == null) return;
+      final info = await connection.getRingInfo();
+      if (!_isCurrent(generation)) return;
       final status = await connection.getRingStatus();
       if (!_isCurrent(generation)) return;
-      if (status != null) {
-        _ringStatus = status;
+      final coherent = _coherentRingStatus(status, info ?? connection.lastRingInfo);
+      if (coherent != null) {
+        _ringStatus = coherent;
         notifyListeners();
       }
     } catch (e) {
       if (!_isCurrent(generation)) return;
       Logger.debug('DeviceProvider: refreshRingStorageStatus failed: $e');
     }
+  }
+
+  static RingStatus? _coherentRingStatus(RingStatus? status, RingInfo? info) {
+    if (info == null) return status;
+    final pkt = info.packetSize > 0 ? info.packetSize : 444;
+    final infoUnread = info.unreadPackets;
+    final infoFree = (info.capacityPackets - infoUnread).clamp(0, info.capacityPackets) * pkt;
+    if (status == null) {
+      return RingStatus(usedBytes: infoUnread * pkt, unreadPackets: infoUnread, freeBytes: infoFree, rtcValid: 0);
+    }
+    final free = status.freeBytes > 0 ? status.freeBytes : infoFree;
+    return RingStatus(
+      usedBytes: status.usedBytes,
+      unreadPackets: status.unreadPackets,
+      freeBytes: free,
+      rtcValid: status.rtcValid,
+    );
   }
 
   Future<void> _ensureCompanionAssociation(BtDevice device, int generation) async {

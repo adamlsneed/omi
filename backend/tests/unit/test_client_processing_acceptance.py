@@ -71,6 +71,7 @@ def _build_fakes() -> dict[str, ModuleType]:
     client_mod.db = MagicMock(name='db')
     client_mod.get_firestore_client = lambda: client_mod.db
     client_mod.get_data_plane_firestore_client = lambda: client_mod.db
+    client_mod.run_transactional = lambda client, operation: operation(client.transaction())
     client_mod.document_id_from_seed = lambda seed: 'seed-id'
     add('database._client', client_mod)
 
@@ -272,7 +273,7 @@ def stack():
             os.path.join(str(_BACKEND), 'routers', 'developer.py'),
         )
         dev.resolve_geolocation = lambda g: g
-        dev.record_and_persist_finalized_meeting_receipt = lambda *_args, **_kwargs: None
+        dev.record_finalized_meeting_receipt = lambda *_args, **_kwargs: None
         yield pc, dev
 
 

@@ -16,51 +16,51 @@ import 'package:omi/utils/conversations/capture_groups.dart';
 final _t0 = DateTime(2026, 9, 23, 13, 57);
 
 CaptureGroup _meeting({String primary = 'desktop'}) => CaptureGroup(
-  id: 'event-1',
-  primaryId: primary,
-  revision: 2,
-  members: [
-    CaptureGroupMember(
-      id: 'desktop',
-      source: 'desktop',
-      startedAt: _t0,
-      finishedAt: _t0.add(const Duration(minutes: 62)),
-    ),
-    CaptureGroupMember(
-      id: 'pendant-2',
-      source: 'omi',
-      startedAt: _t0.add(const Duration(minutes: 31)),
-      finishedAt: _t0.add(const Duration(minutes: 34)),
-    ),
-    CaptureGroupMember(
-      id: 'pendant-1',
-      source: 'omi',
-      startedAt: _t0.add(const Duration(minutes: 2)),
-      finishedAt: _t0.add(const Duration(minutes: 30)),
-    ),
-  ],
-);
+      id: 'event-1',
+      primaryId: primary,
+      revision: 2,
+      members: [
+        CaptureGroupMember(
+          id: 'desktop',
+          source: 'desktop',
+          startedAt: _t0,
+          finishedAt: _t0.add(const Duration(minutes: 62)),
+        ),
+        CaptureGroupMember(
+          id: 'pendant-2',
+          source: 'omi',
+          startedAt: _t0.add(const Duration(minutes: 31)),
+          finishedAt: _t0.add(const Duration(minutes: 34)),
+        ),
+        CaptureGroupMember(
+          id: 'pendant-1',
+          source: 'omi',
+          startedAt: _t0.add(const Duration(minutes: 2)),
+          finishedAt: _t0.add(const Duration(minutes: 30)),
+        ),
+      ],
+    );
 
 ServerConversation _row(String id, {CaptureGroup? group, int minute = 0}) => ServerConversation(
-  id: id,
-  createdAt: _t0.add(Duration(minutes: minute + 10)),
-  startedAt: _t0.add(Duration(minutes: minute)),
-  finishedAt: _t0.add(Duration(minutes: minute + 10)),
-  structured: Structured(id, ''),
-  source: ConversationSource.omi,
-  captureGroup: group,
-);
+      id: id,
+      createdAt: _t0.add(Duration(minutes: minute + 10)),
+      startedAt: _t0.add(Duration(minutes: minute)),
+      finishedAt: _t0.add(Duration(minutes: minute + 10)),
+      structured: Structured(id, ''),
+      source: ConversationSource.omi,
+      captureGroup: group,
+    );
 
 TranscriptSegment _segment(String text, {bool user = false, int speaker = 0, String? personId}) => TranscriptSegment(
-  id: text,
-  text: text,
-  speaker: 'SPEAKER_0$speaker',
-  isUser: user,
-  personId: personId,
-  start: 0,
-  end: 1,
-  translations: const [],
-);
+      id: text,
+      text: text,
+      speaker: 'SPEAKER_0$speaker',
+      isUser: user,
+      personId: personId,
+      start: 0,
+      end: 1,
+      translations: const [],
+    );
 
 void main() {
   group('capture group wire', () {
@@ -183,6 +183,14 @@ void main() {
       expect(label(['You', 'Dana'], 1), 'You + 2 others');
       expect(label(['You'], 0, uncounted: true), 'You + others');
       expect(label(const [], 4), '<hidden>', reason: 'nobody named: the chip hides');
+    });
+
+    test('avatars show two initials, then one circle counting everyone else', () {
+      expect(ConversationDetailMeta.avatars(['You'], 1), ['Y', '1']);
+      expect(ConversationDetailMeta.avatars(['You'], 0), ['Y']);
+      expect(ConversationDetailMeta.avatars(['You', 'dana', 'Ali'], 2), ['Y', 'D', '3']);
+      expect(ConversationDetailMeta.avatars(['You'], 0, uncounted: true), ['Y', '+']);
+      expect(ConversationDetailMeta.avatars(const [], 4), ['4'], reason: 'the chip itself hides when nobody is named');
     });
 
     test('participants put the owner first, name people by first appearance, and count the unnamed', () {

@@ -116,8 +116,7 @@ class UpdateFirmwareCardWidget extends StatelessWidget {
       builder: (context, provider, child) {
         if (!provider.havingNewFirmware) return const SizedBox();
 
-        final isOmiGlass =
-            provider.pairedDevice?.type == DeviceType.openglass ||
+        final isOmiGlass = provider.pairedDevice?.type == DeviceType.openglass ||
             (provider.pairedDevice?.name.toLowerCase().contains('glass') ?? false);
 
         return _CardRow(
@@ -208,6 +207,15 @@ getTranscriptWidget(
   List<Widget> leadingItems = const [],
   List<String> leadingItemIds = const [],
   TranscriptSegmentBuilder? segmentBuilder,
+  void Function(TranscriptSegment segment)? onConfirmSpeakerLabel,
+  void Function(TranscriptSegment segment)? onRejectSpeakerLabel,
+  DateTime? startedAt,
+  String? currentSegmentId,
+  String? followTargetSegmentId,
+  bool followCurrentSegment = false,
+  int playbackFollowRequest = 0,
+  VoidCallback? onUserScroll,
+  ValueChanged<TranscriptSegment>? onTopVisibleSegmentChanged,
 }) {
   if (conversationCreating) {
     return const Padding(
@@ -248,6 +256,15 @@ getTranscriptWidget(
       leadingItems: leadingItems,
       leadingItemIds: leadingItemIds,
       segmentBuilder: segmentBuilder,
+      onConfirmSpeakerLabel: onConfirmSpeakerLabel,
+      onRejectSpeakerLabel: onRejectSpeakerLabel,
+      startedAt: startedAt,
+      currentSegmentId: currentSegmentId,
+      followTargetSegmentId: followTargetSegmentId,
+      followCurrentSegment: followCurrentSegment,
+      playbackFollowRequest: playbackFollowRequest,
+      onUserScroll: onUserScroll,
+      onTopVisibleSegmentChanged: onTopVisibleSegmentChanged,
     );
   }
 

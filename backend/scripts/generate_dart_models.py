@@ -15,6 +15,16 @@ DEFAULT_SPEC_PATH = ROOT_DIR / 'docs' / 'api-reference' / 'app-client-openapi.js
 DEFAULT_OUTPUT_DIR = ROOT_DIR / 'app' / 'lib' / 'backend' / 'schema' / 'gen'
 
 SCHEMA_GROUPS = {
+    'proactivity': {
+        'output': DEFAULT_OUTPUT_DIR / 'proactivity_wire.g.dart',
+        'schemas': (
+            'ProactivityTarget',
+            'ProactivityFeedItem',
+            'ProactivityFeedResponse',
+            'ProactivityOutcomeRequest',
+            'ProactivityOutcomeResponse',
+        ),
+    },
     'frame_requests': {
         'output': DEFAULT_OUTPUT_DIR / 'frame_requests_wire.g.dart',
         'schemas': (
@@ -56,6 +66,8 @@ SCHEMA_GROUPS = {
             'Section',
             'Participant',
             'Insight',
+            'NoteEvidenceRef',
+            'NoteClaim',
             'Structured',
             'Geolocation',
             'ConversationPhoto',
@@ -64,7 +76,6 @@ SCHEMA_GROUPS = {
             'ConversationAudioSpan',
             'ConversationAudio',
             'CalendarEventLink',
-            'CalendarCaptureGap',
             'TranscriptMatchSnippet',
             'CaptureGroupMember',
             'CaptureGroup',
@@ -85,6 +96,7 @@ SCHEMA_GROUPS = {
             'SyncJobStartResponse',
             'SyncRecoveryWindowExceededResponse',
             'SyncJobStatusResponse',
+            'RejectSpeakerRequest',
             'SyncCaptureManifestFile',
             'SyncCaptureManifestRequest',
             'SyncCaptureManifestResponse',
@@ -221,7 +233,7 @@ SCHEMA_GROUPS = {
     },
     'people': {
         'output': DEFAULT_OUTPUT_DIR / 'people_wire.g.dart',
-        'schemas': ('Person', 'PersonConfidenceReason'),
+        'schemas': ('Person', 'PersonConfidenceReason', 'VoiceMatch', 'VoiceMatchesResponse'),
     },
     'speaker_tag_prompts': {
         'output': DEFAULT_OUTPUT_DIR / 'speaker_tag_prompts_wire.g.dart',
@@ -290,6 +302,9 @@ SCHEMA_GROUPS = {
             'RebuildResponse',
             'ErrorResponse',
             'StatusResponse',
+            'TtsVoice',
+            'TtsVoiceCatalog',
+            'AssistantVoicePreference',
         ),
     },
     'wrapped_task_integrations': {

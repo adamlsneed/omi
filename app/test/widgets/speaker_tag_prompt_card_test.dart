@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import 'package:omi/backend/preferences.dart';
+import 'package:omi/backend/http/api/users.dart';
 import 'package:omi/backend/http/api_result.dart';
 import 'package:omi/backend/schema/gen/people_wire.g.dart';
 import 'package:omi/backend/schema/gen/speaker_tag_prompts_wire.g.dart';
@@ -17,37 +18,38 @@ import 'package:omi/providers/people_provider.dart';
 import 'package:omi/providers/speaker_tag_prompts_provider.dart';
 
 Person _person(String id, String name, {bool pinned = false, String confidence = 'likely'}) => Person(
-  id: id,
-  name: name,
-  createdAt: DateTime.utc(2026, 9, 1),
-  updatedAt: DateTime.utc(2026, 9, 1),
-  pinned: pinned,
-  confidence: confidence,
-  confidenceReasons: const [GeneratedPersonConfidenceReason(code: 'card_picks', count: 2)],
-);
+      id: id,
+      name: name,
+      createdAt: DateTime.utc(2026, 9, 1),
+      updatedAt: DateTime.utc(2026, 9, 1),
+      pinned: pinned,
+      confidence: confidence,
+      confidenceReasons: const [GeneratedPersonConfidenceReason(code: 'card_picks', count: 2)],
+    );
 
 GeneratedSpeakerTagPrompt _prompt(
   String id,
   String kind, {
   List<GeneratedSpeakerTagCandidate>? candidates,
   List<String>? suggestedPersonIds,
-}) => GeneratedSpeakerTagPrompt(
-  id: id,
-  kind: kind,
-  origin: kind == 'confirm_person' ? 'auto_person' : 'unnamed',
-  conversationId: 'c1',
-  conversationTitle: 'Coffee chat',
-  conversationStartedAt: DateTime.now().subtract(const Duration(hours: 3)),
-  speakerId: 1,
-  segmentIds: const ['s1'],
-  clipStart: 0,
-  clipEnd: 8,
-  excerpt: 'We should ship it on Friday',
-  suggestedPersonId: kind == 'confirm_person' ? 'p1' : null,
-  suggestedPersonName: kind == 'confirm_person' ? 'Sam' : null,
-  suggestedPersonIds: suggestedPersonIds,
-  candidates: candidates,
-);
+}) =>
+    GeneratedSpeakerTagPrompt(
+      id: id,
+      kind: kind,
+      origin: kind == 'confirm_person' ? 'auto_person' : 'unnamed',
+      conversationId: 'c1',
+      conversationTitle: 'Coffee chat',
+      conversationStartedAt: DateTime.now().subtract(const Duration(hours: 3)),
+      speakerId: 1,
+      segmentIds: const ['s1'],
+      clipStart: 0,
+      clipEnd: 8,
+      excerpt: 'We should ship it on Friday',
+      suggestedPersonId: kind == 'confirm_person' ? 'p1' : null,
+      suggestedPersonName: kind == 'confirm_person' ? 'Sam' : null,
+      suggestedPersonIds: suggestedPersonIds,
+      candidates: candidates,
+    );
 
 class _Harness {
   _Harness(this.provider, this.people, this.answers, this.saves);
@@ -89,7 +91,7 @@ Future<_Harness> _pumpCard(
     emit: (_) {},
     answeredHold: Duration.zero,
   );
-  final peopleProvider = PeopleProvider(loadPeople: () async => people);
+  final peopleProvider = PeopleProvider(loadPeople: () async => PeopleListResponse(people: people));
   if (loadPeople) await peopleProvider.setPeople();
   await tester.pumpWidget(
     MultiProvider(
@@ -128,6 +130,13 @@ Future<void> _tapKey(WidgetTester tester, String key) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
+}
+
+/// No… / Someone Else…, then Not a Person in the picker.
+Future<void> _pickNotAPerson(WidgetTester tester) async {
+  await _tapKey(tester, 'speaker_tag_prompt_answer_someone_else');
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('speaker_picker_not_a_person')));
 }
 
 void main() {
@@ -198,7 +207,12 @@ void main() {
     expect(h.answers.map((a) => a.answer), ['me']);
 
     expect(find.text('Is this Sam?'), findsOneWidget);
-    expect(find.text('Yes raises Sam\'s confidence.'), findsOneWidget);
+    // A yes/no question: Yes, No… (the picker) and Not Sure, with no footnote explaining Yes.
+    expect(find.text('Yes raises Sam\'s confidence.'), findsNothing);
+    expect(find.text('No…'), findsOneWidget);
+    expect(find.byKey(const Key('speaker_tag_prompt_answer_me')), findsNothing);
+    expect(find.byKey(const Key('speaker_tag_prompt_answer_not_a_person')), findsNothing);
+    expect(find.byKey(const Key('speaker_tag_prompt_answer_skip')), findsOneWidget);
     await _tapKey(tester, 'speaker_tag_prompt_answer_yes');
     await tester.pump();
     expect(find.text('Saved as Sam'), findsOneWidget);
@@ -214,7 +228,7 @@ void main() {
 
   testWidgets('Undo drops a staged answer and puts the question back', (tester) async {
     final h = await _pumpCard(tester, prompts: [_prompt('a', 'identify')]);
-    await _tapKey(tester, 'speaker_tag_prompt_answer_not_a_person');
+    await _pickNotAPerson(tester);
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.text('Marked as not a person'), findsOneWidget);
@@ -227,7 +241,7 @@ void main() {
 
   testWidgets('closing the card keeps Undo available without saving the answer', (tester) async {
     final h = await _pumpCard(tester, prompts: [_prompt('a', 'identify')]);
-    await _tapKey(tester, 'speaker_tag_prompt_answer_not_a_person');
+    await _pickNotAPerson(tester);
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     await h.provider.close();
@@ -251,11 +265,28 @@ void main() {
     expect(h.answers.single.answer, 'me');
   });
 
-  testWidgets('Not a Person commits the not_a_person answer', (tester) async {
+  testWidgets('No… then Not a Person commits the not_a_person answer', (tester) async {
     final h = await _pumpCard(tester, prompts: [_prompt('a', 'confirm_person')], people: [_person('p1', 'Sam')]);
-    await _tapKey(tester, 'speaker_tag_prompt_answer_not_a_person');
+    await _pickNotAPerson(tester);
     await _waitOutUndo(tester);
     expect(h.answers.single.answer, 'not_a_person');
+  });
+
+  testWidgets("No… then That's Me commits the me answer", (tester) async {
+    final h = await _pumpCard(tester, prompts: [_prompt('a', 'confirm_person')], people: [_person('p1', 'Sam')]);
+    await _tapKey(tester, 'speaker_tag_prompt_answer_someone_else');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('speaker_picker_me')));
+    await _waitOutUndo(tester);
+    expect(h.answers.single.answer, 'me');
+  });
+
+  testWidgets("the owner card keeps its own answers and its picker offers no That's Me", (tester) async {
+    await _pumpCard(tester, prompts: [_prompt('a', 'owner_check')]);
+    for (final key in ['me', 'not_me', 'not_a_person', 'skip']) {
+      expect(find.byKey(Key('speaker_tag_prompt_answer_$key')), findsOneWidget, reason: key);
+    }
+    expect(find.byKey(const Key('speaker_tag_prompt_answer_someone_else')), findsNothing);
   });
 
   testWidgets('Not Sure skips at once, without Undo', (tester) async {
@@ -390,7 +421,8 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => PeopleProvider(loadPeople: () async => [])),
+          ChangeNotifierProvider(
+              create: (_) => PeopleProvider(loadPeople: () async => const PeopleListResponse(people: []))),
           ChangeNotifierProvider.value(value: provider),
         ],
         child: const MaterialApp(

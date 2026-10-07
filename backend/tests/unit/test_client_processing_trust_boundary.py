@@ -126,6 +126,7 @@ _SCAN_FILES: tuple[str, ...] = (
     'models/client_processing.py',
     'models/conversation.py',
     'routers/developer.py',
+    'utils/memory/developer_memory_list.py',
     'utils/conversations/meeting_context.py',
     'utils/conversations/process_conversation.py',
     'utils/conversations/projection_payload.py',
@@ -499,7 +500,8 @@ PINNED_CONVERSATION_DUMPS: FrozenSet[DumpSite] = frozenset(
         DumpSite('utils/conversations/render.py', 'conversation_to_dict', 'model_dump'),
         DumpSite('utils/app_integrations.py', '_single', 'conversation_to_dict'),
         DumpSite('utils/webhooks.py', '_build_conversation_webhook_payload_sync', 'conversation_to_dict'),
-        DumpSite('routers/developer.py', 'get_memories', 'model_dump'),
+        DumpSite('utils/memory/developer_memory_list.py', '_validated_memories', 'model_dump'),
+        DumpSite('utils/goals_response.py', 'list_developer_goals', 'model_dump'),
         DumpSite('routers/developer.py', '_create_conversation_from_segments', 'model_dump'),
         DumpSite('routers/developer.py', 'update_goal', 'model_dump'),
         # DailySummaryDayStatsPayload aggregates (counts/minutes watched), not
@@ -678,6 +680,8 @@ PINNED_CONVERSATION_FIELDS: FrozenSet[str] = frozenset(
         # the participant speaker ids. No client-authored text, so not
         # projection-family.
         'speaker_resolution',
+        # Server-derived numeric voice evidence; not client-authored display projection.
+        'speaker_match_scores',
     }
 )
 
@@ -2173,3 +2177,18 @@ def test_red_proof_walrus_alias_fails_rebind_scan() -> None:
     assert any(site.startswith('walrus:conversation_ref:') for site in rebinds)
     # The production source has no assignment expression to report.
     assert not [site for site in collect_intent_txn_write_surface(source)[1] if site.startswith('walrus:')]
+
+
+@pytest.mark.parametrize('locked', [False, True])
+def test_internal_voice_match_scores_are_absent_from_client_and_integration_views(render_mod, locked):
+    conv = _make_conversation(is_locked=locked)
+    evidence = {'speaker_id': 0, 'stage': 'capture', 'owner_distance': 0.321}
+    conv.speaker_match_scores = [evidence]
+    conv.transcript_segments[0].speaker_match_scores = evidence
+    # Storage still carries the internal values.
+    assert conv.model_dump()['speaker_match_scores'] == [evidence]
+    assert 'speaker_match_scores' not in render_mod.conversation_to_dict(conv)
+    for redact in (render_mod.redact_conversation_for_list, render_mod.redact_conversation_for_integration):
+        public = redact(conv.model_dump())
+        assert 'speaker_match_scores' not in public
+        assert all('speaker_match_scores' not in s for s in public.get('transcript_segments', []))
