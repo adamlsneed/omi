@@ -204,8 +204,7 @@ void _expectNoUnnamedActivateControls(SurfaceSemanticsReport report) {
   expect(
     report.dump!.unnamedInteractive,
     isEmpty,
-    reason:
-        '${report.surface} unnamed activate-controls:\n'
+    reason: '${report.surface} unnamed activate-controls:\n'
         '${report.dump!.unnamedInteractive.map((node) => node.line).join('\n')}\n'
         'tree:\n${report.dump!.treeText}',
   );
@@ -449,9 +448,9 @@ Future<SurfaceSemanticsReport> _measureMemories(WidgetTester tester) async {
 
 Future<SurfaceSemanticsReport> _measureTasks(WidgetTester tester) async {
   final items = ActionItemsProvider(
-    getActionItems:
-        ({limit = 50, offset = 0, completed, conversationId, startDate, endDate, dueStartDate, dueEndDate}) async =>
-            const ActionItemsResponse(actionItems: [], hasMore: false),
+    getActionItems: (
+            {limit = 50, offset = 0, completed, conversationId, startDate, endDate, dueStartDate, dueEndDate}) async =>
+        const ActionItemsResponse(actionItems: [], hasMore: false),
   );
   addTearDown(items.dispose);
   final goals = GoalsProvider();
@@ -621,7 +620,8 @@ class _EmptySearchSource extends GlobalSearchSource {
       const ApiFailure(ApiProblem(ApiProblemKind.notFound, statusCode: 404));
 
   @override
-  Future<ConversationSearchResult> conversations(String query, {String? speakerId}) async =>
+  Future<ConversationSearchResult> conversations(String query,
+          {String? speakerId, DateTime? startDate, DateTime? endDate}) async =>
       const ConversationSearchResult(
         items: [],
         currentPage: 1,

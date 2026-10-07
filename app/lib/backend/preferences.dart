@@ -19,6 +19,7 @@ import 'package:omi/models/stt_provider.dart';
 import 'package:omi/services/capture/capture_policy.dart';
 import 'package:omi/utils/logger.dart';
 import 'package:omi/startup/boot_journal.dart';
+import 'package:omi/startup/boot_recovery.dart';
 import 'package:omi/env/physical_qualification.dart';
 
 typedef CapturePolicyBridge = Future<Object?> Function(String method, Map<String, Object> arguments);
@@ -78,6 +79,7 @@ class SharedPreferencesUtil {
   set deviceIdHash(String value) => _preferences?.setString('deviceIdHash', value);
 
   static const String appearanceModeKey = 'appearanceMode';
+  static const String appearanceDefaultMigrationKey = 'appearanceDefaultMigration';
 
   String get appearanceMode => getString(appearanceModeKey, defaultValue: 'light');
 
@@ -89,7 +91,9 @@ class SharedPreferencesUtil {
   static Future<void> init({FlutterSecureStorage? secureStorage, bool? mirrorNativeAuthToken}) async {
     _preferences = await SharedPreferences.getInstance();
     _instance._cachedPeopleList = null;
+    final hadStoredAppearance = _preferences!.containsKey(appearanceModeKey);
     if (!PhysicalQualification.enabled) await _quarantineBootSettings();
+    await _migrateAppearanceDefault(hadStoredAppearance: hadStoredAppearance);
     _mirrorNativeAuthToken = mirrorNativeAuthToken ?? Platform.isAndroid;
     await _loadCapturePolicy();
     await _reconcileNativeCapturePolicy();
@@ -114,6 +118,46 @@ class SharedPreferencesUtil {
       _authTokenCache = _instance.getString('authToken');
     }
     await _syncNativeAuthToken(_authTokenCache);
+  }
+
+  /// Pin the default once, before this launch creates other preferences. Existing
+  /// installs without a choice keep System; fresh installs keep Light even after
+  /// onboarding. A quarantined appearance value retains the Light error fallback.
+  static Future<void> _migrateAppearanceDefault({required bool hadStoredAppearance}) async {
+    final prefs = _preferences!;
+    if (prefs.containsKey(appearanceModeKey)) return;
+
+    final lastVersion = prefs.get('lastKnownAppVersion');
+    final bootSchema = prefs.get(BootRecovery.schemaKey);
+    final existingInstall = prefs.get('onboardingCompleted') == true ||
+        (lastVersion is String && lastVersion.trim().isNotEmpty) ||
+        (bootSchema is int && bootSchema > 0);
+    final savedDefault = prefs.get(appearanceDefaultMigrationKey);
+    final String mode;
+    if (hadStoredAppearance) {
+      mode = 'light';
+    } else if (savedDefault is String && (savedDefault == 'light' || savedDefault == 'system')) {
+      mode = savedDefault;
+    } else {
+      mode = existingInstall ? 'system' : 'light';
+    }
+
+    // Save the decision before attempting the appearance write. Later startup
+    // stages stamp boot/version/onboarding history, which must not change this
+    // decision if the appearance write fails and the next process retries it.
+    // Attempt each write independently: either durable value is sufficient.
+    // If both fail, the cached choice still works this boot, but no decision can
+    // survive a process restart without a successful storage write.
+    for (final key in [if (savedDefault != mode) appearanceDefaultMigrationKey, appearanceModeKey]) {
+      try {
+        if (!await prefs.setString(key, mode)) {
+          Logger.debug('Appearance default migration could not persist $key');
+        }
+      } catch (e, stack) {
+        Logger.debug('Appearance default migration failed for $key: $e');
+        Logger.debug('Stack: $stack');
+      }
+    }
   }
 
   static Future<void> _quarantineBootSettings() async {
@@ -740,6 +784,18 @@ class SharedPreferencesUtil {
 
   int get voiceResponseMode => getInt('voiceResponseMode', defaultValue: 1);
 
+  set readChatRepliesAloud(bool value) {
+    final ownerUid = uid;
+    if (ownerUid.isEmpty) return;
+    saveBool(_userScopedKey('readChatRepliesAloud', ownerUid), value);
+  }
+
+  bool get readChatRepliesAloud {
+    final ownerUid = uid;
+    if (ownerUid.isEmpty) return false;
+    return getBool(_userScopedKey('readChatRepliesAloud', ownerUid));
+  }
+
   // VAD Gate — server-side voice activity gating to save Deepgram costs (experimental)
   set vadGateEnabled(bool value) => saveBool('vadGateEnabled', value);
 
@@ -764,6 +820,9 @@ class SharedPreferencesUtil {
   String get frontendTemplateRoutingResultsJson => getString(frontendTemplateRoutingResultsKey);
 
   set frontendTemplateRoutingResultsJson(String value) => saveString(frontendTemplateRoutingResultsKey, value);
+
+  bool get showCaptureLiveActivity => getBool('showCaptureLiveActivity', defaultValue: true);
+  Future<bool> setShowCaptureLiveActivity(bool value) => saveBool('showCaptureLiveActivity', value);
 
   // Task category order for drag-and-drop sorting persistence
   // Format: { "today": ["id1", "id2"], "tomorrow": ["id3"] }
@@ -891,6 +950,52 @@ class SharedPreferencesUtil {
   set permissionStoreRecordingsEnabled(bool value) => saveBool('permissionStoreRecordingsEnabled', value);
 
   bool get unlimitedLocalStorageEnabled => getBool('unlimitedLocalStorageEnabled');
+
+  /// Auto-remove synced phone-local recording copies after [autoRemoveSyncedCopiesDays].
+  /// Default ON for new users (no stored value): cloud storage keeps the data, the
+  /// local file is only a safety copy. Existing installs are pinned OFF once by
+  /// [migrateAutoRemoveSyncedCopiesDefault] so upgrading users keep today's
+  /// keep-everything behaviour until they opt in.
+  bool get autoRemoveSyncedCopies => getBool('autoRemoveSyncedCopies', defaultValue: true);
+
+  set autoRemoveSyncedCopies(bool value) => saveBool('autoRemoveSyncedCopies', value);
+
+  /// One-time split of the auto-remove default, decided on the FIRST launch
+  /// that runs this build. `onboardingCompleted == true` can only mean "an
+  /// existing install upgraded" on that first launch — on any later launch it
+  /// equally describes a fresh install that onboarded since, which must keep
+  /// the getter's ON default. So:
+  /// - already onboarded → existing user: pin OFF once (key first, marker
+  ///   second, so a crash mid-migration re-runs instead of half-applying);
+  /// - not yet onboarded → mark the install immediately so later launches
+  ///   never mistake it for an upgrade; the ON default governs it until the
+  ///   user toggles.
+  Future<void> migrateAutoRemoveSyncedCopiesDefault() async {
+    const markerKey = 'autoRemoveSyncedCopiesDefaultMigrated';
+    final prefs = _preferences;
+    if (prefs == null) return;
+    if (prefs.getBool(markerKey) ?? false) return;
+    if (!(prefs.getBool('onboardingCompleted') ?? false)) {
+      await prefs.setBool(markerKey, true);
+      return;
+    }
+    final alreadySet = prefs.containsKey('autoRemoveSyncedCopies');
+    final pinned = await prefs.setBool(
+      'autoRemoveSyncedCopies',
+      alreadySet ? prefs.getBool('autoRemoveSyncedCopies') ?? true : false,
+    );
+    // Only commit the marker after the pin write succeeded, so a failed write
+    // retries on the next launch instead of leaving an existing install on the
+    // ON default with the migration reported complete.
+    if (pinned) {
+      await prefs.setBool(markerKey, true);
+    }
+  }
+
+  /// Retention window, in days, for synced phone-local copies.
+  int get autoRemoveSyncedCopiesDays => getInt('autoRemoveSyncedCopiesDays', defaultValue: 30);
+
+  set autoRemoveSyncedCopiesDays(int value) => saveInt('autoRemoveSyncedCopiesDays', value);
 
   set unlimitedLocalStorageEnabled(bool value) => saveBool('unlimitedLocalStorageEnabled', value);
 
@@ -1043,11 +1148,17 @@ class SharedPreferencesUtil {
     saveStringList('cachedConversations', conversations);
   }
 
-  List<ServerMessage> get cachedMessages => _decodeCachedList('cachedMessages', (json) => ServerMessage.fromJson(json));
+  List<ServerMessage> get cachedMessages {
+    // Older caches discarded journal provenance, so automatic cards cannot be
+    // distinguished from rich replies. Rehydrate those from canonical history.
+    if (getInt('cachedMessagesSchema') != 1) return [];
+    return _decodeCachedList('cachedMessages', (json) => ServerMessage.fromJson(json));
+  }
 
   set cachedMessages(List<ServerMessage> value) {
     final List<String> messages = value.map((e) => jsonEncode(e.toJson())).toList();
     saveStringList('cachedMessages', messages);
+    saveInt('cachedMessagesSchema', 1);
   }
 
   /// Last owner-scoped memory projection used for offline/restart rendering.
@@ -1137,6 +1248,10 @@ class SharedPreferencesUtil {
     saveStringList('cachedPeople', people);
     _cachedPeopleList = List<Person>.of(value);
   }
+
+  bool get cachedPeopleStatsTruncated => _preferences?.get('cachedPeopleStatsTruncated') == true;
+
+  set cachedPeopleStatsTruncated(bool value) => saveBool('cachedPeopleStatsTruncated', value);
 
   addCachedPerson(Person person) {
     final List<Person> people = cachedPeople;
@@ -1252,6 +1367,7 @@ class SharedPreferencesUtil {
     cachedConversations = <ServerConversation>[];
     cachedMessages = <ServerMessage>[];
     cachedPeople = <Person>[];
+    cachedPeopleStatsTruncated = false;
     appsList = <App>[];
     modifiedConversationDetails = null;
     cachedSingleLanguageMode = false;

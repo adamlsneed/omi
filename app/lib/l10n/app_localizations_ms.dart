@@ -282,7 +282,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get reportMessage => 'Laporkan Mesej';
 
   @override
-  String get reportMessageConfirm => 'Adakah anda pasti mahu melaporkan mesej ini?';
+  String get reportMessageConfirm => 'Laporkan mesej ini?';
 
   @override
   String get messageReported => 'Mesej berjaya dilaporkan.';
@@ -294,7 +294,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get clearChat => 'Padam Sembang';
 
   @override
-  String get clearChatConfirm => 'Adakah anda pasti mahu mengosongkan sembang? Tindakan ini tidak boleh dibatalkan.';
+  String get clearChatConfirm => 'Semua mesej dalam sembang ini akan dipadam. Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get maxFilesLimit => 'Anda hanya boleh memuat naik 4 fail pada satu masa';
@@ -358,10 +358,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get cannotBeUndone => 'Ini tidak boleh dibatalkan.';
 
   @override
-  String get allDataErased => 'Semua ingatan dan perbualan anda akan dipadam secara kekal.';
+  String get allDataErased => 'Kenangan dan perbualan anda akan dipadam.';
 
   @override
-  String get appsDisconnected => 'Aplikasi dan Integrasi anda akan diputuskan sambungan dengan serta-merta.';
+  String get appsDisconnected => 'Aplikasi dan integrasi anda akan diputuskan.';
 
   @override
   String get exportBeforeDelete =>
@@ -1049,7 +1049,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String disconnectAppMessage(String appName) {
-    return 'Adakah anda pasti mahu memutuskan sambungan dari $appName? Anda boleh menyambung semula bila-bila masa.';
+    return 'Anda boleh menyambung semula $appName pada bila-bila masa.';
   }
 
   @override
@@ -1995,14 +1995,14 @@ class AppLocalizationsMs extends AppLocalizations {
   String get deleteActionItemTitle => 'Padam tugas';
 
   @override
-  String get deleteActionItemMessage => 'Adakah anda pasti mahu memadamkan tugas ini?';
+  String get deleteActionItemMessage => 'Padam tugas ini?';
 
   @override
   String get deleteSelectedItemsTitle => 'Padam Item Terpilih';
 
   @override
   String deleteSelectedItemsMessage(int count, String s) {
-    return 'Adakah anda pasti mahu memadam $count tugas$s terpilih?';
+    return 'Padam $count tugas$s terpilih?';
   }
 
   @override
@@ -2071,7 +2071,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get undo => 'Buat Asal';
 
   @override
-  String get noMemoriesYet => '🧠 Belum ada kenangan';
+  String get noMemoriesYet => 'Belum ada kenangan';
 
   @override
   String get noAutoMemories => 'Tiada ingatan auto-ekstrak lagi';
@@ -2083,7 +2083,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get noMemoriesInCategories => 'Tiada ingatan dalam kategori ini';
 
   @override
-  String get noMemoriesFound => '🔍 Tiada kenangan ditemui';
+  String get noMemoriesFound => 'Tiada kenangan ditemui';
 
   @override
   String get addFirstMemory => 'Tambah ingatan pertama anda';
@@ -2092,8 +2092,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get clearMemoryTitle => 'Kosongkan Ingatan Omi';
 
   @override
-  String get clearMemoryMessage =>
-      'Adakah anda pasti mahu mengosongkan ingatan Omi? Tindakan ini tidak boleh dibatalkan.';
+  String get clearMemoryMessage => 'Semua kenangan anda akan dipadam. Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get clearMemoryButton => 'Kosongkan Memori';
@@ -2239,20 +2238,20 @@ class AppLocalizationsMs extends AppLocalizations {
   String get deleteActionItemConfirmTitle => 'Padam Tugas';
 
   @override
-  String get deleteActionItemConfirmMessage => 'Adakah anda pasti mahu memadam tugas ini?';
+  String get deleteActionItemConfirmMessage => 'Padam tugas ini?';
 
   @override
   String get appLanguage => 'Bahasa Aplikasi';
 
   @override
-  String get appInterfaceSectionTitle => 'ANTARA MUKA APLIKASI';
+  String get appInterfaceSectionTitle => 'Antara muka aplikasi';
 
   @override
-  String get speechTranscriptionSectionTitle => 'PERTUTURAN & TRANSKRIPSI';
+  String get speechTranscriptionSectionTitle => 'Pertuturan & transkripsi';
 
   @override
   String get languageSettingsHelperText =>
-      'Bahasa Aplikasi menukar menu dan butang. Bahasa Pertuturan mempengaruhi cara rakaman anda ditranskripsi.';
+      'Bahasa Aplikasi menukar menu dan butang. Bahasa Utama mempengaruhi cara rakaman anda ditranskripsi.';
 
   @override
   String get translationNotice => 'Notis Terjemahan';
@@ -2342,7 +2341,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get deleteMemory => 'Padam Memori';
 
   @override
-  String get thisActionCannotBeUndone => 'Tindakan ini tidak boleh dibuat asal.';
+  String get thisActionCannotBeUndone => 'Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String memoriesCount(int count) {
@@ -2777,8 +2776,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get deleteActionItem => 'Padam tugas';
 
   @override
-  String get deleteActionItemConfirmation =>
-      'Adakah anda pasti mahu memadam tugas ini? Tindakan ini tidak boleh dibatalkan.';
+  String get deleteActionItemConfirmation => 'Padam tugas ini? Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get enterActionItemDescription => 'Masukkan penerangan tugas';
@@ -3119,7 +3117,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get messageReportedSuccessfully => '✅ Mesej berjaya dilaporkan';
 
   @override
-  String get confirmReportMessage => 'Adakah anda pasti mahu melaporkan mesej ini?';
+  String get confirmReportMessage => 'Laporkan mesej ini?';
 
   @override
   String get selectChatAssistant => 'Pilih Pembantu Sembang';
@@ -3134,7 +3132,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get clearChatTitle => 'Kosongkan Sembang?';
 
   @override
-  String get confirmClearChat => 'Adakah anda pasti mahu mengosongkan sembang? Tindakan ini tidak boleh dibatalkan.';
+  String get confirmClearChat => 'Kosongkan sembang ini? Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get copy => 'Salin';
@@ -3306,8 +3304,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get createMemory => 'Cipta Memori';
 
   @override
-  String get deleteMemoryConfirmation =>
-      'Adakah anda pasti mahu memadam memori ini? Tindakan ini tidak boleh dibatalkan.';
+  String get deleteMemoryConfirmation => 'Padam kenangan ini? Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get makePrivate => 'Jadikan Peribadi';
@@ -3344,7 +3341,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String clearMemoryConfirmation(int count) {
-    return 'Adakah anda pasti mahu mengosongkan memori Omi? Tindakan ini tidak boleh dibatalkan dan akan memadam semua $count memori secara kekal.';
+    return 'Kesemua $count kenangan akan dipadam. Tindakan ini tidak boleh dibatalkan.';
   }
 
   @override
@@ -3638,8 +3635,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get letOmiChooseAutomatically => 'Biarkan Omi memilih aplikasi terbaik secara automatik';
 
   @override
-  String get deleteConversationConfirmation =>
-      'Adakah anda pasti mahu memadam perbualan ini? Tindakan ini tidak boleh dibatalkan.';
+  String get deleteConversationConfirmation => 'Padam perbualan ini? Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get conversationDeleted => 'Perbualan dipadam';
@@ -3964,8 +3960,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get updateAppQuestion => 'Kemas kini Aplikasi?';
 
   @override
-  String get updateAppConfirmation =>
-      'Adakah anda pasti mahu mengemas kini aplikasi anda? Perubahan akan dipaparkan selepas disemak oleh pasukan kami.';
+  String get updateAppConfirmation => 'Perubahan akan disiarkan selepas disemak oleh pasukan kami.';
 
   @override
   String get updateApp => 'Kemas kini Aplikasi';
@@ -3987,9 +3982,6 @@ class AppLocalizationsMs extends AppLocalizations {
   String publicAppsCount(String count) {
     return 'Aplikasi Awam ($count)';
   }
-
-  @override
-  String get newVersionAvailable => 'Versi Baharu Tersedia';
 
   @override
   String get no => 'Tidak';
@@ -4033,7 +4025,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get cancelSubscriptionConfirmation =>
-      'Adakah anda pasti mahu membatalkan langganan anda? Anda akan terus mempunyai akses sehingga akhir tempoh pengebilan semasa.';
+      'Anda akan terus mempunyai akses sehingga akhir tempoh pengebilan semasa.';
 
   @override
   String get cancelSubscriptionButton => 'Batalkan Langganan';
@@ -4220,7 +4212,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get revokeApiKeyWarning =>
-      'Tindakan ini tidak boleh dibuat asal. Sebarang aplikasi yang menggunakan kunci ini tidak akan dapat mengakses API lagi.';
+      'Aplikasi yang menggunakan kunci ini akan kehilangan akses API. Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get revoke => 'Batalkan';
@@ -4277,7 +4269,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String deleteItemConfirmation(String item) {
-    return 'Adakah anda pasti mahu memadamkan $item ini? Tindakan ini tidak boleh dibuat asal.';
+    return '$item akan dipadam. Tindakan ini tidak boleh dibatalkan.';
   }
 
   @override
@@ -4285,7 +4277,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String revokeKeyConfirmation(String keyName) {
-    return 'Adakah anda pasti mahu membatalkan kunci \"$keyName\"? Tindakan ini tidak boleh dibuat asal.';
+    return 'Semua yang menggunakan \"$keyName\" akan kehilangan akses. Tindakan ini tidak boleh dibatalkan.';
   }
 
   @override
@@ -4464,7 +4456,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String planRemainsActiveUntil(String date) {
-    return 'Pelan anda akan kekal aktif sehingga $date. Selepas itu, anda akan kehilangan akses kepada ciri tanpa had. Adakah anda pasti?';
+    return 'Pelan anda akan kekal aktif sehingga $date. Selepas itu, anda akan kehilangan akses kepada ciri tanpa had.';
   }
 
   @override
@@ -4558,7 +4550,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get askOmiAnything => 'Tanya Omi apa sahaja tentang hidup anda';
 
   @override
-  String get unlockOmiInfiniteMemory => 'Buka kunci memori tak terhingga Omi';
+  String get unlockOmiInfiniteMemory => 'Kenangan tanpa had';
 
   @override
   String get youreOnAnnualPlan => 'Anda berada di Pelan Tahunan';
@@ -4570,7 +4562,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get unableToLoadPlans => 'Gagal memuatkan pelan';
 
   @override
-  String get checkConnectionTryAgain => 'Semak sambungan anda dan cuba lagi';
+  String get checkConnectionTryAgain => 'Semak sambungan anda dan cuba lagi.';
 
   @override
   String get useFreePlan => 'Gunakan Pelan Percuma';
@@ -4752,7 +4744,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get deleteAllLimitlessWarning =>
-      'Ini akan memadam secara kekal semua perbualan yang diimport dari Limitless. Tindakan ini tidak boleh dibuat asal.';
+      'Semua perbualan yang diimport dari Limitless akan dipadam. Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String deletedLimitlessConversations(int count) {
@@ -4793,7 +4785,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String deleteSampleConfirmation(String name) {
-    return 'Adakah anda pasti mahu memadam sampel $name?';
+    return 'Sampel suara $name akan dialih keluar. Tindakan ini tidak boleh dibatalkan.';
   }
 
   @override
@@ -4801,7 +4793,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String deletePersonConfirmation(String name) {
-    return 'Adakah anda pasti mahu memadam $name? Ini juga akan membuang semua sampel pertuturan yang berkaitan.';
+    return 'Ini akan mengalih keluar sampel suara $name dan tidak boleh dibuat asal. Ucapannya dalam perbualan lalu menjadi penutur tanpa nama.';
   }
 
   @override
@@ -5081,8 +5073,7 @@ class AppLocalizationsMs extends AppLocalizations {
       'Dengan meneruskan, perbualan, rakaman dan maklumat peribadi anda akan disimpan dengan selamat di pelayan kami. Rakaman audio dan transkrip anda diproses oleh perkhidmatan AI pihak ketiga (termasuk Deepgram untuk transkripsi dan OpenAI untuk analisis) untuk memberikan anda pandangan dikuasakan AI dan membolehkan semua ciri aplikasi.';
 
   @override
-  String get tasksEmptyStateMessage =>
-      'Tugasan daripada perbualan anda akan muncul di sini.\nKetik + untuk mencipta secara manual.';
+  String get tasksEmptyStateMessage => 'Mulakan perbualan untuk mencipta tugasan.';
 
   @override
   String get clearChatAction => 'Kosongkan sembang';
@@ -5160,8 +5151,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get finishedConversation => 'Perbualan selesai?';
 
   @override
-  String get stopRecordingConfirmation =>
-      'Adakah anda pasti mahu menghentikan rakaman dan meringkaskan perbualan sekarang?';
+  String get stopRecordingConfirmation => 'Hentikan rakaman dan ringkaskan perbualan sekarang?';
 
   @override
   String get conversationEndsManually => 'Perbualan hanya akan tamat secara manual.';
@@ -6003,8 +5993,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get cloudProvider => 'Pembekal Awan';
 
   @override
-  String get premiumMinutesInfo =>
-      '300 minit premium/bulan. Tab Pada-Peranti menawarkan transkripsi percuma tanpa had.';
+  String get premiumMinutesInfo => '300 minit premium sebulan. Pilih Pada Peranti untuk transkripsi percuma tanpa had.';
 
   @override
   String get viewUsage => 'Lihat penggunaan';
@@ -6086,7 +6075,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get premiumMinutesMonth =>
-      '300 minit premium/bulan. Tab Pada Peranti menawarkan transkripsi percuma tanpa had. ';
+      '300 minit premium sebulan. Pilih Pada Peranti untuk transkripsi percuma tanpa had. ';
 
   @override
   String get audioProcessedLocally =>
@@ -6141,7 +6130,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get omiTranscriptionOptimized =>
-      'Transkripsi langsung terbina dalam Omi dioptimumkan untuk perbualan masa nyata dengan pengesanan penutur automatik dan diarisasi.';
+      'Transkripsi langsung Omi dibina untuk perbualan masa nyata dan menandakan siapa berkata apa.';
 
   @override
   String get reset => 'Set semula';
@@ -6675,8 +6664,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get shareRecording => 'Kongsi Rakaman';
 
   @override
-  String get deleteRecordingConfirmation =>
-      'Adakah anda pasti mahu memadam rakaman ini secara kekal? Tindakan ini tidak boleh dibatalkan.';
+  String get deleteRecordingConfirmation => 'Tindakan ini tidak boleh dibatalkan.';
 
   @override
   String get recordingIdLabel => 'ID Rakaman';
@@ -7049,7 +7037,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String planSwitchingDescriptionWithTitle(String title) {
-    return 'Anda sedang menukar Pelan Tanpa Had anda ke $title. Adakah anda pasti mahu meneruskan?';
+    return 'Anda sedang menukar Pelan Tanpa Had anda ke $title.';
   }
 
   @override
@@ -8510,7 +8498,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get tipAutoSync => 'Rakaman disegerakkan secara automatik';
 
   @override
-  String get storageSection => 'STORAN';
+  String get storageSection => 'Storan';
 
   @override
   String get permissions => 'Kebenaran';
@@ -8937,10 +8925,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get deleteFlowFeedbackHint => 'Pilihan — pandangan anda membantu kami membina produk yang lebih baik.';
 
   @override
-  String get deleteFlowConfirmTitle => 'Ini adalah kekal';
+  String get deleteFlowConfirmTitle => 'Padam akaun anda?';
 
   @override
-  String get deleteFlowConfirmSubtitle => 'Setelah anda memadam akaun, tiada cara untuk memulihkannya.';
+  String get deleteFlowConfirmSubtitle => 'Tindakan ini tidak boleh dibatalkan, walaupun oleh sokongan.';
 
   @override
   String get deleteConsequenceSubscription => 'Sebarang langganan aktif akan dibatalkan.';
@@ -9300,6 +9288,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get syncCardDownloadingTitle => 'Memuat turun daripada peranti anda';
 
   @override
+  String syncCardDownloadPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String syncCardDownloadPercentSpeed(int percent, String speed) {
+    return '$percent% · $speed KB/s';
+  }
+
+  @override
   String syncCardProgressOf(int current, int total) {
     return '$current daripada $total';
   }
@@ -9601,7 +9599,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get transcribeLaterDescription =>
-      'Rakam audio sekarang dan transkripkannya bila perlu, bukan secara langsung. Rakaman disimpan dalam telefon anda, kemudian anda memuat naiknya untuk menghasilkan perbualan.';
+      'Rakam sekarang, transkripsi bila-bila anda mahu. Sehingga itu, audio kekal pada telefon anda.';
 
   @override
   String get transcribeLaterNote =>
@@ -9883,7 +9881,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get deleteOnDeviceModel => 'Padam Model';
 
   @override
-  String get deleteOnDeviceModelConfirm => 'Adakah anda pasti mahu memadam model ini?';
+  String get deleteOnDeviceModelConfirm => 'Padam model ini?';
 
   @override
   String get onDeviceModelDownloaded => 'Dimuat turun';
@@ -10040,7 +10038,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get syncStatusTooOld => 'Terlalu lama untuk disegerakkan — Omi tidak boleh menerimanya';
 
   @override
-  String get planSheetChooseYourPlan => 'Pilih pelan anda untuk membuka Omi tanpa had.';
+  String get planSheetChooseYourPlan => 'Pilih pelan yang sesuai untuk anda.';
 
   @override
   String get availableOnMacMobileWeb => 'Tersedia di Mac, mudah alih dan web';
@@ -10176,11 +10174,6 @@ class AppLocalizationsMs extends AppLocalizations {
       'Storan Pendant penuh dan ia masih dalam mod rakaman, jadi audio yang tersimpan tidak dapat dipindahkan. Tekan butang Pendant untuk menghentikan rakaman, kemudian segerakkan semula.';
 
   @override
-  String conversationsNotCapturedCount(int count) {
-    return 'Tidak dirakam ($count)';
-  }
-
-  @override
   String speechProfileOwnerTitle(String name) {
     return 'Profil Suara $name';
   }
@@ -10289,24 +10282,23 @@ class AppLocalizationsMs extends AppLocalizations {
         'food': 'My favorite food is ___.',
         'remember': 'Something I would like help remembering is ___.',
         'day': 'A good day for me includes ___.',
-        'another': 'Try another prompt',
-        'start': 'Start speaking',
+        'another': 'Try Another Prompt',
+        'start': 'Start Speaking',
         'skipPrompt': 'Skip Question',
         'captured': 'Voice sample captured',
         'silence': 'Take your time. Speak toward your phone microphone.',
         'audio': 'Audio detected',
         'review': 'Here is what I heard',
-        'reviewHint':
-            'Edit or uncheck anything below. Personal details become memories; your goal is saved separately.',
-        'saveVoice': 'Save voice profile',
+        'reviewHint': 'Uncheck anything you don\'t want saved.',
+        'saveVoice': 'Save Voice Profile',
         'savingVoice': 'Saving your voice profile…',
         'savedVoice': 'Voice profile saved',
-        'voiceLater': 'Set up my voice later',
-        'keep': 'Save selected answers',
-        'without': 'Continue without saving answers',
+        'voiceLater': 'Set Up My Voice Later',
+        'keep': 'Save Selected Answers',
+        'without': 'Continue Without Saving Answers',
         'savedMemories': 'Your memories are saved',
         'short': 'We need a little more audio. Add one more sentence; your earlier answers are safe.',
-        'addSample': 'Add another sentence',
+        'addSample': 'Add Another Sentence',
         'uploadError': 'Your voice profile could not be saved. Retry with the same recording, or set it up later.',
         'memoryError': 'Some answers could not be saved. Saved items are safe; retry to save the rest.',
         'transcriptionError': 'We could not transcribe that answer. Try again, keep speaking, or skip this question.',
@@ -10319,13 +10311,13 @@ class AppLocalizationsMs extends AppLocalizations {
         'goalLong': 'Shorten your goal to 500 characters or fewer, then try again.',
         'voiceUnavailable':
             'Voice setup is temporarily unavailable. Saved answers are safe. Retry, or continue and set up your voice later.',
-        'saveFinish': 'Save and finish',
-        'retryRemaining': 'Retry remaining',
+        'saveFinish': 'Save and Finish',
+        'retryRemaining': 'Retry Remaining',
         'saveHint': 'Saves your voice profile and checked answers.',
         'savedAll': 'Your introduction is saved.',
-        'continueSaved': 'Continue with what is saved',
-        'reviewAnswers': 'Review answers',
-        'originalGoal': 'Use original wording',
+        'continueSaved': 'Continue With What Is Saved',
+        'reviewAnswers': 'Review Answers',
+        'originalGoal': 'Use Original Wording',
         'savingAnswers': 'Saving your answers…',
         'other': '',
       },
@@ -10706,8 +10698,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get forgetDeviceConfirmTitle => 'Lupakan Peranti?';
 
   @override
-  String get forgetDeviceConfirmMessage =>
-      'Omi akan berhenti menyambung ke peranti ini. Untuk menggunakannya semula, anda perlu memadankannya semula.';
+  String get forgetDeviceConfirmMessage => 'Omi akan berhenti menyambung ke peranti ini.';
 
   @override
   String get deviceForgottenMessage => 'Peranti dilupakan';
@@ -11514,6 +11505,9 @@ class AppLocalizationsMs extends AppLocalizations {
       'Loket anda terputus sambungan dengan telefon ini. Omi akan bersambung semula sendiri apabila loket dihidupkan dan berdekatan. Semua yang dirakam sebelum ini selamat.';
 
   @override
+  String get capturePendantDisconnectedShort => 'Omi akan bersambung semula sendiri';
+
+  @override
   String participantsSummaryUncounted(String name) {
     return '$name dan lain-lain';
   }
@@ -12087,19 +12081,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get evidenceNothing => 'Anda belum melabel atau mengesahkan mereka';
 
   @override
-  String get effectCountsALot => 'Sangat bernilai';
+  String get effectCountsALot => 'Sangat membantu';
 
   @override
-  String get effectCounts => 'Bernilai';
+  String get effectCounts => 'Membantu';
 
   @override
-  String get effectCountsALittle => 'Sedikit bernilai';
+  String get effectCountsALittle => 'Sedikit membantu';
 
   @override
-  String get effectBarelyCounts => 'Hampir tidak bernilai';
+  String get effectBarelyCounts => 'Hampir tidak membantu';
 
   @override
-  String get effectCountsAgainst => 'Bertentangan';
+  String get effectCountsAgainst => 'Merugikan';
 
   @override
   String get effectNeeded => 'Diperlukan untuk Disahkan';
@@ -12119,7 +12113,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get confidenceFootnote =>
-      'Hanya jawapan anda yang banyak mengubah keyakinan. Padanan automatik sahaja hampir tidak dikira.';
+      'Hanya jawapan anda yang banyak mengubah keyakinan. Padanan automatik sahaja hampir tidak membantu.';
 
   @override
   String get personWhyConfidence => 'Kenapa?';
@@ -12135,7 +12129,7 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get pinPersonHonestLine => 'Omi akan meminta anda mengesahkan padanan yang hampir tepat dan bukannya meneka.';
+  String get pinPersonHonestLine => 'Omi bertanya sebelum memadankan suara yang hampir sama.';
 
   @override
   String get pinAction => 'Semat';
@@ -12372,4 +12366,344 @@ class AppLocalizationsMs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String siriShortcutsSetupHint(String askPhrase, String questionPhrase) {
+    return 'Hidupkan Omi dalam Pintasan → Siri. Katakan “$askPhrase” atau “$questionPhrase”, kemudian ajukan soalan anda.';
+  }
+
+  @override
+  String siriShortcutsSearchHint(String searchPhrase) {
+    return ' Anda juga boleh katakan “$searchPhrase for what I did today”.';
+  }
+
+  @override
+  String get updateAvailableTitle => 'Kemas kini tersedia';
+
+  @override
+  String get updateAvailableMessage => 'Versi baharu Omi sudah sedia, dengan pembetulan dan penambahbaikan.';
+
+  @override
+  String get updateRequiredTitle => 'Kemas kini diperlukan';
+
+  @override
+  String get updateRequiredMessage =>
+      'Versi Omi ini tidak lagi disokong. Kemas kini untuk terus merakam dan menyegerakkan.';
+
+  @override
+  String get exportingAllData =>
+      'Mengeksport data anda… Biarkan Omi terbuka; akaun besar mungkin mengambil masa beberapa minit.';
+
+  @override
+  String transcriptSpeakerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count penutur',
+      one: '1 penutur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get autoRemoveSyncedCopiesTitle => 'Buang Salinan Tersegerak Secara Automatik';
+
+  @override
+  String autoRemoveSyncedCopiesDays(int days) {
+    return 'Salinan tersegerak dipadam selepas $days hari';
+  }
+
+  @override
+  String autoRemoveSyncedCopiesDescription(int days) {
+    return 'Memadam salinan setempat $days hari selepas segerak. Salinan awan dikekalkan.';
+  }
+
+  @override
+  String get localCopiesSection => 'Salinan Setempat';
+
+  @override
+  String speakerLabelLinesLabeled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count baris dilabel',
+      one: '1 baris dilabel',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakerLabelVoiceStatus(String state) {
+    String _temp0 = intl.Intl.selectLogic(
+      state,
+      {
+        'learned': 'Suara dipelajari',
+        'pending': 'Mempelajari suara…',
+        'disabled': 'Penyimpanan suara dimatikan',
+        'other': 'Suara belum dipelajari',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakerLabelVoiceDetail(String state, String name) {
+    String _temp0 = intl.Intl.selectLogic(
+      state,
+      {
+        'learned': 'Omi akan mengecam $name pada masa akan datang.',
+        'pending': 'Ini mengambil masa beberapa saat.',
+        'disabled': 'Hidupkan penyimpanan suara dalam Tetapan supaya Omi dapat mengecam $name.',
+        'other': 'Omi memerlukan lebih banyak pertuturan yang jelas daripada $name dan akan terus mencuba.',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakerLabelEarlierMatches(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ditemui dalam $count perbualan terdahulu',
+      one: 'Ditemui dalam 1 perbualan terdahulu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakerLabelText(String part, String name) {
+    String _temp0 = intl.Intl.selectLogic(
+      part,
+      {
+        'likely': 'Mungkin',
+        'soundsLike': 'Kedengaran seperti $name',
+        'notPerson': 'Bukan $name',
+        'carried': 'Masih $name. Dibawa daripada perbualan terakhir anda.',
+        'change': 'Tukar',
+        'alsoTitle': 'Adakah ini juga $name?',
+        'alsoBody': 'Omi menemui suara yang sama dalam perbualan terdahulu.',
+        'confirmed': 'Anda telah mengesahkan label ini',
+        'other': 'Semak',
+      },
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String speakerLabelTalkTime(String duration) {
+    return '$duration daripada suara ini';
+  }
+
+  @override
+  String get findDeviceNoneTitle => 'Tiada Omi Ditemui';
+
+  @override
+  String get findDeviceNoneMessage => 'Hidupkannya dan pegang berhampiran telefon anda.';
+
+  @override
+  String get startupFailedDetails => 'Butiran';
+
+  @override
+  String get couldNotLoadApiKeys => 'Tidak dapat memuatkan kunci API.';
+
+  @override
+  String get speakerTagPromptNoAction => 'Tidak…';
+
+  @override
+  String get diagnosticsRightNow => 'Sekarang';
+
+  @override
+  String get diagnosticsLast7Days => '7 Hari Lepas';
+
+  @override
+  String get diagnosticsConnectedFor => 'Disambungkan selama';
+
+  @override
+  String get diagnosticsVerdictReconnects => 'Bersambung semula sendiri';
+
+  @override
+  String diagnosticsVerdictReconnectsDetail(String duration) {
+    return 'Terputus seketika, kembali dalam kira-kira $duration setiap kali';
+  }
+
+  @override
+  String get diagnosticsVerdictNoDrops => 'Tiada pemutusan minggu ini';
+
+  @override
+  String get diagnosticsVerdictTrouble => 'Menghadapi masalah sambungan';
+
+  @override
+  String diagnosticsVerdictTroubleDetail(int count) {
+    return 'Sambungan gagal dalam 24 jam lepas: $count';
+  }
+
+  @override
+  String get diagnosticsDrops => 'Pemutusan';
+
+  @override
+  String diagnosticsDropsPerHour(int count) {
+    return 'kira-kira $count sejam';
+  }
+
+  @override
+  String get diagnosticsLongestGap => 'Jurang terpanjang';
+
+  @override
+  String diagnosticsSincePairingSummary(int drops, int failed) {
+    return 'Sejak pemasangan: $drops pemutusan, $failed sambungan gagal.';
+  }
+
+  @override
+  String diagnosticsLastDuration(String duration) {
+    return '$duration lepas';
+  }
+
+  @override
+  String get chatReplyOffline => 'Tidak dapat menyambung. Semak sambungan anda dan cuba lagi.';
+
+  @override
+  String get chatReplyServerError => 'Sesuatu telah berlaku di pihak kami. Sila cuba lagi.';
+
+  @override
+  String get chatReplyTimeout => 'Respons mengambil masa terlalu lama. Sila cuba lagi.';
+
+  @override
+  String get chatReplyNotSignedIn => 'Anda belum log masuk. Log masuk dan cuba lagi.';
+
+  @override
+  String get chatAppsLoadFailed => 'Tidak dapat memuatkan aplikasi sembang. Sila cuba lagi.';
+
+  @override
+  String get assistantVoiceSettingsTitle => 'Suara';
+
+  @override
+  String get assistantVoice => 'Suara Pembantu';
+
+  @override
+  String get voiceSharedAcrossDevices => 'Pilihan suara anda dikongsi merentas mudah alih dan desktop.';
+
+  @override
+  String get readChatRepliesAloud => 'Baca balasan sembang dengan kuat';
+
+  @override
+  String get readChatRepliesAloudDescription => 'Hanya bercakap apabila Respons Suara membenarkannya.';
+
+  @override
+  String get voicePreviewSample => 'Hai, saya Omi. Ini suara saya.';
+
+  @override
+  String get peopleStatsIncomplete => 'Kiraan mungkin tidak lengkap.';
+
+  @override
+  String get previousDay => 'Hari sebelumnya';
+
+  @override
+  String get nextDay => 'Hari berikutnya';
+
+  @override
+  String noTasksOnDate(Object date) {
+    return 'Tiada tugas pada $date';
+  }
+
+  @override
+  String get reprocessingConversationProgress => 'Memproses semula perbualan…';
+
+  @override
+  String get conversationReprocessed => 'Perbualan dikemas kini';
+
+  @override
+  String get loadingTranscript => 'Memuatkan transkrip…';
+
+  @override
+  String get transcriptLoadFailed => 'Tidak dapat memuatkan transkrip.';
+
+  @override
+  String get processingConversationProgress => 'Memproses perbualan…';
+
+  @override
+  String get conversationProcessingFailedMessage => 'Perbualan ini tidak dapat diproses.';
+
+  @override
+  String get waitForReprocessing => 'Tunggu sehingga pemprosesan semula selesai.';
+
+  @override
+  String get unnamedSpeakerLabel => 'Penceramah';
+
+  @override
+  String get unresolvedSpeakersNotice => 'Pembicara tidak dipisahkan merentasi rakaman.';
+
+  @override
+  String get unresolvedSpeakersTitle => 'Perihal Label Pembicara';
+
+  @override
+  String get unresolvedSpeakersMessage =>
+      'Omi tidak dapat membezakan suara lain merentasi rakaman. Ketik label pembicara untuk menamakan siapa yang bercakap.';
+
+  @override
+  String get nameSpeakerTitle => 'Namakan Pembicara';
+
+  @override
+  String get playbackPreparingAudio => 'Menyediakan Audio…';
+
+  @override
+  String get playbackBackToCurrent => 'Kembali ke Semasa';
+
+  @override
+  String get playbackAudioUnavailable => 'Audio Tidak Tersedia';
+
+  @override
+  String get playbackAudioLoadFailed => 'Audio Tidak Dapat Dimuatkan';
+
+  @override
+  String get playbackAudioNetworkFailed => 'Semak Sambungan';
+
+  @override
+  String get forYou => 'Untuk Anda';
+
+  @override
+  String get stopThese => 'Hentikan Ini';
+
+  @override
+  String get dismiss => 'Tutup';
+
+  @override
+  String get showOnLockScreen => 'Tunjukkan pada skrin kunci';
+
+  @override
+  String get accountDeletionInProgressSignInAgain =>
+      'Akaun ini sedang dipadamkan. Log masuk dengan akaun lain, atau tunggu beberapa minit dan cuba lagi.';
+
+  @override
+  String get onboardingSetupTitle => 'Menyediakan Omi anda';
+
+  @override
+  String get onboardingSetupSubtitle => 'Beri Omi sedikit masa untuk memperibadikan';
+
+  @override
+  String get onboardingSetupStepWorkspace => 'Menyediakan ruang kerja anda';
+
+  @override
+  String get onboardingSetupStepLanguage => 'Menala transkripsi mengikut bahasa anda';
+
+  @override
+  String get onboardingSetupStepMemory => 'Menyediakan memori anda';
+
+  @override
+  String get onboardingSetupStepDevices => 'Menyambungkan peranti anda';
+
+  @override
+  String get onboardingSetupStepPersonalize => 'Memperibadikan pengalaman anda';
+
+  @override
+  String get onboardingRatingPromptTitle => 'Sementara menunggu, adakah Omi menyenangkan untuk digunakan?';
+
+  @override
+  String get onboardingRatingPromptBody => 'Memberi kami 5 bintang sangat membantu kami ❤️';
+
+  @override
+  String get onboardingRatingPromptYes => 'Ya, saya mahu menyokong anda!';
+
+  @override
+  String get onboardingRatingPromptNo => 'Tidak begitu';
 }

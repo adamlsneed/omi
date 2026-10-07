@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +13,7 @@ import 'package:omi/backend/schema/memory.dart';
 import 'package:omi/backend/schema/structured.dart';
 import 'package:omi/gen/siri_pigeon.g.dart';
 import 'package:omi/services/siri_integration.dart';
+import 'package:omi/utils/analytics/analytics_manager.dart';
 import 'package:omi/utils/analytics/registry/events.g.dart' as siri_events;
 
 class RecordingSiriHost extends SiriIndexApi {
@@ -206,10 +208,120 @@ class _CooldownHost extends RecordingSiriHost {
   Future<List<SiriTelemetryRecord>> takeTelemetry() async => [];
 }
 
+class _TelemetryDrainHost extends SiriIndexApi {
+  _TelemetryDrainHost(this.pending);
+
+  final List<SiriTelemetryRecord> pending;
+  int takes = 0;
+
+  @override
+  Future<List<SiriTelemetryRecord>> takeTelemetry() async {
+    takes++;
+    final rows = List<SiriTelemetryRecord>.of(pending);
+    pending.clear();
+    return rows;
+  }
+}
+
+class _PendingRouteHost extends SiriIndexApi {
+  SiriPendingRoute? pending;
+  final acknowledgments = <bool>[];
+
+  @override
+  Future<SiriPendingRoute?> takePendingRoute() async => pending;
+
+  @override
+  Future<void> finishPendingRoute(String route, String uid, int generation, bool delivered) async {
+    expect((route, uid, generation), (pending?.route, pending?.uid, pending?.generation));
+    acknowledgments.add(delivered);
+    if (delivered) pending = null;
+  }
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('pending Spotlight route is acknowledged only after its exact owner route opens', () async {
+    final host = _PendingRouteHost()
+      ..pending = SiriPendingRoute(route: '/conversation/c-1', uid: 'owner-a', generation: 4);
+    final seen = <(String, String, int)>[];
+    var delivered = false;
+    final siri = SiriIntegration.forTest(
+      host,
+      'owner-a',
+      routeOpener: (route, uid, generation) async {
+        seen.add((route, uid, generation));
+        return delivered;
+      },
+    );
+
+    await siri.deliverPendingRoute();
+    expect(host.acknowledgments, [false]);
+    expect(host.pending, isNotNull);
+    delivered = true;
+    await siri.deliverPendingRoute();
+    expect(host.acknowledgments, [false, true]);
+    expect(host.pending, isNull);
+    expect(seen, [('/conversation/c-1', 'owner-a', 4), ('/conversation/c-1', 'owner-a', 4)]);
+  });
+
   test('native openChat telemetry maps to the registered Siri intent', () {
     final intent = siri_events.SiriIntentPerformedIntent.values.singleWhere((value) => value.name == 'openChat');
     expect(intent.wireName, 'open_chat');
+    expect(siri_events.SiriIntentPerformedInvokedVia.appIntent.wireName, 'app_intent');
+    expect(siri_events.SiriIntentPerformedInvokedVia.userActivity.wireName, 'user_activity');
+  });
+
+  test('launch telemetry drain waits for the analytics identity bind', () async {
+    AnalyticsManager.resetForTesting();
+    addTearDown(AnalyticsManager.resetForTesting);
+    final host = _TelemetryDrainHost([
+      SiriTelemetryRecord(
+        kind: 'intent',
+        intent: 'askOmi',
+        outcome: 'ok',
+        latencyMs: 5,
+        entityCounts: 0,
+        entryPath: 'unknown',
+      ),
+    ]);
+    final siri = SiriIntegration.forTest(host, 'owner-a');
+
+    expect(AnalyticsManager.identityKnown, isFalse, reason: 'cold start must begin unbound');
+    siri.installEvents();
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      host.takes,
+      0,
+      reason: 'the destructive native drain must not run before identity binding'
+          ' would discard the emitted events',
+    );
+
+    AnalyticsManager().bindIdentity('owner-a');
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(host.takes, 1, reason: 'the buffered launch telemetry drains once identity is bound');
+  });
+
+  test('launch telemetry drains immediately when identity is already bound', () async {
+    AnalyticsManager.resetForTesting();
+    addTearDown(AnalyticsManager.resetForTesting);
+    AnalyticsManager().bindIdentity('owner-a');
+    final host = _TelemetryDrainHost([
+      SiriTelemetryRecord(
+        kind: 'intent',
+        intent: 'askOmi',
+        outcome: 'ok',
+        latencyMs: 5,
+        entityCounts: 0,
+        entryPath: 'unknown',
+      ),
+    ]);
+    final siri = SiriIntegration.forTest(host, 'owner-a');
+
+    siri.installEvents();
+    await Future<void>.delayed(Duration.zero);
+    expect(host.takes, 1);
   });
 
   test('removal repair retries keep a capped interval without a terminal attempt', () {
@@ -271,52 +383,63 @@ void main() {
     );
   });
 
-  test('latest authoritative reconciliation for each type survives cooldown', () async {
-    final host = _CooldownHost();
-    final date = DateTime.now();
-    addTearDown(() => host.firstDelete.complete());
-    final siri = SiriIntegration.forTest(
-      host,
-      'owner-a',
-      nativeTimeout: const Duration(milliseconds: 20),
-      indexCooldown: const Duration(milliseconds: 80),
-    );
-    siri.queueDelete('memory', 'trigger-timeout');
-    await siri.drainIndexForTest();
-    Memory memory(String id) => Memory(
-      id: id,
-      uid: 'owner-a',
-      content: id,
-      category: MemoryCategory.manual,
-      createdAt: date,
-      updatedAt: date,
-      visibility: MemoryVisibility.private,
-    );
-    ActionItemWithMetadata task(String id) =>
-        ActionItemWithMetadata(id: id, description: id, completed: false, createdAt: date);
-    ServerConversation conversation(String id) => ServerConversation(
-      id: id,
-      createdAt: date,
-      structured: Structured(id, id),
-      status: ConversationStatus.completed,
-    );
-    await siri.reconcileMemories([memory('obsolete')]);
-    await siri.reconcileMemories([memory('current')]);
-    await siri.reconcileTasks([task('obsolete')], includeCompleted: true);
-    await siri.reconcileTasks([task('current')], includeCompleted: true);
-    await siri.reconcileConversations([conversation('obsolete')]);
-    await siri.reconcileConversations([conversation('current')]);
-    expect(host.memoryReconciles, 0);
-    expect(host.taskReconciles, 0);
-    expect(host.conversationReconciles, 0);
-    await Future<void>.delayed(const Duration(milliseconds: 130));
-    await siri.drainIndexForTest();
-    expect(host.memories.map((row) => row.id), ['current']);
-    expect(host.tasks.map((row) => row.id), ['current']);
-    expect(host.conversations.map((row) => row.id), ['current']);
-    expect(host.memoryReconciles, 1);
-    expect(host.taskReconciles, 1);
-    expect(host.conversationReconciles, 1);
+  test('latest authoritative reconciliation for each type survives cooldown', () {
+    fakeAsync((time) {
+      final host = _CooldownHost();
+      final date = DateTime.now();
+      final siri = SiriIntegration.forTest(
+        host,
+        'owner-a',
+        nativeTimeout: const Duration(milliseconds: 20),
+        indexCooldown: const Duration(milliseconds: 80),
+      );
+      siri.queueDelete('memory', 'trigger-timeout');
+      time.flushMicrotasks();
+      time.elapse(const Duration(milliseconds: 20));
+      Memory memory(String id) => Memory(
+            id: id,
+            uid: 'owner-a',
+            content: id,
+            category: MemoryCategory.manual,
+            createdAt: date,
+            updatedAt: date,
+            visibility: MemoryVisibility.private,
+          );
+      ActionItemWithMetadata task(String id) =>
+          ActionItemWithMetadata(id: id, description: id, completed: false, createdAt: date);
+      ServerConversation conversation(String id) => ServerConversation(
+            id: id,
+            createdAt: date,
+            structured: Structured(id, id),
+            status: ConversationStatus.completed,
+          );
+      unawaited(siri.reconcileMemories([memory('obsolete')]));
+      time.flushMicrotasks();
+      unawaited(siri.reconcileMemories([memory('current')]));
+      time.flushMicrotasks();
+      unawaited(siri.reconcileTasks([task('obsolete')], includeCompleted: true));
+      time.flushMicrotasks();
+      unawaited(siri.reconcileTasks([task('current')], includeCompleted: true));
+      time.flushMicrotasks();
+      unawaited(siri.reconcileConversations([conversation('obsolete')]));
+      time.flushMicrotasks();
+      unawaited(siri.reconcileConversations([conversation('current')]));
+      time.flushMicrotasks();
+      expect(host.memoryReconciles, 0);
+      expect(host.taskReconciles, 0);
+      expect(host.conversationReconciles, 0);
+      // Advance timers and the cooldown clock together, without CI scheduling races.
+      time.elapse(const Duration(milliseconds: 130));
+      time.flushMicrotasks();
+      expect(host.memories.map((row) => row.id), ['current']);
+      expect(host.tasks.map((row) => row.id), ['current']);
+      expect(host.conversations.map((row) => row.id), ['current']);
+      expect(host.memoryReconciles, 1);
+      expect(host.taskReconciles, 1);
+      expect(host.conversationReconciles, 1);
+      host.firstDelete.complete();
+      time.flushMicrotasks();
+    });
   });
 
   test('removal ledger cap requests an owner repair and fresh traversal', () async {
@@ -676,12 +799,13 @@ void main() {
       String id,
       int ageDays, {
       ConversationStatus status = ConversationStatus.completed,
-    }) => ServerConversation(
-      id: id,
-      createdAt: now.subtract(Duration(days: ageDays)),
-      structured: Structured('Title $id', 'Summary $id'),
-      status: status,
-    );
+    }) =>
+        ServerConversation(
+          id: id,
+          createdAt: now.subtract(Duration(days: ageDays)),
+          structured: Structured('Title $id', 'Summary $id'),
+          status: status,
+        );
 
     await siri.upsertConversations([
       conversation('older', 10),
@@ -708,20 +832,21 @@ void main() {
       DateTime? invalidAt,
       DateTime? expiresAt,
       MemoryLayer? layer = MemoryLayer.longTerm,
-    }) => Memory(
-      id: id,
-      uid: 'owner-b',
-      content: 'Content $id',
-      category: MemoryCategory.manual,
-      createdAt: now.subtract(Duration(days: ageDays)),
-      updatedAt: now,
-      visibility: MemoryVisibility.private,
-      deleted: deleted,
-      invalidAt: invalidAt,
-      expiresAt: expiresAt,
-      layer: layer,
-      layerIsExplicit: true,
-    );
+    }) =>
+        Memory(
+          id: id,
+          uid: 'owner-b',
+          content: 'Content $id',
+          category: MemoryCategory.manual,
+          createdAt: now.subtract(Duration(days: ageDays)),
+          updatedAt: now,
+          visibility: MemoryVisibility.private,
+          deleted: deleted,
+          invalidAt: invalidAt,
+          expiresAt: expiresAt,
+          layer: layer,
+          layerIsExplicit: true,
+        );
 
     await siri.upsertMemories([
       memory('older', 10),
@@ -762,12 +887,12 @@ void main() {
     final host = RecordingSiriHost();
     final siri = SiriIntegration.forTest(host, 'owner-c');
     ActionItemWithMetadata task(String id, bool completed, DateTime? completedAt) => ActionItemWithMetadata(
-      id: id,
-      description: 'Task $id',
-      completed: completed,
-      createdAt: now.subtract(const Duration(days: 45)),
-      completedAt: completedAt,
-    );
+          id: id,
+          description: 'Task $id',
+          completed: completed,
+          createdAt: now.subtract(const Duration(days: 45)),
+          completedAt: completedAt,
+        );
 
     await siri.upsertTasks([
       task('active', false, null),
@@ -801,25 +926,26 @@ void main() {
       DateTime? invalidAt,
       String? ledgerStatus,
       String? supersededBy,
-    }) => Memory(
-      id: 'memory',
-      uid: 'owner',
-      content: 'Visible',
-      category: MemoryCategory.manual,
-      createdAt: date,
-      updatedAt: now,
-      visibility: MemoryVisibility.private,
-      deleted: deleted,
-      isDismissed: dismissed,
-      isLocked: locked,
-      siriVisibilityValid: siriVisibilityValid,
-      userReview: userReview,
-      layer: layer,
-      layerIsExplicit: layerIsExplicit,
-      invalidAt: invalidAt,
-      ledgerStatus: ledgerStatus,
-      supersededBy: supersededBy,
-    );
+    }) =>
+        Memory(
+          id: 'memory',
+          uid: 'owner',
+          content: 'Visible',
+          category: MemoryCategory.manual,
+          createdAt: date,
+          updatedAt: now,
+          visibility: MemoryVisibility.private,
+          deleted: deleted,
+          isDismissed: dismissed,
+          isLocked: locked,
+          siriVisibilityValid: siriVisibilityValid,
+          userReview: userReview,
+          layer: layer,
+          layerIsExplicit: layerIsExplicit,
+          invalidAt: invalidAt,
+          ledgerStatus: ledgerStatus,
+          supersededBy: supersededBy,
+        );
     final memoryCases = <(String, Memory, bool)>[
       ('eligible', memory(), true),
       ('empty id', memory()..id = '', false),
@@ -852,16 +978,17 @@ void main() {
       bool siriVisibilityValid = true,
       ConversationStatus status = ConversationStatus.completed,
       DateTime? createdAt,
-    }) => ServerConversation(
-      id: id,
-      createdAt: createdAt ?? date,
-      structured: Structured('Title', 'Summary'),
-      deleted: deleted,
-      discarded: discarded,
-      isLocked: locked,
-      siriVisibilityValid: siriVisibilityValid,
-      status: status,
-    );
+    }) =>
+        ServerConversation(
+          id: id,
+          createdAt: createdAt ?? date,
+          structured: Structured('Title', 'Summary'),
+          deleted: deleted,
+          discarded: discarded,
+          isLocked: locked,
+          siriVisibilityValid: siriVisibilityValid,
+          status: status,
+        );
     final conversationCases = <(String, ServerConversation, bool)>[
       ('eligible', conversation(), true),
       ('empty id', conversation(id: ''), false),
@@ -901,16 +1028,17 @@ void main() {
       String status = 'active',
       String? supersededBy,
       DateTime? completedAt,
-    }) => ActionItemWithMetadata(
-      id: id,
-      description: 'Visible',
-      createdAt: date,
-      completed: completed,
-      completedAt: completedAt,
-      isLocked: locked,
-      status: status,
-      supersededBy: supersededBy,
-    );
+    }) =>
+        ActionItemWithMetadata(
+          id: id,
+          description: 'Visible',
+          createdAt: date,
+          completed: completed,
+          completedAt: completedAt,
+          isLocked: locked,
+          status: status,
+          supersededBy: supersededBy,
+        );
     final taskCases = <(String, ActionItemWithMetadata, bool)>[
       ('eligible', task(), true),
       (

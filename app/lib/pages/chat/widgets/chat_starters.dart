@@ -30,12 +30,11 @@ class ChatGreeting extends StatelessWidget {
     final greeting = h < 12
         ? l10n.greetingMorning
         : h < 18
-        ? l10n.greetingAfternoon
-        : l10n.greetingEvening;
+            ? l10n.greetingAfternoon
+            : l10n.greetingEvening;
     final heading = OmiType.title1.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.7, height: 1.2);
     final hello = name.trim().isEmpty ? greeting : l10n.greetingWithName(greeting, name.trim());
-    final count =
-        todayCount ??
+    final count = todayCount ??
         context.select<ConversationProvider?, int>(
           (provider) => countConversationsForLocalDay(provider?.conversations ?? const [], DateTime.now()),
         );
@@ -50,11 +49,14 @@ class ChatGreeting extends StatelessWidget {
               key: const Key('chat_greeting_rise'),
               child: Semantics(header: true, child: Text('$hello.', style: heading)),
             ),
-            ChatRise(
-              key: const Key('chat_count_rise'),
-              interval: ChatIntro.countLine,
-              child: _ConversationCount(count: count, style: heading),
-            ),
+            // "No conversations today." is a status line, not a greeting, and reads wrong early in
+            // the day; the count line appears only once there is something to count.
+            if (count > 0)
+              ChatRise(
+                key: const Key('chat_count_rise'),
+                interval: ChatIntro.countLine,
+                child: _ConversationCount(count: count, style: heading),
+              ),
             const SizedBox(height: 10),
             ChatRise(
               key: const Key('chat_question_rise'),
@@ -87,10 +89,10 @@ class _ConversationCount extends StatelessWidget {
     final animation = ChatEntrance.animationOf(context);
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     Widget label(double progress) => Text(
-      l10n.conversationsTodayCount((count * progress).round()),
-      key: const Key('chat_today_count'),
-      style: style.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-    );
+          l10n.conversationsTodayCount((count * progress).round()),
+          key: const Key('chat_today_count'),
+          style: style.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+        );
     return Semantics(
       label: l10n.conversationsTodayCount(count),
       excludeSemantics: true,

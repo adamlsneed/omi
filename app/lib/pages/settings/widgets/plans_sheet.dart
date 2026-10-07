@@ -230,16 +230,10 @@ class _PlansSheetState extends State<PlansSheet> {
     final plans = availablePlans['plans'] as List;
     final tierId = selectedTierId;
 
-    // Find the matching plan: match tier + billing period
-    Map<String, dynamic>? selectedPlanData;
-    if (tierId != null) {
-      selectedPlanData = plans.cast<Map<String, dynamic>>().firstWhereOrNull(
-        (plan) => plan['plan_id'] == tierId && plan['interval'] == (isYearly ? 'year' : 'month'),
-      );
-    }
-    // Fallback to old behavior (first plan matching interval) for backwards compat
-    selectedPlanData ??= plans.cast<Map<String, dynamic>>().firstWhereOrNull(
-      (plan) => plan['interval'] == (isYearly ? 'year' : 'month'),
+    final selectedPlanData = planForCheckout(
+      plans.cast<Map<String, dynamic>>(),
+      interval: isYearly ? 'year' : 'month',
+      selectedTierId: tierId,
     );
 
     if (selectedPlanData == null) {
@@ -529,8 +523,6 @@ class _PlansSheetState extends State<PlansSheet> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const ExcludeSemantics(child: FaIcon(FontAwesomeIcons.crown, color: Colors.amber, size: 20)),
-                          const SizedBox(width: OmiSpacing.xs),
                           Flexible(
                             child: Semantics(
                               header: true,
@@ -633,6 +625,7 @@ class _PlansSheetState extends State<PlansSheet> {
                         selectedTierId: selectedTierId,
                         currentTierId: sub?.plan.wireName,
                         currentGrantsDesktop: sub?.plan.grantsDesktop ?? false,
+                        selectedPriceIsCurrent: _selectedPriceIsCurrent(provider.availablePlans),
                       ))
                         // For basic users, show "Upgrade". For paid users upgrading, show "Continue".
                         _primaryAction(
@@ -715,9 +708,9 @@ class _PlansSheetState extends State<PlansSheet> {
 
   Widget _buildPromoCodeField() {
     OutlineInputBorder border(Color color) => OutlineInputBorder(
-      borderRadius: OmiRadius.mdAll,
-      borderSide: BorderSide(color: color),
-    );
+          borderRadius: OmiRadius.mdAll,
+          borderSide: BorderSide(color: color),
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -792,6 +785,19 @@ class _PlansSheetState extends State<PlansSheet> {
 
   AppLocalizations get l10n => context.l10n;
 
+  /// Whether the selected tier and billing period is the price the user already pays (or has
+  /// scheduled), so there is nothing to switch to.
+  bool _selectedPriceIsCurrent(Map<String, dynamic>? availablePlans) {
+    final plans = (availablePlans?['plans'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final interval = selectedPlan == 'yearly' ? 'year' : 'month';
+    return plans.any(
+      (plan) =>
+          (selectedTierId == null || plan['plan_id'] == selectedTierId) &&
+          plan['interval'] == interval &&
+          plan['is_active'] == true,
+    );
+  }
+
   /// Groups available plans by plan_id and shows one card per tier.
   Widget _buildTierPlanCards({required Map<String, dynamic> availablePlans}) {
     final plans = (availablePlans['plans'] as List).cast<Map<String, dynamic>>();
@@ -817,13 +823,16 @@ class _PlansSheetState extends State<PlansSheet> {
         return (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
       });
 
-    // Auto-select current plan's tier, or first tier if none selected
-    if (selectedTierId == null) {
-      final activeTier = sortedTierIds.firstWhereOrNull((tid) => grouped[tid]!.any((p) => p['is_active'] == true));
-      selectedTierId = activeTier ?? sortedTierIds.first;
-    }
-
     final isYearly = selectedPlan == 'yearly';
+    final interval = isYearly ? 'year' : 'month';
+
+    // A tier with no price for this billing period renders no card, so it cannot stay selected.
+    // Select the current plan's tier, or the first tier, among those shown for this period.
+    final visibleTierIds = sortedTierIds.where((tid) => grouped[tid]!.any((p) => p['interval'] == interval)).toList();
+    if (visibleTierIds.isNotEmpty && !visibleTierIds.contains(selectedTierId)) {
+      final activeTier = visibleTierIds.firstWhereOrNull((tid) => grouped[tid]!.any((p) => p['is_active'] == true));
+      selectedTierId = activeTier ?? visibleTierIds.first;
+    }
     final subPlans = context.read<UsageProvider>().subscription?.availablePlans ?? [];
 
     return Column(
@@ -920,7 +929,7 @@ class _PlansSheetState extends State<PlansSheet> {
       title: planData['title'] as String,
       subtitle: interval == 'year' ? l10n.annualBillingSummary(12, '\$${unitAmount / 100}') : null,
       price: planData['price_string'] as String,
-      onTap: isActive ? () {} : onTap,
+      onTap: onTap,
       isActive: isActive && !isCancelled,
       endsOnDate: endsOnDate,
       featureSummary: featureSummary,

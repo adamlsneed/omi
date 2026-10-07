@@ -68,18 +68,18 @@ class _Syncs {
 
 class _TrackingCaptureProvider extends CaptureProvider {
   _TrackingCaptureProvider()
-    : super(
-        walService: _Wal(),
-        processInProgressConversation: () => Completer<CreateConversationResponse?>().future,
-        connectivity: CaptureConnectivityBoundary(
-          initiallyConnected: true,
-          changes: const Stream.empty(),
-          isConnected: () => true,
-        ),
-        bleListeners: _NoopBle(),
-        inProgressConversationLoader: () async {},
-        localSegmentStore: LocalSegmentStore.disabled(),
-      );
+      : super(
+          walService: _Wal(),
+          processInProgressConversation: () => Completer<CreateConversationResponse?>().future,
+          connectivity: CaptureConnectivityBoundary(
+            initiallyConnected: true,
+            changes: const Stream.empty(),
+            isConnected: () => true,
+          ),
+          bleListeners: _NoopBle(),
+          inProgressConversationLoader: () async {},
+          localSegmentStore: LocalSegmentStore.disabled(),
+        );
 
   var forceProcessingCalls = 0;
 
@@ -172,17 +172,13 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              getProcessingConversationsWidget([
-                ServerConversation(
-                  id: '0',
-                  createdAt: DateTime.utc(2026),
-                  structured: Structured('', '', emoji: ''),
-                  status: ConversationStatus.processing,
-                ),
-              ]),
-            ],
+          body: ProcessingConversationWidget(
+            conversation: ServerConversation(
+              id: '0',
+              createdAt: DateTime.utc(2026),
+              structured: Structured('', '', emoji: ''),
+              status: ConversationStatus.processing,
+            ),
           ),
         ),
       ),

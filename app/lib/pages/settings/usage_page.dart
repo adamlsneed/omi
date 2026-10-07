@@ -276,12 +276,12 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
   }
 
   bool _hasCachedUsage(UsageProvider provider, String period) => switch (period) {
-    'today' => provider.todayUsage != null,
-    'monthly' => provider.monthlyUsage != null,
-    'yearly' => provider.yearlyUsage != null,
-    'all_time' => provider.allTimeUsage != null,
-    _ => false,
-  };
+        'today' => provider.todayUsage != null,
+        'monthly' => provider.monthlyUsage != null,
+        'yearly' => provider.yearlyUsage != null,
+        'all_time' => provider.allTimeUsage != null,
+        _ => false,
+      };
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -342,11 +342,11 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
   }
 
   Widget _periodSegment(String label) => SizedBox(
-    height: 44,
-    child: Center(
-      child: Text(label, maxLines: 1, style: OmiType.footnote.copyWith(fontWeight: FontWeight.w600)),
-    ),
-  );
+        height: 44,
+        child: Center(
+          child: Text(label, maxLines: 1, style: OmiType.footnote.copyWith(fontWeight: FontWeight.w600)),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -389,8 +389,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
       ),
       body: Consumer<UsageProvider>(
         builder: (context, provider, child) {
-          final hasAnyData =
-              provider.todayUsage != null ||
+          final hasAnyData = provider.todayUsage != null ||
               provider.monthlyUsage != null ||
               provider.yearlyUsage != null ||
               provider.allTimeUsage != null;
@@ -405,8 +404,11 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
           }
 
           if (provider.error != null && !hasAnyData) {
+            // Usage data failed to load, but plan management/cancellation must stay
+            // reachable whenever subscription data did load (see #20621).
             return Column(
               children: [
+                if (provider.subscription != null) _buildSubscriptionInfo(context, provider),
                 _buildFairUseBanner(),
                 Expanded(
                   child: OmiErrorState(
@@ -627,8 +629,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
 
     final l10n = context.l10n;
     final format = NumberFormat.decimalPattern(l10n.localeName);
-    final zero =
-        stats == null ||
+    final zero = stats == null ||
         (stats.transcriptionSeconds == 0 &&
             stats.wordsTranscribed == 0 &&
             stats.insightsGained == 0 &&
@@ -732,12 +733,12 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
                   after: ' ${l10n.forUnlimitedFreeTranscription}',
                 )
               : ratio >= .8
-              ? _OnDeviceHint(
-                  before: '${l10n.premiumMinsLeft(limit - used)} ',
-                  link: l10n.onDevice,
-                  after: ' ${l10n.alwaysAvailable}',
-                )
-              : null,
+                  ? _OnDeviceHint(
+                      before: '${l10n.premiumMinsLeft(limit - used)} ',
+                      link: l10n.onDevice,
+                      after: ' ${l10n.alwaysAvailable}',
+                    )
+                  : null,
         ),
       );
     }

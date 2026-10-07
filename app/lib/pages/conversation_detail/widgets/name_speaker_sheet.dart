@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 import 'package:provider/provider.dart';
 
+import 'package:omi/backend/http/api/speaker_labels.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/message_event.dart';
 import 'package:omi/backend/schema/person.dart';
@@ -11,7 +12,6 @@ import 'package:omi/pages/settings/people.dart';
 import 'package:omi/utils/other/temp.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/providers/people_provider.dart';
-import 'package:omi/widgets/person_chip.dart';
 import 'package:omi/ui/ui.dart';
 
 /// Number of people (excluding the synthetic "You" row) above which the
@@ -139,14 +139,17 @@ Future<void> showNameSpeakerSheet(
     String personName,
     List<String> segmentIds,
     bool applyToSpeaker,
-  )
-  onSpeakerAssigned,
+  ) onSpeakerAssigned,
   SpeakerLabelSuggestionEvent? suggestion,
   bool defaultApplyToSpeaker = false,
+  Future<bool> Function(SpeakerRejection kind)? onSpeakerRejected,
+  bool unresolvedSpeakers = false,
 }) {
   return showOmiSheet<void>(
     context: context,
-    title: context.l10n.tagSpeaker(TranscriptSegment.getDisplaySpeakerId(speakerId, segments)),
+    title: unresolvedSpeakers
+        ? context.l10n.nameSpeakerTitle
+        : context.l10n.tagSpeaker(TranscriptSegment.getDisplaySpeakerId(speakerId, segments)),
     builder: (_) => NameSpeakerBottomSheet(
       speakerId: speakerId,
       segmentId: segmentId,
@@ -154,6 +157,8 @@ Future<void> showNameSpeakerSheet(
       suggestion: suggestion,
       defaultApplyToSpeaker: defaultApplyToSpeaker,
       onSpeakerAssigned: onSpeakerAssigned,
+      onSpeakerRejected: onSpeakerRejected,
+      feedbackContext: context,
     ),
   );
 }
@@ -167,11 +172,18 @@ class NameSpeakerBottomSheet extends StatefulWidget {
     String personName,
     List<String> segmentIds,
     bool applyToSpeaker,
-  )
-  onSpeakerAssigned;
+  ) onSpeakerAssigned;
   final List<TranscriptSegment> segments;
   final SpeakerLabelSuggestionEvent? suggestion;
   final bool defaultApplyToSpeaker;
+
+  /// Says the current label is wrong without naming who it is: "Not Me", "Not <name>",
+  /// "Not a Person". Null hides those answers (the live transcript).
+  final Future<bool> Function(SpeakerRejection kind)? onSpeakerRejected;
+
+  /// The page that opened the sheet: its toasts land there once the sheet closes, so they keep the
+  /// page's clearance above a pinned bottom action ([OmiFeedbackClearance]).
+  final BuildContext? feedbackContext;
 
   const NameSpeakerBottomSheet({
     super.key,
@@ -181,6 +193,8 @@ class NameSpeakerBottomSheet extends StatefulWidget {
     required this.segments,
     this.suggestion,
     this.defaultApplyToSpeaker = false,
+    this.feedbackContext,
+    this.onSpeakerRejected,
   });
 
   @override
@@ -388,6 +402,7 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
                         _buildNewPersonInput(people, userName)
                       else
                         _buildPersonSelector(people, userName),
+                      if (widget.onSpeakerRejected != null && !_isCreatingNewPerson) _buildRejections(people),
                       const SizedBox(height: 16),
                       _buildUntaggedSegments(),
                       const SizedBox(height: 8),
@@ -515,7 +530,8 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
     final currentSegment = widget.segments.firstWhereOrNull((s) => s.id == widget.segmentId);
 
     final List<Person> people = [
-      Person(id: 'user', name: '$userName (You)', colorIdx: 0, createdAt: DateTime.now(), updatedAt: DateTime.now()),
+      // The owner is "You" in the app (contract §9), never "<name> (You)".
+      Person(id: 'user', name: context.l10n.you, colorIdx: 0, createdAt: DateTime.now(), updatedAt: DateTime.now()),
     ];
     people.addAll(ppl.where((person) => person.id != _rejectedPersonId));
     people.sort(
@@ -536,9 +552,8 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
     if (isSearching) {
       final normalizedQuery = _normalizeForSearch(query);
       // "You" and the "+ Add Person" chip stay visible regardless of the filter.
-      visiblePeople = people
-          .where((p) => p.id == 'user' || _normalizeForSearch(p.name).contains(normalizedQuery))
-          .toList();
+      visiblePeople =
+          people.where((p) => p.id == 'user' || _normalizeForSearch(p.name).contains(normalizedQuery)).toList();
       noPersonMatches = visiblePeople.length == 1;
     } else if (!_showAllPeople && ppl.length > _kPersonGridCap) {
       // "You" stays pinned; only the first ~24 people (post-sort) render until
@@ -550,12 +565,14 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
     }
     final bool isCapped = !isSearching && !_showAllPeople && ppl.length > _kPersonGridCap;
 
+    // The contract's chip (§3): tappable on the chip surface, the chosen one accent-filled.
     final List<Widget> chips = [
-      PersonChip(
-        personName: context.l10n.addPerson,
-        isSelected: _isCreatingNewPerson,
-        isAddButton: true,
-        onSelected: (_) {
+      OmiFilterChip(
+        key: const Key('tag_speaker_add_person'),
+        label: context.l10n.addPerson,
+        icon: Icons.add,
+        selected: _isCreatingNewPerson,
+        onSelected: () {
           setState(() {
             _isCreatingNewPerson = true;
             selectedPerson = '';
@@ -566,10 +583,11 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
     ];
     chips.addAll(
       visiblePeople.map(
-        (person) => PersonChip(
-          personName: person.name,
-          isSelected: selectedPerson == person.id,
-          onSelected: (bool selected) {
+        (person) => OmiFilterChip(
+          key: Key('tag_speaker_person_${person.id}'),
+          label: person.name,
+          selected: selectedPerson == person.id,
+          onSelected: () {
             setSelectedPerson(person.id);
             setSelectedPersonName(person.id == 'user' ? userName : person.name);
           },
@@ -578,10 +596,11 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
     );
     if (isCapped) {
       chips.add(
-        PersonChip(
-          personName: context.l10n.showAllPeople(ppl.length),
-          isSelected: false,
-          onSelected: (_) {
+        OmiFilterChip(
+          key: const Key('tag_speaker_show_all'),
+          label: context.l10n.showAllPeople(ppl.length),
+          selected: false,
+          onSelected: () {
             setState(() => _showAllPeople = true);
           },
         ),
@@ -608,15 +627,75 @@ class _NameSpeakerBottomSheetState extends State<NameSpeakerBottomSheet> {
             ),
           ),
         const SizedBox(height: 8),
-        Wrap(spacing: 8.0, runSpacing: 8.0, children: chips),
+        Wrap(spacing: 8.0, children: chips),
       ],
     );
   }
 
+  Future<void> _reject(SpeakerRejection kind) async {
+    final reject = widget.onSpeakerRejected;
+    if (reject == null || loading) return;
+    final l10n = context.l10n;
+    setLoading(true);
+    var saved = false;
+    try {
+      saved = await reject(kind);
+    } catch (_) {
+      saved = false;
+    }
+    setLoading(false);
+    if (!mounted) return;
+    if (!saved) {
+      setState(() => _saveFailed = true);
+      return;
+    }
+    final host = widget.feedbackContext;
+    OmiFeedback.confirm(
+      host != null && host.mounted ? host : context,
+      kind == SpeakerRejection.notAPerson ? l10n.speakerTagPromptNotAPersonToast : l10n.speakerTagPromptRejectedToast,
+    );
+    Navigator.pop(context);
+  }
+
+  /// The answers that only say the label is wrong. "Not Me" / "Not <name>" appear when this line
+  /// carries that label; "Not a Person" is always there (a TV, a voice assistant).
+  Widget _buildRejections(List<Person> people) {
+    final l10n = context.l10n;
+    final current = widget.segments.firstWhereOrNull((s) => s.id == widget.segmentId);
+    final person = people.firstWhereOrNull((p) => p.id == current?.personId);
+    return Padding(
+      padding: const EdgeInsets.only(top: OmiSpacing.sm),
+      child: Wrap(
+        spacing: OmiSpacing.xs,
+        children: [
+          if (current?.isUser == true)
+            OmiButton.secondary(
+              key: const Key('name_speaker_not_me'),
+              label: l10n.speakerTagPromptNotMeAction,
+              size: OmiButtonSize.compact,
+              onPressed: () => _reject(SpeakerRejection.notMe),
+            ),
+          if (person != null)
+            OmiButton.secondary(
+              key: const Key('name_speaker_not_person'),
+              label: l10n.speakerLabelText('notPerson', person.name),
+              size: OmiButtonSize.compact,
+              onPressed: () => _reject(SpeakerRejection.notPerson),
+            ),
+          OmiButton.secondary(
+            key: const Key('name_speaker_not_a_person'),
+            label: l10n.speakerTagPromptNotAPerson,
+            size: OmiButtonSize.compact,
+            onPressed: () => _reject(SpeakerRejection.notAPerson),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildUntaggedSegments() {
-    final untaggedSegments = widget.segments
-        .where((s) => s.speakerId == widget.speakerId && s.id != widget.segmentId)
-        .toList();
+    final untaggedSegments =
+        widget.segments.where((s) => s.speakerId == widget.speakerId && s.id != widget.segmentId).toList();
     final selectedUntaggedSegmentsCount = untaggedSegments.where((s) => _selectedSegmentIds.contains(s.id)).length;
 
     return Column(

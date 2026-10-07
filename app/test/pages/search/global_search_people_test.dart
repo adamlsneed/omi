@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:omi/backend/http/api/conversations.dart';
 import 'package:omi/backend/http/api/search.dart';
+import 'package:omi/backend/http/api/users.dart';
 import 'package:omi/backend/http/api_result.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/action_item.dart';
@@ -25,7 +26,8 @@ class _Source extends GlobalSearchSource {
       const ApiFailure(ApiProblem(ApiProblemKind.notFound, statusCode: 404));
 
   @override
-  Future<ConversationSearchResult> conversations(String query, {String? speakerId}) async =>
+  Future<ConversationSearchResult> conversations(String query,
+          {String? speakerId, DateTime? startDate, DateTime? endDate}) async =>
       const ConversationSearchResult(
         items: [],
         currentPage: 1,
@@ -47,12 +49,12 @@ class _Source extends GlobalSearchSource {
 }
 
 Person _person(String id, String name, {String confidence = 'unverified'}) => Person(
-  id: id,
-  name: name,
-  createdAt: DateTime(2026, 1, 1),
-  updatedAt: DateTime(2026, 1, 1),
-  confidence: confidence,
-);
+      id: id,
+      name: name,
+      createdAt: DateTime(2026, 1, 1),
+      updatedAt: DateTime(2026, 1, 1),
+      confidence: confidence,
+    );
 
 void main() {
   setUp(() async {
@@ -64,12 +66,12 @@ void main() {
     tester,
   ) async {
     final people = PeopleProvider(
-      loadPeople: () async => [
+      loadPeople: () async => PeopleListResponse(people: [
         _person('p-maya', 'Maya Chen', confidence: 'confirmed'),
         _person('p-because', 'Because'),
         _person('p-cs', 'Cs'),
         _person('p-thanks', 'Thanks'),
-      ],
+      ]),
     );
     await tester.pumpWidget(
       MultiProvider(

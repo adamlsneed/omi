@@ -43,12 +43,10 @@ import 'package:omi/pages/chat/widgets/chat_composer_parts.dart';
 import 'package:omi/pages/chat/widgets/chat_chrome.dart';
 import 'package:omi/pages/chat/widgets/chat_entrance.dart';
 import 'package:omi/pages/chat/widgets/chat_followup_chip.dart';
-import 'package:omi/pages/chat/past_chats_page.dart';
 import 'package:omi/ui/ui.dart';
 
 class ChatPage extends StatefulWidget {
   final bool isPivotBottom;
-  final bool startFresh;
   final String? autoMessage;
   final String? initialDraft;
   final bool autoStartVoice;
@@ -57,7 +55,6 @@ class ChatPage extends StatefulWidget {
   const ChatPage({
     super.key,
     this.isPivotBottom = false,
-    this.startFresh = false,
     this.autoMessage,
     this.initialDraft,
     this.autoStartVoice = false,
@@ -73,7 +70,6 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
   late ScrollController scrollController;
   late FocusNode textFieldFocusNode;
 
-  int _introRevision = 0;
   bool _isInitialLoad = true;
   bool _hasInitialScrolled = false;
   double _lastBottomInset = 0;
@@ -121,13 +117,14 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
     });
 
     SchedulerBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       var provider = context.read<MessageProvider>();
       _messageProvider = provider;
+      provider.readAloud.active = true;
       // Listen for quota exceeded from any send path (text or voice)
       provider.addListener(_onMessageProviderChanged);
-      if (widget.startFresh && !context.read<VoiceRecorderProvider>().isActive) {
-        provider.startFreshChat();
-      } else if (provider.messages.isEmpty && !provider.isFreshChat) {
+      // Every entry resumes the current conversation, including while a reply or voice send is active.
+      if (provider.messages.isEmpty && !provider.isFreshChat) {
         provider.refreshMessages();
       }
       // Fetch enabled chat apps
@@ -204,8 +201,16 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final readAloud = _messageProvider?.readAloud;
+    if (readAloud == null) return;
+    readAloud.active = state == AppLifecycleState.resumed;
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _messageProvider?.readAloud.active = false;
     _messageProvider?.removeListener(_onMessageProviderChanged);
     _cancelOwnedLifecycleTimers();
     _latestJumpIdleTimer?.cancel();
@@ -252,7 +257,6 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
     super.build(context);
 
     return ChatEntrance(
-      revision: _introRevision,
       child: Consumer2<MessageProvider, ConnectivityProvider>(
         builder: (context, provider, connectivityProvider, child) {
           _observeMessagesForAutoScroll(provider);
@@ -266,12 +270,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
             child: Scaffold(
               key: scaffoldKey,
               backgroundColor: Colors.transparent,
-              appBar: ChatHeader(
-                provider: provider,
-                onHistory: provider.canSwitchChat && !context.watch<VoiceRecorderProvider>().isActive
-                    ? _openPastChats
-                    : null,
-              ),
+              appBar: ChatHeader(provider: provider),
               endDrawer: ChatAppsDrawer(
                 onSelectApp: (id) => _handleAppSelection(id, context.read<AppProvider>()),
                 onEnableApps: _navigateToChatAppsPage,
@@ -308,10 +307,10 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
                       child: provider.isLoadingMessages && !provider.hasCachedMessages
                           ? OmiLoadingState(label: provider.firstTimeLoadingText)
                           : provider.isClearingChat
-                          ? OmiLoadingState(label: context.l10n.deletingMessages)
-                          : (provider.messages.isEmpty)
-                          ? ChatGreeting(isConnected: connectivityProvider.isConnected, name: prefs.givenName)
-                          : _buildTranscript(provider),
+                              ? OmiLoadingState(label: context.l10n.deletingMessages)
+                              : (provider.messages.isEmpty)
+                                  ? ChatGreeting(isConnected: connectivityProvider.isConnected, name: prefs.givenName)
+                                  : _buildTranscript(provider),
                     ),
                     _buildComposer(context, provider, connectivityProvider),
                   ],
@@ -397,6 +396,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
                                 setMessageNps: (int value, {String? reason}) =>
                                     provider.setMessageNps(message, value, reason: reason),
                                 replyFailed: provider.isReplyFailed(message),
+                                replyFailure: provider.replyFailure(message),
                                 onRetry: provider.canRetryReply(message) ? () => _retryReply(message) : null,
                               )
                             : HumanMessage(
@@ -445,8 +445,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
         final voiceActive = voiceRecorderProvider.isActive;
         final recording = voiceRecorderProvider.state == VoiceRecorderState.recording;
         final latest = provider.messages.isEmpty ? null : provider.messages.last;
-        final followUp =
-            latest != null &&
+        final followUp = latest != null &&
                 latest.sender == MessageSender.ai &&
                 !provider.isReplyFailed(latest) &&
                 !provider.chatMutationInProgress &&
@@ -487,8 +486,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
             if (provider.messages.isEmpty && !provider.isLoadingMessages && !provider.isClearingChat)
               ChatSuggestions(
                 isConnected: connectivityProvider.isConnected,
-                hasExistingData:
-                    _chatScope != null ||
+                hasExistingData: _chatScope != null ||
                     (context.watch<ConversationProvider?>()?.conversations.isNotEmpty ?? false) ||
                     (context.watch<MemoriesProvider?>()?.memories.isNotEmpty ?? false),
                 onSelected: (prompt) {
@@ -639,8 +637,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
                             builder: (context, value, child) {
                               final hasText = value.text.trim().isNotEmpty;
                               if (!hasText) return const SizedBox.shrink();
-                              final canSend =
-                                  hasText &&
+                              final canSend = hasText &&
                                   !provider.sendingMessage &&
                                   !provider.isUploadingFiles &&
                                   connectivityProvider.isConnected;
@@ -744,7 +741,12 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
     // Guard against re-entry (rapid double-tap of send, voice→transcribeSuccess
     // race firing onTranscriptReady twice, etc.). Without this the chat could
     // submit the same text twice and the AI replies twice.
-    if (provider.chatMutationInProgress || provider.isLoadingMessages) return;
+    // `isSwitchingChatApp` fences the whole app-switch window (raised when the
+    // selection changes, cleared when the bootstrap read settles): a send in
+    // that window would append the turn to the previous app's transcript while
+    // the picker already shows the new app. Same-thread loading does not block
+    // sending.
+    if (provider.chatMutationInProgress || provider.isClearingChat || provider.isSwitchingChatApp) return;
     String? currentContext = _selectedContext;
     setState(() {
       _selectedContext = null;
@@ -756,6 +758,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
     }
 
     provider.setSendingMessage(true);
+    provider.beginChatTurn();
     provider.addMessageLocally(text);
     textController.clear();
 
@@ -772,7 +775,7 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
   /// Sends the message behind a failed reply again (the reply's Try Again).
   Future<void> _retryReply(ServerMessage failed) async {
     final provider = context.read<MessageProvider>();
-    if (provider.chatMutationInProgress || provider.isLoadingMessages) return;
+    if (provider.chatMutationInProgress || provider.isClearingChat || provider.isSwitchingChatApp) return;
     provider.setSendingMessage(true);
     _resumeFollowingAndScroll(animated: true);
     await provider.retryFailedReply(failed);
@@ -1027,6 +1030,14 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
       return;
     }
 
+    // Fence sends for the whole switch, starting here: after the selection
+    // changes below there is a deliberate pre-read delay, and a send landing
+    // in that window would target the new app while the old app's transcript
+    // is still on screen (the later bootstrap read then returns early because
+    // the send made chatMutationInProgress true, leaving the mixed transcript).
+    messageProvider.markPendingAppSwitch();
+    messageProvider.notifySwitchingChatApp();
+
     // Set the selected app
     appProvider.setSelectedChatAppId(appId);
 
@@ -1048,49 +1059,6 @@ class ChatPageState extends State<ChatPage> with AutomaticKeepAliveClientMixin, 
     if (messageProvider.messages.isEmpty) {
       messageProvider.sendInitialAppMessage(app);
     }
-  }
-
-  Future<void> _openPastChats() async {
-    FocusScope.of(context).unfocus();
-    final provider = context.read<MessageProvider>();
-    final choice = await Navigator.of(
-      context,
-    ).push<ChatHistoryChoice>(omiPageRoute(builder: (_) => const PastChatsPage()));
-    if (!mounted || choice == null || !provider.canSwitchChat || context.read<VoiceRecorderProvider>().isActive) {
-      return;
-    }
-    if (textController.text.isNotEmpty || provider.selectedFiles.isNotEmpty) {
-      final discard = await showOmiConfirm(
-        context,
-        title: context.l10n.discardChangesTitle,
-        message: context.l10n.discardChangesMessage,
-        confirmLabel: context.l10n.discard,
-        destructive: true,
-      );
-      if (!mounted || !discard || !provider.canSwitchChat || context.read<VoiceRecorderProvider>().isActive) {
-        return;
-      }
-    }
-    final draftBeforeSwitch = textController.text;
-    if (choice.action == ChatHistoryAction.open) {
-      if (!await provider.openChatSession(choice.session!)) {
-        if (mounted) OmiFeedback.error(context, context.l10n.somethingWentWrong);
-        return;
-      }
-    } else if (choice.action == ChatHistoryAction.newChat) {
-      if (!provider.startFreshChat()) return;
-      _introRevision++;
-    } else if (choice.action == ChatHistoryAction.app) {
-      _selectApp(choice.app!.id, context.read<AppProvider>());
-    }
-    if (!mounted) return;
-    setState(() {
-      if (textController.text == draftBeforeSwitch) textController.clear();
-      _selectedContext = null;
-      _chatScope = null;
-      _hasInitialScrolled = false;
-    });
-    _resumeFollowingAndScroll();
   }
 }
 

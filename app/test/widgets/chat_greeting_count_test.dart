@@ -8,17 +8,17 @@ import 'package:omi/pages/chat/widgets/chat_starters.dart';
 import 'package:omi/ui/ui.dart';
 
 Widget host(int count, {bool reduced = false}) => MaterialApp(
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: const [Locale('en')],
-  home: MediaQuery(
-    data: MediaQueryData(disableAnimations: reduced),
-    child: Scaffold(
-      body: ChatEntrance(
-        child: ChatGreeting(isConnected: true, name: 'Alex', hour: 10, todayCount: count),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('en')],
+      home: MediaQuery(
+        data: MediaQueryData(disableAnimations: reduced),
+        child: Scaffold(
+          body: ChatEntrance(
+            child: ChatGreeting(isConnected: true, name: 'Alex', hour: 10, todayCount: count),
+          ),
+        ),
       ),
-    ),
-  ),
-);
+    );
 
 double opacity(WidgetTester tester, String key) =>
     tester.widget<Opacity>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(Opacity)).first).opacity;
@@ -66,11 +66,17 @@ void main() {
   testWidgets('a provider count update does not replay the greeting', (tester) async {
     await tester.pumpWidget(host(0));
     await tester.pumpAndSettle();
-    expect(find.text('No conversations today.'), findsOneWidget);
+    // Zero is not a greeting: only the greeting and the question show.
+    expect(find.text('No conversations today.'), findsNothing);
+    expect(find.byKey(const Key('chat_today_count')), findsNothing);
+    expect(find.text('What do you want to know?'), findsOneWidget);
     await tester.pumpWidget(host(6));
     expect(opacity(tester, 'chat_greeting_rise'), 1);
     expect(find.text('6 conversations today.'), findsOneWidget);
+    // The line joining the column takes one layout frame; nothing keeps ticking after it.
+    await tester.pump();
     expect(tester.binding.hasScheduledFrame, isFalse);
+    expect(opacity(tester, 'chat_count_rise'), 1);
   });
 
   testWidgets('Reduce Motion renders the final count without a ticker', (tester) async {

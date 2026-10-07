@@ -13,7 +13,7 @@ import 'package:omi/ui/ui.dart';
 import 'package:omi/utils/l10n_extensions.dart';
 import 'package:omi/utils/platform/platform_service.dart';
 
-/// The Settings sheet: Account, then seven groups (Device, Recording & Transcription,
+/// The Settings sheet: Account, then eight groups (Device, Recording & Transcription, Voice,
 /// Notifications & Display, Integrations, Privacy & Data, Help & About, Developer Settings), plus
 /// search over every row in Settings and its pages ([settingsSearchEntries]).
 ///
@@ -74,10 +74,10 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
   }
 
   SettingsSearchScope _searchScope(BuildContext context) => SettingsSearchScope(
-    deviceConnected: context.read<DeviceProvider>().isConnected,
-    supportLinks: PlatformService.isIntercomSupported,
-    android: PlatformService.isAndroid,
-  );
+        deviceConnected: context.read<DeviceProvider>().isConnected,
+        supportLinks: PlatformService.isIntercomSupported,
+        android: PlatformService.isAndroid,
+      );
 
   // ---------------------------------------------------------------------------------------------
   // Rows
@@ -166,6 +166,12 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
               key: 'settings_group_recording',
               icon: FontAwesomeIcons.microphone,
               title: l10n.recordingAndTranscription,
+            ),
+            _row(
+              SettingsDestination.voice,
+              key: 'settings_group_voice',
+              icon: FontAwesomeIcons.volumeHigh,
+              title: l10n.assistantVoiceSettingsTitle,
             ),
             _row(
               SettingsDestination.notificationsGroup,
@@ -311,9 +317,8 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.lg),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            child: _isSearching && _searchQuery.trim().isNotEmpty
-                ? _buildSearchResults(context)
-                : _buildSettings(context),
+            child:
+                _isSearching && _searchQuery.trim().isNotEmpty ? _buildSearchResults(context) : _buildSettings(context),
           ),
         ),
       ],
