@@ -12704,4 +12704,7 @@ class AppLocalizationsBs extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Ne baš';
+
+  @override
+  String get partialRecording => 'Djelimičan snimak';
 }

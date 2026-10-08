@@ -12481,4 +12481,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => '별로예요';
+
+  @override
+  String get partialRecording => '부분 녹음';
 }

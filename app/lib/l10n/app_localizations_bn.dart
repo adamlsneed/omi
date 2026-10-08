@@ -12675,4 +12675,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'তেমন না';
+
+  @override
+  String get partialRecording => 'আংশিক রেকর্ডিং';
 }

@@ -12602,4 +12602,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'ليس تمامًا';
+
+  @override
+  String get partialRecording => 'تسجيل جزئي';
 }

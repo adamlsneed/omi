@@ -12732,4 +12732,7 @@ class AppLocalizationsRo extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Nu prea';
+
+  @override
+  String get partialRecording => 'Înregistrare parțială';
 }

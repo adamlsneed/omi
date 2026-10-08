@@ -12703,4 +12703,7 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Не дуже';
+
+  @override
+  String get partialRecording => 'Частковий запис';
 }

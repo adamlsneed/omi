@@ -12678,4 +12678,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Ei oikeastaan';
+
+  @override
+  String get partialRecording => 'Osittainen tallenne';
 }

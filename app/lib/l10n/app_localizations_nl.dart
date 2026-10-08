@@ -12715,4 +12715,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Niet echt';
+
+  @override
+  String get partialRecording => 'Gedeeltelijke opname';
 }

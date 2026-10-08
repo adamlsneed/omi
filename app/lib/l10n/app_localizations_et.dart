@@ -12668,4 +12668,7 @@ class AppLocalizationsEt extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Pigem mitte';
+
+  @override
+  String get partialRecording => 'Osaline salvestus';
 }

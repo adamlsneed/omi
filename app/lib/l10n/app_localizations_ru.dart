@@ -12718,4 +12718,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Не совсем';
+
+  @override
+  String get partialRecording => 'Частичная запись';
 }

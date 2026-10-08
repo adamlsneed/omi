@@ -12726,4 +12726,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'అంతగా లేదు';
+
+  @override
+  String get partialRecording => 'పాక్షిక రికార్డింగ్';
 }

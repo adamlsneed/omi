@@ -866,7 +866,7 @@
       "runs_on": "ubuntu-latest"
     },
     "firestore_read_reconcile.yml/reconcile": {
-      "budget_p50_minutes": 5,
+      "budget_p50_minutes": 10,
       "display_name": "reconcile",
       "expected_runs_class": "non-pr",
       "expected_runs_per_day": 1,
@@ -875,7 +875,7 @@
       "matrix_size": 1,
       "needs": [],
       "owner": "CI maintainers",
-      "rationale": "Once-daily read-only Firestore bill reconcile. Five minutes covers one BigQuery query and 24 hourly log reads. Not a pull-request job.",
+      "rationale": "Once-daily read-only Firestore bill reconcile. Ten minutes covers one BigQuery query and 24 hourly log walks (the fallback run of 2026-10-07 took ~1h wall for a 24h walk under gcloud logging read flakiness; the scheduled runner should sit far below that, and 5 was never observed). Raise accompanies the D-2 scoring and cron-environment binding in the same change. Not a pull-request job.",
       "reusable": null,
       "runner": "linux",
       "runner_counts": {
@@ -3253,7 +3253,7 @@
     "firestore_read_reconcile.yml": {
       "name": "Firestore read ledger reconcile",
       "owner": "CI maintainers",
-      "rationale": "Daily read-only reconcile of billed Firestore read ops against the in-process ledger. Schedule plus manual dispatch. Does not deploy or change audit config.",
+      "rationale": "Daily read-only reconcile of billed Firestore read ops against the in-process ledger. Schedule plus manual dispatch. 2026-10-07: job bound to the new no-approval cron environment (prod WIF condition also accepts assertion.environment == 'cron') and default scored day moved to D-2 for a settled bill; trigger input description updated accordingly. Does not deploy or change audit config.",
       "triggers": {
         "schedule": [
           {
@@ -3263,7 +3263,7 @@
         "workflow_dispatch": {
           "inputs": {
             "day": {
-              "description": "Closed UTC day to reconcile (YYYY-MM-DD; blank uses yesterday UTC)",
+              "description": "Closed UTC day to reconcile (YYYY-MM-DD; blank uses the D-2 settled day)",
               "required": "false",
               "type": "string"
             }

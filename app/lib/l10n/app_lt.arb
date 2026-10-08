@@ -3943,5 +3943,6 @@
     "onboardingRatingPromptTitle": "Kol laukiate, ar Omi buvo malonu naudoti?",
     "onboardingRatingPromptBody": "5 žvaigždučių įvertinimas mums labai padeda ❤️",
     "onboardingRatingPromptYes": "Taip, noriu jus palaikyti!",
-    "onboardingRatingPromptNo": "Ne visai"
+    "onboardingRatingPromptNo": "Ne visai",
+    "partialRecording": "Dalinis įrašas"
 }
