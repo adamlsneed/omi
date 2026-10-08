@@ -12687,4 +12687,7 @@ class AppLocalizationsSr extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Не баш';
+
+  @override
+  String get partialRecording => 'Делимичан снимак';
 }

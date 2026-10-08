@@ -12748,4 +12748,7 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'No gaire';
+
+  @override
+  String get partialRecording => 'Enregistrament parcial';
 }

@@ -12687,4 +12687,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Pek değil';
+
+  @override
+  String get partialRecording => 'Kısmi kayıt';
 }

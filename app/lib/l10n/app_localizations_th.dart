@@ -12608,4 +12608,7 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'ไม่ค่อย';
+
+  @override
+  String get partialRecording => 'การบันทึกบางส่วน';
 }

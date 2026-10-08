@@ -12705,4 +12705,7 @@ class AppLocalizationsSl extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Ne ravno';
+
+  @override
+  String get partialRecording => 'Delni posnetek';
 }

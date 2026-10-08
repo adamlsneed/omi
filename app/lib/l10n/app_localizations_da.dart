@@ -12663,4 +12663,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'Ikke rigtig';
+
+  @override
+  String get partialRecording => 'Delvis optagelse';
 }

@@ -12682,4 +12682,7 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get onboardingRatingPromptNo => 'फारसं नाही';
+
+  @override
+  String get partialRecording => 'अंशतः रेकॉर्डिंग';
 }
