@@ -56,6 +56,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
   Future<SyncJobFetch> _jobStatusFetcher(String jobId) =>
       _jobPoller.fetch(jobId, jobStatusFetcherOverride ?? fetchSyncJobStatus);
   Future<void>? _reconcileInFlight;
+  late final Future<void> _initialRefresh;
 
   // Exact per-file duration (seconds), computed once by walking the frame
   // prefixes. Finalized .bin files are immutable, so this is cached by fileName.
@@ -98,7 +99,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
     _jobs = _loadJobs();
     // Trigger (a): auto-upload offline-fallback recordings once the initial scan
     // is in. Trigger (b): whenever connectivity is (re)gained.
-    refresh().then((_) {
+    _initialRefresh = refresh().then((_) {
       _maybeAutoUpload();
       if (_ownedJobs().isNotEmpty) {
         _startReconcileTimer();
@@ -109,6 +110,10 @@ class LocalRecordingsProvider extends ChangeNotifier {
       if (connected) _maybeAutoUpload();
     });
   }
+
+  /// Drain the constructor's scan before a test removes its recording directory.
+  @visibleForTesting
+  Future<void> waitForInitialRefreshForTesting() => _initialRefresh;
 
   Map<String, String> _ownedJobs() => Map.fromEntries(_jobs.entries.where((entry) => _ownedNames.contains(entry.key)));
 
