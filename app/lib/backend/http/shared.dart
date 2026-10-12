@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart';
 
 import 'package:omi/backend/http/api_result.dart';
+import 'package:omi/backend/http/api_edge_throttle_telemetry.dart';
 import 'package:omi/backend/http/clock_skew_detector.dart';
 import 'package:omi/backend/http/http_pool_manager.dart';
 import 'package:omi/backend/http/streaming_error.dart';
@@ -176,6 +177,11 @@ Future<Map<String, String>> buildHeaders({
   AuthSessionSnapshot? sessionSnapshot,
   AuthService? authService,
 }) async {
+  final effectiveAuthCheck = shouldHonorRequestedOmiAuth(
+    requested: requireAuthCheck,
+    customBackendActive: Env.hasApiBaseUrlOverride,
+    url: url,
+  );
   final headers = <String, String>{
     'X-Request-Start-Time': (DateTime.now().millisecondsSinceEpoch / 1000).toString(),
     'X-App-Platform': PlatformManager.instance.platform,
@@ -185,10 +191,19 @@ Future<Map<String, String>> buildHeaders({
     ...fromHeaders,
   };
 
+  // `fromHeaders` is used by older callers and may itself contain credentials.
+  // Treat the override as a hard boundary for every header source, including
+  // multipart/custom callers. Official Omi destinations remain explicitly
+  // trusted while an override is active.
+  if (Env.hasApiBaseUrlOverride && (url == null || !shouldAttachOmiCredentials(url))) {
+    headers.removeWhere(
+        (name, _) => name.toLowerCase() == 'authorization' || name.toLowerCase() == 'x-account-generation');
+  }
+
   if (shouldAttachAccountGenerationHeader(
     url: url,
     method: method,
-    requireAuthCheck: requireAuthCheck,
+    requireAuthCheck: effectiveAuthCheck,
     forWebSocket: forWebSocket,
   )) {
     final accountGeneration = AccountCutoverRuntime.instance.control.accountGeneration;
@@ -199,7 +214,7 @@ Future<Map<String, String>> buildHeaders({
     }
   }
 
-  if (requireAuthCheck) {
+  if (effectiveAuthCheck) {
     // Authenticated requests must never degrade into anonymous traffic. A
     // typed exception stops the request before it reaches the network.
     headers['Authorization'] = await getAuthHeader(
@@ -224,8 +239,11 @@ String normalizeOmiApiUrlForHostMatch(String url) {
 }
 
 bool _isRequiredAuthCheck(String url) {
-  // Agent VM endpoints always hit prod even when app uses dev
-  if (url.contains('api.omi.me')) return true;
+  if (shouldAttachOmiCredentials(url)) return true;
+  // A runtime override is a separate trust boundary. Never send the user's
+  // Omi credential to it, even when it happens to share a path with the
+  // configured API base URL.
+  if (Env.hasApiBaseUrlOverride) return false;
   final base = Env.apiBaseUrl;
   if (base != null && base.isNotEmpty) {
     final normalizedUrl = normalizeOmiApiUrlForHostMatch(url);
@@ -235,6 +253,29 @@ bool _isRequiredAuthCheck(String url) {
     }
   }
   return false;
+}
+
+/// Omi credentials are scoped to Omi-owned product API authorities. Hostname
+/// parsing avoids substring matches such as `api.omi.me.attacker.example`.
+/// A debug hermetic journey may additionally trust its registered loopback
+/// fixture; that registry stays empty for user-configured overrides.
+@visibleForTesting
+bool shouldAttachOmiCredentials(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null || uri.host.isEmpty) return false;
+  if (Env.debugTrustedFixtureAuthority(uri)) return true;
+  if (!{'https', 'wss'}.contains(uri.scheme.toLowerCase())) return false;
+  return {'api.omi.me', 'api.omiapi.com'}.contains(uri.host.toLowerCase());
+}
+
+/// Central guard for callers that historically requested auth unconditionally.
+/// A custom backend remains credential-free, while explicit calls to an
+/// official Omi authority (such as the agent VM) retain authentication.
+@visibleForTesting
+bool shouldHonorRequestedOmiAuth({required bool requested, required bool customBackendActive, String? url}) {
+  if (!requested) return false;
+  if (!customBackendActive) return true;
+  return url != null && shouldAttachOmiCredentials(url);
 }
 
 const _mutatingHttpMethods = {'POST', 'PUT', 'PATCH', 'DELETE'};
@@ -622,6 +663,7 @@ Future<http.Response?> makeApiCall({
   Duration? timeout,
   int? retries,
   bool signOutOn401 = true,
+  bool Function()? canSend,
 }) async {
   try {
     return await sendUncaughtApiCall(
@@ -632,6 +674,7 @@ Future<http.Response?> makeApiCall({
       timeout: timeout,
       retries: retries,
       signOutOn401: signOutOn401,
+      canSend: canSend,
     );
   } on AuthTokenUnavailableException catch (e) {
     await _handleAuthUnavailable(e, expireTerminalSession: signOutOn401);
@@ -847,6 +890,7 @@ Future<http.Response> makeMultipartApiCallUnpooled({
     HttpPoolManager.stampRequestTime(request);
 
     var streamedResponse = await client.send(request).timeout(const Duration(minutes: 10));
+    ApiEdgeThrottleTelemetry.instance.observe(request, streamedResponse);
     var response = await http.Response.fromStream(streamedResponse);
 
     if (requireAuthCheck && response.statusCode == 401) {
@@ -866,6 +910,7 @@ Future<http.Response> makeMultipartApiCallUnpooled({
           );
           HttpPoolManager.stampRequestTime(request);
           streamedResponse = await client.send(request).timeout(const Duration(minutes: 10));
+          ApiEdgeThrottleTelemetry.instance.observe(request, streamedResponse);
           return http.Response.fromStream(streamedResponse);
         },
       );

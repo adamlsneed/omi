@@ -49,6 +49,7 @@ from models.sync_contract import SYNC_LOCAL_FILES_V2_RESPONSES
 from models.geolocation import geolocation_from_private_header
 from models.sync_audio import AudioPrecacheResponse, AudioUrlsResponse
 from routers.listen.contracts import persisted_started_seconds
+from utils.sync.admission_responses import sync_content_in_progress_response
 from utils.analytics import record_usage
 from utils.other import endpoints as auth
 from utils.account_cutover.access import should_skip_background_account_mutation
@@ -94,10 +95,13 @@ from utils.observability.fallback import record_fallback
 from utils.multipart import MultipartMaxPartSizeRoute, SYNC_AUDIO_MAX_PART_SIZE, max_part_size
 from utils.metrics import (
     OMI_SYNC_DISPATCH_ATTEMPTS_TOTAL,
+    OMI_SYNC_JOB_POLL_REQUESTS_TOTAL,
+    OMI_SYNC_JOB_POLL_THROTTLED_TOTAL,
     OMI_SYNC_LANE_JOBS_TOTAL,
     OMI_SYNC_QUEUE_WAIT_SECONDS,
     OMI_SYNC_RECORDING_AGE_SECONDS,
 )
+from utils.sync.poll_limit import SYNC_POLL_WINDOW_SECONDS, admit_sync_job_poll
 from utils.product_metrics import record_product_event, sanitize_app_build
 from utils.journey_metrics_contract import resolve_client_kind
 from utils.client_device import resolve_client_device, resolve_client_device_from_request
@@ -205,6 +209,7 @@ class SyncJobStatusResponse(BaseModel):
     reason_code: str | None = None
     retry_after: int | None = None
     recording_age_seconds: int | None = None
+    poll_after_ms: int | None = None
 
 
 class SyncCaptureManifestFile(BaseModel):
@@ -1153,11 +1158,7 @@ async def sync_local_files_v2(
             if backfill_slot_acquired:
                 await run_blocking(db_executor, release_backfill_slot, uid, job_id)
                 backfill_slot_acquired = False
-            return JSONResponse(
-                status_code=409,
-                headers={'Retry-After': '10'},
-                content={'code': 'sync_content_in_progress', 'detail': 'The same audio is already processing'},
-            )
+            return sync_content_in_progress_response(claim.get('job_id'))
         try:
             OMI_SYNC_LANE_JOBS_TOTAL.labels(
                 lane=lane_decision.lane.value,
@@ -1572,6 +1573,14 @@ def _terminal_repeat_failure_kwargs(job: dict) -> dict[str, str]:
 @router.get("/v2/sync-local-files/{job_id}", response_model=SyncJobStatusResponse, response_model_exclude_none=True)
 def get_sync_job_status(job_id: str, uid: str = Depends(auth.get_current_user_uid)):
     """Poll for the status of an async sync job."""
+    OMI_SYNC_JOB_POLL_REQUESTS_TOTAL.inc()
+    if not admit_sync_job_poll(uid):
+        OMI_SYNC_JOB_POLL_THROTTLED_TOTAL.inc()
+        raise HTTPException(
+            status_code=429,
+            detail='Sync job polling too frequent; retry later',
+            headers={'Retry-After': str(SYNC_POLL_WINDOW_SECONDS)},
+        )
     job = get_sync_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Sync job not found or expired")
@@ -2295,6 +2304,10 @@ async def _run_sync_job_body(request: Request, task_retry_count: int):
 # codes (200/409/500) drive the queue protocol, not a typed client-facing body.
 @router.post("/v2/audio-merge-jobs/run", include_in_schema=False)
 async def run_audio_merge_job(request: Request, task_retry_count: int = Depends(verify_audio_merge_cloud_tasks_oidc)):
+    from database.legal_holds import (
+        DestructiveOperationInProgress,
+    )  # deferred: sync.py imported with database stubbed in test isolation
+
     """Cloud Tasks handler: build one playback MP3 artifact inside the request.
 
     Response semantics drive the queue: 2xx consumes the task, 409 while the
@@ -2351,9 +2364,15 @@ async def run_audio_merge_job(request: Request, task_retry_count: int = Depends(
             logger.warning(f'audio_merge: chunks missing conv={conversation_id} file={audio_file_id}, dropping')
             # Persist the verdict or /urls reports pending forever and clients
             # poll to exhaustion (named-task tombstones block re-enqueues too)
-            await run_blocking(
-                storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'chunks_missing'
-            )
+            try:
+                await run_blocking(
+                    storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'chunks_missing'
+                )
+            except DestructiveOperationInProgress:
+                logger.info(
+                    f'audio_merge: unavailable marker deferred reason=destructive_operation '
+                    f'conv={conversation_id} file={audio_file_id}'
+                )
             return JSONResponse(status_code=200, content={'status': 'dropped', 'reason': 'chunks_missing'})
         except Exception as e:
             max_attempts = get_sync_tasks_max_attempts()
@@ -2362,9 +2381,15 @@ async def run_audio_merge_job(request: Request, task_retry_count: int = Depends(
                 # Same pending-forever trap as chunks_missing: a consumed task
                 # leaves a tombstone that blocks re-enqueue. Mark unavailable so
                 # clients stop polling; the 30-day lifecycle grants a retry.
-                await run_blocking(
-                    storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'merge_failed'
-                )
+                try:
+                    await run_blocking(
+                        storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'merge_failed'
+                    )
+                except DestructiveOperationInProgress:
+                    logger.info(
+                        f'audio_merge: unavailable marker deferred reason=destructive_operation '
+                        f'conv={conversation_id} file={audio_file_id}'
+                    )
                 return JSONResponse(status_code=200, content={'status': 'failed_final'})
             logger.warning(
                 f'audio_merge: attempt {task_retry_count + 1} failed conv={conversation_id} '
@@ -2374,12 +2399,45 @@ async def run_audio_merge_job(request: Request, task_retry_count: int = Depends(
 
         if not mp3_data:
             logger.warning(f'audio_merge: no audio data conv={conversation_id} file={audio_file_id}, dropping')
-            await run_blocking(
-                storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'empty_audio'
-            )
+            try:
+                await run_blocking(
+                    storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'empty_audio'
+                )
+            except DestructiveOperationInProgress:
+                logger.info(
+                    f'audio_merge: unavailable marker deferred reason=destructive_operation '
+                    f'conv={conversation_id} file={audio_file_id}'
+                )
             return JSONResponse(status_code=200, content={'status': 'dropped', 'reason': 'empty_audio'})
 
-        await run_blocking(storage_executor, upload_playback_artifact, uid, conversation_id, audio_file_id, mp3_data)
+        try:
+            await run_blocking(
+                storage_executor, upload_playback_artifact, uid, conversation_id, audio_file_id, mp3_data
+            )
+        except Exception as e:
+            # The upload fence raises DestructiveOperationInProgress while a
+            # destructive operation owns the account. Leaving it unhandled
+            # reports that frame to Error Reporting. The unavailable marker is
+            # the same fenced GCS write, so the final attempt must catch a
+            # second fence and still return failed_final.
+            max_attempts = get_sync_tasks_max_attempts()
+            if task_retry_count >= max_attempts - 1:
+                logger.error(f'audio_merge_failed_final conv={conversation_id} file={audio_file_id}: {e}')
+                try:
+                    await run_blocking(
+                        storage_executor, mark_playback_unavailable, uid, conversation_id, audio_file_id, 'merge_failed'
+                    )
+                except DestructiveOperationInProgress:
+                    logger.info(
+                        f'audio_merge: unavailable marker deferred reason=destructive_operation '
+                        f'conv={conversation_id} file={audio_file_id}'
+                    )
+                return JSONResponse(status_code=200, content={'status': 'failed_final'})
+            logger.warning(
+                f'audio_merge: attempt {task_retry_count + 1} failed conv={conversation_id} '
+                f'file={audio_file_id}, will retry: {e}'
+            )
+            return JSONResponse(status_code=500, content={'status': 'retry'})
         logger.info(f'audio_merge: built artifact conv={conversation_id} file={audio_file_id} size={len(mp3_data)}')
         return JSONResponse(status_code=200, content={'status': 'done'})
     finally:
@@ -2387,6 +2445,10 @@ async def run_audio_merge_job(request: Request, task_retry_count: int = Depends(
 
 
 async def _run_conversation_merge_job(payload: dict, task_retry_count: int):
+    from database.legal_holds import (
+        DestructiveOperationInProgress,
+    )  # deferred: sync.py imported with database stubbed in test isolation
+
     """schema_version 2: build the conversation-level dense MP3 + spans and stamp
     the doc (conversation_audio). Upload precedes the stamp so a stamped
     fingerprint always implies a servable blob. Freshness is re-checked from the
@@ -2444,34 +2506,72 @@ async def _run_conversation_merge_job(payload: dict, task_retry_count: int):
             )
         except FileNotFoundError:
             logger.warning(f'audio_merge: conversation chunks missing conv={conversation_id}, dropping')
-            await run_blocking(
-                storage_executor,
-                mark_conversation_playback_unavailable,
-                uid,
-                conversation_id,
-                fingerprint,
-                'chunks_missing',
-            )
-            return JSONResponse(status_code=200, content={'status': 'dropped', 'reason': 'chunks_missing'})
-        except Exception as e:
-            max_attempts = get_sync_tasks_max_attempts()
-            if task_retry_count >= max_attempts - 1:
-                logger.error(f'audio_merge_failed_final conversation artifact conv={conversation_id}: {e}')
+            try:
                 await run_blocking(
                     storage_executor,
                     mark_conversation_playback_unavailable,
                     uid,
                     conversation_id,
                     fingerprint,
-                    'merge_failed',
+                    'chunks_missing',
                 )
+            except DestructiveOperationInProgress:
+                logger.info(
+                    f'audio_merge: unavailable marker deferred reason=destructive_operation conv={conversation_id}'
+                )
+            return JSONResponse(status_code=200, content={'status': 'dropped', 'reason': 'chunks_missing'})
+        except Exception as e:
+            max_attempts = get_sync_tasks_max_attempts()
+            if task_retry_count >= max_attempts - 1:
+                logger.error(f'audio_merge_failed_final conversation artifact conv={conversation_id}: {e}')
+                try:
+                    await run_blocking(
+                        storage_executor,
+                        mark_conversation_playback_unavailable,
+                        uid,
+                        conversation_id,
+                        fingerprint,
+                        'merge_failed',
+                    )
+                except DestructiveOperationInProgress:
+                    logger.info(
+                        f'audio_merge: unavailable marker deferred reason=destructive_operation conv={conversation_id}'
+                    )
                 return JSONResponse(status_code=200, content={'status': 'failed_final'})
             logger.warning(
                 f'audio_merge: conversation attempt {task_retry_count + 1} failed conv={conversation_id}, will retry: {e}'
             )
             return JSONResponse(status_code=500, content={'status': 'retry'})
 
-        await run_blocking(storage_executor, upload_conversation_playback_artifact, uid, conversation_id, mp3_data)
+        try:
+            await run_blocking(storage_executor, upload_conversation_playback_artifact, uid, conversation_id, mp3_data)
+        except Exception as e:
+            # Same contract as the build: a destructive-operation fence on the
+            # upload must retry (or mark unavailable on the final attempt)
+            # instead of escaping as an unhandled legal_holds traceback. The
+            # marker write is fenced too, so a second fence is logged and the
+            # task still completes as failed_final.
+            max_attempts = get_sync_tasks_max_attempts()
+            if task_retry_count >= max_attempts - 1:
+                logger.error(f'audio_merge_failed_final conversation artifact conv={conversation_id}: {e}')
+                try:
+                    await run_blocking(
+                        storage_executor,
+                        mark_conversation_playback_unavailable,
+                        uid,
+                        conversation_id,
+                        fingerprint,
+                        'merge_failed',
+                    )
+                except DestructiveOperationInProgress:
+                    logger.info(
+                        f'audio_merge: unavailable marker deferred reason=destructive_operation conv={conversation_id}'
+                    )
+                return JSONResponse(status_code=200, content={'status': 'failed_final'})
+            logger.warning(
+                f'audio_merge: conversation attempt {task_retry_count + 1} failed conv={conversation_id}, will retry: {e}'
+            )
+            return JSONResponse(status_code=500, content={'status': 'retry'})
         mp3_size = len(mp3_data)
         del mp3_data
 
