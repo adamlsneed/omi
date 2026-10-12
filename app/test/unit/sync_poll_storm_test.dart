@@ -334,6 +334,7 @@ void main() {
     final provider = LocalRecordingsProvider(uploadGate: gate);
     provider.jobStatusFetcherOverride = (_) async => const SyncJobFetch(SyncJobFetchOutcome.notFound);
     addTearDown(provider.dispose);
+    await provider.waitForInitializationForTesting();
     await provider.refresh();
     await provider.reconcileForTesting();
     expect(uploads, 0);
@@ -342,6 +343,39 @@ void main() {
     expect(File('${dir.path}/$name').existsSync(), isTrue);
     expect(uploads, 1);
     expect(jsonDecode(SharedPreferencesUtil().getString('localRecordingJobs'))[name], 'replacement');
+  });
+
+  test('a disposed Transcribe Later owner ignores a late completed job', () async {
+    const name = 'audio_omibatchphone_opus_fs320_16000_1_fs320_1720000001.bin';
+    final file = File('${dir.path}/$name');
+    await file.writeAsBytes([4, 0, 0, 0, 1, 2, 3, 4]);
+    SharedPreferencesUtil().uid = 'owner';
+    await SharedPreferencesUtil().saveString('batchAudioDir', dir.path);
+    final jobs = jsonEncode({name: 'pending'});
+    await SharedPreferencesUtil().saveString('localRecordingJobs', jobs);
+    final started = Completer<void>();
+    final response = Completer<SyncJobFetch>();
+    final provider = LocalRecordingsProvider();
+    var disposed = false;
+    addTearDown(() {
+      if (!disposed) provider.dispose();
+    });
+    provider.jobStatusFetcherOverride = (_) {
+      started.complete();
+      return response.future;
+    };
+    await started.future;
+    final pending = provider.reconcileForTesting();
+    provider.dispose();
+    disposed = true;
+    response
+        .complete(SyncJobFetch(SyncJobFetchOutcome.ok, SyncJobStatusResponse(jobId: 'pending', status: 'completed')));
+    await pending;
+    await provider.waitForInitializationForTesting();
+
+    expect(file.existsSync(), isTrue, reason: 'a disposed owner cannot delete recordings');
+    expect(SharedPreferencesUtil().getString('localRecordingJobs'), jobs);
+    await provider.refresh();
   });
 
   testWidgets('Transcribe Later timer and WAL wakes share the singleton 18/min budget', (tester) async {
@@ -360,20 +394,23 @@ void main() {
       SharedPreferencesUtil().uid = 'owner';
       await SharedPreferencesUtil().saveString('batchAudioDir', dir.path);
       await SharedPreferencesUtil().saveString('localRecordingJobs', jsonEncode(jobs));
-      // Construct on the widget zone below so its production 15s timer is virtual.
+      // Startup uses real IO; bind only the production timer to the widget clock below.
     });
     final timerZone = Zone.current;
-    provider = LocalRecordingsProvider(periodic: (duration, callback) {
-      expect(duration, const Duration(seconds: 15));
-      // Directory IO finishes outside the widget zone; keep the actual Timer
-      // in the virtual clock's zone without manually driving reconciliation.
-      return timerZone.run(() => Timer.periodic(duration, callback));
+    await tester.runAsync(() async {
+      provider = LocalRecordingsProvider(periodic: (duration, callback) {
+        expect(duration, const Duration(seconds: 15));
+        // Directory IO finishes outside the widget zone; keep the actual Timer
+        // in the virtual clock's zone without manually driving reconciliation.
+        return timerZone.run(() => Timer.periodic(duration, callback));
+      });
+      provider.jobStatusFetcherOverride = (id) async {
+        phoneRequests++;
+        requests.add(now);
+        return SyncJobFetch(SyncJobFetchOutcome.ok, SyncJobStatusResponse(jobId: id, status: 'processing'));
+      };
+      await provider.waitForInitializationForTesting();
     });
-    provider.jobStatusFetcherOverride = (id) async {
-      phoneRequests++;
-      requests.add(now);
-      return SyncJobFetch(SyncJobFetchOutcome.ok, SyncJobStatusResponse(jobId: id, status: 'processing'));
-    };
     sync = LocalWalSyncImpl(_Listener(),
         now: () => now,
         jobPoller: SyncJobPoller.instance,

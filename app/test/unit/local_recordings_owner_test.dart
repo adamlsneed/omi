@@ -28,7 +28,7 @@ void main() {
   Future<List<String>> listFor(String uid) async {
     SharedPreferencesUtil().uid = uid;
     final provider = LocalRecordingsProvider();
-    await provider.waitForInitialRefreshForTesting();
+    await provider.waitForInitializationForTesting();
     await provider.refresh();
     final names = provider.recordings.map((r) => r.fileName).toList();
     provider.dispose();
@@ -78,7 +78,7 @@ void main() {
       polled.add(jobId);
       throw StateError('another account\'s job must not be polled');
     };
-    await provider.waitForInitialRefreshForTesting();
+    await provider.waitForInitializationForTesting();
     await provider.refresh();
     await provider.reconcileForTesting();
 
@@ -90,7 +90,7 @@ void main() {
   test('clearing user data drops the listed recordings', () async {
     SharedPreferencesUtil().uid = 'user-a';
     final provider = LocalRecordingsProvider();
-    await provider.waitForInitialRefreshForTesting();
+    await provider.waitForInitializationForTesting();
     await provider.refresh();
     expect(provider.recordings, hasLength(1));
 

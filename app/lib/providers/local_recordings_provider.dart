@@ -56,7 +56,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
   Future<SyncJobFetch> _jobStatusFetcher(String jobId) =>
       _jobPoller.fetch(jobId, jobStatusFetcherOverride ?? fetchSyncJobStatus);
   Future<void>? _reconcileInFlight;
-  late final Future<void> _initialRefresh;
+  late final Future<void> _initialization;
 
   // Exact per-file duration (seconds), computed once by walking the frame
   // prefixes. Finalized .bin files are immutable, so this is cached by fileName.
@@ -99,21 +99,23 @@ class LocalRecordingsProvider extends ChangeNotifier {
     _jobs = _loadJobs();
     // Trigger (a): auto-upload offline-fallback recordings once the initial scan
     // is in. Trigger (b): whenever connectivity is (re)gained.
-    _initialRefresh = refresh().then((_) {
-      _maybeAutoUpload();
+    _initialization = refresh().then((_) async {
+      if (_disposed) return;
+      final work = <Future<void>>[_maybeAutoUpload()];
       if (_ownedJobs().isNotEmpty) {
         _startReconcileTimer();
-        _reconcile();
+        work.add(_reconcile());
       }
+      await Future.wait(work);
     });
     _connectivitySub = ConnectivityService().onConnectionChange.listen((connected) {
       if (connected) _maybeAutoUpload();
     });
   }
 
-  /// Drain the constructor's scan before a test removes its recording directory.
+  /// Drain startup scanning and sync before a test removes its recording directory.
   @visibleForTesting
-  Future<void> waitForInitialRefreshForTesting() => _initialRefresh;
+  Future<void> waitForInitializationForTesting() => _initialization;
 
   Map<String, String> _ownedJobs() => Map.fromEntries(_jobs.entries.where((entry) => _ownedNames.contains(entry.key)));
 
@@ -147,10 +149,12 @@ class LocalRecordingsProvider extends ChangeNotifier {
   /// Rescan the recordings directory and rebuild [recordings]. Cheap and
   /// idempotent — call it on app foreground, after a BLE disconnect, etc.
   Future<void> refresh() async {
+    if (_disposed) return;
     _isLoading = true;
     notifyListeners();
     try {
       final dir = await _dir();
+      if (_disposed) return;
       if (dir == null || !await dir.exists()) {
         _recordings = [];
         return;
@@ -192,6 +196,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
         );
         if (rec != null) list.add(rec);
       }
+      if (_disposed) return;
       final ownerCount = owners.length;
       owners.removeWhere((name, _) => !onDisk.contains(name));
       if (ownersChanged || owners.length != ownerCount) await _writeOwners(ownersFile, owners);
@@ -373,6 +378,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
   // ───────────────────────── reconcile ─────────────────────────
 
   void _startReconcileTimer() {
+    if (_disposed) return;
     _reconcileTimer ??= _periodic(const Duration(seconds: 15), (_) => _reconcile());
   }
 
@@ -393,6 +399,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
   Future<void> _reconcile() {
     final active = _reconcileInFlight;
     if (active != null) return active;
+    if (_disposed) return Future.value();
     if (!_jobPoller.beginPass()) return Future.value();
     final pass = _reconcileJobs();
     _reconcileInFlight = pass;
@@ -427,7 +434,7 @@ class LocalRecordingsProvider extends ChangeNotifier {
       } catch (_) {
         continue; // transient — retry next tick
       }
-      if (SharedPreferencesUtil().uid != uid) return;
+      if (_disposed || SharedPreferencesUtil().uid != uid) return;
       switch (fetch.outcome) {
         case SyncJobFetchOutcome.throttled:
           break;
@@ -456,8 +463,9 @@ class LocalRecordingsProvider extends ChangeNotifier {
       }
     }
 
+    if (_disposed || SharedPreferencesUtil().uid != uid) return;
     if (changed) await _saveJobs();
-    if (SharedPreferencesUtil().uid != uid) return;
+    if (_disposed || SharedPreferencesUtil().uid != uid) return;
     if (newIds.isNotEmpty || updIds.isNotEmpty) await _surface(newIds, updIds);
     await refresh();
     if (_ownedJobs().isEmpty) _stopReconcileTimer();
