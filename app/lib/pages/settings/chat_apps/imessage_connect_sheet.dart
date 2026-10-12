@@ -154,11 +154,12 @@ class _IMessageConnectSheetState extends State<IMessageConnectSheet>
     try {
       await addContactLauncher('Omi', _address(_proof) ?? endpoint.address);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         OmiFeedback.error(
           context,
           context.l10n.chatAppsCouldNotOpen(context.l10n.chatAppsContactsApp),
         );
+      }
     }
   }
 

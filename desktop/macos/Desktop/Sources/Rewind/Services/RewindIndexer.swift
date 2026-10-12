@@ -26,6 +26,7 @@ actor RewindIndexer {
 
   private var isInitialized = false
   private var isInitializing = false
+  private var initializationMaintenance: [UUID: Task<Void, Never>] = [:]
   /// The effective-owner fence sets this before releasing storage for owner A
   /// and clears it only after the database targets the committed next owner.
   /// Frames arriving in that window are dropped instead of recreating A paths.
@@ -128,16 +129,32 @@ actor RewindIndexer {
     setupPowerMonitorCallback()
 
     // Kick off OCR embedding backfill in background
-    Task(priority: .background) {
+    scheduleInitializationMaintenance {
       await OCREmbeddingService.shared.backfillIfNeeded()
     }
-    Task(priority: .background) {
+    scheduleInitializationMaintenance {
       await LocalEmbeddingIndexer.shared.backfillIfNeeded()
     }
 
     // Reduce ocrDataJson float precision for existing rows (one-time migration)
-    Task(priority: .background) {
+    scheduleInitializationMaintenance {
       await RewindDatabase.shared.reduceOCRDataPrecisionIfNeeded()
+    }
+  }
+
+  private func scheduleInitializationMaintenance(_ operation: @escaping @Sendable () async -> Void) {
+    let id = UUID()
+    initializationMaintenance[id] = Task(priority: .background) {
+      defer { initializationMaintenance[id] = nil }
+      await operation()
+    }
+  }
+
+  /// Finish initialization work before a test closes and removes its owner's database.
+  /// Otherwise a late backfill can reopen anonymous storage and contaminate the next fixture.
+  func drainInitializationForTesting() async {
+    while let task = initializationMaintenance.values.first {
+      await task.value
     }
   }
 

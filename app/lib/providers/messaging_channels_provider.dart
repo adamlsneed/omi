@@ -191,10 +191,11 @@ class MessagingChannelsProvider extends ChangeNotifier {
     required String kind,
   }) {
     final endpoint = _config.endpoint(channel);
-    if (endpoint == null)
+    if (endpoint == null) {
       return Future.value(
         const ApiFailure(ApiProblem(ApiProblemKind.forbidden)),
       );
+    }
     return _api.mintProof(
       channel: channel.wireId,
       provider: endpoint.provider,

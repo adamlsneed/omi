@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:omi/utils/platform/platform_manager.dart';
 import 'package:omi/backend/http/api/action_items.dart';
-import 'package:omi/backend/preferences.dart';
 import 'package:omi/backend/schema/action_item.dart';
 import 'package:omi/backend/preferences.dart';
 import 'package:omi/services/integrations/apple_reminders_service.dart';

@@ -41,8 +41,9 @@ void _fakeAudioPlatformThatCannotLoad(WidgetTester tester) {
     if (call.method != 'init') return <String, dynamic>{};
     final id = (call.arguments as Map)['id'] as String;
     messenger.setMockMethodCallHandler(MethodChannel('com.ryanheise.just_audio.methods.$id'), (call) async {
-      if (call.method == 'load')
+      if (call.method == 'load') {
         throw PlatformException(code: '-11800', message: 'The operation could not be completed');
+      }
       return <String, dynamic>{};
     });
     for (final stream in ['events', 'data']) {
