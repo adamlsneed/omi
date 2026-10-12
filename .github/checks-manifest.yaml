@@ -334,7 +334,7 @@ checks:
     reason: "the one-action production backend release contract must reject legacy release planes"
   - id: grafana-deadman-contract
     command: ["python3", ".github/scripts/test_ensure_grafana_deadman.py"]
-    triggers: [".github/scripts/ensure_grafana_deadman.py", ".github/scripts/test_ensure_grafana_deadman.py", "backend/deploy/monitoring/grafana-deadman.json", ".github/workflows/gcp_cloud_run_metrics_egress.yml"]
+    triggers: [".github/scripts/ensure_grafana_deadman.py", ".github/scripts/test_ensure_grafana_deadman.py", "backend/deploy/monitoring/grafana-deadman.json", ".github/disabled-workflows/gcp_cloud_run_metrics_egress.yml"]
     lanes: ["local", "ci"]
     reason: "2026-10-12 Grafana SQLite lock bursts dropped evaluations and failed health probes; the external health check must retain scoped five-minute paging, idempotent reconciliation and required channels"
   - id: backend-route-5xx-alert-contract
