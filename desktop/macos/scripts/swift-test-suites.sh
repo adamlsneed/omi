@@ -671,6 +671,9 @@ done < <(cut -f1 "$suite_map" | sort -u)
 #
 # - `RuntimeOwnerAuthorityTestFixture` is the explicit authority fixture.
 # - `withAutomationOwnerIfMissing` temporarily transitions that same domain.
+# - `performEffectiveOwnerTransition` and its task-sync fixture also mutate
+#   that domain. A missed task-ordering caller wedged a shared batch for its
+#   full watchdog budget while both isolated halves passed.
 # - Rewind storage's auth helpers hide their standard-domain mutation behind a
 #   shared support type, so the calling suite does not mention the authority
 #   fixture itself.
@@ -681,7 +684,7 @@ done < <(cut -f1 "$suite_map" | sort -u)
 # LocalEmbeddingIndexer.indexFinalizedSession captures and revalidates the
 # effective owner, which reads the production-standard auth defaults domain.
 # Keep its caller suites out of parallel cfprefsd traffic on hosted macOS.
-auth_domain_marker_pattern='RuntimeOwnerAuthorityTestFixture|RuntimeOwnerIdentity\.withAutomationOwnerIfMissing|RewindStorageTestIsolation\.(captureAuthSnapshot|signInForTests|restoreAuthSnapshot)|LocalEmbeddingIndexer\.shared\.indexFinalizedSession|UserDefaults\.standard\.(set|removeObject).*forKey: \.authUserId'
+auth_domain_marker_pattern='RuntimeOwnerAuthorityTestFixture|TaskSyncOwnerTestFixture|RuntimeOwnerIdentity\.(withAutomationOwnerIfMissing|performEffectiveOwnerTransition)|RewindStorageTestIsolation\.(captureAuthSnapshot|signInForTests|restoreAuthSnapshot)|LocalEmbeddingIndexer\.shared\.indexFinalizedSession|UserDefaults\.standard\.(set|removeObject).*forKey: \.authUserId'
 declare -a auth_domain_files=()
 while IFS= read -r auth_domain_file; do
   auth_domain_files+=("$auth_domain_file")

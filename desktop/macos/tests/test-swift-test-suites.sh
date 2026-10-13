@@ -327,6 +327,32 @@ esac
 if [ -f "$FAKE_XCRUN_SYNC_DIR/serial-overlap" ]; then
   fail "temporary automation-owner transition overlapped another suite"
 fi
+# The exclusive transition API and its cross-file fixture mutate the same
+# standard auth domain even when the caller has no direct defaults writes.
+for owner_surface in 'RuntimeOwnerIdentity.performEffectiveOwnerTransition() {}' 'TaskSyncOwnerTestFixture().establish(ownerID: "fixture-owner")'; do
+  cat >"$TMPDIR/tests/OwnerAuthorityAdopterTests.swift" <<SWIFT
+import XCTest
+final class OwnerAuthorityAdopterTests: XCTestCase {
+    func testOne() async {
+        await $owner_surface
+    }
+}
+SWIFT
+  : >"$FAKE_XCRUN_SCRATCH_LOG"
+  rm -f "$FAKE_XCRUN_SYNC_DIR/serial-overlap"
+  if "$RUNNER" >"$TMPDIR/owner-transition-runner.out" 2>"$TMPDIR/owner-transition-runner.err"; then
+    fail "owner-transition fixture run unexpectedly succeeded despite AlphaTests failure"
+  fi
+  owner_transition_scratch="$(awk -F '\t' '$1 == "OwnerAuthorityAdopterTests" {print $2}' \
+    "$FAKE_XCRUN_SCRATCH_LOG")"
+  case "$owner_transition_scratch" in
+    */serial-*.build) ;;
+    *) fail "runner did not serialize $owner_surface" ;;
+  esac
+  if [ -f "$FAKE_XCRUN_SYNC_DIR/serial-overlap" ]; then
+    fail "$owner_surface overlapped another suite"
+  fi
+done
 cat >"$TMPDIR/tests/OwnerAuthorityAdopterTests.swift" <<'SWIFT'
 import XCTest
 final class OwnerAuthorityAdopterTests: XCTestCase {
