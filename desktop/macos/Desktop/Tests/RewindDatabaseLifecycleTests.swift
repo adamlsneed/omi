@@ -341,6 +341,7 @@ final class RewindDatabaseLifecycleTests: XCTestCase {
     RewindDatabase.currentUserId = testUserId
     await RewindDatabase.shared.configure(userId: testUserId)
     try await RewindIndexer.shared.initialize()
+    await RewindIndexer.shared.drainInitializationForTesting()
     let initializedBeforeClose = await RewindDatabase.shared.isInitialized
     XCTAssertTrue(initializedBeforeClose)
 
@@ -350,6 +351,7 @@ final class RewindDatabaseLifecycleTests: XCTestCase {
     XCTAssertFalse(initializedAfterClose)
 
     try await RewindIndexer.shared.initialize()
+    await RewindIndexer.shared.drainInitializationForTesting()
     let initializedAfterReinitialize = await RewindDatabase.shared.isInitialized
     XCTAssertTrue(
       initializedAfterReinitialize,
@@ -379,6 +381,7 @@ final class RewindDatabaseLifecycleTests: XCTestCase {
     RewindDatabase.currentUserId = testUserId
     await RewindDatabase.shared.configure(userId: testUserId)
     try await RewindIndexer.shared.initialize()
+    await RewindIndexer.shared.drainInitializationForTesting()
     let frame = try makeTestFrameImage()
 
     // Prime the frame pipeline before simulating recovery so its first-frame
@@ -388,6 +391,7 @@ final class RewindDatabaseLifecycleTests: XCTestCase {
       appName: "RewindDatabaseLifecycleTests",
       windowTitle: "prime retention cleanup",
       captureTime: Date())
+    await RewindIndexer.shared.drainInitializationForTesting()
 
     // Runtime I/O/corruption recovery closes the pool without resetting the indexer.
     await RewindDatabase.shared.close()
@@ -399,6 +403,7 @@ final class RewindDatabaseLifecycleTests: XCTestCase {
       appName: "RewindDatabaseLifecycleTests",
       windowTitle: "reopen after close",
       captureTime: Date())
+    await RewindIndexer.shared.drainInitializationForTesting()
 
     let initializedAfterProcessFrame = await RewindDatabase.shared.isInitialized
     XCTAssertTrue(

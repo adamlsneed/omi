@@ -309,7 +309,16 @@ OMI_SPEAKER_ID_MATCH_EXITS_TOTAL = Counter(
     'Live speaker-ID detections that returned before a match decision, by bounded reason',
     ['reason'],
 )
-for _reason in ('window_outside_buffer', 'too_short', 'no_pcm', 'stale_generation', 'already_mapped'):
+for _reason in (
+    'window_outside_buffer',
+    'segment_shorter_than_minimum',
+    'no_fresh_audio',
+    'window_shorter_than_minimum',
+    'no_pcm',
+    'stale_generation',
+    'already_mapped',
+    'authority_unavailable',
+):
     OMI_SPEAKER_ID_MATCH_EXITS_TOTAL.labels(reason=_reason)
 
 OMI_SPEAKER_CLIP_COVERAGE_TOTAL = Counter(
@@ -345,8 +354,25 @@ for _outcome in (
 ):
     OMI_PERSON_VOICE_LEARNING_TOTAL.labels(outcome=_outcome)
 
+OMI_CONVERSATION_SUMMARY_VECTOR_UPSERTS_TOTAL = Counter(
+    'omi_conversation_summary_vector_upserts_total',
+    'Conversation summary vector writes by bounded outcome',
+    ['outcome'],
+)
+OMI_CHAT_SEARCH_TOOL_OUTCOMES_TOTAL = Counter(
+    'omi_chat_search_tool_outcomes_total',
+    'Chat conversation retrieval paths by bounded outcome',
+    ['path', 'outcome'],
+)
+
 # Export zero-valued children from a healthy but idle process. This lets
 # Prometheus/Grafana distinguish no user traffic from an absent scrape target.
+for _outcome in ('success', 'skipped_discarded', 'skipped_no_structured', 'skipped_stale', 'error'):
+    OMI_CONVERSATION_SUMMARY_VECTOR_UPSERTS_TOTAL.labels(outcome=_outcome)
+for _path in ('keyword', 'vector', 'transcript', 'firestore'):
+    for _outcome in ('ok', 'degraded', 'empty'):
+        OMI_CHAT_SEARCH_TOOL_OUTCOMES_TOTAL.labels(path=_path, outcome=_outcome)
+
 for _journey in ('chat_response', 'pusher_session', 'capture_finalization'):
     OMI_JOURNEY_ACCEPTED_TOTAL.labels(journey=_journey)
     for _outcome in ('success', 'failure', 'cancelled', 'stale'):
@@ -517,6 +543,25 @@ def record_conversation_relevance(*, trigger: str, verdict: str, decided_by: str
         }
         labels['reason'] = reason if _RELEVANCE_REASON.match(reason) else 'other'
         CONVERSATION_RELEVANCE_DECISION_TOTAL.labels(**labels).inc()
+    except Exception:
+        pass
+
+
+CONVERSATION_RELEVANCE_RESCUE_TOTAL = Counter(
+    'omi_conversation_relevance_rescue_total',
+    'R03/R08 second opinions; shadow never changes verdicts. No transcript or user labels.',
+    ['mode', 'rule', 'outcome'],
+)
+
+
+def record_conversation_relevance_rescue(*, mode: str, rule: str, outcome: str) -> None:
+    """Bounded content-free labels; telemetry never changes relevance."""
+    try:
+        CONVERSATION_RELEVANCE_RESCUE_TOTAL.labels(
+            mode=mode if mode in {'shadow', 'on'} else 'other',
+            rule=rule if rule in {'filler_only', 'no_content_words'} else 'other',
+            outcome=outcome if outcome in {'rescue', 'discard_stands', 'error_keep'} else 'other',
+        ).inc()
     except Exception:
         pass
 
@@ -717,8 +762,14 @@ OMI_CLIENT_JOURNEY_DURATION_SECONDS = Histogram(
 # different images, mixes two different answers to the same question.
 LISTEN_FINALIZATION_OLDEST_NONTERMINAL_AGE_SECONDS = Gauge(
     'listen_finalization_oldest_nonterminal_age_seconds',
-    'Global age of the oldest queued, leased, or blocked listen finalization job; '
+    'Global age of the oldest queued or leased listen finalization job; '
     'replicated per process, aggregate with max() not sum()',
+)
+
+LISTEN_FINALIZATION_OLDEST_BLOCKED_BYOK_AGE_SECONDS = Gauge(
+    'listen_finalization_oldest_blocked_byok_age_seconds',
+    'Global age of the oldest listen finalization job waiting for user BYOK credentials; '
+    'replicated per process, aggregate with max() not sum(); informational only',
 )
 
 # Durable-queue substrate age. Every replica publishes the same Firestore-derived
@@ -806,12 +857,6 @@ LLM_GATEWAY_DIRECT_EXCEPTION_REQUESTS = Counter(
     'llm_gateway_direct_exception_requests_total',
     'Inventoried direct-provider surfaces used while gateway feature mode is active',
     ['surface', 'reason'],
-)
-
-LLM_GATEWAY_CHAT_EXTRACTION_COMPARISONS = Counter(
-    'llm_gateway_chat_extraction_comparisons_total',
-    'Privacy-safe comparison buckets between shadow gateway output and legacy extraction output',
-    ['feature', 'field', 'outcome'],
 )
 
 LLM_GATEWAY_CIRCUIT_OPEN = Gauge(
@@ -1076,6 +1121,11 @@ OMI_LISTEN_ACCEPTED_TOTAL = Counter(
 # Wall seconds of live /v4/listen sessions by who could have watched them in real
 # time (routers/listen/realtime_demand.py). The input for routing background
 # capture off real-time vendor streams; seconds, never session identifiers.
+OMI_LISTEN_LIVE_NO_AUDIO_SESSIONS = Gauge(
+    'omi_listen_live_no_audio_sessions',
+    'Open backend-STT sockets awaiting first decoded frame for 300s, or receiving no raw byte frames for 300s afterward',
+)
+
 OMI_LISTEN_REALTIME_DEMAND_SECONDS_TOTAL = Counter(
     'omi_listen_realtime_demand_seconds_total',
     'Live listen session wall seconds by real-time demand bucket, bounded source and client platform',
@@ -1329,6 +1379,16 @@ PUSHER_DRAIN_IN_PROGRESS = Gauge(
 )
 PUSHER_READY.set(1)
 PUSHER_DRAIN_IN_PROGRESS.set(0)
+
+
+OMI_SYNC_JOB_POLL_REQUESTS_TOTAL = Counter(
+    'omi_sync_job_poll_requests_total',
+    'Authenticated GET /v2/sync-local-files/{job_id} requests, including rejected polls',
+)
+OMI_SYNC_JOB_POLL_THROTTLED_TOTAL = Counter(
+    'omi_sync_job_poll_throttled_total',
+    'GET /v2/sync-local-files/{job_id} requests rejected by the per-UID poll ceiling',
+)
 
 
 # GET /v1/action-items read-cost controls (see database/action_items_cache.py).

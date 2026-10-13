@@ -21,10 +21,12 @@ that is cheaper than the file you are editing.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 # path -> (max_lines, max_bytes). Ratchet down; never up.
 BUDGETS: dict[str, tuple[int, int]] = {
@@ -117,10 +119,23 @@ def discover(repo: Path) -> list[Path]:
             for candidate in ignored
         )
 
-    return sorted(
-        p for p in repo.rglob("AGENTS.md")
-        if not SKIP_PARTS.intersection(p.parts) and not is_ignored(p)
-    )
+    def raise_walk_error(error: OSError) -> None:
+        raise error
+
+    found = []
+    for directory, children, files in os.walk(repo, onerror=raise_walk_error):
+        parent = Path(directory)
+        # Prune before descending: Swift's ignored test builds can disappear
+        # during cleanup, and filtering rglob's results still traverses them.
+        children[:] = [
+            name for name in children
+            if not SKIP_PARTS.intersection((parent / name).parts)
+            and not is_ignored(parent / name)
+        ]
+        guide = parent / "AGENTS.md"
+        if "AGENTS.md" in files and not is_ignored(guide):
+            found.append(guide)
+    return sorted(found)
 
 
 def self_test() -> None:
@@ -158,9 +173,24 @@ def self_test() -> None:
         worktree = repo / ".claude" / "worktrees" / "agent-abc" / ".github"
         worktree.mkdir(parents=True)
         (worktree / "AGENTS.md").write_text("# copy inside an ignored sibling worktree\n")
+        component = repo / "component"
+        component.mkdir()
+        (component / "AGENTS.md").write_text("# discover new component guides too\n")
+        for name in (".build", "node_modules"):
+            generated = repo / name
+            generated.mkdir()
+            (generated / "AGENTS.md").write_text("# generated dependency guide\n")
 
-        found = {p.relative_to(repo).as_posix() for p in discover(repo)}
-        assert found == {"AGENTS.md"}, (
+        real_scandir = os.scandir
+
+        def reject_ignored_scan(path):
+            if Path(path).name in {".claude", *SKIP_PARTS}:
+                raise FileNotFoundError("simulated concurrent generated-directory cleanup")
+            return real_scandir(path)
+
+        with patch("os.scandir", side_effect=reject_ignored_scan):
+            found = {p.relative_to(repo).as_posix() for p in discover(repo)}
+        assert found == {"AGENTS.md", "component/AGENTS.md"}, (
             f"ignored worktree copies must not be discovered, got {sorted(found)}"
         )
 

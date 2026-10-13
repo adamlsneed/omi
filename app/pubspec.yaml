@@ -178,6 +178,8 @@ dev_dependencies:
   # Direct dev dep for the j5 capture journey's scratch PathProviderPlatform:
   # the fake needs the platform-interface types path_provider does not re-export.
   path_provider_platform_interface: ^2.0.0
+  # Direct dev dependency for shared-preference platform fakes in widget tests.
+  shared_preferences_platform_interface: ^2.4.1
   # hermetic_boot composes providers via SingleChildWidget, which provider
   # consumes but does not re-export.
   nested: ^1.0.0

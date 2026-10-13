@@ -705,17 +705,22 @@ def test_malformed_cache_evidence_keeps_embeddings():
     np.testing.assert_array_equal(decoded['s'][1], cache['s'][1])
 
 
-def test_bad_embedding_seconds_does_not_change_resolved_voice():
+@pytest.mark.parametrize('bad_seconds', ['invalid', None, -1.0, float('nan'), float('inf')])
+def test_bad_embedding_seconds_preserves_grouping_but_cannot_authorize_owner(bad_seconds):
     import tests.unit.test_conversation_speakers as fixture
     import utils.stt.conversation_speakers as resolver
 
     segments, embeddings, voices = fixture._fragmented([0] * 4)
     before = resolver.resolve_conversation_speakers(segments, embeddings, voiceprints={'user': voices[0]})
     after = resolver.resolve_conversation_speakers(
-        segments, embeddings, voiceprints={'user': voices[0]}, embedding_seconds={s['id']: 'invalid' for s in segments}
+        segments,
+        embeddings,
+        voiceprints={'user': voices[0]},
+        embedding_seconds={s['id']: bad_seconds for s in segments},
     )
     assert after.speaker_ids == before.speaker_ids
-    assert after.voice_identities == before.voice_identities
+    assert before.voice_identities
+    assert not after.voice_identities
 
 
 @pytest.mark.parametrize('level', ['standard', 'enhanced'])
@@ -953,6 +958,7 @@ def test_manual_speaker_routes_with_stored_scores(manual_score_routes, monkeypat
     path = ('users', 'u', 'conversations', 'c')
     segment = dict(id='s', text='synthetic', speaker_id=1, is_user=operation == 'rejection', start=0, end=6)
     data = conversation([segment], data_protection_level=level).model_dump()
+    data['user_corrections'] = [{'note': 'Owner confirmed the film was The Substance'}]
     data[scores.FIELD] = [row()]
     store.rows[path] = db.encode_conversation_for_write('u', data, level)
     if corrupt:
@@ -976,6 +982,7 @@ def test_manual_speaker_routes_with_stored_scores(manual_score_routes, monkeypat
         response = client.post('/v1/conversations/c/speakers/1/reject', json={'kind': 'not_me', 'segment_ids': ['s']})
     assert response.status_code == 200, response.text
     assert response.json()['transcript_segments'][0]['is_user'] == (operation == 'assignment')
+    assert response.json()['user_corrections'] == data['user_corrections']
     assert scores.FIELD not in response.json()
     assert store.rows[path][scores.FIELD] == blob
     assert returned[0].get(scores.FIELD) == (None if corrupt else [row()])
