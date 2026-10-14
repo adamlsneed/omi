@@ -57,7 +57,7 @@ background), and the device console stays silent for the "Omi could not start" s
 For the physical Watch, verify its own embedded provisioning profile includes its
 UDID, Developer Mode is enabled on the Watch, and its built `Info.plist` contains a
 nonempty `NSMicrophoneUsageDescription`. The phone's permission description does not
-cover the Watch app. A missing Watch description caused a TCC startup crash on
+cover the Watch app. A missing Watch description caused a TCC recording-start crash on
 October 13, 2026. The Watch recording test covers this privacy requirement.
 
 If direct Mac-to-Watch access fails, the companion iPhone can still install the app
