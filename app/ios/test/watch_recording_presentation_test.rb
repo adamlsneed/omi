@@ -167,6 +167,83 @@ class WatchRecordingPresentationTest < Minitest::Test
     end
   end
 
+  def test_quick_capture_checkpoints_survive_relaunch_and_duplicate_delivery
+    Dir.mktmpdir('watch-capture-store') do |directory|
+      harness = File.join(directory, 'main.swift')
+      File.write(harness, <<~SWIFT)
+        import Foundation
+        @main struct CaptureStoreHarness {
+          static func main() throws {
+            let root = URL(fileURLWithPath: CommandLine.arguments[1])
+            let store = WatchCaptureStore(root: root.appendingPathComponent("inbox"))
+            let source = root.appendingPathComponent("input.m4a")
+            try Data([1, 2, 3, 4]).write(to: source)
+            let owner = String(repeating: "a", count: 64)
+            let suite = "watch-capture-test-" + UUID().uuidString
+            let defaults = UserDefaults(suiteName: suite)!
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let account = WatchCaptureOwnerCache(defaults: defaults)
+            account.receive(owner)
+            let offlineRestart = WatchCaptureOwnerCache(defaults: defaults)
+            precondition(offlineRestart.owner == owner, "Offline recording must retain its account without a phone handshake")
+            account.receive("invalid")
+            precondition(account.owner == owner)
+            account.receive("")
+            precondition(account.owner.isEmpty, "Sign-out must clear future capture admission")
+            var recording = WatchCaptureRecord(owner: owner, destination: "idea", createdAt: 1000)
+            recording.duration = 4
+            try store.receive(source, metadata: recording.wire)
+            _ = try store.update(id: recording.id, owner: owner) {
+              $0.transcript = "An idea worth keeping"
+              $0.conversationId = "conversation-1"
+            }
+            try store.receive(source, metadata: recording.wire)
+            let restarted = WatchCaptureStore(root: store.root)
+            var saved = try restarted.records()[0]
+            precondition(saved.transcript == "An idea worth keeping")
+            precondition(saved.conversationId == "conversation-1")
+            precondition(saved.status == "queued")
+            var receipt = recording.wire
+            receipt["status"] = "saved"
+            precondition(!saved.applyReceipt(receipt), "A transport acknowledgment cannot claim a save")
+            receipt["resultId"] = "conversation-1"
+            receipt["owner"] = String(repeating: "b", count: 64)
+            precondition(!saved.applyReceipt(receipt), "A different account cannot acknowledge this recording")
+            receipt["owner"] = owner
+            precondition(saved.applyReceipt(receipt))
+            try restarted.save(saved)
+            receipt["status"] = "failed"
+            precondition(!saved.applyReceipt(receipt), "Late failures cannot overwrite a saved receipt")
+            try restarted.receive(source, metadata: recording.wire)
+            let persisted = try restarted.records()[0]
+            let audio = try Data(contentsOf: restarted.audioURL(recording.id))
+            precondition(persisted.status == "saved")
+            precondition(audio == Data([1, 2, 3, 4]))
+            do {
+              _ = try restarted.audioURL("../../outside")
+              preconditionFailure("Path traversal admitted")
+            } catch WatchCaptureStoreError.invalidRecord { }
+            var foreign = recording.wire
+            foreign["owner"] = String(repeating: "b", count: 64)
+            do {
+              try restarted.receive(source, metadata: foreign)
+              preconditionFailure("Conflicting owner admitted")
+            } catch WatchCaptureStoreError.conflictingRecord { }
+            precondition(WatchCaptureRecord(metadata: ["id": "bad"]) == nil)
+            print("ok")
+          }
+        }
+      SWIFT
+      binary = File.join(directory, 'capture-store-test')
+      source = File.join(IOS_ROOT, 'WatchCapture', 'WatchCaptureStore.swift')
+      stdout, stderr, status = Open3.capture3('swiftc', '-parse-as-library', source, harness, '-o', binary)
+      assert status.success?, "capture store compile failed:\n#{stdout}\n#{stderr}"
+      stdout, stderr, status = Open3.capture3(binary, directory)
+      assert status.success?, "capture store assertions failed:\n#{stdout}\n#{stderr}"
+      assert_equal "ok\n", stdout
+    end
+  end
+
   private
 
   def compile_and_run(*sources, binary:)

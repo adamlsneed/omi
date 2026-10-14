@@ -68,6 +68,35 @@ Confirm actual installation rather than only the placeholder, then verify launch
 End temporary Device Hub screen sessions afterward; an active session suppressed
 the iPhone's onscreen keyboard even with keyboard capture off during this recovery.
 
+## Watch Idea and Task capture
+
+The Watch's Idea and Task buttons record its own microphone to a short AAC file
+(up to five minutes), then transfer it to the iPhone's durable inbox. After one-time account setup, recording starts entirely on the Watch, even
+when the phone is unavailable. Watch Connectivity delivers files in the background;
+a dedicated Flutter entrypoint restores auth and saves them without opening UI.
+The native coordinator admits one worker engine at a time and requests additional
+iOS processing windows for deferred saves. iOS controls background scheduling,
+so offline or delayed delivery remains visibly pending. These explicit recordings
+do not finish or replace an active pendant conversation.
+
+Idea uses the existing Ideas conversation folder, shared with the Mac lightbulb.
+Task creates a manual action item. Neither button writes a memory. The phone
+checkpoints transcription and conversation identity before subsequent writes;
+stable capture IDs make destination retries idempotent. Only the confirmed task
+identity or a read-back of the completed conversation in Ideas earns a Saved
+receipt. Transient failures retry automatically with backoff. Failed recordings remain
+on-device and can be retried from the Watch
+under the original account. Audio is retained locally, including after saving.
+
+Core implementation: `app/ios/WatchCapture/WatchCaptureStore.swift`,
+`app/ios/Runner/WatchCaptureHost.swift`, `app/ios/omiWatchApp/WatchQuickCapture.swift`,
+and `app/lib/services/watch/`. The shared Pigeon interface lives in
+`app/lib/pigeon_interfaces.dart`; regenerate all three platform outputs together.
+Verify native persistence/receipts with
+`ruby app/ios/test/watch_recording_presentation_test.rb` and destination/retry
+behavior with `cd app && bash test.sh test/services/watch` in a hermetic test
+checkout, before applying the physical-device configuration above.
+
 ## Failures only Adam can fix
 
 - **Locked phone** (exit 3 or 4): ask Adam to unlock it and keep it awake.

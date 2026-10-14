@@ -127,6 +127,7 @@ final class QuickActionsIconPatcher: NSObject {
   private var notificationTitleOnKill: String?
   private var notificationBodyOnKill: String?
 
+  private let watchCaptureHost = WatchCaptureHost()
   var session: WCSession?
     var flutterWatchAPI: WatchRecorderFlutterAPI?
     var rayBanMetaHostApi: RayBanMetaHostApiImpl?
@@ -180,6 +181,12 @@ final class QuickActionsIconPatcher: NSObject {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    watchCaptureHost.registerBackgroundTasks()
+    if WCSession.isSupported() {
+      session = WCSession.default
+      session?.delegate = self
+      session?.activate()
+    }
     BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.periodicSyncIdentifier, using: .main) { [weak self] task in
       guard let self = self else {
         task.setTaskCompleted(success: false)
@@ -321,6 +328,7 @@ final class QuickActionsIconPatcher: NSObject {
             let api: WatchRecorderHostAPI = RecorderHostApiImpl(session: watchSession, flutterWatchAPI: flutterWatchAPI)
 
             WatchRecorderHostAPISetup.setUp(binaryMessenger: messenger, api: api)
+            watchCaptureHost.attachForeground(messenger: messenger)
       }
 
       // Native BLE module — register Pigeon APIs
@@ -808,8 +816,33 @@ func registerPlugins(registry: FlutterPluginRegistry) {
 }
 
 extension AppDelegate: WCSessionDelegate {
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        guard file.metadata?["method"] as? String == "quickCaptureFile" else { return }
+        do {
+            try watchCaptureHost.store.receive(file.fileURL, metadata: file.metadata ?? [:])
+            DispatchQueue.main.async { self.watchCaptureHost.requestProcessing() }
+        } catch {
+            NSLog("[WatchCapture] File intake failed: %@", String(describing: type(of: error)))
+        }
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any],
+                 replyHandler: @escaping ([String: Any]) -> Void) {
+        guard ["quickCaptureContext", "retryQuickCapture"].contains(message["method"] as? String ?? "") else {
+            replyHandler(["error": "unsupported"])
+            return
+        }
+        DispatchQueue.main.async {
+            let reply = self.watchCaptureHost.reply(to: message)
+            self.watchCaptureHost.processIfDue()
+            replyHandler(reply)
+        }
+    }
+
     
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) { }
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        DispatchQueue.main.async { self.watchCaptureHost.publishOwner() }
+    }
     
     func sessionDidBecomeInactive(_ session: WCSession) {
         print("Session Watch Become Inactive")
@@ -930,7 +963,13 @@ extension AppDelegate: WCSessionDelegate {
     // Receive user info from watch (background/offline)
     // Used for 1.5 second audio chunks when screen is off or app is backgrounded
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any]) {
-        
+        if userInfo["method"] as? String == "retryQuickCapture" {
+            DispatchQueue.main.async {
+                _ = self.watchCaptureHost.reply(to: userInfo)
+                self.watchCaptureHost.requestProcessing()
+            }
+            return
+        }
         Task {
             guard let method = userInfo["method"] as? String else {
                 return

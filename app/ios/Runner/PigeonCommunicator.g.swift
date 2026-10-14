@@ -132,6 +132,59 @@ func deepHashPigeonCommunicator(value: Any?, hasher: inout Hasher) {
 
 
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct WatchCaptureItem: Hashable {
+  var id: String
+  var owner: String
+  var destination: String
+  var path: String
+  var createdAt: Double
+  var duration: Double
+  var transcript: String
+  var conversationId: String
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> WatchCaptureItem? {
+    let id = pigeonVar_list[0] as! String
+    let owner = pigeonVar_list[1] as! String
+    let destination = pigeonVar_list[2] as! String
+    let path = pigeonVar_list[3] as! String
+    let createdAt = pigeonVar_list[4] as! Double
+    let duration = pigeonVar_list[5] as! Double
+    let transcript = pigeonVar_list[6] as! String
+    let conversationId = pigeonVar_list[7] as! String
+
+    return WatchCaptureItem(
+      id: id,
+      owner: owner,
+      destination: destination,
+      path: path,
+      createdAt: createdAt,
+      duration: duration,
+      transcript: transcript,
+      conversationId: conversationId
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      owner,
+      destination,
+      path,
+      createdAt,
+      duration,
+      transcript,
+      conversationId,
+    ]
+  }
+  static func == (lhs: WatchCaptureItem, rhs: WatchCaptureItem) -> Bool {
+    return deepEqualsPigeonCommunicator(lhs.toList(), rhs.toList())  }
+  func hash(into hasher: inout Hasher) {
+    deepHashPigeonCommunicator(value: toList(), hasher: &hasher)
+  }
+}
+
 /// Discovered BLE peripheral info passed from native to Dart.
 ///
 /// Generated class from Pigeon that represents data sent in messages.
@@ -429,18 +482,20 @@ private class PigeonCommunicatorPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
     case 129:
-      return BlePeripheral.fromList(self.readValue() as! [Any?])
+      return WatchCaptureItem.fromList(self.readValue() as! [Any?])
     case 130:
-      return BleService.fromList(self.readValue() as! [Any?])
+      return BlePeripheral.fromList(self.readValue() as! [Any?])
     case 131:
-      return BleDisconnectEvent.fromList(self.readValue() as! [Any?])
+      return BleService.fromList(self.readValue() as! [Any?])
     case 132:
-      return BleBatteryPoint.fromList(self.readValue() as! [Any?])
+      return BleDisconnectEvent.fromList(self.readValue() as! [Any?])
     case 133:
-      return BleDeviceDiagnostics.fromList(self.readValue() as! [Any?])
+      return BleBatteryPoint.fromList(self.readValue() as! [Any?])
     case 134:
-      return RayBanMetaGlasses.fromList(self.readValue() as! [Any?])
+      return BleDeviceDiagnostics.fromList(self.readValue() as! [Any?])
     case 135:
+      return RayBanMetaGlasses.fromList(self.readValue() as! [Any?])
+    case 136:
       return BluetoothHfpInput.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -450,26 +505,29 @@ private class PigeonCommunicatorPigeonCodecReader: FlutterStandardReader {
 
 private class PigeonCommunicatorPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
-    if let value = value as? BlePeripheral {
+    if let value = value as? WatchCaptureItem {
       super.writeByte(129)
       super.writeValue(value.toList())
-    } else if let value = value as? BleService {
+    } else if let value = value as? BlePeripheral {
       super.writeByte(130)
       super.writeValue(value.toList())
-    } else if let value = value as? BleDisconnectEvent {
+    } else if let value = value as? BleService {
       super.writeByte(131)
       super.writeValue(value.toList())
-    } else if let value = value as? BleBatteryPoint {
+    } else if let value = value as? BleDisconnectEvent {
       super.writeByte(132)
       super.writeValue(value.toList())
-    } else if let value = value as? BleDeviceDiagnostics {
+    } else if let value = value as? BleBatteryPoint {
       super.writeByte(133)
       super.writeValue(value.toList())
-    } else if let value = value as? RayBanMetaGlasses {
+    } else if let value = value as? BleDeviceDiagnostics {
       super.writeByte(134)
       super.writeValue(value.toList())
-    } else if let value = value as? BluetoothHfpInput {
+    } else if let value = value as? RayBanMetaGlasses {
       super.writeByte(135)
+      super.writeValue(value.toList())
+    } else if let value = value as? BluetoothHfpInput {
+      super.writeByte(136)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -872,6 +930,138 @@ class WatchRecorderFlutterAPI: WatchRecorderFlutterAPIProtocol {
     let channelName: String = "dev.flutter.pigeon.omi_pigeon.WatchRecorderFlutterAPI.onWatchBatteryUpdate\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([batteryLevelArg, batteryStateArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+}
+/// Durable, intentional Watch recordings, independent of the selected streaming device.
+///
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol WatchCaptureHostAPI {
+  func setCaptureOwner(owner: String) throws
+  func pendingCaptures() throws -> [WatchCaptureItem]
+  func checkpointCapture(id: String, owner: String, transcript: String, conversationId: String) throws
+  func finishCapture(id: String, owner: String, resultId: String) throws
+  func failCapture(id: String, owner: String, reason: String) throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class WatchCaptureHostAPISetup {
+  static var codec: FlutterStandardMessageCodec { PigeonCommunicatorPigeonCodec.shared }
+  /// Sets up an instance of `WatchCaptureHostAPI` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: WatchCaptureHostAPI?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    let setCaptureOwnerChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.setCaptureOwner\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setCaptureOwnerChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let ownerArg = args[0] as! String
+        do {
+          try api.setCaptureOwner(owner: ownerArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setCaptureOwnerChannel.setMessageHandler(nil)
+    }
+    let pendingCapturesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.pendingCaptures\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      pendingCapturesChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.pendingCaptures()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      pendingCapturesChannel.setMessageHandler(nil)
+    }
+    let checkpointCaptureChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.checkpointCapture\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      checkpointCaptureChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        let ownerArg = args[1] as! String
+        let transcriptArg = args[2] as! String
+        let conversationIdArg = args[3] as! String
+        do {
+          try api.checkpointCapture(id: idArg, owner: ownerArg, transcript: transcriptArg, conversationId: conversationIdArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      checkpointCaptureChannel.setMessageHandler(nil)
+    }
+    let finishCaptureChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.finishCapture\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      finishCaptureChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        let ownerArg = args[1] as! String
+        let resultIdArg = args[2] as! String
+        do {
+          try api.finishCapture(id: idArg, owner: ownerArg, resultId: resultIdArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      finishCaptureChannel.setMessageHandler(nil)
+    }
+    let failCaptureChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.failCapture\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      failCaptureChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let idArg = args[0] as! String
+        let ownerArg = args[1] as! String
+        let reasonArg = args[2] as! String
+        do {
+          try api.failCapture(id: idArg, owner: ownerArg, reason: reasonArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      failCaptureChannel.setMessageHandler(nil)
+    }
+  }
+}
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol WatchCaptureFlutterAPIProtocol {
+  func processPendingCaptures(completion: @escaping (Result<Void, PigeonError>) -> Void)
+}
+class WatchCaptureFlutterAPI: WatchCaptureFlutterAPIProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: PigeonCommunicatorPigeonCodec {
+    return PigeonCommunicatorPigeonCodec.shared
+  }
+  func processPendingCaptures(completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.omi_pigeon.WatchCaptureFlutterAPI.processPendingCaptures\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage(nil) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

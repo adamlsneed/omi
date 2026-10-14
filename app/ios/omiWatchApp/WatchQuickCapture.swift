@@ -1,0 +1,267 @@
+import AVFoundation
+import Combine
+import SwiftUI
+import WatchConnectivity
+import WatchKit
+
+/// Short intentional capture uses a file handoff, never the pendant's live stream.
+@MainActor
+final class WatchQuickCapture: NSObject, ObservableObject, AVAudioRecorderDelegate {
+    @Published private(set) var records: [WatchCaptureRecord] = []
+    @Published private(set) var active: WatchCaptureRecord?
+    @Published private(set) var starting = false
+    @Published private(set) var errorKey: String?
+    private let store = WatchCaptureStore()
+    private let account = WatchCaptureOwnerCache()
+    private let session: WCSession
+    private var recorder: AVAudioRecorder?
+    private var generation = 0
+    private var interruption: AnyCancellable?
+
+    init(session: WCSession) {
+        self.session = session
+        super.init()
+        interruption = NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
+            .sink { [weak self] notification in
+                guard notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt ==
+                        AVAudioSession.InterruptionType.began.rawValue else { return }
+                Task { @MainActor in self?.stop() }
+            }
+        reload()
+        // Interrupted recordings remain visible and retained. Retry sends the audio we have.
+        for record in records where record.status == "recording" {
+            do {
+                let url = try store.audioURL(record.id)
+                let duration = (try? AVAudioPlayer(contentsOf: url).duration) ?? 0
+                _ = try store.update(id: record.id, owner: record.owner) {
+                    $0.duration = min(duration, 300)
+                    $0.status = "failed"
+                    $0.error = "interrupted"
+                }
+            } catch { errorKey = "watch.capture.storageError" }
+        }
+        reload()
+    }
+
+    func start(_ destination: String) {
+        guard !starting, active == nil, ["idea", "task"].contains(destination) else { return }
+        guard !account.owner.isEmpty else {
+            errorKey = "watch.capture.openPhone"
+            refresh()
+            return
+        }
+        starting = true
+        errorKey = nil
+        generation += 1
+        // Recording never waits for phone reachability or a network request.
+        begin(destination: destination, owner: account.owner, generation: generation)
+    }
+
+    private func begin(destination: String, owner: String, generation current: Int) {
+        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
+            Task { @MainActor in
+                guard let self, self.generation == current else { return }
+                defer { self.starting = false }
+                guard granted else { self.errorKey = "watch.capture.microphoneError"; return }
+                var newRecord: WatchCaptureRecord?
+                do {
+                    let audio = AVAudioSession.sharedInstance()
+                    try audio.setCategory(.record, mode: .default)
+                    try audio.setActive(true)
+                    let record = WatchCaptureRecord(owner: owner, destination: destination,
+                                                    createdAt: Date().timeIntervalSince1970)
+                    try self.store.save(record)
+                    newRecord = record
+                    let recorder = try AVAudioRecorder(url: self.store.audioURL(record.id), settings: [
+                        AVFormatIDKey: kAudioFormatMPEG4AAC,
+                        AVSampleRateKey: 16000,
+                        AVNumberOfChannelsKey: 1,
+                        AVEncoderBitRateKey: 32000
+                    ])
+                    recorder.delegate = self
+                    guard recorder.record(forDuration: 300) else { throw WatchCaptureStoreError.invalidRecord }
+                    self.recorder = recorder
+                    self.active = record
+                    WKInterfaceDevice.current().play(.start)
+                } catch {
+                    if let record = newRecord {
+                        _ = try? self.store.update(id: record.id, owner: record.owner) {
+                            $0.status = "failed"
+                            $0.error = "recording"
+                        }
+                    }
+                    self.errorKey = "watch.capture.recordingError"
+                    try? AVAudioSession.sharedInstance().setActive(false)
+                    self.reload()
+                }
+            }
+        }
+    }
+
+    func stop() {
+        guard let current = active, let recorder else { return }
+        let duration = recorder.currentTime
+        recorder.stop()
+        finish(current, duration: duration)
+    }
+
+    private func finish(_ current: WatchCaptureRecord, duration: Double) {
+        guard active?.id == current.id else { return }
+        active = nil
+        recorder = nil
+        try? AVAudioSession.sharedInstance().setActive(false)
+        do {
+            let record = try store.update(id: current.id, owner: current.owner) {
+                $0.duration = min(max(duration, 0.01), 300)
+                $0.status = "queued"
+            }
+            transfer(record)
+            WKInterfaceDevice.current().play(.stop)
+        } catch { errorKey = "watch.capture.storageError" }
+        reload()
+    }
+
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor in
+            guard self.recorder === recorder, let record = self.active else { return }
+            let duration = (try? AVAudioPlayer(contentsOf: recorder.url).duration) ?? 0
+            self.finish(record, duration: duration)
+        }
+    }
+
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        Task { @MainActor in
+            guard self.recorder === recorder else { return }
+            self.errorKey = "watch.capture.recordingError"
+            self.stop()
+        }
+    }
+
+    func retry(_ id: String) {
+        guard let record = records.first(where: { $0.id == id && $0.status != "saved" }) else { return }
+        do {
+            _ = try store.update(id: id, owner: record.owner) {
+                $0.status = "queued"
+                $0.error = ""
+            }
+            // Queued user-info delivery works with the phone locked or offline.
+            session.transferUserInfo(["method": "retryQuickCapture", "id": id, "owner": record.owner])
+            transfer(record)
+            reload()
+            refresh()
+        } catch { errorKey = "watch.capture.storageError" }
+    }
+
+    func connected() {
+        receiveAccountContext(session.receivedApplicationContext)
+        for record in records where record.status == "queued" { transfer(record) }
+        refresh()
+    }
+
+    func receiveAccountContext(_ context: [String: Any]) {
+        if let owner = context["captureOwner"] as? String { account.receive(owner) }
+    }
+
+    private func transfer(_ record: WatchCaptureRecord) {
+        guard session.activationState == .activated else { return }
+        guard !session.outstandingFileTransfers.contains(where: { $0.file.metadata?["id"] as? String == record.id }) else { return }
+        do {
+            let url = try store.audioURL(record.id)
+            var metadata = record.wire
+            metadata["method"] = "quickCaptureFile"
+            metadata.removeValue(forKey: "transcript")
+            session.transferFile(url, metadata: metadata)
+        } catch { errorKey = "watch.capture.storageError" }
+    }
+
+    func refresh() {
+        guard session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage(["method": "quickCaptureContext", "ids": Array(records.filter { $0.status == "queued" }.prefix(20).map(\.id))], replyHandler: { [weak self] reply in
+            Task { @MainActor in self?.applyContext(reply) }
+        }, errorHandler: { _ in })
+    }
+
+    private func applyContext(_ context: [String: Any]) {
+        if let owner = context["owner"] as? String { account.receive(owner) }
+        let receipts = context["captures"] as? [[String: String]] ?? []
+        let received = Set(receipts.compactMap { $0["id"] })
+        for receipt in receipts { receive(receipt) }
+        // Relaunch/reconnection resumes file delivery, but failed server writes require Retry.
+        for record in records where record.status == "queued" && record.owner == context["owner"] as? String && !received.contains(record.id) {
+            transfer(record)
+        }
+    }
+
+    func receive(_ receipt: [String: String]) {
+        guard let id = receipt["id"], let owner = receipt["owner"],
+              let before = records.first(where: { $0.id == id && $0.owner == owner }), before.status != "saved" else { return }
+        do {
+            let updated = try store.update(id: id, owner: owner) { _ = $0.applyReceipt(receipt) }
+            if updated.status == "saved" { WKInterfaceDevice.current().play(.success) }
+        } catch { errorKey = "watch.capture.storageError" }
+        reload()
+    }
+
+    private func reload() {
+        do { records = try store.records() }
+        catch { errorKey = "watch.capture.storageError" }
+    }
+}
+
+struct WatchQuickCaptureView: View {
+    @ObservedObject var capture: WatchQuickCapture
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                if let active = capture.active {
+                    Label(active.destination == "idea" ? "watch.capture.idea" : "watch.capture.task",
+                          systemImage: active.destination == "idea" ? "lightbulb" : "checkmark.circle")
+                    Text(Date(timeIntervalSince1970: active.createdAt), style: .timer)
+                        .font(.title2).monospacedDigit()
+                    Button("watch.capture.stopSave") { capture.stop() }
+                        .accessibilityIdentifier("watch-stop-save")
+                    Text("watch.capture.limit").font(.caption2).foregroundStyle(.secondary)
+                } else {
+                    Button { capture.start("idea") } label: {
+                        Label("watch.capture.idea", systemImage: "lightbulb")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }.accessibilityIdentifier("watch-record-idea")
+                    Button { capture.start("task") } label: {
+                        Label("watch.capture.task", systemImage: "checkmark.circle")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }.accessibilityIdentifier("watch-record-task")
+                    if capture.starting { ProgressView() }
+                    if let error = capture.errorKey { Text(LocalizedStringKey(error)).font(.caption2) }
+                    ForEach(capture.records.filter { $0.status != "recording" && $0.status != "saved" } + Array(capture.records.filter { $0.status == "saved" }.prefix(3))) { record in
+                        VStack(spacing: 4) {
+                            Text(record.destination == "idea" ? "watch.capture.idea" : "watch.capture.task").font(.headline)
+                            Text(Date(timeIntervalSince1970: record.createdAt), style: .time).font(.caption2)
+                            Text(LocalizedStringKey(statusKey(record))).font(.caption)
+                            if record.status != "saved" {
+                                Button("watch.capture.retry") { capture.retry(record.id) }
+                                    .accessibilityIdentifier("watch-retry-\(record.id)")
+                            }
+                        }.padding(.vertical, 6)
+                    }
+                }
+            }.disabled(capture.starting).padding(.horizontal, 4)
+        }
+        .task {
+            while !Task.isCancelled {
+                capture.refresh()
+                do { try await Task.sleep(nanoseconds: 5_000_000_000) } catch { return }
+            }
+        }
+    }
+
+    private func statusKey(_ record: WatchCaptureRecord) -> String {
+        if record.status == "saved" {
+            return record.destination == "idea" ? "watch.capture.ideaSaved" : "watch.capture.taskSaved"
+        }
+        if record.status == "failed" {
+            return record.error == "no_speech" ? "watch.capture.noSpeech" : "watch.capture.saveError"
+        }
+        return "watch.capture.pending"
+    }
+}

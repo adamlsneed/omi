@@ -81,6 +81,55 @@ class FlutterError (
   val details: Any? = null
 ) : Throwable()
 
+/** Generated class from Pigeon that represents data sent in messages. */
+data class WatchCaptureItem (
+  val id: String,
+  val owner: String,
+  val destination: String,
+  val path: String,
+  val createdAt: Double,
+  val duration: Double,
+  val transcript: String,
+  val conversationId: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): WatchCaptureItem {
+      val id = pigeonVar_list[0] as String
+      val owner = pigeonVar_list[1] as String
+      val destination = pigeonVar_list[2] as String
+      val path = pigeonVar_list[3] as String
+      val createdAt = pigeonVar_list[4] as Double
+      val duration = pigeonVar_list[5] as Double
+      val transcript = pigeonVar_list[6] as String
+      val conversationId = pigeonVar_list[7] as String
+      return WatchCaptureItem(id, owner, destination, path, createdAt, duration, transcript, conversationId)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      owner,
+      destination,
+      path,
+      createdAt,
+      duration,
+      transcript,
+      conversationId,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other !is WatchCaptureItem) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    return PigeonCommunicatorPigeonUtils.deepEquals(toList(), other.toList())  }
+
+  override fun hashCode(): Int = toList().hashCode()
+}
+
 /**
  * Discovered BLE peripheral info passed from native to Dart.
  *
@@ -406,35 +455,40 @@ private open class PigeonCommunicatorPigeonCodec : StandardMessageCodec() {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BlePeripheral.fromList(it)
+          WatchCaptureItem.fromList(it)
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BleService.fromList(it)
+          BlePeripheral.fromList(it)
         }
       }
       131.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BleDisconnectEvent.fromList(it)
+          BleService.fromList(it)
         }
       }
       132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BleBatteryPoint.fromList(it)
+          BleDisconnectEvent.fromList(it)
         }
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          BleDeviceDiagnostics.fromList(it)
+          BleBatteryPoint.fromList(it)
         }
       }
       134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          RayBanMetaGlasses.fromList(it)
+          BleDeviceDiagnostics.fromList(it)
         }
       }
       135.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          RayBanMetaGlasses.fromList(it)
+        }
+      }
+      136.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           BluetoothHfpInput.fromList(it)
         }
@@ -444,32 +498,36 @@ private open class PigeonCommunicatorPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is BlePeripheral -> {
+      is WatchCaptureItem -> {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is BleService -> {
+      is BlePeripheral -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
-      is BleDisconnectEvent -> {
+      is BleService -> {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is BleBatteryPoint -> {
+      is BleDisconnectEvent -> {
         stream.write(132)
         writeValue(stream, value.toList())
       }
-      is BleDeviceDiagnostics -> {
+      is BleBatteryPoint -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is RayBanMetaGlasses -> {
+      is BleDeviceDiagnostics -> {
         stream.write(134)
         writeValue(stream, value.toList())
       }
-      is BluetoothHfpInput -> {
+      is RayBanMetaGlasses -> {
         stream.write(135)
+        writeValue(stream, value.toList())
+      }
+      is BluetoothHfpInput -> {
+        stream.write(136)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -880,6 +938,150 @@ class WatchRecorderFlutterAPI(private val binaryMessenger: BinaryMessenger, priv
     val channelName = "dev.flutter.pigeon.omi_pigeon.WatchRecorderFlutterAPI.onWatchBatteryUpdate$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(batteryLevelArg, batteryStateArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(PigeonCommunicatorPigeonUtils.createConnectionError(channelName)))
+      }
+    }
+  }
+}
+/**
+ * Durable, intentional Watch recordings, independent of the selected streaming device.
+ *
+ * Generated interface from Pigeon that represents a handler of messages from Flutter.
+ */
+interface WatchCaptureHostAPI {
+  fun setCaptureOwner(owner: String)
+  fun pendingCaptures(): List<WatchCaptureItem>
+  fun checkpointCapture(id: String, owner: String, transcript: String, conversationId: String)
+  fun finishCapture(id: String, owner: String, resultId: String)
+  fun failCapture(id: String, owner: String, reason: String)
+
+  companion object {
+    /** The codec used by WatchCaptureHostAPI. */
+    val codec: MessageCodec<Any?> by lazy {
+      PigeonCommunicatorPigeonCodec()
+    }
+    /** Sets up an instance of `WatchCaptureHostAPI` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: WatchCaptureHostAPI?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.setCaptureOwner$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val ownerArg = args[0] as String
+            val wrapped: List<Any?> = try {
+              api.setCaptureOwner(ownerArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonCommunicatorPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.pendingCaptures$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.pendingCaptures())
+            } catch (exception: Throwable) {
+              PigeonCommunicatorPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.checkpointCapture$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val idArg = args[0] as String
+            val ownerArg = args[1] as String
+            val transcriptArg = args[2] as String
+            val conversationIdArg = args[3] as String
+            val wrapped: List<Any?> = try {
+              api.checkpointCapture(idArg, ownerArg, transcriptArg, conversationIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonCommunicatorPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.finishCapture$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val idArg = args[0] as String
+            val ownerArg = args[1] as String
+            val resultIdArg = args[2] as String
+            val wrapped: List<Any?> = try {
+              api.finishCapture(idArg, ownerArg, resultIdArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonCommunicatorPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.omi_pigeon.WatchCaptureHostAPI.failCapture$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val idArg = args[0] as String
+            val ownerArg = args[1] as String
+            val reasonArg = args[2] as String
+            val wrapped: List<Any?> = try {
+              api.failCapture(idArg, ownerArg, reasonArg)
+              listOf(null)
+            } catch (exception: Throwable) {
+              PigeonCommunicatorPigeonUtils.wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/** Generated class from Pigeon that represents Flutter messages that can be called from Kotlin. */
+class WatchCaptureFlutterAPI(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by WatchCaptureFlutterAPI. */
+    val codec: MessageCodec<Any?> by lazy {
+      PigeonCommunicatorPigeonCodec()
+    }
+  }
+  fun processPendingCaptures(callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.omi_pigeon.WatchCaptureFlutterAPI.processPendingCaptures$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(null) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

@@ -190,6 +190,11 @@
 		A64BDCA35736F648E69CBF74 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 643D3C8DFDC4F37DC79C2E11 /* LiveActivityManager.swift */; };
 		AFD5C0DF5AE115C934B37047 /* OmiCaptureLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B1B260455B26BF846102B80 /* OmiCaptureLiveActivity.swift */; };
 		ECDFF5DC9FC101351FF5730A /* OmiCaptureIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A832E7FCE2964D801A4EB21F /* OmiCaptureIntents.swift */; };
+		A1580000000000000000000B /* WatchCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15800000000000000000001 /* WatchCaptureStore.swift */; };
+		A1580000000000000000000C /* WatchCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15800000000000000000001 /* WatchCaptureStore.swift */; };
+		A15800000000000000000015 /* WatchCaptureHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15800000000000000000002 /* WatchCaptureHost.swift */; };
+		A15800000000000000000016 /* WatchCaptureHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15800000000000000000002 /* WatchCaptureHost.swift */; };
+		A1580000000000000000001F /* WatchCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15800000000000000000001 /* WatchCaptureStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -378,6 +383,8 @@
 		D289F7085D97C1A955A86231 /* SiriDebugProbe.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SiriDebugProbe.swift; sourceTree = "<group>"; };
 		E222EF675661E5A68C84D45B /* SiriIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SiriIntents.swift; sourceTree = "<group>"; };
 		F5D14DCA5CCF1F3CB05D36D2 /* SiriEntities.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SiriEntities.swift; sourceTree = "<group>"; };
+		A15800000000000000000001 /* WatchCaptureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../WatchCapture/WatchCaptureStore.swift"; sourceTree = "<group>"; };
+		A15800000000000000000002 /* WatchCaptureHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchCaptureHost.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -603,6 +610,8 @@
 				7AA100000000000000000008 /* TtsPcmPlayer.swift */,
 				E1293503E1293503E1293503 /* SpeechDeadline.swift */,
 				A2047903A2047903A2047903 /* WatchAudioChunkRelay.swift */,
+				A15800000000000000000002 /* WatchCaptureHost.swift */,
+				A15800000000000000000001 /* WatchCaptureStore.swift */,
 				D71C4A0A2F0A11E700DE7000 /* DeviceToolsService.swift */,
 				CD12345678901234567890CD /* AppleRemindersService.swift */,
 				CD12345678901234567890CE /* AppleHealthService.swift */,
@@ -1079,6 +1088,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1580000000000000000001F /* WatchCaptureStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1093,6 +1103,8 @@
 				7AA100000000000000000006 /* TtsPcmPlayer.swift in Sources */,
 				E1293501E1293501E1293501 /* SpeechDeadline.swift in Sources */,
 				A2047901A2047901A2047901 /* WatchAudioChunkRelay.swift in Sources */,
+				A15800000000000000000015 /* WatchCaptureHost.swift in Sources */,
+				A1580000000000000000000B /* WatchCaptureStore.swift in Sources */,
 				E91B0002E91B0002E91B0002 /* OmiBleEnergyPolicy.swift in Sources */,
 				387657874D0C4CD5BAE2E8F1 /* OmiDeviceHealthStore.swift in Sources */,
 				DAD10002DAD10002DAD10002 /* OmiBleConnectionPolicy.swift in Sources */,
@@ -1164,6 +1176,8 @@
 				7AA100000000000000000007 /* TtsPcmPlayer.swift in Sources */,
 				E1293502E1293502E1293502 /* SpeechDeadline.swift in Sources */,
 				A2047902A2047902A2047902 /* WatchAudioChunkRelay.swift in Sources */,
+				A15800000000000000000016 /* WatchCaptureHost.swift in Sources */,
+				A1580000000000000000000C /* WatchCaptureStore.swift in Sources */,
 				E91B0003E91B0003E91B0003 /* OmiBleEnergyPolicy.swift in Sources */,
 				9C1738D70A50495EA3AFADF5 /* OmiDeviceHealthStore.swift in Sources */,
 				DAD10003DAD10003DAD10003 /* OmiBleConnectionPolicy.swift in Sources */,

@@ -868,15 +868,28 @@ Future<http.Response> makeMultipartApiCallUnpooled({
   Map<String, String> fields = const {},
   String fileFieldName = 'files',
   String method = 'POST',
+  AuthSessionSnapshot? sessionSnapshot,
+  AuthService? authService,
+  Future<http.StreamedResponse> Function(http.MultipartRequest request)? sendStreaming,
 }) async {
+  final service = authService ?? AuthService.instance;
+  bool current() => sessionSnapshot == null || service.isSessionSnapshotCurrent(sessionSnapshot);
+  void requireCurrent() {
+    if (!current()) throw AuthTokenUnavailableException(const AuthTokenMissingUser());
+  }
+
   final client = http.Client();
+  final send = sendStreaming ?? client.send;
   try {
-    final bool requireAuthCheck = _isRequiredAuthCheck(url);
+    requireCurrent();
+    final bool requireAuthCheck = _isRequiredAuthCheck(url) || sessionSnapshot != null;
     Map<String, String> builtHeaders = await buildHeaders(
       requireAuthCheck: requireAuthCheck,
       fromHeaders: headers,
       url: url,
       method: method,
+      sessionSnapshot: sessionSnapshot,
+      authService: service,
     );
 
     var request = await _buildMultipartRequest(
@@ -887,9 +900,10 @@ Future<http.Response> makeMultipartApiCallUnpooled({
       fileFieldName: fileFieldName,
       method: method,
     );
+    requireCurrent();
     HttpPoolManager.stampRequestTime(request);
 
-    var streamedResponse = await client.send(request).timeout(const Duration(minutes: 10));
+    var streamedResponse = await send(request).timeout(const Duration(minutes: 10));
     ApiEdgeThrottleTelemetry.instance.observe(request, streamedResponse);
     var response = await http.Response.fromStream(streamedResponse);
 
@@ -898,8 +912,16 @@ Future<http.Response> makeMultipartApiCallUnpooled({
         firstResponse: response,
         statusCode: (value) => value.statusCode,
         expireTerminalSession: true,
+        sessionSnapshot: sessionSnapshot,
+        authService: service,
         replay: () async {
-          builtHeaders = await buildHeaders(requireAuthCheck: true, fromHeaders: headers, url: url, method: method);
+          builtHeaders = await buildHeaders(
+              requireAuthCheck: true,
+              fromHeaders: headers,
+              url: url,
+              method: method,
+              sessionSnapshot: sessionSnapshot,
+              authService: service);
           request = await _buildMultipartRequest(
             url: url,
             files: files,
@@ -908,19 +930,22 @@ Future<http.Response> makeMultipartApiCallUnpooled({
             fileFieldName: fileFieldName,
             method: method,
           );
+          requireCurrent();
           HttpPoolManager.stampRequestTime(request);
-          streamedResponse = await client.send(request).timeout(const Duration(minutes: 10));
+          streamedResponse = await send(request).timeout(const Duration(minutes: 10));
           ApiEdgeThrottleTelemetry.instance.observe(request, streamedResponse);
           return http.Response.fromStream(streamedResponse);
         },
       );
     }
-    if (requireAuthCheck) await _expireSessionIfAccountDeleted(response.statusCode, response.body);
+    if (requireAuthCheck && current()) {
+      await _expireSessionIfAccountDeleted(response.statusCode, response.body, authService: service);
+    }
 
     _checkClockSkewResponse(response);
     return response;
   } on AuthTokenUnavailableException catch (e) {
-    await _handleAuthUnavailable(e, expireTerminalSession: true);
+    if (current()) await _handleAuthUnavailable(e, expireTerminalSession: true);
     Logger.debug('Authenticated unpooled multipart request blocked before send: ${e.result.runtimeType}');
     return http.Response('', 401, reasonPhrase: 'Authentication unavailable');
   } catch (e, stackTrace) {

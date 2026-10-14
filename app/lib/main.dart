@@ -1,3 +1,4 @@
+import 'package:omi/services/watch/watch_capture_runtime.dart';
 import 'package:omi/services/onboarding_sync_runtime.dart';
 import 'package:omi/env/physical_qualification.dart';
 import 'dart:async';
@@ -57,6 +58,7 @@ import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart'
 import 'package:omi/pages/payments/payment_method_provider.dart';
 import 'package:omi/backend/http/action_items_api_contract.dart';
 import 'package:omi/providers/announcement_provider.dart';
+import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/appearance_provider.dart';
 import 'package:omi/providers/app_provider.dart';
 import 'package:omi/providers/auth_provider.dart';
@@ -224,6 +226,30 @@ Future<void> _reportBootCrash(
     }
   } catch (_) {
     // Reporting must not recursively fail startup or the global error handler.
+  }
+}
+
+/// Watch Connectivity can cold-launch this worker without creating UI,
+/// starting pendant capture, or requiring the user to open the phone app.
+@pragma('vm:entry-point')
+Future<void> watchCaptureBackgroundMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    Env.init(F.env == Environment.prod ? ProdEnv() : DevEnv());
+    Env.validateProfilePairing();
+    validateApplicationStartupRouting();
+    await _ensureFirebaseApp();
+    if (Env.profile.usesFirebaseAuthEmulator) {
+      await FirebaseAuth.instance.useAuthEmulator(Env.firebaseAuthEmulatorHost, Env.firebaseAuthEmulatorPort);
+    }
+    await SharedPreferencesUtil.init();
+    BackendUrlOverride.restore(SharedPreferencesUtil().customBackendUrl);
+    await PlatformManager.initializeRequestMetadata();
+    final user = await FirebaseAuth.instance.authStateChanges().first;
+    await AccountCutoverRuntime.instance.bindAuthenticatedOwner(user?.uid);
+    WatchCaptureRuntime().start();
+  } catch (error) {
+    Logger.debug('Watch background bootstrap deferred: ${error.runtimeType}');
   }
 }
 
@@ -532,6 +558,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  final WatchCaptureRuntime _watchCaptureRuntime = WatchCaptureRuntime();
   final AppSessionTelemetry _appSessionTelemetry = AppSessionTelemetry();
   late final PhoneBatterySampleTelemetry _phoneBatteryTelemetry = PhoneBatterySampleTelemetry(
     captureContext: () {
@@ -555,6 +582,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void initState() {
+    _watchCaptureRuntime.onSaved = () {
+      final context = globalNavigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
+      unawaited(context.read<ActionItemsProvider>().refreshActionItems());
+      unawaited(context.read<ConversationProvider>().refreshConversations());
+      unawaited(context.read<FolderProvider>().loadFolders());
+    };
+    _watchCaptureRuntime.start();
     NotificationUtil.initializeNotificationsEventListeners();
     NotificationUtil.initializeIsolateReceivePort();
     WidgetsBinding.instance.addObserver(this);
@@ -573,6 +608,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _watchCaptureRuntime.dispose();
     WidgetsBinding.instance.removeObserver(this);
     if (!PhysicalQualification.enabled) _performanceTelemetry.dispose();
     _phoneBatteryTelemetry.dispose();
@@ -611,6 +647,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
 
     if (state == AppLifecycleState.resumed) {
+      unawaited(_watchCaptureRuntime.tick());
       OnboardingSyncRuntime.setActive(true);
       unawaited(ProactivityRuntime.outbox.flush());
       if (!PhysicalQualification.enabled) {
