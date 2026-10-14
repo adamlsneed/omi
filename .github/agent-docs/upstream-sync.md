@@ -1,358 +1,236 @@
-# Upstream sync and release procedure (fork)
+# Upstream sync, release, and device deployment (fork)
 
-The procedure every agent (Claude, Codex, others) follows to merge `BasedHardware/Omi`
-`upstream/main` into `adamlsneed/omi` and ship the desktop build. It runs unattended:
-it resolves mechanical conflicts itself (step 3), stops only on a product choice, never
-merges a PR that needs review, and never retries a failed release. Background, conflict-resolution rules, and the backend mirror policy
-live in `docs/developer/upstream-sync-and-backend-policy.mdx`.
+Use this procedure to integrate fresh `BasedHardware/Omi` source into
+`adamlsneed/omi`, preserve fork capabilities, verify and merge, then publish the
+applicable desktop/Homebrew release and deploy Mac, iPhone, and Apple Watch apps.
+Read `fork-rules.md`, the affected component guides, `desktop/macos/RELEASE.md`,
+and `ios-install.md` before their respective steps.
 
-Every run ends with exactly one of these lines:
+## Standing conflict and recovery policy
 
-- `Merged, released vX.Y.Z`
-- `Merged, no desktop changes`
-- `Needs review: <issue URL>`
-- `Conflict: <issue URL>`
-- `Nothing to sync.`
+Adam authorized autonomous conflict resolution and repair on October 13, 2026.
+Prefer current BasedHardware behavior for ordinary product choices. Preserve
+capabilities the fork added and fixes whose underlying defect remains upstream,
+adapting them to upstream's structure. When upstream supplies an equivalent,
+replace the fork implementation and verify the capability still works. Resolve
+hunk by hunk, never blanket-overwrite a file carrying unrelated fork features.
 
-After a `Merged, ...` line, add `Disabled workflows: <paths>` if step 6 disabled any, and
-the `Omi Dev: ...` line from step 8.
+A failed check starts diagnosis and repair, not an automatic handoff. Run the
+relevant checks again after fixing the cause. Bound retries for transient
+infrastructure failures. Never bypass hooks, weaken assertions, count a failure
+as passed, force-push, rewrite published history, or push directly to main.
+Merge through a fork PR with a regular merge commit only after verification.
+Backend files remain an exact upstream mirror; never deploy a fork backend or
+send changes to BasedHardware.
 
-Whatever the outcome (including a Needs review, a failed command, or an aborted run),
-the last action of every run that created the sync worktree is removing it, since a
-desktop build there is about 20 GB. Run from the primary checkout:
+If an external prerequisite cannot be supplied by the agent, finish independent
+work, preserve artifacts and recovery evidence, and report the exact missing
+prerequisite. An unreachable or locked device does not erase successful work on
+other devices. A built bundle is not an installed or verified application.
 
-```bash
-git worktree remove --force "$WT"; git worktree prune
-git branch -d "$BR" || echo "kept unmerged local branch $BR"
-```
+## 1. Inspect and fetch
 
-Use `-d`, never `-D` (denied on purpose to protect real branches). If `-d` refuses
-because the branch is unmerged (a Needs review or failed run), log it and move on; the
-pushed branch or the next run covers it.
-
-Unattended runs never pass `--no-verify` to `git commit`, `git merge` or `git push`. If a
-git hook blocks, stop: file an `upstream-sync` issue with the blocked command and the
-hook's output (the failing check and its last 50 lines), and end with
-`Needs review: <issue URL>`. The `--no-verify` backend commit in the policy doc is for a
-human-reviewed conflict resolution only.
-
-## Prerequisites
-
-One-time repository setup (already done unless a step below fails):
-
-- Issues enabled on `adamlsneed/omi`, with an `upstream-sync` label.
-- The inherited `GitHub Issue Sync` workflow (`.github/workflows/main.yml`) disabled in
-  the Actions settings. It fires on every issue opened or labeled and needs a
-  `PROJECT_TOKEN` the fork lacks.
-- Local git config: `rerere.enabled=true`, `rerere.autoupdate=true`,
-  `merge.conflictstyle=zdiff3`.
-- "Always Allow" granted to `/usr/bin/security` on the Sparkle signing key (release.sh
-  reads the key through it, so rebuilt `sign_update` binaries never prompt).
-- `FIREBASE_API_KEY` available to release.sh (see `desktop/macos/RELEASE.md`); a
-  missing key fails the release.
-
-Per run, on the Mac that holds the signing keys, in a logged-in GUI session (the
-login keychain must be unlocked; SSH or launchd sessions cannot reach it). Codex must
-run unsandboxed, since the sandbox blocks the keychain and network.
+Inspect existing sync PRs/issues, release assets, installed source revisions,
+local changes, and task artifacts before starting. Resume relevant unfinished
+work rather than creating duplicates or stopping at an old review issue.
 
 ```bash
-# npm 10 (npm 12 fails `npm ci` against the committed lockfiles; /tmp is wiped on reboot)
-mkdir -p /tmp/npm10
-printf '#!/bin/sh\nexec node "$HOME/.npm/_npx/7c24e36c048e2b23/node_modules/npm/bin/npm-cli.js" "$@"\n' > /tmp/npm10/npm
-chmod +x /tmp/npm10/npm
-export PATH="/tmp/npm10:$HOME/fvm/versions/3.44.5/bin:$HOME/fvm/versions/3.44.5/bin/cache/dart-sdk/bin:$PATH"
-npm -v   # must print 10.x
-```
-
-`release.sh` sets up Node and this npm 10 wrapper on its own PATH, so step 7 needs no
-prefix; the block above is for step 4's `npm ci` checks. If that npx cache entry is gone, `npm install --prefix /tmp/npm10pkg npm@10` and
-symlink `/tmp/npm10pkg/node_modules/.bin/npm` into `/tmp/npm10` instead. `bun` must
-also be on `PATH` (the push gate runs `web/app/test.sh`).
-
-## 1. Fetch
-
-```bash
-git fetch origin --tags
-git fetch upstream --no-tags   # upstream tags (omi-cli-v*) can arm fork publish workflows
-git merge-base --is-ancestor upstream/main origin/main && echo "Nothing to sync."
-```
-
-If upstream/main is already in origin/main, stop with `Nothing to sync.`
-
-If an open issue labeled `upstream-sync` or an open PR from a `sync/upstream-*` branch
-already exists, a previous run is waiting on Adam. Do not start another; end with
-`Needs review: <that issue URL>`.
-
-```bash
+git fetch origin --no-tags
+git fetch upstream --no-tags
 gh issue list -R adamlsneed/omi --label upstream-sync --state open
-gh pr list -R adamlsneed/omi --state open --search "head:sync/upstream-"
+gh pr list -R adamlsneed/omi --state open
 ```
 
-## 2. Merge
+Inspect the latest published upstream desktop and mobile releases read-only.
+Record their separate versions and freeze one freshly fetched upstream commit
+for this run. Sync `upstream/main`, checking that it includes the intended release
+source. Fetch needed fork release tags explicitly. Do not force-replace a local
+tag or push upstream tags, which can trigger publishing workflows.
+
+If upstream is already included in `origin/main`, skip the merge; still finish
+any authorized pending release or device deployment. Do not manufacture a new
+version when the same desktop source is already released.
+
+## 2. Prepare the task worktree and merge
+
+Use a managed task worktree based on current `origin/main` with a `codex/` branch.
+Preserve unrelated local edits and existing recovery artifacts. Run `make setup`
+in a new worktree to install hooks and its backend Python environment. Use that
+worktree's `backend/.venv/bin` for Python-based hooks. Read current toolchain pins
+rather than copying a version from an old run. The desktop release script manages
+its own Node/npm runtime; component checks need the documented toolchain on PATH.
+
+Inventory divergence with the fork feature audit, manifests, tests and Git diff.
+Record the merge base and exact upstream SHA before merging:
 
 ```bash
-DATE=$(date +%Y%m%d)
-BR=sync/upstream-$DATE
-WT="$(cd .. && pwd)/omi-sync-$DATE"
-MB=$(git merge-base origin/main upstream/main)   # last synced upstream commit
-git worktree add -b "$BR" "$WT" origin/main
-git -C "$WT" merge --no-ff --no-edit -m "Merge upstream BasedHardware/omi into $BR" upstream/main
+MB=$(git merge-base origin/main upstream/main)
+UPSTREAM_SHA=$(git rev-parse upstream/main)
+git merge --no-ff --no-edit "$UPSTREAM_SHA"
 ```
 
-Merge, never rebase. Do not create backup branches; the PR is the safety net.
+Merge, never rebase published sync work. Preserve the selected SHA for subsequent
+mirror checks even if another process fetches newer upstream commits.
 
-## 3. Conflict: resolve the mechanical ones, stop only on a product choice
+## 3. Resolve conflicts and preserve fork additions
 
-Adam does not read per-file conflict briefs (2026-10-01: #137 sat unread a week while 611
-more upstream commits piled up behind it). Classify every conflicted file, resolve the
-mechanical ones in the worktree, and stop only when a real product choice is left.
+- Keep both unrelated changes; move fork features into upstream's new structure.
+- Follow upstream removals/renames when the fork touched a file incidentally.
+- Keep both localization key sets; regenerate generated files using current tools.
+- Apply the standing policy to product conflicts without waiting for Adam.
+- Keep `backend/` byte-equivalent to the selected upstream commit. If formatting
+  or hooks change that mirror, fix the fork tooling responsible before committing;
+  do not amend with `--no-verify` or edit upstream backend files to satisfy it.
+- Remove superseded fork implementations, tests, audit entries and docs together
+  only after confirming the upstream equivalent covers the original requirement.
 
-```bash
-git -C "$WT" diff --name-only --diff-filter=U   # conflicted files
-git -C "$WT" rerere status                      # files rerere already has a resolution for
-```
+Preserve Watch Idea/Task capture and the Mac Ideas shortcut. Their destinations,
+background delivery, WAV conversion, ownership, idempotency, progress and saved
+receipt requirements are owned by `ios-install.md`, under "Watch Idea and Task
+capture". A foreground-iPhone requirement is a regression. Ideas use the existing
+Ideas folder, not memories; pendant recording remains independent.
 
-**Mechanical (resolve it, per the Conflict Resolution Rules in the policy doc):**
+Document meaningful resolutions and their verification in the PR. Commit a clean
+resolved merge and continue, repairing integration fallout as needed.
 
-- Both sides changed the same region for unrelated reasons: keep both.
-- Upstream restructured the code a fork feature lives in: re-slot the fork hunk into
-  upstream's new structure (new function split, new coordinator, new header layout).
-  The fork's own tests say where it belongs; run them.
-- Upstream fixed the same issue the fork had patched: take upstream, delete the fork
-  copy with its tests, audit checks, manifest entries and docs, and say so in the PR.
-- Upstream deleted or renamed a file the fork only touched incidentally: follow upstream.
-- `backend/`: upstream exactly. L10n ARBs: both key sets. Generated files: upstream, then
-  regenerate. Formatter-only differences: whatever the pinned formatter produces.
-- A new upstream check that fails only on fork-owned files (a baseline, an inventory, a
-  lint rule): fix the fork side and list it under "Merge fallout" in the PR body.
+## 4. Verify
 
-Never resolve with a wholesale `--theirs` or `--ours` on a file that carries unrelated
-fork work; resolve hunk by hunk and diff the result against both parents.
-
-**Product choice (stop):** a fork behavior and an upstream behavior contradict each
-other and keeping both is impossible, or taking upstream would change what Adam sees or
-relies on (upstream removes a feature the fork turned on, flips a default the fork set
-the other way, moves a fork control somewhere it no longer applies). Resolve every
-mechanical file first, then:
+Use the component guides for changes in the actual merged diff, including fork
+adaptations, not only the upstream range. Always run:
 
 ```bash
-git -C "$WT" merge --abort
-git worktree remove "$WT" && { git branch -d "$BR" || echo "kept local branch $BR"; }
-gh issue create -R adamlsneed/omi --label upstream-sync \
-  --title "Upstream sync needs a product decision ($DATE, ${MB:0:10}..$(git rev-parse --short=10 upstream/main))" \
-  --body-file <decision.md>
-```
-
-The issue is for Adam, in plain language, one short section per choice: what he would
-notice under each option, and a recommendation. No file names, hunks or commands; one
-line at the end saying how many other files were mechanical and will be handled by the
-next run. Record nothing with rerere for the product-choice file. End with
-`Conflict: <issue URL>`.
-
-**All mechanical:** commit the merge and continue to step 4. The PR body gets a
-"Conflict resolutions" table (file, what upstream changed, what was kept, verified by).
-A resolution that then fails step 4 is a Needs review with the failing output, not a
-conflict brief.
-
-Hooks during the merge commit: the staged-file formatter reformats upstream backend test
-files and would break the exact backend mirror. After the commit, run
-`git checkout upstream/main -- backend/` and `git commit --amend --no-edit --no-verify`;
-that is the only `--no-verify` an unattended run may use, and the PR body says so.
-
-## 4. Verify (clean merge)
-
-Scope by what upstream touched: `git diff --name-only $MB upstream/main`. Run from the
-worktree root. Record every command and result for the PR body. A missing tool is a
-failure, not a skip.
-
-Always:
-
-```bash
-./scripts/fork-feature-audit.sh                      # every check "ok"
-git diff --quiet upstream/main -- backend/           # backend is an exact upstream mirror
-git diff --check origin/main HEAD                    # no conflict markers or whitespace damage
-```
-
-| Upstream touched | Run |
-|---|---|
-| `desktop/macos/` Swift | `cd desktop/macos && xcrun swift build --build-tests -c debug --package-path Desktop && ./scripts/run-swift-ci.sh --test` (per-suite processes; plain `swift build` skips tests and plain `swift test` can die silently mid-run) |
-| `desktop/macos/agent/` | `cd desktop/macos/agent && npm ci && npm test` |
-| `desktop/macos/pi-mono-extension/` | `cd desktop/macos/pi-mono-extension && npm ci && npm test` |
-| `desktop/` Rust | `cd desktop && cargo test` |
-| `app/` | `cd app && ./test.sh && flutter analyze` (Flutter 3.44.5; analyze must report 0 errors) |
-| `app/lib/l10n/` | `cd app && flutter gen-l10n` and confirm no diff |
-| `app/ios/` | `ruby app/ios/test/app_group_identity_test.rb`, `flutter_launch_engine_guard_test.rb` |
-| `omi/firmware/` | the idea-capture reservation greps in the runbook's "Files To Check After A Merge" |
-
-Before calling an upstream-owned test failure sync damage, reproduce it on upstream
-(`git archive upstream/main <path> | tar -x -C <tmp>`). Either way a failure routes to
-Needs review; the brief says which it is.
-
-`make preflight` runs in step 6 with the PR body.
-
-## 5. Needs review triggers
-
-Any one of these routes to Needs review (step 6 opens the PR but does not merge):
-
-- Any check in step 4, `make preflight`, or PR CI fails.
-- A new workflow file that does not deploy to cloud infrastructure:
-  `git diff --name-only --diff-filter=A $MB upstream/main -- .github/workflows`. New
-  deploy workflows (see "Disable new deploy workflows" in step 6) do not trigger this on
-  their own; step 6 disables them after the merge.
-- A changed deploy or publish workflow: a modified `.github/workflows/` file whose name
-  matches `gcp_|deploy|release|publish|helm`, or whose Actions state is
-  `disabled_manually` (`gh api --paginate repos/adamlsneed/omi/actions/workflows --jq '.workflows[]|select(.state!="active")|.path'`),
-  or an active push/schedule/workflow_run workflow whose diff adds a `secrets.` reference
-  (the fork has none; the 2026-09-23 `mobile_internal_build.yml` failure emails).
-- Upstream changed a file whose fork copy lives in `.github/disabled-workflows/`, or the
-  merge changes anything in that directory: `git diff --name-only origin/main HEAD -- .github/disabled-workflows`
-- Entitlements, signing, or notarization config:
-  `git diff --name-only origin/main HEAD | grep -E '\.entitlements$|\.mobileprovision$|\.provisionprofile$|ExportOptions.*\.plist$'`,
-  or `CODE_SIGN|DEVELOPMENT_TEAM|PROVISIONING_PROFILE|codesign|notar` in the diff of
-  `desktop/macos/run.sh`, `desktop/macos/Desktop/Info.plist`, or
-  `app/ios/Runner.xcodeproj/project.pbxproj`.
-- `desktop/macos/release.sh` or `desktop/macos/scripts/release-appcast.sh` changed.
-- Sparkle or appcast settings: `SUFeedURL|SUPublicEDKey|SUEnable|appcast` in the
-  `Info.plist` or `run.sh` diff, or the Sparkle pin in `desktop/macos/Desktop/Package.resolved`
-  moved.
-- Bundle identifiers: `BUNDLE_ID|CFBundleIdentifier|PRODUCT_BUNDLE_IDENTIFIER` in the
-  diff of `desktop/macos/run.sh`, `desktop/macos/Desktop/Info.plist`,
-  `app/ios/Runner.xcodeproj/project.pbxproj`, or `app/ios/Flutter/*.xcconfig`.
-
-`codemagic.yaml` is out of scope: the fork does not use Codemagic and upstream edits it
-every sync. Content triggers read shipping config only; tests and QA scripts that
-mention these keys are noise.
-
-## 6. Push, PR, merge
-
-Write the PR body to /tmp/omi-pr-body.md (a scratch file, not in the repo) first, then push with a plain command:
-
-```bash
-git -C "$WT" push -u origin "$BR"
-```
-
-The repo's Claude settings `env` block sets `PRE_PUSH_SKIP_BACKEND_UNIT_TESTS=1` (matches
-fork CI, which does not run upstream's backend unit tests) and `OMI_PR_BODY_FILE` (pointing at
-that body file) for the pre-push hook. Other agents export the same two. Do not set `TZ`: the
-web test that once needed `TZ=UTC` passes in local time, and an agent's `TZ` is inherited by
-the Omi Dev build that step 8 launches, which then shows times in the wrong zone. Never prefix
-`git` with variable assignments or `cd`; use `git -C <path>`.
-
-PR body, modeled on #126: Summary (range `$MB..upstream/main`, commit count, versions),
-What's in this sync (categorized upstream features, fixes, and notable changes;
-`git log --no-merges --pretty='%s' $MB..upstream/main`), Verification (each command and
-result), then the sections `scripts/pr-preflight` asks for:
-
-```bash
-scripts/pr-preflight --suggest                   # invariant citations, failure class, line-count exceptions
-scripts/pr-preflight --pr-body-file /tmp/omi-pr-body.md    # must pass
+./scripts/fork-feature-audit.sh
+git diff --quiet "$UPSTREAM_SHA" -- backend/
+git diff --check origin/main HEAD
 make preflight
-gh pr create -R adamlsneed/omi --base main --head "$BR" \
-  --title "Sync upstream BasedHardware/omi ($DATE, N commits)" --body-file /tmp/omi-pr-body.md
-gh pr checks <PR> -R adamlsneed/omi --watch
 ```
 
-Never open anything against BasedHardware. `gh pr create` must name `-R adamlsneed/omi`.
+Run the documented Swift, Flutter, native iOS, firmware, web or other component
+checks for the affected paths. For Watch changes, include the native recording
+and Flutter worker tests listed in `ios-install.md`. Verify generated outputs
+without committing incidental CocoaPods lockfile or local signing changes.
 
-**Needs review:** if any step 5 trigger fired, leave the PR open and file an issue that
-links it and lists exactly what needs Adam's eyes (failing command with the relevant
-output, or the trigger with file paths and the diff hunk). End with
-`Needs review: <issue URL>`.
+If an apparent upstream failure needs attribution, reproduce it in an isolated
+checkout of the selected upstream revision. Attribution does not turn a failure
+into a pass. Repair the fork integration or identify a genuine external blocker.
 
-**Otherwise:**
+Batch fixes and local verification before pushing. A new push cancels in-flight
+CI. Avoid repeating broad checks after an unchanged successful run unless a new
+failure or source change justifies it. Do not set a global `TZ`; it can leak into
+the launched Mac app and display incorrect local times.
+
+## 5. Review workflow and signing changes
+
+Inspect new/changed workflows, disabled-workflow copies, entitlements, bundle IDs,
+signing profiles, release scripts, Sparkle configuration and appcast changes.
+Resolve compatibility issues autonomously while retaining the fork's identities,
+hosted services and release destinations. These changes require careful review
+and verification, not an automatic stop for Adam.
+
+Preserve individually disabled Actions workflows when restoring globally paused
+Actions. Keep cloud/backend deploy workflows disabled. Classify new workflows by
+behavior as well as names, including deployment commands and added secret access.
+After merge, immediately disable newly introduced upstream deploy workflows and
+cancel any triggered run; verify `disabled_manually` through the Actions API.
+Do not release while a deployment workflow remains unintentionally enabled.
+The fork must never receive upstream deployment credentials.
+
+## 6. Push, PR, verify final CI, and merge
+
+Prepare a PR body outside the repository, covering the exact upstream range and
+versions, retained/replaced fork capabilities, conflict resolutions, and actual
+verification. Use the metadata checks without unnecessarily rerunning all tests:
 
 ```bash
-gh pr merge <PR> -R adamlsneed/omi --merge       # merge commit, never squash
+scripts/pr-preflight --suggest
+scripts/pr-preflight --metadata-only --pr-body-file /tmp/omi-pr-body.md
 ```
 
-Then fast-forward the primary checkout's `main` (it must be clean on tracked files) and
-remove the sync worktree.
+Set `OMI_PR_BODY_FILE` to that file for the normal pre-push gate. The fork's
+`PRE_PUSH_SKIP_BACKEND_UNIT_TESTS=1` matches its backend CI policy; it does not skip
+mirror verification or other checks. Push the task branch normally. Create or
+update a PR explicitly against `adamlsneed/omi`, never BasedHardware, and attach
+it to the task. Use current CI diagnostics for the final PR head. Fix failures
+and rerun affected checks before merging; never merge while required checks are
+pending or failed. Review changed scope and unresolved findings as well.
 
-**Disable new deploy workflows.** Fork rules keep upstream's cloud deploys off. A new
-workflow counts as a deploy if its name matches `gcp_|deploy|helm|gke|cloud.?run` or its
-body matches `gcloud|google-github-actions/|kubectl|helm |firebase deploy|aws-actions/|terraform apply`:
+Merge with `gh pr merge <PR> -R adamlsneed/omi --merge`. Close obsolete sync issues
+only after their causes are resolved. Fetch origin and fast-forward the primary
+checkout's main, preserving unrelated local work. Keep needed worktree artifacts
+until releases and device deployment finish.
 
-```bash
-for f in $(git diff --name-only --diff-filter=A $MB upstream/main -- .github/workflows); do
-  if basename "$f" | grep -qiE 'gcp_|deploy|helm|gke|cloud.?run' \
-     || grep -qE 'gcloud|google-github-actions/|kubectl|helm |firebase deploy|aws-actions/|terraform apply' "$f"; then
-    gh workflow disable "$(basename "$f")" -R adamlsneed/omi
-    gh run list -R adamlsneed/omi --workflow "$(basename "$f")" --json databaseId,status \
-      --jq '.[]|select(.status!="completed").databaseId' | xargs -n1 gh run cancel -R adamlsneed/omi
-  fi
-done
-gh api --paginate repos/adamlsneed/omi/actions/workflows --jq '.workflows[]|[.path,.state]|@tsv'
-```
+## 7. Desktop and Homebrew release
 
-Each one must show `disabled_manually`; list them in the run's `Disabled workflows:`
-line. The merge push can start one before it is disabled; the fork has no deploy
-secrets, so that run fails without deploying, and the loop cancels it if still running.
-If a disable fails, file an `upstream-sync` issue and end with `Needs review: <issue URL>`
-without releasing.
-
-## 7. Release (desktop changed)
-
-```bash
-LAST=$(git ls-remote --tags origin 'desktop-fork-v*' | sed -E 's#.*refs/tags/##; s/\^\{\}$//' | sort -V | tail -1)
-git diff --quiet "$LAST" origin/main -- desktop/macos \
-  ':!desktop/macos/changelog' ':!desktop/macos/CHANGELOG.json' \
-  ':!desktop/macos/Desktop/Tests' ':!desktop/macos/e2e' ':!*.md'
-```
-
-Exit 0: run step 8, then end with `Merged, no desktop changes`.
-
-Otherwise follow `desktop/macos/RELEASE.md`, from the primary checkout on up-to-date,
-clean `main` (the build uses that tree):
+Compare merged desktop application source against the latest published fork
+release, excluding documentation, tests and changelog-only changes. If it is
+already released, verify and reuse the existing release. Otherwise follow
+`desktop/macos/RELEASE.md` from clean, up-to-date primary main:
 
 ```bash
 cd desktop/macos && ./release.sh --bump
 ```
 
-A normal run takes about 15 to 25 minutes. release.sh itself fails if notarization is
-still in Apple's queue after 90 minutes; treat a whole run past 2 hours as a failure.
+Check the `omi-notary` credential before expensive work and again before
+publication; a locked login keychain can hide it while ordinary signing works.
+Allow the release script's documented notarization window. Verify GitHub ZIP
+bytes, notarization, Homebrew cask version/checksum and signed Sparkle appcast
+agree. Finish and attach the changelog PR if automatic consolidation did not.
 
-The changelog step is part of release.sh: in a temporary worktree on `origin/main`
-(removed afterward), it folds `changelog/unreleased/*.json` into
-`changelog/releases/<version>.json` and auto-merges a `chore/desktop-changelog-<version>`
-PR. It never switches the primary checkout's branch. If it prints `WARNING: changelog
-consolidation failed`, do it by hand in a clean worktree: `python3
-.github/scripts/desktop-changelog.py consolidate --version <v> --write` from
-`desktop/macos`, commit, push, PR, merge with a merge commit.
-
-Confirm all three updated:
-
-```bash
-V=<version>
-gh release view "desktop-fork-v$V" -R adamlsneed/omi --json assets --jq '.assets[].name'   # omi-desktop-$V.zip
-gh api repos/adamlsneed/homebrew-omi/contents/Casks/omi.rb --jq .content | base64 -d | grep "version \"$V\""
-gh api repos/adamlsneed/homebrew-omi/contents/appcast.xml --jq .content | base64 -d | grep "<sparkle:version>$V<"
-```
-
-If release.sh exits non-zero, runs past the time limit, or any confirmation fails: file
-an `upstream-sync` issue with the failing step and the last 50 lines of output, and end
-with `Needs review: <issue URL>`. Do not rerun release.sh: a partial run may already have
-published the GitHub release or the cask, and a rerun rebuilds with a different sha256.
-
-Otherwise run step 8, then end with `Merged, released v$V`.
+After any partial failure, inspect published assets and local logs first. Repair
+and resume only missing steps. Do not blindly rerun the publisher or replace a
+published artifact with different bytes. Preserve exact hashes and source
+provenance so a later run can resume safely.
 
 ## 8. Redeploy Omi Dev
 
-Adam's running Mac app is the locally deployed `/Applications/Omi Dev.app`, which
-releases never reach. After a merged sync (and its release, if any), rebuild it from
-the primary checkout on up-to-date `main`:
+Use `scripts/fork/redeploy-omi-dev.sh` from merged primary main. Preserve an older
+rollback backup before its usual backup location is replaced. Verify the intended
+signing identity, hosted-service configuration, source revision and running
+process. Never stop or replace production Omi or Omi Beta.
 
-```bash
-scripts/fork/redeploy-omi-dev.sh
-```
+Read the script's exit diagnostics. A capture-probe timeout alone does not prove a
+permission failure: inspect idle/analysis gates and newly created capture times
+before changing permissions. Keep automated verification separate from user
+confirmation. Repair a failed deployment or report its exact remaining blocker.
 
-It keeps a rollback copy, quits Omi Dev, deploys main on top with the same signing
-identity, and verifies the new build is running. If Omi Dev was capturing screens
-before the deploy, it then waits up to 5 minutes for new Rewind captures. Exit 0: add
-`Omi Dev: <its last line>`. Any failure restores and relaunches the previous build
-(exit 1), or the script refuses to start (exit 2), so Adam always keeps a working app.
-For any non-zero exit, file an `upstream-sync` issue with the script output and the
-last 50 lines of `/tmp/omi-dev-redeploy.log`, and end with `Needs review: <issue URL>`.
-Exit 3 means the new build runs but wrote no screen captures, so Screen Recording
-likely needs re-granting: title the issue `Omi Dev: re-grant Screen Recording` and put
-the script's re-grant steps first. Exit 5 means the rollback also failed: put that
-first in the issue.
+## 9. Build and deploy iPhone and physical Watch
+
+Follow `ios-install.md` and use only `scripts/fork/ios-install.sh`. Use current
+canonical local configuration. When a Watch signing override is needed, copy that
+configuration to a fresh task-owned directory and pass it with `OMI_LOCAL_CONFIG`;
+never reuse stale Firebase settings or commit local credentials/configuration.
+
+Before installing, validate the embedded Watch signature, its profile's device
+coverage, and its own microphone permission description. Verify iPhone install
+and launch against the new app container. Verify physical Watch installation,
+launch and recording separately. The phone receiving an embedded Watch bundle or
+completing a placeholder install is insufficient. Where available, compare the
+actual installed Watch binary hash with the build; otherwise record explicit
+physical-device/user evidence for the new UI and behavior.
+
+Verify Idea and Task saves with Omi in the iPhone's background, including truthful
+pending/progress messages and destination-confirmed Saved receipts. Use the
+inbox/checkpoint diagnostics in `ios-install.md` before troubleshooting pairing.
+Retain original recordings and do not create duplicate destinations on retries.
+Keep Device Hub phone screen sessions disconnected, since they can suppress the
+phone's keyboard. Do not unpair or reset devices to recover direct Watch access.
+
+If installation succeeded but the phone was locked at launch, resume launch
+verification instead of rebuilding. Reuse an existing signed artifact only after
+verifying component source equivalence with merged main; matching version strings
+alone are insufficient. Do not claim cold-start or background scenarios that were
+not actually tested.
+
+## Finish and recovery notes
+
+Report the selected upstream revision/releases, merged PR, verification, retained
+fork features, published desktop version and Homebrew/appcast result, installed
+Mac source revision, and separate iPhone/Watch installation and behavior results.
+Distinguish completed, built but not installed, and externally blocked work.
+
+Retain signed bundles, hashes, source provenance and concise recovery notes before
+cleaning up task-owned worktrees. Use the managed archive operation for managed
+worktrees. Preserve needed ignored build artifacts separately; never discard
+uncommitted work or remove a preexisting checkout to save space. Update the
+scheduled task's notes with recurring lessons and the latest checkpoint, keeping
+technical procedures in their owning guide.
