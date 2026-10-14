@@ -92,6 +92,12 @@ Core implementation: `app/ios/WatchCapture/WatchCaptureStore.swift`,
 `app/ios/Runner/WatchCaptureHost.swift`, `app/ios/omiWatchApp/WatchQuickCapture.swift`,
 and `app/lib/services/watch/`. The shared Pigeon interface lives in
 `app/lib/pigeon_interfaces.dart`; regenerate all three platform outputs together.
+The phone converts retained AAC `.m4a` recordings to PCM `.wav` before upload.
+The hosted multipart transcription route rejects `.m4a`; renaming it to `.mp4`
+also prevents WAV duration measurement and can overcharge the duration budget.
+If a capture stays pending, inspect its phone inbox JSON status/error/checkpoints
+before investigating Watch pairing. Delivered audio with `transcription` errors
+proves transport succeeded. Never remove the original to retry a failed upload.
 Verify native persistence/receipts with
 `ruby app/ios/test/watch_recording_presentation_test.rb` and destination/retry
 behavior with `cd app && bash test.sh test/services/watch` in a hermetic test

@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 
 /// A receipt belongs to one explicit capture and one signed-in account/environment.
 /// Files and checkpoints survive process death; transport completion is never a save receipt.
@@ -90,6 +91,39 @@ final class WatchCaptureStore: @unchecked Sendable {
     func audioURL(_ id: String) throws -> URL {
         guard UUID(uuidString: id) != nil else { throw WatchCaptureStoreError.invalidRecord }
         return root.appendingPathComponent(id).appendingPathExtension("m4a")
+    }
+
+    /// The hosted multipart route accepts WAV, but rejects .m4a filenames.
+    /// Decode to PCM WAV so it can also measure the real duration for quota.
+    /// Keep the original AAC and publish the derived file only after closing it.
+    func transcriptionAudioURL(_ id: String) throws -> URL {
+        lock.lock(); defer { lock.unlock() }
+        let source = try audioURL(id)
+        let target = root.appendingPathComponent(id).appendingPathExtension("wav")
+        if FileManager.default.fileExists(atPath: target.path) { return target }
+        let temporary = root.appendingPathComponent(UUID().uuidString).appendingPathExtension("wav")
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        try autoreleasepool {
+            let input = try AVAudioFile(forReading: source)
+            guard input.length > 0,
+                  let buffer = AVAudioPCMBuffer(pcmFormat: input.processingFormat, frameCapacity: 4096)
+            else { throw WatchCaptureStoreError.invalidRecord }
+            let output = try AVAudioFile(forWriting: temporary, settings: [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: input.processingFormat.sampleRate,
+                AVNumberOfChannelsKey: input.processingFormat.channelCount,
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsFloatKey: false,
+                AVLinearPCMIsBigEndianKey: false
+            ])
+            while input.framePosition < input.length {
+                try input.read(into: buffer)
+                guard buffer.frameLength > 0 else { throw WatchCaptureStoreError.invalidRecord }
+                try output.write(from: buffer)
+            }
+        }
+        try FileManager.default.moveItem(at: temporary, to: target)
+        return target
     }
 
     func records() throws -> [WatchCaptureRecord] {

@@ -244,6 +244,70 @@ class WatchRecordingPresentationTest < Minitest::Test
     end
   end
 
+  def test_watch_aac_is_decoded_to_a_measurable_pcm_wav_without_changing_the_original
+    Dir.mktmpdir('watch-capture-audio') do |directory|
+      harness = File.join(directory, 'main.swift')
+      File.write(harness, <<~SWIFT)
+        import Foundation
+        import AVFoundation
+        @main struct CaptureAudioHarness {
+          static func main() throws {
+            let root = URL(fileURLWithPath: CommandLine.arguments[1])
+            let store = WatchCaptureStore(root: root)
+            let id = UUID().uuidString
+            let original = try store.audioURL(id)
+            try autoreleasepool {
+              let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32000)!
+              buffer.frameLength = 32000
+              for frame in 0..<32000 {
+                buffer.floatChannelData![0][frame] = Float(sin(Double(frame) * 2 * .pi * 440 / 16000)) * 0.25
+              }
+              let recording = try AVAudioFile(forWriting: original, settings: [
+                AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16000,
+                AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000
+              ])
+              try recording.write(from: buffer)
+            }
+            let originalBytes = try Data(contentsOf: original)
+            let wav = try store.transcriptionAudioURL(id)
+            precondition(wav.pathExtension == "wav")
+            let decoded = try AVAudioFile(forReading: wav)
+            precondition(decoded.fileFormat.streamDescription.pointee.mFormatID == kAudioFormatLinearPCM)
+            precondition(decoded.fileFormat.streamDescription.pointee.mBitsPerChannel == 16)
+            precondition(decoded.fileFormat.sampleRate == 16000)
+            precondition(decoded.fileFormat.channelCount == 1)
+            precondition(abs(Double(decoded.length) / 16000 - 2) < 0.1)
+            let samples = AVAudioPCMBuffer(pcmFormat: decoded.processingFormat, frameCapacity: 32000)!
+            try decoded.read(into: samples)
+            let peak = (0..<Int(samples.frameLength)).map { abs(samples.floatChannelData![0][$0]) }.max()!
+            precondition(peak > 0.1, "Conversion must preserve audio, not produce silence")
+            let restarted = WatchCaptureStore(root: root)
+            let cached = try restarted.transcriptionAudioURL(id)
+            precondition(cached == wav)
+            let retained = try Data(contentsOf: original)
+            precondition(retained == originalBytes, "Original recordings must survive conversion and retry")
+            let badID = UUID().uuidString
+            try Data([1, 2, 3, 4]).write(to: store.audioURL(badID))
+            do {
+              _ = try store.transcriptionAudioURL(badID)
+              preconditionFailure("Unreadable audio admitted")
+            } catch { }
+            precondition(!FileManager.default.fileExists(atPath: root.appendingPathComponent(badID + ".wav").path))
+            print("ok")
+          }
+        }
+      SWIFT
+      source = File.join(IOS_ROOT, 'WatchCapture', 'WatchCaptureStore.swift')
+      binary = File.join(directory, 'capture-audio-test')
+      stdout, stderr, status = Open3.capture3('swiftc', '-parse-as-library', source, harness, '-o', binary)
+      assert status.success?, "capture audio compile failed:\n#{stdout}\n#{stderr}"
+      stdout, stderr, status = Open3.capture3(binary, directory)
+      assert status.success?, "capture audio assertions failed:\n#{stdout}\n#{stderr}"
+      assert_equal "ok\n", stdout
+    end
+  end
+
   private
 
   def compile_and_run(*sources, binary:)

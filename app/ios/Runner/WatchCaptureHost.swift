@@ -139,14 +139,23 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
     }
 
     func pendingCaptures() throws -> [WatchCaptureItem] {
-        try store.records().filter {
+        let pending = try store.records().filter {
             $0.owner == owner && $0.status == "queued" && $0.nextAttemptAt <= Date().timeIntervalSince1970
-        }.map {
-            WatchCaptureItem(id: $0.id, owner: $0.owner, destination: $0.destination,
-                             path: try store.audioURL($0.id).path, createdAt: $0.createdAt,
-                             duration: $0.duration, transcript: $0.transcript,
-                             conversationId: $0.conversationId)
         }
+        var items: [WatchCaptureItem] = []
+        for record in pending {
+            do {
+                let audio = try record.transcript.isEmpty ? store.transcriptionAudioURL(record.id) : store.audioURL(record.id)
+                items.append(WatchCaptureItem(id: record.id, owner: record.owner, destination: record.destination,
+                                              path: audio.path, createdAt: record.createdAt,
+                                              duration: record.duration, transcript: record.transcript,
+                                              conversationId: record.conversationId))
+            } catch {
+                // One unreadable recording must not prevent its siblings from saving.
+                try failCapture(id: record.id, owner: record.owner, reason: "audio_decode")
+            }
+        }
+        return items
     }
 
     func checkpointCapture(id: String, owner: String, transcript: String, conversationId: String) throws {

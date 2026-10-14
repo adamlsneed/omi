@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:omi/backend/http/api_result.dart';
 import 'package:omi/backend/http/shared.dart';
 import 'package:omi/services/auth/auth_token_result.dart';
+import 'package:omi/utils/logger.dart';
 
 import 'watch_capture_worker.dart';
 
@@ -72,7 +73,11 @@ class WatchCaptureApi implements WatchCaptureDestination {
       sessionSnapshot: sessionSnapshot,
     );
     if (!canSend()) throw const WatchCaptureFailure('account');
-    if (response.statusCode != 200) throw const WatchCaptureFailure('transcription');
+    if (response.statusCode != 200) {
+      // Status only: never log audio, transcript, response bodies or credentials.
+      Logger.debug('Watch transcription deferred: HTTP ${response.statusCode}');
+      throw const WatchCaptureFailure('transcription');
+    }
     final decoded = jsonDecode(response.body);
     if (decoded is! Map || decoded['transcript'] is! String) throw const WatchCaptureFailure('transcription');
     return decoded['transcript'] as String;
