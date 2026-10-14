@@ -357,6 +357,12 @@ extension WatchAudioRecorderViewModel: WCSessionDelegate {
         Task { @MainActor in self.quickCapture.connected() }
     }
 
+    func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {
+        guard let id = fileTransfer.file.metadata?["id"] as? String else { return }
+        let failed = error != nil
+        Task { @MainActor in self.quickCapture.transferFinished(id: id, failed: failed) }
+    }
+
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         Task { @MainActor in self.quickCapture.receiveAccountContext(applicationContext) }
     }

@@ -7,6 +7,7 @@ import WatchKit
 /// Short intentional capture uses a file handoff, never the pendant's live stream.
 @MainActor
 final class WatchQuickCapture: NSObject, ObservableObject, AVAudioRecorderDelegate {
+    @Published private(set) var transfers: [String: Progress] = [:]
     @Published private(set) var records: [WatchCaptureRecord] = []
     @Published private(set) var active: WatchCaptureRecord?
     @Published private(set) var starting = false
@@ -143,6 +144,7 @@ final class WatchQuickCapture: NSObject, ObservableObject, AVAudioRecorderDelega
             _ = try store.update(id: id, owner: record.owner) {
                 $0.status = "queued"
                 $0.error = ""
+                $0.processingPhase = nil
             }
             // Queued user-info delivery works with the phone locked or offline.
             session.transferUserInfo(["method": "retryQuickCapture", "id": id, "owner": record.owner])
@@ -174,7 +176,29 @@ final class WatchQuickCapture: NSObject, ObservableObject, AVAudioRecorderDelega
         } catch { errorKey = "watch.capture.storageError" }
     }
 
+    func transferFinished(id: String, failed: Bool) {
+        // A newer phone receipt takes precedence over transport completion.
+        guard let record = records.first(where: { $0.id == id }), record.status == "queued",
+              record.processingPhase == nil || record.processingPhase == "" else { return }
+        do {
+            _ = try store.update(id: id, owner: record.owner) {
+                if failed {
+                    $0.status = "failed"
+                    $0.error = "transport"
+                } else {
+                    $0.processingPhase = "waitingProcessing"
+                }
+            }
+            reload()
+        } catch { errorKey = "watch.capture.storageError" }
+        refresh()
+    }
+
     func refresh() {
+        transfers = Dictionary(session.outstandingFileTransfers.compactMap { transfer in
+            guard let id = transfer.file.metadata?["id"] as? String else { return nil }
+            return (id, transfer.progress)
+        }, uniquingKeysWith: { first, _ in first })
         guard session.activationState == .activated, session.isReachable else { return }
         session.sendMessage(["method": "quickCaptureContext", "ids": Array(records.filter { $0.status == "queued" }.prefix(20).map(\.id))], replyHandler: { [weak self] reply in
             Task { @MainActor in self?.applyContext(reply) }
@@ -233,16 +257,15 @@ struct WatchQuickCaptureView: View {
                     }.accessibilityIdentifier("watch-record-task")
                     if capture.starting { ProgressView() }
                     if let error = capture.errorKey { Text(LocalizedStringKey(error)).font(.caption2) }
-                    ForEach(capture.records.filter { $0.status != "recording" && $0.status != "saved" } + Array(capture.records.filter { $0.status == "saved" }.prefix(3))) { record in
-                        VStack(spacing: 4) {
-                            Text(record.destination == "idea" ? "watch.capture.idea" : "watch.capture.task").font(.headline)
-                            Text(Date(timeIntervalSince1970: record.createdAt), style: .time).font(.caption2)
-                            Text(LocalizedStringKey(statusKey(record))).font(.caption)
-                            if record.status != "saved" {
-                                Button("watch.capture.retry") { capture.retry(record.id) }
-                                    .accessibilityIdentifier("watch-retry-\(record.id)")
-                            }
-                        }.padding(.vertical, 6)
+                    let pending = capture.records.filter { $0.status != "recording" && $0.status != "saved" }
+                    let saved = Array(capture.records.filter { $0.status == "saved" }.prefix(10))
+                    if !pending.isEmpty {
+                        Text("watch.capture.pendingHeading").font(.caption).foregroundStyle(.secondary)
+                        ForEach(pending) { record in captureRow(record) }
+                    }
+                    if !saved.isEmpty {
+                        Text("watch.capture.savedHeading").font(.caption).foregroundStyle(.secondary)
+                        ForEach(saved) { record in captureRow(record) }
                     }
                 }
             }.disabled(capture.starting).padding(.horizontal, 4)
@@ -255,13 +278,30 @@ struct WatchQuickCaptureView: View {
         }
     }
 
-    private func statusKey(_ record: WatchCaptureRecord) -> String {
-        if record.status == "saved" {
-            return record.destination == "idea" ? "watch.capture.ideaSaved" : "watch.capture.taskSaved"
+    private func captureRow(_ record: WatchCaptureRecord) -> some View {
+        TimelineView(.periodic(from: .now, by: 5)) { context in
+            let transfer = capture.transfers[record.id]
+            let stage = record.stage(now: context.date.timeIntervalSince1970,
+                                     transferFraction: transfer?.fractionCompleted)
+            VStack(spacing: 4) {
+                Text(record.destination == "idea" ? "watch.capture.idea" : "watch.capture.task").font(.headline)
+                Text(Date(timeIntervalSince1970: record.createdAt), style: .time).font(.caption2)
+                if stage == .sending, let transfer {
+                    ProgressView(transfer)
+                        .accessibilityLabel(Text("watch.capture.sending"))
+                } else if stage.isWorking {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: stage.isSaved ? "checkmark.circle.fill" : (stage.showsRetry ? "exclamationmark.circle" : "clock"))
+                        .foregroundStyle(stage.isSaved ? .green : .secondary)
+                        .accessibilityHidden(true)
+                }
+                Text(LocalizedStringKey(stage.localizationKey)).font(.caption)
+                if stage.showsRetry {
+                    Button("watch.capture.retry") { capture.retry(record.id) }
+                        .accessibilityIdentifier("watch-retry-\(record.id)")
+                }
+            }.padding(.vertical, 6)
         }
-        if record.status == "failed" {
-            return record.error == "no_speech" ? "watch.capture.noSpeech" : "watch.capture.saveError"
-        }
-        return "watch.capture.pending"
     }
 }

@@ -16,12 +16,16 @@ struct WatchCaptureRecord: Codable, Equatable, Identifiable {
     var error = ""
     var retryCount = 0
     var nextAttemptAt: Double = 0
+    // Optional for recordings already persisted by earlier app versions.
+    var processingPhase: String?
+    var receiptUpdatedAt: Double?
 
     var wire: [String: String] {
         ["id": id, "owner": owner, "destination": destination,
          "createdAt": String(createdAt), "duration": String(duration),
          "status": status, "transcript": transcript, "conversationId": conversationId,
-         "resultId": resultId, "error": error]
+         "resultId": resultId, "error": error,
+         "processingPhase": processingPhase ?? "", "receiptUpdatedAt": String(receiptUpdatedAt ?? 0)]
     }
 
     init(id: String = UUID().uuidString, owner: String, destination: String, createdAt: Double) {
@@ -53,13 +57,51 @@ struct WatchCaptureRecord: Codable, Equatable, Identifiable {
               receipt["destination"] == destination, status != "saved",
               let next = receipt["status"], ["queued", "failed", "saved"].contains(next)
         else { return false }
+        let updatedAt = Double(receipt["receiptUpdatedAt"] ?? "") ?? 0
+        // File/user-info messages can arrive after newer interactive replies.
+        if next != "saved", updatedAt < (receiptUpdatedAt ?? 0) { return false }
         if next == "saved" {
             guard let savedId = receipt["resultId"], !savedId.isEmpty else { return false }
             resultId = savedId
         }
         status = next
         error = receipt["error"] ?? ""
+        processingPhase = receipt["processingPhase"]
+        receiptUpdatedAt = updatedAt
         return true
+    }
+}
+
+/// Presentation uses verified receipts and measured transfer progress. A queued
+/// recording is not a failure, and a stale progress receipt is not live activity.
+enum WatchCaptureStage: String {
+    case waitingPhone, sending, waitingProcessing, transcribing, savingIdea, savingTask
+    case retrying, saveError, noSpeech, originalAccount, ideaSaved, taskSaved
+
+    var showsRetry: Bool { [.retrying, .saveError, .noSpeech, .originalAccount].contains(self) }
+    var isWorking: Bool { [.transcribing, .savingIdea, .savingTask].contains(self) }
+    var isSaved: Bool { self == .ideaSaved || self == .taskSaved }
+    var localizationKey: String { "watch.capture." + rawValue }
+}
+
+extension WatchCaptureRecord {
+    func stage(now: Double, transferFraction: Double? = nil) -> WatchCaptureStage {
+        if status == "saved" { return destination == "idea" ? .ideaSaved : .taskSaved }
+        if status == "failed" {
+            if error == "no_speech" { return .noSpeech }
+            if error == "account" { return .originalAccount }
+            return .saveError
+        }
+        if !error.isEmpty && error != "processing" { return .retrying }
+        if let processingPhase, !processingPhase.isEmpty {
+            if now - (receiptUpdatedAt ?? 0) <= 90 {
+                if processingPhase == "transcribing" { return .transcribing }
+                if processingPhase == "saving" { return destination == "idea" ? .savingIdea : .savingTask }
+            }
+            return .waitingProcessing
+        }
+        if let transferFraction, transferFraction > 0 && transferFraction < 1 { return .sending }
+        return .waitingPhone
     }
 }
 

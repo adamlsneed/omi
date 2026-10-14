@@ -308,6 +308,150 @@
           }
         }
       }
+    },
+    "watch.capture.waitingPhone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for iPhone. Recording kept on Watch."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneへの転送待ちです。録音はWatchに保持されています。"
+          }
+        }
+      }
+    },
+    "watch.capture.sending": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending to iPhone…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneに転送中…"
+          }
+        }
+      }
+    },
+    "watch.capture.waitingProcessing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On iPhone. Waiting for background processing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneに転送済みです。バックグラウンド処理を待っています。"
+          }
+        }
+      }
+    },
+    "watch.capture.transcribing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploading & transcribing…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップロード・文字起こし中…"
+          }
+        }
+      }
+    },
+    "watch.capture.savingIdea": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving to Ideas…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アイデアに保存中…"
+          }
+        }
+      }
+    },
+    "watch.capture.savingTask": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving to Tasks…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タスクに保存中…"
+          }
+        }
+      }
+    },
+    "watch.capture.retrying": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save delayed. Retrying automatically. Recording kept."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存が遅れています。自動的に再試行します。録音は保持されています。"
+          }
+        }
+      }
+    },
+    "watch.capture.pendingHeading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving recordings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存待ちの録音"
+          }
+        }
+      }
+    },
+    "watch.capture.savedHeading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently saved"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近の保存"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

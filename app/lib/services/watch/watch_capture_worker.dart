@@ -57,6 +57,10 @@ class WatchCaptureWorker {
 
         if (!owned()) continue;
         try {
+          // Announce this record's actual start, not the entire queued batch.
+          // Native checkpoints also publish upload/transcription or save progress.
+          await inbox.checkpoint(capture);
+          requireOwner();
           if (capture.transcript.isEmpty) {
             capture.transcript = (await destination.transcribe(capture)).trim();
             requireOwner();

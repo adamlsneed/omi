@@ -308,6 +308,75 @@ class WatchRecordingPresentationTest < Minitest::Test
     end
   end
 
+  def test_capture_progress_is_ordered_survives_upgrade_and_never_calls_waiting_a_failure
+    Dir.mktmpdir('watch-capture-progress') do |directory|
+      harness = File.join(directory, 'main.swift')
+      File.write(harness, <<~SWIFT)
+        import Foundation
+        @main struct CaptureProgressHarness {
+          static func main() throws {
+            let owner = String(repeating: "a", count: 64)
+            var record = WatchCaptureRecord(owner: owner, destination: "idea", createdAt: 1000)
+            record.status = "queued"
+            // Simulate metadata written by the installed version before progress fields existed.
+            var old = try JSONSerialization.jsonObject(with: JSONEncoder().encode(record)) as! [String: Any]
+            old.removeValue(forKey: "processingPhase")
+            old.removeValue(forKey: "receiptUpdatedAt")
+            record = try JSONDecoder().decode(WatchCaptureRecord.self, from: JSONSerialization.data(withJSONObject: old))
+            precondition(record.stage(now: 2000) == .waitingPhone)
+            precondition(!record.stage(now: 2000).showsRetry)
+            precondition(record.stage(now: 2000, transferFraction: 0) == .waitingPhone)
+            precondition(record.stage(now: 2000, transferFraction: 0.25) == .sending)
+            var receipt = record.wire
+            receipt["processingPhase"] = "transcribing"
+            receipt["receiptUpdatedAt"] = "2000"
+            precondition(record.applyReceipt(receipt))
+            precondition(record.stage(now: 2001) == .transcribing)
+            precondition(!record.stage(now: 2001).showsRetry)
+            precondition(record.stage(now: 2100) == .waitingProcessing, "Suspension must not leave an endless active spinner")
+            receipt["processingPhase"] = "saving"
+            receipt["receiptUpdatedAt"] = "2002"
+            precondition(record.applyReceipt(receipt))
+            precondition(record.stage(now: 2003) == .savingIdea)
+            receipt["processingPhase"] = "transcribing"
+            receipt["receiptUpdatedAt"] = "2001"
+            precondition(!record.applyReceipt(receipt), "Delayed background messages cannot rewind newer progress")
+            record.error = "processing"
+            precondition(!record.stage(now: 2003).showsRetry)
+            record.error = "transport"
+            precondition(record.stage(now: 2003) == .retrying)
+            precondition(record.stage(now: 2003).showsRetry)
+            receipt["status"] = "saved"
+            receipt["resultId"] = "idea-1"
+            precondition(record.applyReceipt(receipt))
+            precondition(record.stage(now: 9000) == .ideaSaved)
+            precondition(!record.stage(now: 9000).showsRetry)
+            receipt["status"] = "queued"
+            receipt["receiptUpdatedAt"] = "9001"
+            precondition(!record.applyReceipt(receipt), "Saved confirmations cannot disappear into a stale queue")
+            var task = WatchCaptureRecord(owner: owner, destination: "task", createdAt: 1000)
+            task.status = "queued"
+            task.processingPhase = "saving"
+            task.receiptUpdatedAt = 2000
+            precondition(task.stage(now: 2001) == .savingTask)
+            task.status = "failed"
+            task.error = "no_speech"
+            precondition(task.stage(now: 2001) == .noSpeech)
+            precondition(task.stage(now: 2001).showsRetry)
+            print("ok")
+          }
+        }
+      SWIFT
+      source = File.join(IOS_ROOT, 'WatchCapture', 'WatchCaptureStore.swift')
+      binary = File.join(directory, 'capture-progress-test')
+      stdout, stderr, status = Open3.capture3('swiftc', '-parse-as-library', source, harness, '-o', binary)
+      assert status.success?, "capture progress compile failed:\n#{stdout}\n#{stderr}"
+      stdout, stderr, status = Open3.capture3(binary)
+      assert status.success?, "capture progress assertions failed:\n#{stdout}\n#{stderr}"
+      assert_equal "ok\n", stdout
+    end
+  end
+
   private
 
   def compile_and_run(*sources, binary:)

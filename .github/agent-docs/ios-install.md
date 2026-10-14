@@ -87,6 +87,13 @@ identity or a read-back of the completed conversation in Ideas earns a Saved
 receipt. Transient failures retry automatically with backoff. Failed recordings remain
 on-device and can be retried from the Watch
 under the original account. Audio is retained locally, including after saving.
+Watch rows distinguish waiting for the phone, measured file-transfer progress,
+upload/transcription, destination save, automatic retry after an error, and saved.
+Only errors offer Retry. Progress is sent at the active recording's checkpoints;
+receipts carry timestamps so delayed background messages cannot rewind the UI.
+Stale activity becomes waiting, and the ten latest confirmed saves remain visible.
+Startup/timer drains acquire the native background lease too, so leaving the
+phone app does not interrupt a retry immediately.
 
 Core implementation: `app/ios/WatchCapture/WatchCaptureStore.swift`,
 `app/ios/Runner/WatchCaptureHost.swift`, `app/ios/omiWatchApp/WatchQuickCapture.swift`,

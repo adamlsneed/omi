@@ -75,13 +75,20 @@ void main() {
     inbox.items.add(capture());
     await worker.drain();
     await worker.drain();
-    expect(inbox.events,
-        ['transcribe', 'checkpoint:', 'idea', 'checkpoint:conversation-1', 'file', 'saved:conversation-1']);
+    expect(inbox.events, [
+      'checkpoint:',
+      'transcribe',
+      'checkpoint:',
+      'idea',
+      'checkpoint:conversation-1',
+      'file',
+      'saved:conversation-1'
+    ]);
   });
   test('task gesture creates exactly a task and no idea', () async {
     inbox.items.add(capture(destination: 'task'));
     await worker.drain();
-    expect(inbox.events, ['transcribe', 'checkpoint:', 'task', 'saved:task-1']);
+    expect(inbox.events, ['checkpoint:', 'transcribe', 'checkpoint:', 'task', 'saved:task-1']);
   });
   test('folder failure retains checkpoint and retry resumes filing without a second conversation', () async {
     inbox.items.add(capture());
@@ -98,7 +105,7 @@ void main() {
     inbox.items.add(capture());
     destination.text = '  ';
     await worker.drain();
-    expect(inbox.events, ['transcribe', 'failed:no_speech']);
+    expect(inbox.events, ['checkpoint:', 'transcribe', 'failed:no_speech']);
   });
   test('account switch during transcription cannot save or acknowledge under another account', () async {
     inbox.items.add(capture());
@@ -107,7 +114,7 @@ void main() {
       return 'private idea';
     };
     await worker.drain();
-    expect(inbox.events, ['transcribe']);
+    expect(inbox.events, ['checkpoint:', 'transcribe']);
   });
   test('overlapping drains share one writer', () async {
     inbox.items.add(capture(destination: 'task'));
@@ -119,6 +126,18 @@ void main() {
     gate.complete('Call the dentist');
     await first;
     expect(inbox.events.where((e) => e == 'task').length, 1);
+  });
+  test('progress starts only for the active recording, not siblings waiting in the batch', () async {
+    inbox.items.addAll([capture(), capture(destination: 'task')]);
+    final gate = Completer<String>();
+    destination.transcription = () => gate.future;
+    final drain = worker.drain();
+    await Future<void>.delayed(Duration.zero);
+    expect(inbox.events, ['checkpoint:', 'transcribe']);
+    gate.complete('A useful short capture');
+    await drain;
+    expect(inbox.events.indexOf('saved:conversation-1'), lessThan(inbox.events.lastIndexOf('transcribe')));
+    expect(inbox.events.last, 'saved:task-1');
   });
   test('too-long task is not truncated or marked saved', () async {
     inbox.items.add(capture(destination: 'task'));

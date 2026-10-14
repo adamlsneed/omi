@@ -17,6 +17,9 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
     private var lease = UIBackgroundTaskIdentifier.invalid
     private var backgroundGrant: BGTask?
     private var wakeGeneration = 0
+    // Live activity is not persisted on the phone. Relaunch/expiration must not
+    // leave an old upload looking active while iOS has suspended the worker.
+    private var activePhases: [String: String] = [:]
 
     func registerBackgroundTasks() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.backgroundIdentifier, using: .main) { [weak self] task in
@@ -83,6 +86,13 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
     }
 
     private func finishWake(success: Bool) {
+        let interrupted = Set(activePhases.keys)
+        activePhases.removeAll()
+        if let records = try? store.records() {
+            for record in records where interrupted.contains(record.id) && record.status == "queued" {
+                sendReceipt(record)
+            }
+        }
         wakeGeneration += 1
         waking = false
         needsWake = false
@@ -155,16 +165,25 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
                 try failCapture(id: record.id, owner: record.owner, reason: "audio_decode")
             }
         }
+        // Startup and timer-driven retries also need a background lease if the
+        // user leaves the phone app while that batch is saving. The callback
+        // joins Dart's existing drain and releases the lease when it finishes.
+        if !items.isEmpty && !waking { requestProcessing() }
         return items
     }
 
     func checkpointCapture(id: String, owner: String, transcript: String, conversationId: String) throws {
         guard self.owner == owner else { throw WatchCaptureStoreError.conflictingRecord }
-        _ = try store.update(id: id, owner: owner) { record in
+        let record = try store.update(id: id, owner: owner) { record in
             guard record.status != "saved" else { return }
             record.transcript = transcript
             record.conversationId = conversationId
+            record.error = ""
         }
+        if record.status == "queued" {
+            activePhases[id] = transcript.isEmpty ? "transcribing" : "saving"
+        }
+        sendReceipt(record)
     }
 
     func finishCapture(id: String, owner: String, resultId: String) throws {
@@ -174,6 +193,7 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
             $0.status = "saved"
             $0.error = ""
         }
+        activePhases.removeValue(forKey: id)
         sendReceipt(record)
     }
 
@@ -187,6 +207,7 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
             $0.nextAttemptAt = Date().timeIntervalSince1970 + min(900, 15 * pow(2, Double(min($0.retryCount, 6))))
             $0.error = reason
         }
+        activePhases.removeValue(forKey: id)
         sendReceipt(record)
     }
 
@@ -207,9 +228,7 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
             }
             let ids = Set((message["ids"] as? [String] ?? []) + [message["id"] as? String ?? ""])
             let receipts = try store.records().filter { ids.contains($0.id) }.prefix(20).map {
-                var value = $0.wire
-                value.removeValue(forKey: "transcript")
-                return value
+                receipt(for: $0)
             }
             return ready ? ["owner": owner, "captures": Array(receipts)] : ["captures": Array(receipts)]
         } catch {
@@ -217,11 +236,17 @@ final class WatchCaptureHost: WatchCaptureHostAPI {
         }
     }
 
-    private func sendReceipt(_ record: WatchCaptureRecord) {
+    private func receipt(for record: WatchCaptureRecord) -> [String: String] {
         var message = record.wire
-        message["method"] = "quickCaptureReceipt"
-        // Receipt contains no transcript. The Watch only needs destination and server identity.
         message.removeValue(forKey: "transcript")
+        message["processingPhase"] = record.status == "queued" ? (activePhases[record.id] ?? "waitingProcessing") : ""
+        message["receiptUpdatedAt"] = String(Date().timeIntervalSince1970)
+        return message
+    }
+
+    private func sendReceipt(_ record: WatchCaptureRecord) {
+        var message = receipt(for: record)
+        message["method"] = "quickCaptureReceipt"
         let session = WCSession.default
         guard session.activationState == .activated else { return }
         if session.isReachable {
