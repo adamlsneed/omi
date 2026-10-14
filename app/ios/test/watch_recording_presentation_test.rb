@@ -22,6 +22,16 @@ class WatchRecordingPresentationTest < Minitest::Test
     watch.accessibility.stopRecording
   ].freeze
 
+  def test_watch_bundle_declares_why_it_needs_the_microphone
+    stdout, stderr, status = Open3.capture3(
+      'plutil', '-convert', 'json', '-o', '-', File.join(IOS_ROOT, 'omiWatchApp-Info.plist'),
+    )
+    assert status.success?, "Watch Info.plist must be valid: #{stderr}"
+    description = JSON.parse(stdout)['NSMicrophoneUsageDescription']
+    assert_kind_of String, description, 'watchOS terminates microphone access without a usage description'
+    refute_empty description.strip
+  end
+
   def test_actual_presentation_controller_removes_the_ripple_after_five_seconds
     Dir.mktmpdir('watch-recording-presentation') do |directory|
       harness = File.join(directory, 'main.swift')
