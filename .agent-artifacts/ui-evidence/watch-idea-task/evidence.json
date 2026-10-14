@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "images": [
+    {
+      "file": "001-desktop-macos-ideas-shortcut.png",
+      "platform": "desktop-macos",
+      "description": "Installed Omi Dev: Ideas shortcut selected in Conversations (navigation-only crop)",
+      "captured_by": "agent",
+      "source": "visual-audit"
+    }
+  ]
+}

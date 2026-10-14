@@ -765,7 +765,26 @@ struct ConversationsPage: View {
   private var conversationQueryToolbar: some View {
     PageQueryToolbar(
       refinement: {
-        conversationFiltersMenu
+        HStack(spacing: 8) {
+          if let ideas = appState.folders.first(where: {
+            $0.id == UserDefaults.standard.string(forKey: AppState.ideaFolderIdKey)
+              || $0.name.lowercased() == "ideas"
+          }) {
+            Button {
+              searchQuery = ""
+              appState.showStarredOnly = false
+              appState.selectedDateFilter = nil
+              Task { await appState.setFolderFilter(ideas.id) }
+            } label: {
+              Label("Ideas", systemImage: "lightbulb")
+            }
+            .buttonStyle(OmiButtonStyle(.secondary, size: .compact))
+            .help("Open your saved ideas")
+            .accessibilityIdentifier("conversations-open-ideas")
+            .accessibilityAddTraits(appState.selectedFolderId == ideas.id ? .isSelected : [])
+          }
+          conversationFiltersMenu
+        }
       },
       activeFilters: {
         ActivePageFilterStrip(

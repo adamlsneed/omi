@@ -8,6 +8,7 @@ class WatchAudioRecorderViewModel: NSObject, WatchRecorderControlling {
     @Published var isRecording: Bool = false
     @Published private(set) var recordingStartedAt: Date?
 
+    let quickCapture: WatchQuickCapture
     var session: WCSession
     private var audioEngine: AVAudioEngine?
     private var inputNode: AVAudioInputNode?
@@ -26,6 +27,7 @@ class WatchAudioRecorderViewModel: NSObject, WatchRecorderControlling {
     
     init(session: WCSession = .default) {
         self.session = session
+        self.quickCapture = WatchQuickCapture(session: session)
         super.init()
         self.session.delegate = self
         session.activate()
@@ -35,7 +37,7 @@ class WatchAudioRecorderViewModel: NSObject, WatchRecorderControlling {
     }
 
     func startRecording() {
-        guard !isRecording else {
+        guard !isRecording, quickCapture.active == nil, !quickCapture.starting else {
             return
         }
 
@@ -351,12 +353,26 @@ extension WatchAudioRecorderViewModel: WCSessionDelegate {
     public func sessionDidBecomeInactive(_ session: WCSession) { }
     public func sessionDidDeactivate(_ session: WCSession) { }
 #endif
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: (any Error)?) {}
+    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: (any Error)?) {
+        Task { @MainActor in self.quickCapture.connected() }
+    }
+
+    func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {
+        guard let id = fileTransfer.file.metadata?["id"] as? String else { return }
+        let failed = error != nil
+        Task { @MainActor in self.quickCapture.transferFinished(id: id, failed: failed) }
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        Task { @MainActor in self.quickCapture.receiveAccountContext(applicationContext) }
+    }
     
     func session(_ session: WCSession, didReceiveMessage message: [String : Any]) {
         Task {
             guard let method = message["method"] as? String else { return }
             switch method {
+            case "quickCaptureReceipt":
+                self.quickCapture.receive(message.compactMapValues { $0 as? String })
             case "startRecording":
                 self.startRecording()
             case "stopRecording":
@@ -377,6 +393,8 @@ extension WatchAudioRecorderViewModel: WCSessionDelegate {
         Task {
             guard let method = userInfo["method"] as? String else { return }
             switch method {
+            case "quickCaptureReceipt":
+                self.quickCapture.receive(userInfo.compactMapValues { $0 as? String })
             case "requestBattery":
                 BatteryManager.shared.sendBatteryLevel()
             case "requestWatchInfo":

@@ -60,6 +60,43 @@ abstract class WatchRecorderFlutterAPI {
   void onWatchBatteryUpdate(double batteryLevel, int batteryState);
 }
 
+class WatchCaptureItem {
+  final String id;
+  final String owner;
+  final String destination;
+  final String path;
+  final double createdAt;
+  final double duration;
+  final String transcript;
+  final String conversationId;
+
+  WatchCaptureItem(
+      {required this.id,
+      required this.owner,
+      required this.destination,
+      required this.path,
+      required this.createdAt,
+      required this.duration,
+      required this.transcript,
+      required this.conversationId});
+}
+
+/// Durable, intentional Watch recordings, independent of the selected streaming device.
+@HostApi()
+abstract class WatchCaptureHostAPI {
+  void setCaptureOwner(String owner);
+  List<WatchCaptureItem> pendingCaptures();
+  void checkpointCapture(String id, String owner, String transcript, String conversationId);
+  void finishCapture(String id, String owner, String resultId);
+  void failCapture(String id, String owner, String reason);
+}
+
+@FlutterApi()
+abstract class WatchCaptureFlutterAPI {
+  @async
+  void processPendingCaptures();
+}
+
 // =============================================================================
 // BLE APIs
 // =============================================================================

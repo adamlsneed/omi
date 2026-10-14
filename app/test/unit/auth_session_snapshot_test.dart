@@ -149,6 +149,73 @@ void main() {
     expect(gateway.signOutCalls, 0);
   });
 
+  group('Watch multipart session binding', () {
+    late Directory tempDir;
+    late File audio;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('watch-snapshot-test');
+      audio = File('${tempDir.path}/capture.m4a');
+      await audio.writeAsBytes([1, 2, 3]);
+    });
+    tearDown(() async => tempDir.delete(recursive: true));
+
+    for (final switchDuringRefresh in [1, 2]) {
+      test('account churn during token attempt $switchDuringRefresh cannot upload under another session', () async {
+        final gateway = _Gateway(user: const AuthUserSnapshot(uid: 'user-a'));
+        final service = AuthService.forTesting(tokenGateway: gateway, refreshDelay: (_) async {});
+        final snapshot = service.captureSessionSnapshot()!;
+        var sends = 0;
+        gateway.results = [RefreshedAuthToken(token: 'token-a', expirationTime: DateTime.now())];
+        gateway.onRefresh = () {
+          if (gateway.refreshCalls != switchDuringRefresh) return;
+          gateway.user = const AuthUserSnapshot(uid: 'user-b');
+          service.handleAuthUserChanged('user-b');
+          gateway.user = const AuthUserSnapshot(uid: 'user-a');
+          service.handleAuthUserChanged('user-a');
+        };
+        final response = await makeMultipartApiCallUnpooled(
+          url: 'https://unit-test.invalid/v2/voice-message/transcribe',
+          files: [audio],
+          sessionSnapshot: snapshot,
+          authService: service,
+          sendStreaming: (request) async {
+            sends++;
+            await request.finalize().drain<void>();
+            return http.StreamedResponse(const Stream.empty(), 401);
+          },
+        );
+        expect(response.statusCode, 401);
+        expect(sends, switchDuringRefresh - 1);
+        expect(gateway.signOutCalls, 0);
+      });
+    }
+
+    test('same-account retry rebuilds the upload stream and succeeds once', () async {
+      final gateway = _Gateway(user: const AuthUserSnapshot(uid: 'user-a'));
+      final service = AuthService.forTesting(tokenGateway: gateway, refreshDelay: (_) async {});
+      final snapshot = service.captureSessionSnapshot()!;
+      gateway.results = [RefreshedAuthToken(token: 'token-a', expirationTime: DateTime.now())];
+      var sends = 0;
+      final bodies = <List<int>>[];
+      final response = await makeMultipartApiCallUnpooled(
+        url: 'https://unit-test.invalid/v2/voice-message/transcribe',
+        files: [audio],
+        sessionSnapshot: snapshot,
+        authService: service,
+        sendStreaming: (request) async {
+          sends++;
+          bodies.add(await request.finalize().toBytes());
+          return http.StreamedResponse(const Stream.empty(), sends == 1 ? 401 : 200);
+        },
+      );
+      expect(response.statusCode, 200);
+      expect(sends, 2);
+      expect(bodies.every((body) => body.isNotEmpty), isTrue);
+      expect(gateway.signOutCalls, 0);
+    });
+  });
+
   group('exportUserDataToFile session binding', () {
     late Directory tempDir;
     late String filePath;

@@ -34,10 +34,15 @@ class PlatformManager {
   CrashlyticsManager get crashReporter => CrashlyticsManager.instance;
 
   static Future<void> initializeServices() async {
-    _instance._packageInfo = await PackageInfo.fromPlatform();
-    _instance._deviceIdHash = await _instance._getDeviceIdHash();
+    await initializeRequestMetadata();
     unawaited(AnalyticsManager.init());
     await IntercomManager.instance.initIntercom();
+  }
+
+  /// Request metadata only, suitable for an isolated Watch background worker.
+  static Future<void> initializeRequestMetadata() async {
+    _instance._packageInfo = await PackageInfo.fromPlatform();
+    _instance._deviceIdHash = await _instance._getDeviceIdHash();
   }
 
   /// Synchronous initialization for the local hermetic journey lane

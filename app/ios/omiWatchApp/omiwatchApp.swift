@@ -6,7 +6,13 @@ struct omiwatch_Watch_AppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WatchRecorderView(viewModel: viewModel)
+            Group {
+                if viewModel.isRecording {
+                    WatchRecorderView(viewModel: viewModel)
+                } else {
+                    WatchQuickCaptureView(capture: viewModel.quickCapture)
+                }
+            }
         }
     }
 }

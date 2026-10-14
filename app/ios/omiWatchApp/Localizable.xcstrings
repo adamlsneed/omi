@@ -1,74 +1,458 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "watch.accessibility.elapsedRecordingTime" : {
-      "comment" : "VoiceOver label for the elapsed recording timer.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elapsed recording time"
+  "sourceLanguage": "en",
+  "strings": {
+    "watch.accessibility.elapsedRecordingTime": {
+      "comment": "VoiceOver label for the elapsed recording timer.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elapsed recording time"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "録音経過時間"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音経過時間"
           }
         }
       }
     },
-    "watch.accessibility.recordingInProgress" : {
-      "comment" : "VoiceOver label while the initial recording animation is visible.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recording in progress"
+    "watch.accessibility.recordingInProgress": {
+      "comment": "VoiceOver label while the initial recording animation is visible.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording in progress"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "録音中"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音中"
           }
         }
       }
     },
-    "watch.accessibility.startRecording" : {
-      "comment" : "VoiceOver label for the button that starts an Apple Watch recording.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start recording"
+    "watch.accessibility.startRecording": {
+      "comment": "VoiceOver label for the button that starts an Apple Watch recording.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start recording"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "録音を開始"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を開始"
           }
         }
       }
     },
-    "watch.accessibility.stopRecording" : {
-      "comment" : "VoiceOver label for the button that stops an Apple Watch recording.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stop recording"
+    "watch.accessibility.stopRecording": {
+      "comment": "VoiceOver label for the button that stops an Apple Watch recording.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop recording"
           }
         },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "録音を停止"
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を停止"
+          }
+        }
+      }
+    },
+    "watch.capture.idea": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idea"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アイデア"
+          }
+        }
+      }
+    },
+    "watch.capture.task": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タスク"
+          }
+        }
+      }
+    },
+    "watch.capture.stopSave": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop & Save"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止して保存"
+          }
+        }
+      }
+    },
+    "watch.capture.limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stops after 5 minutes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5分後に自動停止"
+          }
+        }
+      }
+    },
+    "watch.capture.retry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry Save"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存を再試行"
+          }
+        }
+      }
+    },
+    "watch.capture.ideaSaved": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Ideas"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アイデアに保存しました"
+          }
+        }
+      }
+    },
+    "watch.capture.taskSaved": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Tasks"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タスクに保存しました"
+          }
+        }
+      }
+    },
+    "watch.capture.pending": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded. Waiting to sync in the background."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音済みです。バックグラウンド同期を待っています。"
+          }
+        }
+      }
+    },
+    "watch.capture.saveError": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not saved yet. Your recording is kept here. Tap Retry."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ保存されていません。録音は保持されています。「再試行」をタップしてください。"
+          }
+        }
+      }
+    },
+    "watch.capture.noSpeech": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No speech detected. Audio is kept here. You can record again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音声を認識できませんでした。録音は保持されています。もう一度録音できます。"
+          }
+        }
+      }
+    },
+    "watch.capture.openPhone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First-time setup: sign in to Omi on your iPhone once to connect your account."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初回設定：iPhoneのOmiに一度ログインしてアカウントを接続してください。"
+          }
+        }
+      }
+    },
+    "watch.capture.originalAccount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to the account used for this recording."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この録音に使用したアカウントでログインしてください。"
+          }
+        }
+      }
+    },
+    "watch.capture.microphoneError": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow microphone access in Watch Settings to record."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音するにはWatchの設定でマイクへのアクセスを許可してください。"
+          }
+        }
+      }
+    },
+    "watch.capture.recordingError": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording could not start. Try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "録音を開始できませんでした。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "watch.capture.storageError": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to access saved recordings. Try reopening Omi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みの録音にアクセスできません。Omiを開き直してください。"
+          }
+        }
+      }
+    },
+    "watch.capture.waitingPhone": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for iPhone. Recording kept on Watch."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneへの転送待ちです。録音はWatchに保持されています。"
+          }
+        }
+      }
+    },
+    "watch.capture.sending": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending to iPhone…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneに転送中…"
+          }
+        }
+      }
+    },
+    "watch.capture.waitingProcessing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On iPhone. Waiting for background processing."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneに転送済みです。バックグラウンド処理を待っています。"
+          }
+        }
+      }
+    },
+    "watch.capture.transcribing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploading & transcribing…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップロード・文字起こし中…"
+          }
+        }
+      }
+    },
+    "watch.capture.savingIdea": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving to Ideas…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アイデアに保存中…"
+          }
+        }
+      }
+    },
+    "watch.capture.savingTask": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving to Tasks…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タスクに保存中…"
+          }
+        }
+      }
+    },
+    "watch.capture.retrying": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save delayed. Retrying automatically. Recording kept."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存が遅れています。自動的に再試行します。録音は保持されています。"
+          }
+        }
+      }
+    },
+    "watch.capture.pendingHeading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving recordings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存待ちの録音"
+          }
+        }
+      }
+    },
+    "watch.capture.savedHeading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently saved"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近の保存"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

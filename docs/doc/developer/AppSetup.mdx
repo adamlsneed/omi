@@ -29,6 +29,30 @@ Don't want to build from source? Download the official app from the [App Store](
 
 ## Prerequisites
 
+### Apple Watch quick capture in this fork
+
+The embedded Watch app has **Idea** and **Task** buttons for short recordings from
+the Watch microphone. Sign in to the companion iPhone app once for account setup.
+Then choose a destination and tap **Stop & Save** on the Watch, without opening
+the phone app. Recording also works while the phone is unavailable. Each recording is limited to five minutes. Ideas appear
+in the existing **Ideas** conversation collection; tasks appear in the task list.
+On Mac, open **Memories → Conversations → Ideas** to browse saved ideas.
+
+The Watch transfers an audio file to the companion app. The phone processes it
+in the background and saves it through the conversation/folder or action-item APIs.
+Delivery and retry timing depend on connectivity and iOS background scheduling. This path is
+independent of the pendant's continuous recording. **Saved** means the destination
+was confirmed, while pending or failed captures retain their local audio and offer
+retry. A retry must use the same account that started the recording. Local audio
+is retained after saving as well.
+
+When developing this flow, the native inbox and outbox share
+`app/ios/WatchCapture/WatchCaptureStore.swift`; Flutter destination processing lives
+in `app/lib/services/watch/`. The Pigeon bridge is generated from
+`app/lib/pigeon_interfaces.dart`.
+
+### Development tools
+
 Before starting, make sure you have the following installed:
 
 <CardGroup cols={2}>
