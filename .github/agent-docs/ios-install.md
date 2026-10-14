@@ -43,7 +43,8 @@ about 2. Step logs go to `app/build/ios-install-logs/`.
   `lib/env/*.g.dart`. A `--build-filter` run deletes tracked outputs and breaks the build.
 - **xcodebuild** with `-xcconfig ios/Flutter/LocalSigning.xcconfig` (otherwise it signs
   BasedHardware's App ID) and `generic/platform=iOS` (a device destination times out
-  mounting the disk image). The watch app is embedded, so one install covers the watch.
+  mounting the disk image). The Watch app is embedded; physical Watch installation
+  and launch still require separate verification.
 
 ## Verifying
 
@@ -52,6 +53,20 @@ The script verifies the launch itself: it reads the installed app's container fr
 in `devicectl device info processes`, so a stale process from an older install does not
 count. Screenshots are not a launch check (one showed Settings while Omi ran in the
 background), and the device console stays silent for the "Omi could not start" screen.
+
+For the physical Watch, verify its own embedded provisioning profile includes its
+UDID, Developer Mode is enabled on the Watch, and its built `Info.plist` contains a
+nonempty `NSMicrophoneUsageDescription`. The phone's permission description does not
+cover the Watch app. A missing Watch description caused a TCC recording-start crash on
+October 13, 2026. The Watch recording test covers this privacy requirement.
+
+If direct Mac-to-Watch access fails, the companion iPhone can still install the app
+through its Watch app and expose Watch crash reports under `systemCrashLogs` in
+`devicectl device info files`. Look for `ProxiedDevice-*/.../omiWatchApp-*.ips` and
+copy the report with `devicectl device copy from`, preserving the device's logs.
+Confirm actual installation rather than only the placeholder, then verify launch.
+End temporary Device Hub screen sessions afterward; an active session suppressed
+the iPhone's onscreen keyboard even with keyboard capture off during this recovery.
 
 ## Failures only Adam can fix
 

@@ -134,7 +134,7 @@ if [[ $INSTALL -eq 0 ]]; then
 fi
 
 step "Install on $DEVICE"
-# The watch app is embedded in Runner.app, so this also updates the paired Apple Watch.
+# The embedded Watch app is offered to the paired Watch; verify its install and launch separately.
 if ! xcrun devicectl device install app --timeout 300 --device "$DEVICE" "$BUILT_APP"; then
   echo
   echo "built, not installed: $BUILT_APP"

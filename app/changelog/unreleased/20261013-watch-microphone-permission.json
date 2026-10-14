@@ -1,0 +1,4 @@
+{
+  "change": "Omi on Apple Watch now asks for microphone access without closing unexpectedly",
+  "platforms": ["ios"]
+}
