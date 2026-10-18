@@ -621,6 +621,11 @@ jobs:
       - name: Select and assert pinned Xcode
         run: desktop/macos/scripts/run-swift-ci.sh --select-toolchain
 
+      - name: Install uv for manifest checks
+        uses: astral-sh/setup-uv@ecd24dd710f2fb0dca1693a67af11fc4a5c5ec84
+        with:
+          version: "0.11.13"
+
       - name: Run macOS-scoped iOS manifest checks
         run: |
           python3 .github/scripts/run_checks.py --lane ci --platform macos \
