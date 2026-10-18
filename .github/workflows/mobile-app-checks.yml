@@ -626,6 +626,16 @@ jobs:
         with:
           version: "0.11.13"
 
+      - name: Restore Swift formatter and linter tools
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cache/omi-swift-format/*/.build/release/swift-format
+            ~/.cache/omi-swiftlint/*/swiftlint
+          key: ${{ runner.os }}-desktop-swift-tools-v3-xcode266-${{ hashFiles('desktop/macos/scripts/swift-format-wrapper.sh', 'desktop/macos/scripts/swiftlint-wrapper.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-desktop-swift-tools-v3-xcode266-
+
       - name: Run macOS-scoped iOS manifest checks
         run: |
           python3 .github/scripts/run_checks.py --lane ci --platform macos \
