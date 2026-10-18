@@ -55,6 +55,8 @@ Hard failures (nothing is published):
 After publishing, the changelog consolidation runs in a temporary worktree on
 `origin/main` (removed afterward), so the checkout you release from is never switched.
 A failure there only warns; fragments stay pending for the next release.
+The script leaves the changelog PR open. Complete its required metadata and verify
+CI on its final head before merging it with a merge commit.
 
 Smoke-test without shipping:
 ```
