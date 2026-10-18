@@ -33,7 +33,7 @@ final class ClientDeviceServiceTests: XCTestCase {
       )
       let identity = service.installationIdentity
       XCTAssertFalse(identity.isEmpty)
-      XCTAssertEqual(identity, defaults.string(forKey: "dev-client-device-install-uuid"))
+      XCTAssertEqual(identity, defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
       XCTAssertEqual(identity, service.installationIdentity)
     }
   }
@@ -54,7 +54,7 @@ final class ClientDeviceServiceTests: XCTestCase {
       XCTAssertEqual(service.installationIdentity, "existing-production-install")
       XCTAssertEqual(service.installationIdentity, "existing-production-install")
       XCTAssertEqual(reads, 1)
-      XCTAssertNil(defaults.string(forKey: "dev-client-device-install-uuid"))
+      XCTAssertNil(defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
     }
   }
 

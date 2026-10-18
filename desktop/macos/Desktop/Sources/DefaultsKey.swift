@@ -17,6 +17,7 @@ import Foundation
 /// `forKey:` string literals from being introduced elsewhere (the baseline
 /// may only shrink).
 enum DefaultsKey: String {
+  case devClientDeviceInstallId = "dev-client-device-install-uuid"
   case authIsSignedIn = "auth_isSignedIn"
   case authUserEmail = "auth_userEmail"
   case authUserId = "auth_userId"

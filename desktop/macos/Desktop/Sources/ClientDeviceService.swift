@@ -14,7 +14,7 @@ final class ClientDeviceService {
   nonisolated(unsafe) static let shared = ClientDeviceService()
 
   private let keychainAccount = "install-uuid"
-  private let devInstallIdDefaultsKey = "dev-client-device-install-uuid"
+  private let devInstallIdDefaultsKey = DefaultsKey.devClientDeviceInstallId.rawValue
   private let installIdMirrorDefaultsKey = "client-device-install-uuid-mirror"
   private let bundleIdentifier: String?
   private let userDefaults: UserDefaults
