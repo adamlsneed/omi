@@ -1002,10 +1002,15 @@ checks:
   # workflows this contract requires to exist. backend-runtime-image-source-closure
   # is removed here.
   - id: backend-logging-entrypoints
-    command: ["python3", "backend/scripts/check_logging_entrypoints.py", "--base", "{base}"]
-    triggers: ["backend/**/*.py", "backend/**/Dockerfile*", "backend/charts/**/*.yaml", "backend/charts/**/*.yml", "backend/runtime_images.json", "backend/logging_rollout_pending.json", ".github/checks-manifest.yaml"]
+    command: ["python3", "scripts/fork/check-logging-entrypoints.py", "--base", "{base}"]
+    triggers: ["backend/**/*.py", "backend/**/Dockerfile*", "backend/charts/**/*.yaml", "backend/charts/**/*.yml", "backend/runtime_images.json", "backend/logging_rollout_pending.json", ".github/checks-manifest.yaml", ".github/disabled-workflows/*.yml", "scripts/fork/check-logging-entrypoints.py"]
     lanes: ["local", "ci"]
     reason: "#21677/#21681: every backend launch surface must retain shared logging and correct severity; ordered migration exceptions only shrink"
+  - id: fork-backend-logging-fixtures
+    command: ["python3", ".github/scripts/test_fork_logging_entrypoints.py"]
+    triggers: ["scripts/fork/check-logging-entrypoints.py", ".github/scripts/test_fork_logging_entrypoints.py", "backend/scripts/check_logging_entrypoints.py", "backend/scripts/runtime_image_contracts.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "The October 2026 sync introduced a logging guard requiring archived fork workflows; snapshot validation must still reject logging regressions and missing declarations."
   - id: backend-module-isolation
     command: ["python3", "backend/scripts/check_module_stub_pollution.py", "--files", "{changed_files}", "--check-allowlist-monotonic", "{base}"]
     triggers: ["backend/tests/**/*.py", "backend/testing/**/*.py", "backend/tests/.module_stub_legacy_allowlist", "backend/scripts/check_module_stub_pollution.py"]

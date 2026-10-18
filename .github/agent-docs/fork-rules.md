@@ -24,3 +24,9 @@ upstream changes are merged in regularly; nothing flows back.
 The pre-commit hook verifies staged backend bytes against the upstream merge
 revision and preserves upstream formatting. Backend formatting runs only outside
 the fork; a backend difference in the fork must be repaired before committing.
+
+The logging-entrypoint guard runs unchanged against disposable snapshots with
+archived deployment definitions restored locally. Its first adoption uses the
+imported migration inventory when the fork base predates that
+schema; subsequent runs compare with the fork base. Fixtures retain the logging
+and missing-workflow rejection checks. This never enables a GitHub workflow.
