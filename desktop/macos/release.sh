@@ -390,7 +390,10 @@ consolidate_changelog() {
   wt="$wt_root/changelog"
   git worktree add -q -b "$branch" "$wt" origin/main || { rm -rf "$wt_root"; return 1; }
   (
-    cd "$wt/desktop/macos" || exit 1
+    cd "$wt" || exit 1
+    make setup || exit 1
+    export PATH="$wt/backend/.venv/bin:$PATH"
+    cd desktop/macos || exit 1
     if [ -z "$(ls changelog/unreleased/*.json 2>/dev/null)" ]; then
       echo "    no unreleased changelog fragments; skipping consolidation"
       exit 0
