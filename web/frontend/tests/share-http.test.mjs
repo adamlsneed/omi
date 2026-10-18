@@ -50,7 +50,8 @@ test(
       [
         'node_modules/next/dist/bin/next',
         'dev',
-        '--webpack',
+        // Exercise the same bundler as the app's dev and production builds.
+        '--turbopack',
         '--hostname',
         '127.0.0.1',
         '--port',
@@ -61,9 +62,6 @@ test(
         env: {
           ...process.env,
           OMI_SHARE_HTTP_DIST_DIR: distDir,
-          // Keep isolated dev-server discovery independent of native watcher event delivery.
-          // The first-response HTTP assertions remain strict.
-          WATCHPACK_POLLING: '100',
           NEXT_PUBLIC_FIREBASE_API_KEY: 'synthetic-test-key',
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'synthetic.invalid',
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'synthetic-share',
