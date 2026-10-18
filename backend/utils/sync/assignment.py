@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Optional, TypeVar
 from config.conversation_smart_merge import smart_merge_flatten_enabled
 from config.sync_lineage import sync_lineage_resolve_active_for
 from config.sync_live_dedupe import sync_live_dedupe_active_for
+from config.sync_safety_wal import sync_safety_wal_enabled
 from config.sync_assignment_recovery import sync_assignment_recovery_enabled
 from database._client import firestore_document_kind, firestore_error_document_path, is_document_size_limit_error
 from utils.firestore_document_size import FIRESTORE_MAX_DOCUMENT_BYTES, estimate_firestore_document_bytes
@@ -27,6 +28,7 @@ from utils.conversations.fragment_visibility import is_rule_discard_decision, is
 from utils.conversations.relevance import sync_intake_decision
 from utils.conversations.smart_merge_policy import user_managed as _policy_user_managed
 from utils.conversations.relevance_rules import deterministic_relevance
+from utils.batch_pipeline.live_projection import replace_record
 from utils.sync.capture_repeat_evidence import capture_covered_indices
 from utils.sync.live_speech_dedupe import (
     MAX_LIVE_SEGMENTS,
@@ -127,6 +129,7 @@ def auto_mergeable(row: dict) -> bool:
         or row.get('starred')
         or row.get('folder_user_set')
         or row.get('sync_relevance_user_kept')
+        or row.get('has_transcript_corrections')
         or row.get('visibility', 'private') not in (None, 'private')
     )
 
@@ -219,7 +222,8 @@ def assign_in_transaction(
     """
     incoming = deepcopy(incoming)
     lineage_binding = incoming.pop('_sync_lineage_binding', None)
-    index = AssignmentIndex(transaction, user_ref)
+    require_live_target = incoming.pop('_batch_require_live_target', False)
+    record_span = incoming.pop('_batch_replace_live', None)
     collection = user_ref.collection('conversations')
     read: dict[str, dict | None] = {}
 
@@ -260,6 +264,20 @@ def assign_in_transaction(
     # never allow an absorbed chunk to resurrect its user-deleted survivor.
     own_id, own_anchor = resolve(incoming['id'], one_hop=flatten)
     target = load(target_id) if target_id else None
+    if require_live_target and target_id and target is None:
+        # WAL can finish before listen creates its explicitly named row. A new
+        # timestamp anchor here becomes a twin when listen later persists. The
+        # already-read target document fences concurrent create on replay.
+        raise SyncAssignmentConflict('batch live target not persisted', subtype='other')
+    if record_span is not None:
+        if not target or not target_id:
+            raise SyncAssignmentConflict('record target missing', subtype='other')
+        result, survivors = replace_record(decode(target), incoming, record_span)
+        invalidate(result)
+        encoded = encode(result)
+        transaction.update(collection.document(target_id), encoded)
+        return result, False, survivors
+    index = AssignmentIndex(transaction, user_ref)
     redirected = False
     if flatten:
         if target and target.get('sync_merged_into'):
@@ -449,8 +467,10 @@ def assign_in_transaction(
             segment['timestamp'] = incoming['started_at'].timestamp() + segment['start']
         indexed_new = list(zip(segment_indices, new))
         live_row = next((row for row in records if row['id'] == canonical), None)
+        fleet_live_dedupe = bool(result['sync_live_target'] and sync_safety_wal_enabled())
         live_dedupe = bool(
-            plan_target is not None
+            not fleet_live_dedupe
+            and plan_target is not None
             and canonical == plan_target_id
             and live_row is not None
             and result['sync_live_target']
@@ -495,8 +515,15 @@ def assign_in_transaction(
                 origin,
                 existing,
                 new,
+                fuzzy_live_overlap=fleet_live_dedupe,
                 text_match_slop_seconds=(
-                    600 if plan_target and (smart_live_target or not plan_target.get('sync_content_revision')) else 0
+                    60
+                    if fleet_live_dedupe
+                    else (
+                        600
+                        if plan_target and (smart_live_target or not plan_target.get('sync_content_revision'))
+                        else 0
+                    )
                 ),
                 # A bound safety WAL can mix one duplicate with genuinely new speech.
                 # Near-exact text, duration, and time are enough to drop that one line;

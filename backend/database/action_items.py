@@ -19,6 +19,7 @@ from database.action_item_codec import (
 )
 from database.firestore_transaction_retry import run_with_transaction_contention_retry
 from database.firestore_read_metrics import FirestoreReadFamily, FirestoreReadMode, record_firestore_read
+from database.firestore_retry import FIRESTORE_NO_RETRY
 from database.firestore_index_registry import (
     ACTION_ITEMS_CANONICAL_COMPLETION_COUNT_QUERY,
     ACTION_ITEMS_COMPLETED_CREATED_RANGE_QUERY,
@@ -28,7 +29,7 @@ from database.firestore_index_registry import (
 )
 from ._client import db, get_firestore_client
 from utils.observability.fallback import record_fallback
-from utils.other.list_budget import ListReadBudget, ListReadBudgetExhausted
+from utils.other.list_budget import ListReadBudget, ListReadBudgetExhausted, budgeted_stream_iter
 
 logger = logging.getLogger(__name__)
 
@@ -119,28 +120,37 @@ class BatchMutationResult:
         }
 
 
-def _iter_query_pages(query: Any, *, page_size: int = _ACTION_ITEM_SCAN_PAGE_SIZE) -> Iterable[Any]:
+def _iter_query_pages(
+    query: Any, *, page_size: int = _ACTION_ITEM_SCAN_PAGE_SIZE, budget: Optional[ListReadBudget] = None
+) -> Iterable[Any]:
     """Yield a complete query result through bounded snapshot-cursor pages."""
     cursor = None
     while True:
         page_query = query.limit(page_size)
         if cursor is not None:
             page_query = page_query.start_after(cursor)
-        page = list(page_query.stream())
-        yield from page
+        page = []
+        try:
+            for doc in budgeted_stream_iter(page_query, budget):
+                page.append(doc)
+                yield doc
+        except ListReadBudgetExhausted:
+            return
         if len(page) < page_size:
             return
         cursor = page[-1]
 
 
-def get_action_item_ids(uid: str, *, firestore_client: Any = None) -> List[str]:
+def get_action_item_ids(
+    uid: str, *, firestore_client: Any = None, budget: Optional[ListReadBudget] = None
+) -> List[str]:
     """Return all action item document IDs for a user (IDs-only projection, no field reads).
 
     Used for bulk operations like account deletion (e.g. to purge derived Pinecone vectors)."""
     client = firestore_client or get_firestore_client()
     coll = client.collection('users').document(uid).collection(action_items_collection)
     query = coll.select([]).order_by('__name__')
-    return [doc.id for doc in _iter_query_pages(query)]
+    return [doc.id for doc in _iter_query_pages(query, budget=budget)]
 
 
 def iter_all_action_items(uid: str, *, firestore_client: Any = None) -> Iterable[Dict[str, Any]]:
@@ -164,6 +174,7 @@ def get_visible_action_item_ids(
     *,
     completed: bool,
     firestore_client: Any = None,
+    budget: Optional[ListReadBudget] = None,
 ) -> List[str]:
     """Return IDs in one visible Tasks status bucket.
 
@@ -192,7 +203,7 @@ def get_visible_action_item_ids(
     ).order_by('__name__')
     visible_ids: List[str] = []
     doc_count = 0
-    for doc in _iter_query_pages(query):
+    for doc in _iter_query_pages(query, budget=budget):
         doc_count += 1
         data = typed_doc(doc)
         if data.get('deleted'):
@@ -509,19 +520,8 @@ def _stream_action_items_bounded(
     if max_docs <= 0:
         return action_items, 0
     query = query.select([*ACTION_ITEMS_LIST_SELECT_FIELDS, *extra_fields]).limit(max_docs)
-    if budget is None:
-        iterator = query.stream()
-    else:
-        timeout = budget.rpc_timeout()
-        try:
-            iterator = query.stream(timeout=timeout)
-        except TypeError:
-            # Test fakes predating the budget seam do not accept a timeout kwarg.
-            iterator = query.stream()
     try:
-        for doc in iterator:
-            if budget is not None:
-                budget.charge(1)
+        for doc in budgeted_stream_iter(query, budget):
             document_count += 1
             data: Dict[str, Any] = typed_doc(doc)
             if data.get('deleted'):
@@ -598,7 +598,7 @@ def _count_query(
     if budget is None:
         rows = aggregation.get()
     else:
-        rows = aggregation.get(timeout=budget.rpc_timeout())
+        rows = aggregation.get(timeout=budget.rpc_timeout(), retry=FIRESTORE_NO_RETRY)
     count = int(rows[0][0].value)
     billed_reads = max(1, (count + 999) // 1000)
     if ledger is not None:
@@ -1001,7 +1001,16 @@ def update_action_item(
                 firestore_client=db,
                 allow_ended_goal=(goal_id, workstream_id) == (current.get('goal_id'), current.get('workstream_id')),
             )
-            write_transaction.update(action_item_ref, {**update_data, 'updated_at': now})
+            payload = dict(update_data)
+            # A settled export must leave the capped pending-sync query. Keep
+            # this single-item path aligned with batch_sync_update_action_items.
+            if payload.get('exported') is True:
+                payload['sync_requested'] = False
+            # Same preserve as the plain update path below: a re-completion
+            # keeps the stored completed_at instead of re-stamping.
+            if payload.get('completed') is True and current.get('completed') is True:
+                payload['completed_at'] = current.get('completed_at')
+            write_transaction.update(action_item_ref, {**payload, 'updated_at': now})
             return True
 
         updated = bool(
@@ -1018,8 +1027,21 @@ def update_action_item(
         return updated
 
     # Check if exists
-    if not action_item_ref.get().exists:
+    existing = action_item_ref.get()
+    if not existing.exists:
         return False
+
+    # A completion that already happened keeps its original completed_at —
+    # a duplicate tap, a whole-object edit, or a sync replay must not
+    # re-stamp when the task was done. Preserve the stored timestamp when
+    # the item is already completed.
+    existing_data = typed_doc(existing)
+    # A settled export must leave the capped pending-sync query. Keep this
+    # single-item path aligned with batch_sync_update_action_items.
+    if update_data.get('exported') is True:
+        update_data['sync_requested'] = False
+    if update_data.get('completed') is True and existing_data.get('completed') is True:
+        update_data['completed_at'] = existing_data.get('completed_at')
 
     # Add updated timestamp
     update_data['updated_at'] = datetime.now(timezone.utc)
@@ -1396,6 +1418,17 @@ def batch_sync_update_action_items(uid: str, updates: List[Dict[str, Any]]) -> B
         # Clear sync_requested when item is successfully exported
         if update_data.get('exported') is True:
             update_data['sync_requested'] = False
+        if update_data.get('completed') is True:
+            # A sync replay of an already-completed row must not re-stamp
+            # completed_at — same preserve as update_action_item. Costs one
+            # read per completion entry only.
+            existing = doc_ref.get()
+            if not existing.exists:
+                result.missing_ids.append(entry['id'])
+                continue
+            existing_data = typed_doc(existing)
+            if existing_data.get('completed') is True:
+                update_data['completed_at'] = existing_data.get('completed_at')
         try:
             doc_ref.update(update_data)
         except NotFound:
@@ -1410,27 +1443,27 @@ def batch_sync_update_action_items(uid: str, updates: List[Dict[str, Any]]) -> B
     return result
 
 
-def unlock_all_action_items(uid: str) -> None:
-    """
-    Finds all action items for a user with is_locked: True and updates them to is_locked = False.
-    """
+def unlock_all_action_items(uid: str, *, limit: Optional[int] = None) -> int:
+    """Unlock all locked rows, or one bounded page when limit is supplied."""
     action_items_ref = db.collection('users').document(uid).collection(action_items_collection)
     locked_items_query = action_items_ref.where(filter=FieldFilter('is_locked', '==', True))
 
-    batch = db.batch()
-    docs = locked_items_query.stream()
-    count = 0
-    for doc in docs:
-        batch.update(doc.reference, {'is_locked': False, 'updated_at': datetime.now(timezone.utc)})
-        count += 1
-        if count >= 499:  # Firestore batch limit is 500
-            batch.commit()
-            batch = db.batch()
-            count = 0
-    if count > 0:
-        batch.commit()
-    bump_action_items_list_version(uid)
-    logger.info(f"Unlocked all action items for user {uid}")
+    from database.locked_content import unlock_query_rows
+    from database.legal_holds import external_write_fence
+
+    with external_write_fence(uid):
+        total = unlock_query_rows(
+            db,
+            locked_items_query,
+            {'is_locked': False, 'updated_at': datetime.now(timezone.utc)},
+            limit=limit,
+        )
+        # An empty locked query is a duplicate unlock. Bumping would only
+        # invalidate the list cache; no row was rewritten.
+        if total:
+            bump_action_items_list_version(uid)
+        logger.info(f"Unlocked all action items for user {uid}")
+        return total
 
 
 # ============================================================================

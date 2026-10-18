@@ -21,7 +21,9 @@ import 'package:omi/models/subscription.dart';
 import 'package:omi/models/user_usage.dart';
 import 'package:omi/pages/settings/fair_use_page.dart';
 import 'package:omi/pages/settings/transcription_settings_page.dart';
+import 'package:omi/pages/paywall/paywall_router.dart';
 import 'package:omi/pages/settings/widgets/plans_sheet.dart';
+import 'package:omi/pages/settings/widgets/plans/contextual_plans.dart';
 import 'package:omi/pages/settings/widgets/usage/usage_chart.dart';
 import 'package:omi/pages/settings/widgets/usage/usage_stat_tile.dart';
 import 'package:omi/providers/usage_provider.dart';
@@ -33,15 +35,25 @@ import 'package:omi/utils/other/temp.dart';
 
 class UsagePage extends StatefulWidget {
   final bool showUpgradeDialog;
+
+  /// Surface id used when [showUpgradeDialog] opens the plans sheet.
+  /// The usage-page upgrade button always reports `usage_page`.
+  final String paywallSource;
   @visibleForTesting
   final bool debugSkipFetch;
   @visibleForTesting
   final DateTime? debugNow;
   @visibleForTesting
   final int? debugTooltipIndex;
+
+  /// Skip the paywall experiment and open the plans sheet itself: the web variant's fallback
+  /// path, so a dead page never loops back into itself.
+  final bool forceNativePaywall;
   const UsagePage({
     super.key,
     this.showUpgradeDialog = false,
+    this.paywallSource = 'usage_page',
+    this.forceNativePaywall = false,
     this.debugSkipFetch = false,
     this.debugNow,
     this.debugTooltipIndex,
@@ -325,7 +337,8 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
       _loadAvailablePlans();
       _loadFairUseStatus();
       if (widget.showUpgradeDialog && context.read<UsageProvider>().showSubscriptionUI) {
-        _showPlansSheet();
+        // The opener already emitted Paywall Opened with this source.
+        _showPlansSheet(source: widget.paywallSource, trackOpen: false);
       }
     });
   }
@@ -499,7 +512,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
                 Semantics(
                   button: true,
                   child: InkWell(
-                    onTap: _showPlansSheet,
+                    onTap: () => _showPlansSheet(source: 'usage_page', trackOpen: true),
                     borderRadius: OmiRadius.smAll,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minHeight: 44),
@@ -527,7 +540,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
               label: context.l10n.upgrade,
               labelStyle: OmiType.callout.copyWith(fontFamily: 'Roboto', fontWeight: FontWeight.w600),
               expand: true,
-              onPressed: _showPlansSheet,
+              onPressed: () => _showPlansSheet(source: 'usage_page', trackOpen: true),
             ),
           ],
         ],
@@ -535,18 +548,30 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
     );
   }
 
-  void _showPlansSheet() {
+  Future<void> _showPlansSheet({required String source, required bool trackOpen}) async {
     if (!context.read<UsageProvider>().showSubscriptionUI) {
       return;
     }
+    if (!widget.forceNativePaywall && await PaywallRouter.openVariant(context, source: source, trackOpen: trackOpen)) {
+      return;
+    }
+    if (!mounted) return;
+    if (trackOpen) {
+      final plan = context.read<UsageProvider>().subscription?.subscription.plan.wireName ?? 'unknown';
+      PlatformManager.instance.analytics.paywallOpened(source, currentPlan: plan);
+    }
+    final title = await plansSheetTitle(context);
+    if (!mounted || !context.read<UsageProvider>().showSubscriptionUI) return;
     showOmiSheet(
       context: context,
+      title: title,
       padding: EdgeInsets.zero,
       builder: (context) => PlansSheet(
         waveController: _waveController,
         notesController: _notesController,
         arrowController: _arrowController,
         arrowAnimation: _arrowAnimation,
+        analyticsSource: source,
       ),
     );
   }
@@ -646,6 +671,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
             padding: const EdgeInsets.fromLTRB(OmiSpacing.md, OmiSpacing.md, OmiSpacing.md, OmiSpacing.xl),
             children: [
               _buildSubscriptionInfo(context, provider),
+              const BudgetUpsellBanner(),
               _buildFairUseBanner(),
               if (stats == null)
                 const OmiLoadingState()
@@ -700,7 +726,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
                   ),
                 ],
               ],
-              if (stats != null) ..._buildFreeMeters(provider.subscription),
+              if (stats != null) ..._buildAllowanceMeters(provider.subscription),
               if (stats != null && provider.chatQuotaUnit != null && period == 'monthly') ...[
                 const SizedBox(height: OmiSpacing.sm),
                 _buildChatQuotaLine(context, provider),
@@ -712,12 +738,15 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
     );
   }
 
-  List<Widget> _buildFreeMeters(UserSubscriptionResponse? subscription) {
-    if (subscription == null || subscription.subscription.plan != PlanType.basic) return [];
+  List<Widget> _buildAllowanceMeters(UserSubscriptionResponse? subscription) {
+    if (subscription == null) return [];
     final l10n = context.l10n;
     final format = NumberFormat.decimalPattern(l10n.localeName);
     final rows = <Widget>[];
-    if (subscription.transcriptionSecondsLimit > 0) {
+    // Enforcement can be unlimited while an older snapshot carries Free's BYOK cap.
+    final allowance = subscription.transcriptionAllowance;
+    final unlimited = allowance != null && allowance.remainingSeconds == null;
+    if (!unlimited && subscription.transcriptionSecondsLimit > 0) {
       final used = (subscription.transcriptionSecondsUsed / 60).round();
       final limit = (subscription.transcriptionSecondsLimit / 60).round();
       final ratio = (subscription.transcriptionSecondsUsed / subscription.transcriptionSecondsLimit).clamp(0.0, 1.0);
@@ -742,7 +771,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
         ),
       );
     }
-    if (subscription.wordsTranscribedLimit > 0) {
+    if (subscription.subscription.plan == PlanType.basic && subscription.wordsTranscribedLimit > 0) {
       rows.add(
         _UsageMeter(
           text: l10n.wordsUsedThisMonth(
@@ -754,7 +783,7 @@ class _UsagePageState extends State<UsagePage> with TickerProviderStateMixin, Wi
         ),
       );
     }
-    if (subscription.insightsGainedLimit > 0) {
+    if (subscription.subscription.plan == PlanType.basic && subscription.insightsGainedLimit > 0) {
       rows.add(
         _UsageMeter(
           text: l10n.insightsUsedThisMonth(

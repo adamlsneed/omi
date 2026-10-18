@@ -1,0 +1,25 @@
+version: 2
+name: fork-retained-controls
+tier: manual
+description: Retained fork settings, privacy predicates and task promotion ownership
+app: non-prod
+covers:
+  - desktop/macos/Desktop/Sources/DockIconVisibilitySettings.swift
+  - desktop/macos/Desktop/Sources/HardSecretDetector.swift
+  - desktop/macos/Desktop/Sources/Rewind/Core/RewindPrivacyFilter.swift
+  - desktop/macos/Desktop/Sources/ProactiveAssistants/Assistants/TaskExtraction/TaskPromotionService.swift
+preconditions:
+  - signed_in_dogfood_account
+steps:
+  - id: S1
+    name: Verify isolated control and owner contracts
+    do: "From desktop/macos run ./scripts/dev-feedback.py --once swift 'DockIconVisibilitySettingsTests|HardSecretDetectorTests|RewindPrivacyFilterTests|TaskContextualResurfacingTests'. Require a nonzero selected-test count and zero failures. Confirm token forms and harmless prose remain distinguished, private-browser and window exclusions match correctly, and a suspended promotion cannot commit across an owner change. HardSecretDetector is a utility test, not evidence of a production capture scrubber."
+  - id: S2
+    name: Preserve Dock visibility across relaunch
+    do: "In Omi Dev, record the current Show in Dock setting under General. Toggle it off and on, verifying the Dock icon follows while the menu bar remains usable. Relaunch and verify the saved value persists. Restore the original value. Do not operate on Omi or Omi Beta."
+  - id: S3
+    name: Verify Rewind exclusion behavior
+    do: "Using only synthetic content, enable private-browsing suppression and add a window-title exclusion in Rewind settings. Verify new captures from matching windows are excluded while an ordinary unmatched window still produces a capture. Restore the original settings. Record this as pending if Screen Recording permission or an unlocked desktop is unavailable."
+  - id: S4
+    name: Verify promotion only in the permitted workflow
+    do: "With a synthetic dogfood account in legacy promotion mode, complete a task and verify an eligible staged task is promoted once into the task list. Repeat under the candidate workflow and verify legacy promotion does not run. Use the isolated owner-transition tests from S1 for delayed-response coverage; do not sign out a personal account or mutate personal tasks for this check."

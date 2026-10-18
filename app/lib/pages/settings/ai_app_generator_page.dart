@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -107,7 +108,9 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
 
                           // Suggestion cards (shimmer while they load)
                           SizedBox(
-                            height: 160,
+                            // Three lines and Try it grow with the reader's text size (a fixed 160pt
+                            // strip cut them at 1.3x).
+                            height: 160 * math.max(1.0, MediaQuery.textScalerOf(context).scale(16) / 16),
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
                               padding: const EdgeInsets.symmetric(horizontal: OmiSpacing.lg),
@@ -284,12 +287,12 @@ class _AiAppGeneratorPageState extends State<_AiAppGeneratorPageView> {
                 child: isCompleted
                     ? FaIcon(FontAwesomeIcons.check, color: OmiColors.onAccent, size: 12)
                     : isActive
-                    ? const OmiSpinner(size: OmiSpinnerSize.small)
-                    : Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: OmiColors.textTertiary),
-                      ),
+                        ? const OmiSpinner(size: OmiSpinnerSize.small)
+                        : Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: OmiColors.textTertiary),
+                          ),
               ),
             ),
             const SizedBox(width: 14),
@@ -835,10 +838,11 @@ class _SuggestionCardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget line(double width) => Container(
-      height: 16,
-      width: width,
-      decoration: BoxDecoration(color: OmiColors.textPrimary, borderRadius: BorderRadius.circular(OmiRadius.sm / 2)),
-    );
+          height: 16,
+          width: width,
+          decoration:
+              BoxDecoration(color: OmiColors.textPrimary, borderRadius: BorderRadius.circular(OmiRadius.sm / 2)),
+        );
     return ShimmerWithTimeout(
       baseColor: OmiColors.surface1,
       highlightColor: OmiColors.surface2,

@@ -116,6 +116,8 @@ class AuditDeviceProvider extends ChangeNotifier implements DeviceProvider {
   @override
   BtDevice? get pairedDevice => device;
   @override
+  bool get hasRememberedDevice => device?.id.isNotEmpty ?? false;
+  @override
   int get batteryLevel => battery;
   @override
   bool get isCharging => charging;
@@ -163,6 +165,11 @@ class InertSyncProvider extends ChangeNotifier implements SyncProvider {
   @override
   int get needsAttentionWalsCount => 0;
   @override
+  List<Wal> get retryableAttentionWals =>
+      allWals.where((w) => w.syncDisplayState == WalSyncDisplayState.failed).toList();
+  @override
+  Future<void> retryNeedsAttentionWals() async {}
+  @override
   bool get isSyncing => false;
   @override
   bool get syncCompleted => false;
@@ -174,6 +181,11 @@ class InertSyncProvider extends ChangeNotifier implements SyncProvider {
   List<Wal> get displaySortedWals => const [];
   @override
   bool get isRateLimited => false;
+  @override
+  ({int processed, int total}) get offlineServerProcessingCounts => (processed: 0, total: 0);
+  @override
+  ({int doneSeconds, int totalSeconds, bool tracked}) get offlineServerProcessingSeconds =>
+      (doneSeconds: 0, totalSeconds: 0, tracked: false);
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

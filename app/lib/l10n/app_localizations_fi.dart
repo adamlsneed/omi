@@ -1776,6 +1776,9 @@ class AppLocalizationsFi extends AppLocalizations {
       'Näyttää siltä, että nauhoituksessa on useita puhujia. Varmista, että olet hiljaisessa paikassa ja yritä uudelleen.';
 
   @override
+  String get discardedOnlyRecording => 'That recording was too short or empty to keep.';
+
+  @override
   String get tooShortDesc => 'Puhetta ei havaittu tarpeeksi. Puhu enemmän ja yritä uudelleen.';
 
   @override
@@ -4382,12 +4385,27 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String yourPlanEndsOn(String plan, String date) {
+    return '$plan-pakettisi päättyy $date.';
+  }
+
+  @override
+  String resubscribeNowNoChargeUntil(String date) {
+    return 'Tilaa uudelleen nyt säilyttääksesi edut - ei veloitusta ennen $date.';
+  }
+
+  @override
   String planSetToCancelOn(String date) {
     return 'Tilauksesi on asetettu peruuntumaan $date.\nTilaa uudelleen nyt säilyttääksesi edut - ei veloitusta ennen $date.';
   }
 
   @override
   String get annualPlanStartsAutomatically => 'Vuositilauksesi alkaa automaattisesti, kun kuukausitilauksesi päättyy.';
+
+  @override
+  String yourPlanWillRenewOn(String plan, String date) {
+    return '$plan-pakettisi uusiutuu $date.';
+  }
 
   @override
   String planRenewsOn(String date) {
@@ -4420,6 +4438,9 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get continueText => 'Jatka';
+
+  @override
+  String get resubscribeFirstToChangePlans => 'Tilaa ensin uudelleen, jotta voit vaihtaa pakettia.';
 
   @override
   String get resubscribe => 'Tilaa uudelleen';
@@ -5031,9 +5052,6 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get content => 'Sisältö';
-
-  @override
-  String get noContentToDisplay => 'Ei sisältöä näytettäväksi';
 
   @override
   String get noSummary => 'Ei yhteenvetoa';
@@ -5651,11 +5669,6 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get downloadingFromSdCard => 'Ladataan SD-kortilta';
-
-  @override
-  String processingProgress(int current, int total) {
-    return 'Käsitellään $current/$total';
-  }
 
   @override
   String conversationsCreated(int count) {
@@ -9098,18 +9111,10 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String syncCardProgressOf(int current, int total) {
-    return '$current / $total';
-  }
-
-  @override
   String get syncStatusOnDevice => 'Laitteellasi';
 
   @override
   String get syncStatusDownloadingFromDevice => 'Ladataan laitteeltasi';
-
-  @override
-  String get newestFirst => 'Uusimmat ensin';
 
   @override
   String get noSyncedRecordingsYet => 'Ei vielä synkronoituja nauhoituksia';
@@ -9543,6 +9548,16 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get deviceOnboardingIntroDuration => 'Noin 1 minuutti';
+
+  @override
+  String quoteJumpToTime(String duration) {
+    return 'Siirry kohtaan $duration';
+  }
+
+  @override
+  String quoteMoreTimestamps(int count) {
+    return '+$count lisää';
+  }
 
   @override
   String get jumpToLatestMessage => 'Siirry uusimpaan viestiin';
@@ -10049,9 +10064,6 @@ class AppLocalizationsFi extends AppLocalizations {
       'Puheen muuntaminen tekstiksi ei ole juuri nyt käytettävissä. Tarkista internetyhteytesi ja laitteesi puheentunnistusasetukset ja yritä uudelleen.';
 
   @override
-  String get processingTakingLonger => 'Vielä käynnissä — tämä kestää tavallista kauemmin.';
-
-  @override
   String get speechProfileEnrollmentPrompt =>
       'Jotta Omi tietää, mikä ääni on sinun — puhu mistä tahansa noin 5 sekuntia.';
 
@@ -10072,6 +10084,33 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get memoryGraph => 'Muistigraafi';
+
+  @override
+  String guidedVoiceExperience(String part) {
+    String _temp0 = intl.Intl.selectLogic(
+      part,
+      {
+        'unavailable': 'Voice transcription is unavailable right now. Type your answer instead.',
+        'type': 'Type Your Answer Instead',
+        'typing': 'Your answer',
+        'heard': 'Here\'s what I heard',
+        'transcribing': 'Got it, transcribing…',
+        'confirm': 'Use This Answer',
+        'answer': 'Save Answer',
+        'retry': 'Try Speaking Again',
+        'title': 'Here\'s what I\'ll remember',
+        'question': 'What should I focus on this week?',
+        'fallback': 'I’ll use these to help you.',
+        'thinking': 'Thinking about your answers…',
+        'failed': 'We couldn\'t transcribe that answer. You can type it instead or try speaking again.',
+        'engine': 'The microphone couldn\'t start. Try again or type your answer instead.',
+        'retryTranscription': 'Retry transcription',
+        'namePrompt': 'My name is ___, and I usually ___.',
+        'other': '',
+      },
+    );
+    return '$_temp0';
+  }
 
   @override
   String voiceIntroduction(String part) {
@@ -12198,9 +12237,6 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
-  String get localCopiesSection => 'Paikalliset kopiot';
-
-  @override
   String speakerLabelLinesLabeled(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -12519,6 +12555,9 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String get reviewSpellingContext => 'Keskustelun asiayhteys';
+
+  @override
   String get reviewQuestionSpelling => 'Miten tämä kirjoitetaan?';
 
   @override
@@ -12615,6 +12654,15 @@ class AppLocalizationsFi extends AppLocalizations {
   String get reviewRecentChanges => 'Viimeaikaiset muutokset';
 
   @override
+  String get reviewChangeAfter => 'Jälkeen';
+
+  @override
+  String get reviewChangeBefore => 'Ennen';
+
+  @override
+  String get reviewChangeRemoved => 'Poistettu aktiivisesta luettelosta';
+
+  @override
   String get reviewChangesIntro =>
       'Mitä Omi on muuttanut itse viimeisen 30 päivän aikana. Kumoa kaikki, mikä näyttää väärältä.';
 
@@ -12632,6 +12680,59 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get reviewNoChangesBody => 'Kun Omi siistii muistiinpanojasi, muutokset näkyvät täällä.';
+
+  @override
+  String get reviewChangesSectionTerms => 'Nimet ja termit';
+
+  @override
+  String get reviewChangesSectionTitles => 'Otsikot ja yhteenvedot';
+
+  @override
+  String get reviewChangesSectionOther => 'Muut muutokset';
+
+  @override
+  String reviewChangeConversationCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count keskustelua',
+      one: '1 keskustelu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String reviewChangePlaceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kohtaa',
+      one: '1 kohta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String reviewChangeShowAll(int count) {
+    return 'Näytä kaikki $count';
+  }
+
+  @override
+  String get reviewChangeUndoAll => 'Kumoa kaikki';
+
+  @override
+  String get reviewChangeSeeEvidence => 'Näytä perusteet';
+
+  @override
+  String get reviewChangeViewConversation => 'Näytä keskustelu';
+
+  @override
+  String get reviewChangeViewTask => 'Näytä tehtävä';
+
+  @override
+  String reviewChangesUndoPartial(int failed, int total) {
+    return '$failed/$total kumoaminen epäonnistui. Yritä uudelleen.';
+  }
 
   @override
   String get reviewShowMore => 'Näytä lisää';
@@ -13253,4 +13354,704 @@ class AppLocalizationsFi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get paywallRecommended => 'Recommended';
+
+  @override
+  String get paywallNoPlans => 'Plans aren\'t available right now. Try again in a minute.';
+
+  @override
+  String get paywallOtherPlans => 'See all plans';
+
+  @override
+  String get paywallComparePlans => 'See plans';
+
+  @override
+  String get paywallYourPlan => 'Your plan';
+
+  @override
+  String get paywallNotNow => 'Not now';
+
+  @override
+  String get paywallTryAgain => 'Try again';
+
+  @override
+  String get paywallManageBilling => 'Manage billing';
+
+  @override
+  String get paywallLoadError => 'Couldn\'t load plans. Check your connection and try again.';
+
+  @override
+  String get paywallPlans => 'Plans';
+
+  @override
+  String get firstCaptureTitle => 'How will you capture?';
+
+  @override
+  String get firstCaptureDescription => 'Choose how you want to capture your first conversation.';
+
+  @override
+  String get firstCaptureOmi => 'I Have an Omi';
+
+  @override
+  String get firstCapturePhone => 'This Phone';
+
+  @override
+  String get firstCaptureWatch => 'Apple Watch';
+
+  @override
+  String get firstCaptureSkip => 'Skip for Now';
+
+  @override
+  String get firstCapturePrompt =>
+      'Tell Omi what you\'re working on today, or what\'s on your mind. Talk for about 30 seconds.';
+
+  @override
+  String get firstCaptureKeepGoing => 'Keep going… 30 seconds is ideal.';
+
+  @override
+  String get firstCaptureReady => 'You can finish now, or keep talking.';
+
+  @override
+  String get firstCaptureStart => 'Start Recording';
+
+  @override
+  String get firstCaptureFinish => 'Finish Recording';
+
+  @override
+  String get firstCaptureListening => 'Listening… your words will appear here.';
+
+  @override
+  String get firstCaptureProcessing => 'Creating your first conversation…';
+
+  @override
+  String get firstCaptureResult => 'Your first conversation';
+
+  @override
+  String get firstCaptureEmpty => 'I didn\'t catch enough speech, try again with a few sentences';
+
+  @override
+  String get watchCaptureTitle => 'Record from your Apple Watch';
+
+  @override
+  String get watchCaptureOpen => 'Open Omi on your Apple Watch.';
+
+  @override
+  String get watchCaptureRecord => 'Tap Record. Allow microphone access if asked.';
+
+  @override
+  String get watchCaptureSync => 'Your recording syncs to Omi on this phone.';
+
+  @override
+  String get pairingBluetoothOff => 'Turn on Bluetooth on your phone, then try again.';
+
+  @override
+  String get pairingBluetoothPermission => 'Allow Bluetooth access for Omi in Settings, then try again.';
+
+  @override
+  String get pairingNearbyPermission => 'Allow Nearby devices access for Omi in Settings, then try again.';
+
+  @override
+  String get pairingLocationPermission =>
+      'Allow location access for Omi in Settings so this phone can find your device, then try again.';
+
+  @override
+  String get pairingNotFoundOrDropped =>
+      'Couldn\'t reach your Omi. Make sure it\'s charged, close to your phone, and its light is blinking, then try again.';
+
+  @override
+  String get pairingBondRecovery => 'Forget Omi in your phone’s Bluetooth settings, then try pairing again.';
+
+  @override
+  String get pairingHowTo => 'How to pair';
+
+  @override
+  String get firstCaptureWatchInstructions =>
+      'Open Omi on your Apple Watch and tap Record. Allow microphone access if asked. Your capture will sync to Omi on this phone.';
+
+  @override
+  String get firstCaptureWatchInstall =>
+      'In the Watch app on your iPhone, install Omi on your Apple Watch. Then open Omi on your watch and tap Record.';
+
+  @override
+  String get firstCaptureWatchPair =>
+      'Pair your Apple Watch with this iPhone using the Watch app, then install and open Omi on your watch.';
+
+  @override
+  String get firstCaptureUnavailable =>
+      'Recording could not start. Check microphone access and your connection, then try again.';
+
+  @override
+  String get firstCaptureDelayed =>
+      'Your recording is taking longer to process. You can check your conversations on Home or try again.';
+
+  @override
+  String get firstCaptureEmptyTitle => 'Let\'s try that again';
+
+  @override
+  String get firstCaptureShortTitle => 'Finish This Recording?';
+
+  @override
+  String get firstCaptureShortWarning => 'A few more sentences help Omi understand you. About 30 seconds is ideal.';
+
+  @override
+  String get firstCaptureCancelTitle => 'Leave This Recording?';
+
+  @override
+  String get firstCaptureCancelWarning =>
+      'Going back stops this recording. Keep talking to give Omi a few more sentences.';
+
+  @override
+  String get firstCaptureSiriTip => 'Tip: Enable Omi in Shortcuts → Siri.';
+
+  @override
+  String get paywallOutlineHeadline => 'Älä enää koskaan missaa sanaakaan.';
+
+  @override
+  String get paywallCancelAnytime => 'Peruuta milloin tahansa.';
+
+  @override
+  String get connectAnAgent => 'Yhdistä agentti';
+
+  @override
+  String get connectAnAgentSubtitle => 'Hae asetuskehote Claudelle, ChatGPT:lle, Codexille tai mille tahansa agentille';
+
+  @override
+  String syncCardSyncingAmount(String amount) {
+    return 'Synkronoidaan $amount ääntä';
+  }
+
+  @override
+  String get syncCardSyncingTitle => 'Synkronoidaan tallenteita';
+
+  @override
+  String syncStepDownloadingAmount(String done, String total) {
+    return 'Ladataan Omista · $done / $total';
+  }
+
+  @override
+  String syncStepUploadingAmount(String done, String total) {
+    return 'Lähetetään · $done / $total';
+  }
+
+  @override
+  String syncCardTranscribingAmount(String amount) {
+    return 'Muutetaan $amount keskusteluiksi';
+  }
+
+  @override
+  String syncCardTranscribedOf(String done, String total) {
+    return '$done / $total valmis · voit poistua tästä näkymästä';
+  }
+
+  @override
+  String syncCardReadyAmount(String amount) {
+    return '$amount valmiina synkronoitavaksi';
+  }
+
+  @override
+  String get syncStepLabelDownload => 'Omi → puhelin';
+
+  @override
+  String get syncStepLabelUpload => 'Lähetys';
+
+  @override
+  String get syncStepLabelTranscribe => 'Litterointi';
+
+  @override
+  String get syncDetailsTitle => 'Synkronoinnin tiedot';
+
+  @override
+  String get syncDetailsRightNow => 'Juuri nyt';
+
+  @override
+  String get syncDetailsYourOmi => 'Omi-laitteesi';
+
+  @override
+  String get syncDetailsTransferSpeed => 'Siirtonopeus';
+
+  @override
+  String get syncDetailsWaitingOnOmi => 'Odottaa Omia';
+
+  @override
+  String get syncDetailsWaitingOnPhone => 'Odottaa tässä puhelimessa';
+
+  @override
+  String get syncDetailsTranscribing => 'Litteroidaan Omissa';
+
+  @override
+  String get syncDetailsForSupport => 'Tukea varten';
+
+  @override
+  String get syncDetailsAudioFiles => 'Äänitiedostot';
+
+  @override
+  String get syncDetailsServerJobs => 'Palvelintyöt (valmis / yhteensä)';
+
+  @override
+  String get syncDetailsCopy => 'Kopioi tiedot tukea varten';
+
+  @override
+  String get chatAppsChannelPlanRequired => 'Saatavilla Operator- ja Architect-tilauksissa';
+
+  @override
+  String chatAppsAtCapacity(String app) {
+    return '$app on täynnä';
+  }
+
+  @override
+  String get chatAppsJoinWaitlist => 'Liity jonotuslistalle';
+
+  @override
+  String get chatAppsOnWaitlist => 'Olet jonotuslistalla';
+
+  @override
+  String get chatAppsWaitlistJoined => 'Olet jonotuslistalla. Kerromme, kun tilaa vapautuu.';
+
+  @override
+  String onboardingActCongratsTitle(String name) {
+    return 'Kaikki valmista, $name';
+  }
+
+  @override
+  String get onboardingActDemoSummary =>
+      'Lounas Samin kanssa, joka muuttaa kesäkuussa Lissaboniin. Haluat lähettää esityksen tiimille perjantaihin mennessä ja ostaa maitoa kotimatkalla.';
+
+  @override
+  String get onboardingActDemoTask1 => 'Lähetä esitys tiimille perjantaihin mennessä';
+
+  @override
+  String get onboardingActDemoTask2 => 'Hae maitoa kotimatkalla';
+
+  @override
+  String get onboardingActDemoTitle => 'Lounas Samin kanssa';
+
+  @override
+  String get onboardingActDictateBody => 'Sano omin sanoin. Omi hoitaa loput.';
+
+  @override
+  String get onboardingActDictateBodyOmi => 'Puhu vain. Omisi kuuntelee.';
+
+  @override
+  String get onboardingActDictateExample =>
+      'Söin juuri lounasta Samin kanssa, hän muuttaa kesäkuussa Lissaboniin! Muistuta minua lähettämään esitys tiimille perjantaihin mennessä ja hakemaan maitoa kotimatkalla.';
+
+  @override
+  String get onboardingActDictateHint => 'Napauta valintamerkkiä, kun olet valmis';
+
+  @override
+  String get onboardingActDictateTitle => 'Kerro Omille päivästäsi';
+
+  @override
+  String get onboardingActIntro => 'Kokeillaan Omia.';
+
+  @override
+  String get onboardingActJustNow => 'Juuri nyt';
+
+  @override
+  String get onboardingActMicAllow => 'Salli mikrofoni';
+
+  @override
+  String get onboardingActMicBody => 'Jotta Omi kuulee sinut, kun puhut sille.';
+
+  @override
+  String get onboardingActMicFallbackBody => 'Omi ei vielä lähetä ääntä. Käytä toistaiseksi puhelinta.';
+
+  @override
+  String get onboardingActMicTitle => 'Omi tarvitsee mikrofonisi';
+
+  @override
+  String get onboardingActNoAudioOmi => 'Omia ei kuulu. Varmista, että se on päällä ja lähellä.';
+
+  @override
+  String get onboardingActNoAudioPhone => 'Emme kuule sinua vielä. Kokeile puhua vähän kovempaa.';
+
+  @override
+  String get onboardingActNotesLabel => 'Päiväsi tiivistettynä';
+
+  @override
+  String get onboardingActPhoneMic => 'Puhelimen mikrofoni';
+
+  @override
+  String get onboardingActRateTitle => 'Pidätkö Omista tähän mennessä?';
+
+  @override
+  String get onboardingActRemembers => 'Omi muistaa, ettei sinun tarvitse';
+
+  @override
+  String get onboardingActSavedToTasks => 'Tallennettu tehtäviisi';
+
+  @override
+  String get onboardingActTasksLabel => 'Omi poimi tehtäväsi';
+
+  @override
+  String get onboardingActWriting => 'Tiivistetään…';
+
+  @override
+  String get onboardingActYourWords => 'Tämän sanoit';
+
+  @override
+  String get onboardingConnectOmi => 'Yhdistä Omi';
+
+  @override
+  String get onboardingConnectTapToConnect => 'Yhdistä napauttamalla Omiasi.';
+
+  @override
+  String get onboardingNoOmiYet => 'Eikö Omi ole vielä saapunut?';
+
+  @override
+  String get onboardingOmiNotOrdered => 'En ole vielä tilannut';
+
+  @override
+  String get onboardingOmiOrdered => 'Olen tilannut sen';
+
+  @override
+  String get onboardingPermissionTapToFix => 'Korjaa napauttamalla';
+
+  @override
+  String get homePendingTitle => 'Keskusteluja tulossa';
+
+  @override
+  String get homePendingCatchingUp => 'Käsitellään aiempaa ääntä';
+
+  @override
+  String get onTheWayTitle => 'Tulossa';
+
+  @override
+  String get onTheWayAlmostReady => 'Melkein valmis';
+
+  @override
+  String onTheWayRecordingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tallennetta',
+      one: '1 tallenne',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String onTheWaySummary(String totals) {
+    return '$totals tulossa';
+  }
+
+  @override
+  String onTheWayUploadingCount(int count) {
+    return 'Lähetetään: $count';
+  }
+
+  @override
+  String onTheWayAlmostReadyCount(int count) {
+    return 'Melkein valmiina: $count';
+  }
+
+  @override
+  String onTheWayNeedsAttentionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vaatii huomiota',
+      one: '1 vaatii huomiota',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get activityEmpty => 'Ei vielä toimintaa';
+
+  @override
+  String get activityNewSemantics => 'Toiminta, uusia kohteita';
+
+  @override
+  String get activityLoadFailed => 'Kaikkea toimintaa ei voitu ladata';
+
+  @override
+  String get activityNewItem => 'Uusi';
+
+  @override
+  String get activityNeedsAttention => 'Vaatii huomiota';
+
+  @override
+  String get activityRetryAll => 'Yritä kaikkia uudelleen';
+
+  @override
+  String get attentionSummaryFailed => 'Tätä keskustelua ei voitu tiivistää';
+
+  @override
+  String get connectAgentHeadline => 'Käytä Omi-muistiasi ChatGPT:ssä ja tekoälyagenteissasi';
+
+  @override
+  String get connectAgentIntro => 'Yhdistä kerran. Kysy niiltä sitten keskusteluistasi, muistoistasi ja tehtävistäsi.';
+
+  @override
+  String get connectAgentOneTap => 'Yhdellä napautuksella';
+
+  @override
+  String get connectAgentComputerAgents => 'Agentit, joilla on oma tietokone';
+
+  @override
+  String get connectAgentComputerAgentsSubtitle =>
+      'Kopioi yksi kehote. Omi luo avaimen vain tälle agentille ja lähettää sen turvallisesti.';
+
+  @override
+  String get connectAgentOtherAgent => 'Muu agentti';
+
+  @override
+  String get connectAgentKeyActive => 'Avain aktiivinen';
+
+  @override
+  String connectAgentLastUsed(String time) {
+    return 'Viimeksi käytetty $time';
+  }
+
+  @override
+  String get connectAgentDevelopers => 'MCP- ja API-avaimet kehittäjille';
+
+  @override
+  String get connectAgentLoadFailed => 'Yhteyksiäsi ei voitu ladata.';
+
+  @override
+  String get connectAgentActionFailed => 'Jokin meni pieleen. Yritä uudelleen.';
+
+  @override
+  String get connectChatGptTitle => 'Yhdistä ChatGPT';
+
+  @override
+  String get connectChatGptSubtitle =>
+      'Kestää noin 30 sekuntia. Hyväksyt sen ChatGPT:ssä, ja se toimii puhelimessa ja tietokoneella.';
+
+  @override
+  String get connectChatGptStepOpen => 'Avaamme Omin ChatGPT:ssä';
+
+  @override
+  String get connectChatGptStepOpenBody => 'ChatGPT avautuu suoraan Omi-sovelluksen sivulle.';
+
+  @override
+  String get connectChatGptStepApprove => 'Napauta ”Yhdistä” ja kirjaudu sitten Omiin';
+
+  @override
+  String get connectChatGptStepApproveBody => 'Käytä samaa tiliä kuin täällä.';
+
+  @override
+  String get connectChatGptStepReturn => 'Palaa Omiin';
+
+  @override
+  String get connectChatGptStepReturnBody => 'Tarkistamme yhteyden automaattisesti.';
+
+  @override
+  String get openChatGpt => 'Avaa ChatGPT';
+
+  @override
+  String get chatGptConnectedEverywhere => 'Yhdistetty puhelimessa ja tietokoneella';
+
+  @override
+  String get tryAskingChatGpt => 'Kokeile kysyä ChatGPT:ltä';
+
+  @override
+  String get tryAskingChatGptFooter => 'Napauta kysymystä, niin ChatGPT avautuu se valmiiksi täytettynä.';
+
+  @override
+  String get chatGptExampleMeetings => 'Mistä sovin eilisissä kokouksissa?';
+
+  @override
+  String get chatGptExampleTasks => 'Tee avoimista Omi-tehtävistäni suunnitelma tälle viikolle.';
+
+  @override
+  String get chatGptExampleGoals => 'Mitä Omi tietää tavoitteistani?';
+
+  @override
+  String get disconnectChatGpt => 'Katkaise ChatGPT-yhteys';
+
+  @override
+  String get disconnectChatGptQuestion => 'Katkaistaanko ChatGPT-yhteys?';
+
+  @override
+  String get disconnectChatGptMessage => 'ChatGPT ei voi enää lukea Omi-muistojasi, -keskustelujasi tai -tehtäviäsi.';
+
+  @override
+  String connectAgentNamed(String name) {
+    return 'Yhdistä $name';
+  }
+
+  @override
+  String connectAgentPromptSubtitle(String name) {
+    return 'Liitä yksi kehote. $name ottaa Omin käyttöön omalla tietokoneellaan.';
+  }
+
+  @override
+  String get connectAgentGenericPromptSubtitle =>
+      'Liitä yksi kehote. Agenttisi ottaa Omin käyttöön omalla tietokoneellaan.';
+
+  @override
+  String connectAgentKeyCreated(String name) {
+    return 'Avain ”$name” luotu';
+  }
+
+  @override
+  String get connectAgentKeyCreatedBody =>
+      'Kehotteessa on kertakäyttöinen linkki, ei itse avainta. Se avautuu kerran ja vanhenee tunnissa. Voit peruuttaa avaimen täällä milloin tahansa.';
+
+  @override
+  String get connectAgentPreparing => 'Luodaan avainta ja suojattua linkkiä…';
+
+  @override
+  String get connectAgentPrepareFailed => 'Avainta ei voitu luoda. Tarkista yhteys ja yritä uudelleen.';
+
+  @override
+  String get copyPrompt => 'Kopioi kehote';
+
+  @override
+  String get connectAgentNewLink => 'Vanheniko linkki? Luo uusi';
+
+  @override
+  String connectAgentActiveTitle(String name) {
+    return '$name on yhdistetty';
+  }
+
+  @override
+  String connectAgentActiveBody(String name) {
+    return '$name käyttää Omi-avainta. Peruuta se katkaistaksesi pääsyn. Voit yhdistää uudelleen milloin tahansa.';
+  }
+
+  @override
+  String revokeAgentKeyQuestion(String name) {
+    return 'Peruutetaanko kohteen $name avain?';
+  }
+
+  @override
+  String revokeAgentKeyMessage(String name) {
+    return '$name menettää heti pääsyn Omi-muistiisi.';
+  }
+
+  @override
+  String get askAboutConversation => 'Kysy tästä keskustelusta';
+
+  @override
+  String get askAboutConversationSubtitle =>
+      'Avaa ChatGPT:n kysymyksesi valmiina. Se hakee keskustelun Omin kautta, joten litteraattia ei tarvitse liittää.';
+
+  @override
+  String get askYourQuestion => 'Kysymyksesi';
+
+  @override
+  String get askSuggestFollowUp => 'Luonnostele tästä keskustelusta jatkoviesti sähköpostiin.';
+
+  @override
+  String get askSuggestCommitments => 'Mitä lupasin tässä keskustelussa?';
+
+  @override
+  String get askSuggestDoc => 'Tee tästä keskustelusta lyhyt dokumentti.';
+
+  @override
+  String get askInChatGpt => 'Kysy ChatGPT:ltä';
+
+  @override
+  String get copyForAnyApp => 'Kopioi mihin tahansa sovellukseen';
+
+  @override
+  String get askConnectChatGptFirst => 'Yhdistä ChatGPT kerran, niin voit kysyä siltä keskusteluistasi.';
+
+  @override
+  String get reconnect => 'Yhdistä uudelleen';
+
+  @override
+  String get chatGptNeedsReconnect => 'Tarvitsee lisäoikeuksia. Korjaa yhdistämällä uudelleen.';
+
+  @override
+  String get connectAgentWaiting => 'Odotetaan, että agentti käyttää avaintaan';
+
+  @override
+  String connectAgentWaitingTitle(String name) {
+    return '$name ei ole vielä yhdistetty';
+  }
+
+  @override
+  String get summaryNotSummarizedYet => 'Ei vielä tiivistetty';
+
+  @override
+  String get summaryEmptyStateBody => 'Omi voi muuttaa tämän keskustelun yleiskatsaukseksi, pääkohdiksi ja tehtäviksi.';
+
+  @override
+  String get summaryWithOmi => 'Tiivistä Omilla';
+
+  @override
+  String summaryWithTemplate(String name) {
+    return 'Tiivistä: $name';
+  }
+
+  @override
+  String get summaryUseDifferentTemplate => 'Käytä toista mallia';
+
+  @override
+  String get summaryFromTheTranscript => 'Litteroinnista';
+
+  @override
+  String get summaryReadFullTranscript => 'Lue koko litterointi';
+
+  @override
+  String get summarySheetTitle => 'Tiivistä käyttäen';
+
+  @override
+  String get summaryOmiTemplateSubtitle => 'Yleiskatsaus, pääkohdat ja tehtävät';
+
+  @override
+  String get summaryYourTemplates => 'Omat mallisi';
+
+  @override
+  String get summarySuggestedTemplates => 'Ehdotettu tähän keskusteluun';
+
+  @override
+  String get summaryBrowseTemplates => 'Selaa malleja';
+
+  @override
+  String get summaryCreateYourOwn => 'Luo oma';
+
+  @override
+  String get summaryUseForNewConversations => 'Tee tästä oletukseni';
+
+  @override
+  String get summaryTemplatesLoadFailed => 'Mallejasi ei voitu ladata. Omi toimii edelleen.';
+
+  @override
+  String get summaryNoTemplatesYet => 'Et ole vielä lisännyt malleja. Selaa muutamia tai tee oma.';
+
+  @override
+  String summarySummarizingWith(String name) {
+    return 'Tiivistetään: $name…';
+  }
+
+  @override
+  String summaryTemplateFailedTitle(String name) {
+    return '$name ei voinut valmistua';
+  }
+
+  @override
+  String get summaryTemplateFailedBody => 'Malli ei palauttanut tiivistelmää tästä keskustelusta.';
+
+  @override
+  String get summaryWithOmiInstead => 'Tiivistä sen sijaan Omilla';
+
+  @override
+  String get summaryBusyTitle => 'Käsittely on yhä kesken';
+
+  @override
+  String get summaryBusyBody => 'Omi käsittelee jo tätä keskustelua. Tiivistelmä näkyy tässä, kun se on valmis.';
+
+  @override
+  String get summaryCheckAgain => 'Tarkista uudelleen';
+
+  @override
+  String get summaryLimitTitle => 'Tiivistelmien raja saavutettu';
+
+  @override
+  String get summaryLimitBody =>
+      'Olet luonut useita tiivistelmiä uudelleen viimeisen tunnin aikana. Yritä myöhemmin uudelleen.';
+
+  @override
+  String get summaryFailedTitle => 'Tiivistäminen epäonnistui';
+
+  @override
+  String get summaryFailedBody => 'Jokin meni vikaan tätä keskustelua tiivistettäessä.';
 }

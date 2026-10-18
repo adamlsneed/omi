@@ -966,11 +966,15 @@ fi
 # A distinct runtime per suite prevents sequential residue as well as races.
 # These are never batched: batching would put two of them in one process, which
 # is precisely the sharing this cluster exists to prevent (#11511).
+serial_build_path="$suite_worker_dir/serial-shared.build"
+if [ "${#serial_suites[@]}" -gt 0 ]; then
+  # Sequential processes can reuse compiled artifacts, just like a parallel
+  # worker. Cloning the full build per suite makes final cleanup dominate CI.
+  copy_prebuilt_scratch "$package_root/.build" "$serial_build_path"
+fi
 for ((serial_index = 0; serial_index < ${#serial_suites[@]}; serial_index++)); do
   suite="${serial_suites[$serial_index]}"
-  serial_build_path="$suite_worker_dir/serial-$serial_index.build"
   serial_runtime_path="$suite_worker_dir/serial-$serial_index.runtime"
-  copy_prebuilt_scratch "$package_root/.build" "$serial_build_path"
   mkdir -p "$serial_runtime_path/home" "$serial_runtime_path/tmp"
   "$SCRIPT_PATH" __run_suite "$suite_log_dir" "$suite" "$serial_build_path" "$serial_runtime_path" || true
 done
@@ -1014,7 +1018,10 @@ if ls "$suite_log_dir"/*.seconds >/dev/null 2>&1; then
   echo "Slowest executed Swift suites this run (wall seconds):"
   for seconds_path in "$suite_log_dir"/*.seconds; do
     printf '%s %s\n' "$(cat "$seconds_path")" "$(basename "${seconds_path%.seconds}")"
-  done | sort -rn | head -25 | while read -r seconds suite; do
+  # Drain the sorted stream even after the first 25 rows. `head` closes early
+  # and BSD sort then exits 2 with Broken pipe under pipefail, reddening an
+  # otherwise successful large suite run (PR #21300, run 38230944415).
+  done | sort -rn | sed -n '1,25p' | while read -r seconds suite; do
     printf '  %8ss  %s\n' "$seconds" "$suite"
   done
 fi

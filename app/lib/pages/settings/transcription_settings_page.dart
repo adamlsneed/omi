@@ -1,3 +1,7 @@
+import 'package:permission_handler/permission_handler.dart';
+import 'package:omi/services/sockets/on_device_apple_provider.dart';
+import 'package:omi/services/sockets/local_stt_failure.dart';
+import 'package:omi/ui/components/local_stt_recovery_notice.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -234,8 +238,7 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
 
     // Restore JSON configs if customized
     if (config != null) {
-      final hasCustomRequest =
-          config.requestType != null ||
+      final hasCustomRequest = config.requestType != null ||
           config.headers != null ||
           config.params != null ||
           config.audioFieldName != null;
@@ -879,7 +882,14 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
       description = Semantics(
         link: true,
         child: InkWell(
-          onTap: () => routeToPage(context, const UsagePage(showUpgradeDialog: true)),
+          onTap: () {
+            final plan = context.read<UsageProvider>().subscription?.subscription.plan.wireName ?? 'unknown';
+            PlatformManager.instance.analytics.paywallOpened('transcription_settings', currentPlan: plan);
+            routeToPage(
+              context,
+              const UsagePage(showUpgradeDialog: true, paywallSource: 'transcription_settings'),
+            );
+          },
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 44),
             child: Align(
@@ -1056,9 +1066,8 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
       overridden: overridden,
       language: _currentLanguage,
       primaryLanguage: primary,
-      primaryLanguageName: primary.isEmpty
-          ? context.l10n.notSet
-          : context.read<HomeProvider>().getLanguageName(primary),
+      primaryLanguageName:
+          primary.isEmpty ? context.l10n.notSet : context.read<HomeProvider>().getLanguageName(primary),
       pickerKey: ValueKey('${_selectedProvider.name}_language_$_configSyncVersion'),
       onOverride: () => setState(() {
         // Start the picker from the language in use.
@@ -1207,6 +1216,20 @@ class _TranscriptionSettingsPageState extends State<TranscriptionSettingsPage> {
           ),
           const SizedBox(height: OmiSpacing.sm),
           TranscriptionHelpText(context.l10n.nativeEngineNoDownload),
+          FutureBuilder(
+            future: OnDeviceAppleProvider.readiness(_currentLanguage),
+            builder: (context, snapshot) {
+              final readiness = snapshot.data;
+              if (readiness == null || readiness.ready) return const SizedBox.shrink();
+              return LocalSttRecoveryNotice(
+                  language: _currentLanguage,
+                  failure: LocalSttFailure(readiness.status, canProbeRecovery: true),
+                  onRetry: () async {
+                    setState(() {});
+                  },
+                  onSetup: openAppSettings);
+            },
+          ),
           const SizedBox(height: OmiSpacing.lg),
           _buildLanguageSelector(),
         ],

@@ -4,6 +4,10 @@ Regressions #13260 and #13468 showed that auth defaults and repeating timers
 can poison unrelated desktop suites sharing a runner. These helpers live in
 the existing desktop Swift test target; no additional test runner is required.
 
+`ClientDeviceService` reserves Keychain for production-family bundle identities.
+Test runners use defaults; production identity tests inject Keychain effects so
+a locked login keychain cannot suspend unrelated API request tests.
+
 - Use `makeIsolatedDefaults()` from `desktop/macos/Desktop/Tests/Support/IsolatedTestDefaults.swift`
   and inject the returned defaults into the subject. The helper owns a unique
   domain and registers XCTest teardown; shared auth domains raced in #13260.

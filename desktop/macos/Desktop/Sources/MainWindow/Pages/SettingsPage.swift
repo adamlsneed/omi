@@ -339,6 +339,8 @@ struct SettingsContentView: View {
   @State var activeBillingWebFlow: BillingWebFlow?
   @State var pendingSubscriptionPriceId: String?
   @State var pendingCheckoutSessionId: String?
+  @State var pendingCheckoutPlanId: String = "unknown"
+  @State var pendingCheckoutInterval: String = "unknown"
 
   var isLoadingSettings: Bool {
     get { viewModel.isLoadingBackendSettings }
@@ -353,6 +355,11 @@ struct SettingsContentView: View {
   var subscriptionError: String? {
     get { viewModel.subscriptionError }
     nonmutating set { viewModel.subscriptionError = newValue }
+  }
+
+  var subscriptionConfirmation: String? {
+    get { viewModel.subscriptionConfirmation }
+    nonmutating set { viewModel.subscriptionConfirmation = newValue }
   }
 
   let cooldownOptions = [1, 2, 5, 10, 15, 30, 60]
@@ -522,7 +529,7 @@ struct SettingsContentView: View {
     case troubleshooting = "Troubleshooting"
     case gmailReader = "Gmail Reader"
     case calendarSync = "Calendar Sync"
-    case developerKeys = "Developer API Keys"
+    case developerKeys = "Model Provider Keys"
 
     var icon: String {
       switch self {

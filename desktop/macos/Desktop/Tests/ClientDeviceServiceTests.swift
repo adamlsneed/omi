@@ -17,6 +17,47 @@ final class ClientDeviceServiceTests: XCTestCase {
     XCTAssertEqual(id, "macos_\(ClientDeviceService.shared.deviceIdHash)")
   }
 
+  func testUnknownAndTestBundlesNeverAccessKeychain() throws {
+    for bundleID in [nil, "com.apple.dt.xctest", "example.test-runner"] as [String?] {
+      let defaults = try makeIsolatedDefaults()
+      let service = ClientDeviceService(
+        bundleIdentifier: bundleID,
+        userDefaults: defaults,
+        keychainReader: {
+          XCTFail("A non-production bundle must not read the login keychain")
+          return .missing
+        },
+        keychainWriter: { _ in
+          XCTFail("A non-production bundle must not write the login keychain")
+        }
+      )
+      let identity = service.installationIdentity
+      XCTAssertFalse(identity.isEmpty)
+      XCTAssertEqual(identity, defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
+      XCTAssertEqual(identity, service.installationIdentity)
+    }
+  }
+
+  func testProductionFamilyRetainsKeychainIdentity() throws {
+    for bundleID in AppBuild.productionFamilyBundleIdentifiers {
+      let defaults = try makeIsolatedDefaults()
+      var reads = 0
+      let service = ClientDeviceService(
+        bundleIdentifier: bundleID,
+        userDefaults: defaults,
+        keychainReader: {
+          reads += 1
+          return .found("existing-production-install")
+        },
+        keychainWriter: { _ in XCTFail("An existing identity must not be replaced") }
+      )
+      XCTAssertEqual(service.installationIdentity, "existing-production-install")
+      XCTAssertEqual(service.installationIdentity, "existing-production-install")
+      XCTAssertEqual(reads, 1)
+      XCTAssertNil(defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
+    }
+  }
+
   func testNamedDevelopmentBundleUsesBundleScopedInstallId() {
     let suiteName = "ClientDeviceServiceTests.named.\(UUID().uuidString)"
     let defaults = UserDefaults(suiteName: suiteName)!

@@ -206,6 +206,15 @@ if [ -n "${FAKE_XCRUN_XCTEST_TIMING:-}" ] && [ "${#suites[@]}" -gt 0 ]; then
       echo "	 Executed 2 tests, with 0 failures (0 unexpected) in 0.100 (0.250) seconds"
     fi
   done
+  # Adversarial timing output larger than a pipe buffer. These are diagnostic
+  # rows, not extra invocations: the real runner must drain its sorted report
+  # even though it displays only 25 entries.
+  if [ "${FAKE_XCRUN_EXTRA_TIMINGS:-0}" -gt 0 ]; then
+    for ((timing_index = 0; timing_index < FAKE_XCRUN_EXTRA_TIMINGS; timing_index++)); do
+      printf "Test Suite 'TimingBufferPressure%0100dTests' passed at 2026-10-12 00:00:00.000.\n" "$timing_index"
+      printf '\t Executed 2 tests, with 0 failures (0 unexpected) in 0.100 (0.250) seconds\n'
+    done
+  fi
   echo "Test Suite 'All tests' passed at 2026-09-08 00:00:00.000."
   echo "	 Executed 4 tests, with 0 failures (0 unexpected) in 0.400 (0.900) seconds"
 fi
@@ -405,11 +414,27 @@ fi
 # A discovery set made entirely of serial suites still executes with one
 # effective worker and must not report the misleading zero-worker summary.
 export OMI_SWIFT_TEST_SERIAL_SUITES="ActionItemsFTSRepairTests AlphaTests APIClientRoutingTests AuthRefreshResilienceTests AuthTokenStorageTests BetaTests ChatDiscoverabilityTests PiMonoWiringTests"
+: >"$FAKE_XCRUN_SCRATCH_LOG"
+: >"$FAKE_XCRUN_LOG"
 if "$RUNNER" >"$TMPDIR/all-serial-runner.out" 2>"$TMPDIR/all-serial-runner.err"; then
   fail "all-serial runner unexpectedly succeeded despite AlphaTests failure"
 fi
 if ! grep -q "Ran 9 Swift suites in isolation with 1 worker(s)," "$TMPDIR/all-serial-runner.out"; then
   fail "all-serial runner did not report one effective worker"
+fi
+if [ "$(awk -F '\t' '{print $2}' "$FAKE_XCRUN_SCRATCH_LOG" | sort -u | wc -l | tr -d ' ')" != "1" ]; then
+  fail "serial suites did not reuse their compiled build scratch"
+fi
+for column in 4 5; do
+  if [ "$(awk -F '\t' -v column="$column" '{print $column}' "$FAKE_XCRUN_SCRATCH_LOG" | sort -u | wc -l | tr -d ' ')" != "9" ]; then
+    fail "serial suites did not retain separate runtime homes and temporary directories"
+  fi
+done
+if ! awk '/swift test/ && /--filter/ { if (gsub(/--filter/, "&") != 1) exit 1; count++ } END { if (count != 9) exit 1 }' "$FAKE_XCRUN_LOG"; then
+  fail "serial suites did not retain one SwiftPM process per suite"
+fi
+if [ -f "$FAKE_XCRUN_SYNC_DIR/serial-overlap" ]; then
+  fail "serial suites overlapped while sharing their compiled build scratch"
 fi
 export OMI_SWIFT_TEST_SERIAL_SUITES="AuthRefreshResilienceTests AuthTokenStorageTests"
 
@@ -934,6 +959,22 @@ if grep -q "All tests" "$TMPDIR/timing-runner.out"; then
   fail "duration harvest recorded the aggregate 'All tests' wrapper as a suite"
 fi
 unset FAKE_XCRUN_XCTEST_TIMING OMI_SWIFT_TEST_SLOW_SUITES_FILE OMI_SWIFT_TEST_LANE
+
+# #21300: BSD sort hit Broken pipe after the 25-row `head` closed and made
+# every successful test batch look red. Exercise the real runner/report path.
+export FAKE_XCRUN_XCTEST_TIMING=1
+export FAKE_XCRUN_EXTRA_TIMINGS=1000
+if ! "$RUNNER" >"$TMPDIR/timing-pressure.out" 2>"$TMPDIR/timing-pressure.err"; then
+  fail "a large successful timing report changed the runner verdict"
+fi
+if grep -q 'Broken pipe' "$TMPDIR/timing-pressure.err"; then
+  fail "timing report closed its producer early"
+fi
+timing_rows=$(awk '/Slowest executed Swift suites/{report=1;next} report && /^  [[:space:]0-9.]+s  /{count++} END{print count+0}' "$TMPDIR/timing-pressure.out")
+if [ "$timing_rows" -ne 25 ]; then
+  fail "large timing report must remain bounded to 25 rows (got $timing_rows)"
+fi
+unset FAKE_XCRUN_XCTEST_TIMING FAKE_XCRUN_EXTRA_TIMINGS
 
 # --- PR-lane slow-suite ratchet ---
 #

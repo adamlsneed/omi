@@ -298,6 +298,8 @@ def test_serve_receives_a_delivery_and_answers_with_the_chosen_reply(cli_runner:
         str(port),
         "--requests",
         "1",
+        "--status",
+        "200",
         "--reply",
         '{"message": "Got it, noted"}',
     )
@@ -309,6 +311,33 @@ def test_serve_receives_a_delivery_and_answers_with_the_chosen_reply(cli_runner:
     received = json.loads(result.stdout)
     assert received[0]["query"] == {"uid": events_mod.SAMPLE_UID}
     assert received[0]["idempotency_key"] == "key-1"
+
+
+@pytest.mark.parametrize("status", [100, 199])
+def test_serve_rejects_informational_status_before_binding(
+    cli_runner: CliRunner, config_path: Path, status: int
+) -> None:
+    # If status validation reaches the command callback, binding this occupied
+    # port fails instead of reporting the invalid receiver configuration.
+    with socket.socket() as occupied:
+        occupied.bind(("127.0.0.1", 0))
+        occupied.listen()
+        port = int(occupied.getsockname()[1])
+        result = _run(
+            cli_runner,
+            "app",
+            "serve",
+            "--port",
+            str(port),
+            "--status",
+            str(status),
+            "--requests",
+            "1",
+        )
+
+    assert result.exit_code == 2
+    assert "Invalid value for '--status'" in result.stderr
+    assert "200<=x<=599" in result.stderr
 
 
 def test_serve_rejects_a_reply_that_is_not_json(cli_runner: CliRunner, config_path: Path) -> None:
@@ -374,6 +403,17 @@ def test_target_rejects_an_address_omi_will_not_deliver_to() -> None:
         assert "never receives an event" in (report.detail or "")
 
 
+def test_target_rejects_a_non_public_address_in_its_ipv4_mapped_form() -> None:
+    # A dual-stack resolver can answer with ::ffff:a.b.c.d for the same host
+    # that returns a.b.c.d elsewhere. Omi refuses the delivery either way, so
+    # the check has to agree with itself whichever form it is handed.
+    for address in ("100.64.0.1", "::ffff:100.64.0.1"):
+        report = webhook_target.inspect_target("http://tailscale.test/webhook", resolver=lambda _: [address])
+        assert not report.ok, address
+        assert "non-public address" in report.summary
+        assert address in report.summary
+
+
 def test_target_rejects_a_scheme_and_a_host_omi_cannot_use() -> None:
     assert not webhook_target.inspect_target("ftp://example.com/webhook").ok
     unresolvable = webhook_target.inspect_target(
@@ -382,6 +422,15 @@ def test_target_rejects_a_scheme_and_a_host_omi_cannot_use() -> None:
     )
     assert not unresolvable.ok
     assert "cannot resolve" in unresolvable.summary
+
+
+def test_target_preserves_first_resolver_spelling_when_deduplicating() -> None:
+    address = "::FFFF:6440:0001"
+    report = webhook_target.inspect_target(
+        "https://example.com/webhook", resolver=lambda _: [address, "::ffff:100.64.0.1"]
+    )
+    assert not report.ok
+    assert report.summary == f"example.com resolves to a non-public address: {address}"
 
 
 def test_target_accepts_a_public_address_and_flags_plain_http() -> None:
