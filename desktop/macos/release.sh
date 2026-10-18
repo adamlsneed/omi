@@ -130,7 +130,7 @@ step "Preparing bundled ffmpeg"
 bash scripts/ensure-bundled-ffmpeg.sh
 
 step "Building Swift app (swift build -c release)"
-xcrun swift build -c release --package-path Desktop
+xcrun swift build -c release --package-path Desktop -Xswiftc -emit-const-values
 
 REL_BIN_DIR="Desktop/.build/release"
 REL_ARCH_DIR="Desktop/.build/arm64-apple-macosx/release"
@@ -141,6 +141,8 @@ rm -rf "$STAGING"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks"
 
 cp -f "$REL_BIN_DIR/$BINARY_NAME" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
+step "Embedding App Intents metadata"
+./scripts/embed-app-intents-metadata.sh Desktop "$APP_BUNDLE" Release "$(uname -m)"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME" 2>/dev/null || true
 
 for fw in Sparkle Sentry onnxruntime; do

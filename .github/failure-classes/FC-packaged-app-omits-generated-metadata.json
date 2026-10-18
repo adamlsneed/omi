@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "id": "FC-packaged-app-omits-generated-metadata",
+  "violated_contract": "An app bundle containing platform-discovered features must include the generated metadata required to register those features; compiling their code alone does not make them available.",
+  "canonical_prevention": "Run the canonical metadata exporter during bundle assembly before signing, validate the expected actions and entities in its output, and fail packaging when required metadata is missing.",
+  "canonical_prevention_artifact": [
+    "desktop/macos/scripts/embed-app-intents-metadata.sh",
+    "desktop/macos/tests/test-embed-app-intents-metadata.sh"
+  ],
+  "evidence_prs": [],
+  "scope_hints": [
+    "desktop/macos/release.sh",
+    "desktop/macos/scripts/embed-app-intents-metadata.sh"
+  ],
+  "status": "open"
+}
