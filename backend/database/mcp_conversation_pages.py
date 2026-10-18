@@ -18,7 +18,7 @@ from .conversations import (
     document_data_with_revision,
     prepare_conversation_for_read,
     conversations_collection,
-    is_soft_deleted,
+    is_visible_conversation,
 )
 from .firestore_index_registry import MCP_CONVERSATION_CARD_QUERY_SPECS
 from .helpers import prepare_for_read
@@ -32,7 +32,12 @@ def _card_field_paths(extra_field_paths: Optional[Sequence[str]]) -> List[str]:
     paths: List[str] = list(MCP_CONVERSATION_CARD_FIELD_PATHS)
     if extra_field_paths:
         paths.extend(extra_field_paths)
-    return paths
+    # Firestore masks must not contain both a parent and its nested fields.
+    return [
+        path
+        for path in dict.fromkeys(paths)
+        if not any(path.startswith(parent + ".") for parent in paths if parent != path)
+    ]
 
 
 @prepare_for_read(decrypt_func=prepare_conversation_for_read)
@@ -73,7 +78,7 @@ def get_mcp_conversation_cards(
         conversation = document_data_with_revision(doc)
         if conversation is None:
             continue
-        if is_soft_deleted(conversation):
+        if not is_visible_conversation(conversation):
             continue
         conversation.setdefault('id', doc.id)
         conversations.append(conversation)
@@ -143,15 +148,25 @@ def get_mcp_conversation_cards_page(
         scanned += len(raw_docs)
         for doc in raw_docs:
             raw = doc.to_dict() or {}
-            last_position = (raw.get('created_at'), doc.id)
+            doc_created_at = raw.get('created_at')
+            if doc_created_at is None:
+                # A tombstoned row with no created_at can't seed a resumable
+                # keyset position (the next start_after would carry a None
+                # timestamp and raise above). Stop the scan here instead of
+                # handing back a cursor the following page would reject.
+                exhausted = True
+                break
+            last_position = (doc_created_at, doc.id)
             conversation = document_data_with_revision(doc)
             if conversation is None:
                 continue
-            if is_soft_deleted(conversation):
+            if not is_visible_conversation(conversation):
                 continue
             conversation.setdefault('id', doc.id)
             visible.append(conversation)
             visible_positions.append(last_position)
+        if exhausted:
+            break
         if len(raw_docs) < limit + 1:
             exhausted = True
             break

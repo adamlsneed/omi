@@ -76,9 +76,24 @@ fi
 STAGED_PYTHON_FILES=$(git diff --cached --name-only --diff-filter=ACM "backend/**.py")
 
 if [ -n "$STAGED_PYTHON_FILES" ]; then
-  echo "Formatting staged Python files in backend/ with the pinned formatter..."
-  echo "$STAGED_PYTHON_FILES" | xargs "$ROOT/scripts/backend-python-format" --write
-  echo "$STAGED_PYTHON_FILES" | xargs git add
+  case "$(git remote get-url origin)" in
+    https://github.com/adamlsneed/omi.git|git@github.com:adamlsneed/omi.git)
+      mirror_ref=$(git rev-parse -q --verify MERGE_HEAD 2>/dev/null || git merge-base HEAD upstream/main)
+      if ! git merge-base --is-ancestor "$mirror_ref" upstream/main; then
+        mirror_ref=$(git merge-base HEAD upstream/main)
+      fi
+      if ! git diff --cached --quiet "$mirror_ref" -- backend/; then
+        echo "Fork backend must exactly mirror $mirror_ref; restore upstream bytes before committing." >&2
+        exit 1
+      fi
+      echo "Verified exact upstream backend mirror ($mirror_ref); preserving its formatting."
+      ;;
+    *)
+      echo "Formatting staged Python files in backend/ with the pinned formatter..."
+      echo "$STAGED_PYTHON_FILES" | xargs "$ROOT/scripts/backend-python-format" --write
+      echo "$STAGED_PYTHON_FILES" | xargs git add
+      ;;
+  esac
 fi
 
 # ARB (l10n JSON) formatting for app/lib/l10n/

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:omi/gen/pigeon_communicator.g.dart';
 import 'package:omi/services/bridges/ble_bridge.dart';
 import 'package:omi/services/devices/transports/native_ble_transport.dart';
+import 'package:omi/services/devices/transports/device_transport.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -155,5 +156,20 @@ void main() {
 
     expect(hostCalls, contains('unsubscribe:$serviceUuid:$characteristicUuid'));
     expect(hostCalls, contains('unmanageDevice'));
+  });
+  test('disposing a replaced transport keeps the new native owner connected', () async {
+    final retired = NativeBleTransport(peripheralUuid);
+    final current = NativeBleTransport(peripheralUuid);
+    addTearDown(current.dispose);
+    final states = <DeviceTransportState>[];
+    final subscription = current.connectionStateStream.listen(states.add);
+    addTearDown(subscription.cancel);
+    await retired.dispose();
+    expect(hostCalls, isNot(contains('unmanageDevice')));
+    BleBridge.instance.onDeviceReady(peripheralUuid, [
+      BleService(uuid: serviceUuid, characteristicUuids: [characteristicUuid]),
+    ]);
+    await pumpEventQueue();
+    expect(states, contains(DeviceTransportState.connected));
   });
 }

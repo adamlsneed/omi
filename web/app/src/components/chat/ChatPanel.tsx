@@ -14,6 +14,7 @@ import { PostHogManager } from '@/lib/analytics/posthog';
 import { shouldSubmitComposerKey } from '@/lib/chatComposerKey';
 import { parseChatEvidenceFromRecord } from '@/lib/chatEvidence';
 import { ChatMarkdown } from './ChatMarkdown';
+import { ChatCitationCards } from './ChatCitationCards';
 import { ChatEvidenceCard } from './ChatEvidenceCard';
 import { PanelReveal } from '@/components/ui/PanelReveal';
 
@@ -369,8 +370,11 @@ export function ChatPanel() {
                         ) : (
                           <div className="min-w-0 max-w-[80%]">
                             <div className="rounded-2xl bg-bg-tertiary px-4 py-2.5 text-text-primary">
-                              <ChatMarkdown>{message.text}</ChatMarkdown>
+                              <ChatMarkdown memories={message.memories}>
+                                {message.text}
+                              </ChatMarkdown>
                             </div>
+                            <ChatCitationCards memories={message.memories} />
                             <ChatEvidenceCard
                               envelope={parseChatEvidenceFromRecord(message)}
                             />

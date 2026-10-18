@@ -20,3 +20,7 @@ upstream changes are merged in regularly; nothing flows back.
 - Building and installing the iPhone app: `.github/agent-docs/ios-install.md`.
 - Redeploying Adam's local Omi Dev Mac app from `main`: `scripts/fork/redeploy-omi-dev.sh`
   (usage and rollback in its header; runs as step 8 of the upstream sync).
+
+The pre-commit hook verifies staged backend bytes against the upstream merge
+revision and preserves upstream formatting. Backend formatting runs only outside
+the fork; a backend difference in the fork must be repaired before committing.

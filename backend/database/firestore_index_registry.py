@@ -7,7 +7,8 @@ from __future__ import annotations
 
 from typing import Any
 from database.review_queries import REVIEW_QUERY_SPECS
-from database.messaging_queries import MESSAGING_INDEX_REQUIREMENTS
+from database.sync_pipeline_indexes import SYNC_PIPELINE_INDEX_REQUIREMENTS
+from database.messaging_queries import MESSAGING_INDEX_REQUIREMENTS, MESSAGING_FIELD_REQUIREMENTS
 from .firestore_query_types import (
     FieldIndexRequirement,
     FirestoreIndexField,
@@ -32,6 +33,7 @@ def _contains(field_path: str) -> FirestoreIndexField:
 # These explicit requirements preserve the current deployed index set while
 # callers migrate one compound serving query at a time into QUERY_SPECS.
 INDEX_ONLY_REQUIREMENTS = (
+    *SYNC_PIPELINE_INDEX_REQUIREMENTS,
     *MESSAGING_INDEX_REQUIREMENTS,
     FirestoreIndexRequirement(
         'proactivity_followup_source_outcomes',
@@ -124,18 +126,6 @@ INDEX_ONLY_REQUIREMENTS = (
         'frame_requests',
         'COLLECTION',
         (_asc('account_generation'), _asc('dedupe_key'), _asc('device_id'), _desc('attempt_number'), _desc('__name__')),
-    ),
-    FirestoreIndexRequirement(
-        'sync_backfill_pending_uid_sort',
-        'sync_backfill_pending',
-        'COLLECTION',
-        (_asc('uid'), _asc('sort_at'), _asc('__name__')),
-    ),
-    FirestoreIndexRequirement(
-        'sync_backfill_pending_uid_accepted',
-        'sync_backfill_pending',
-        'COLLECTION',
-        (_asc('uid'), _asc('accepted_at'), _asc('__name__')),
     ),
     FirestoreIndexRequirement(
         'memory_items_collection_group_uid_generation_updated',
@@ -988,6 +978,50 @@ UNIVERSAL_CANONICAL_LIST_SCAN_QUERY = FirestoreQuerySpec(
     query_scope='COLLECTION',
     filters=(),
     index_fields=(_desc('updated_at'), _asc('__name__')),
+)
+
+# Released list candidates use existing required canonical fields. Each branch
+# is a necessary condition, never a replacement for the authority's row policy.
+# In particular processed Short-term remains readable after expiry (§1.3).
+UNIVERSAL_CANONICAL_RELEASED_PROCESSED_QUERY = FirestoreQuerySpec(
+    identifier='memory_items_released_processed_list',
+    collection_group='memory_items',
+    query_scope='COLLECTION',
+    filters=(
+        FirestoreQueryFilter('status', '==', 'status'),
+        FirestoreQueryFilter('source_state', 'in', 'source_states'),
+        FirestoreQueryFilter('processing_state', '==', 'processing_state'),
+        FirestoreQueryFilter('tier', 'in', 'tiers'),
+    ),
+    index_fields=(
+        _asc('status'),
+        _asc('source_state'),
+        _asc('processing_state'),
+        _asc('tier'),
+        _desc('updated_at'),
+        _asc('__name__'),
+    ),
+)
+UNIVERSAL_CANONICAL_RELEASED_PENDING_QUERY = FirestoreQuerySpec(
+    identifier='memory_items_released_pending_list',
+    collection_group='memory_items',
+    query_scope='COLLECTION',
+    filters=(
+        FirestoreQueryFilter('status', '==', 'status'),
+        FirestoreQueryFilter('source_state', '==', 'source_state'),
+        FirestoreQueryFilter('processing_state', '==', 'processing_state'),
+        FirestoreQueryFilter('tier', '==', 'tier'),
+        FirestoreQueryFilter('promotion.required', '==', 'required'),
+    ),
+    index_fields=(
+        _asc('status'),
+        _asc('source_state'),
+        _asc('processing_state'),
+        _asc('tier'),
+        _asc('promotion.required'),
+        _desc('updated_at'),
+        _asc('__name__'),
+    ),
 )
 
 # Bounded daily-sweep occupant lookups. The sweep must prove the active
@@ -1908,6 +1942,8 @@ QUERY_SPECS = (
     CANONICAL_GRAPH_READ_QUERY,
     CANONICAL_MEMORY_ATLAS_READ_QUERY,
     UNIVERSAL_CANONICAL_LIST_SCAN_QUERY,
+    UNIVERSAL_CANONICAL_RELEASED_PROCESSED_QUERY,
+    UNIVERSAL_CANONICAL_RELEASED_PENDING_QUERY,
     DAILY_SWEEP_ACTIVE_FACT_SUBJECT_QUERY,
     DAILY_SWEEP_ACTIVE_FACT_SLOT_QUERY,
     DAILY_SWEEP_ACTIVE_FACT_ENTITY_QUERY,
@@ -2071,7 +2107,10 @@ FIELD_INDEXING_EXEMPTIONS: tuple[tuple[str, str], ...] = (
     ('conversations', 'owner_recognition_diagnostics'),
 )
 
-FIELD_INDEX_REQUIREMENTS: tuple[FieldIndexRequirement, ...] = (
+FIELD_INDEX_REQUIREMENTS: tuple[FieldIndexRequirement, ...] = MESSAGING_FIELD_REQUIREMENTS + (
+    FieldIndexRequirement(
+        'conversations_summary_due_group_ascending', 'conversations', 'summary_due_at', ('ASCENDING',)
+    ),
     FieldIndexRequirement('conversations_id_group_ascending', 'conversations', 'id', ('ASCENDING',)),
     FieldIndexRequirement('conversations_source_group_ascending', 'conversations', 'source', ('ASCENDING',)),
     FieldIndexRequirement('conversations_status_group_ascending', 'conversations', 'status', ('ASCENDING',)),
@@ -2112,7 +2151,6 @@ FIELD_INDEX_REQUIREMENTS: tuple[FieldIndexRequirement, ...] = (
         ('ASCENDING',),
     ),
     FieldIndexRequirement('memory_outbox_status_group_ascending', 'memory_outbox', 'status', ('ASCENDING',)),
-    FieldIndexRequirement('projection_repairs_status_group_ascending', 'projection_repairs', 'status', ('ASCENDING',)),
     FieldIndexRequirement(
         'task_recurrence_inbox_status_group_ascending', 'task_recurrence_inbox', 'status', ('ASCENDING',)
     ),

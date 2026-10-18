@@ -1,4 +1,5 @@
 import { getIdToken } from './firebase';
+import { version as webAppVersion } from '../../package.json';
 import { getWebDeviceIdHash } from './clientDevice';
 import {
   invalidateCache,
@@ -62,6 +63,14 @@ import type {
 // Always use proxy to avoid CORS (browser → proxy → api.omi.me)
 const API_BASE_URL = '/api/proxy';
 
+/** Retain the status for safe endpoint-specific recovery messages. */
+export class ApiHttpError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = 'ApiHttpError';
+  }
+}
+
 /**
  * Make an authenticated API request
  */
@@ -98,6 +107,8 @@ async function fetchWithAuthResponse<T>(
   }
   new Headers(options.headers).forEach((value, name) => headers.set(name, value));
   headers.set('X-App-Platform', 'web');
+  headers.set('X-App-Version', webAppVersion);
+  headers.set('X-Omi-Plan-Identity', '1');
   if (deviceIdHash) {
     headers.set('X-Device-Id-Hash', deviceIdHash);
   }
@@ -116,9 +127,12 @@ async function fetchWithAuthResponse<T>(
       }
 
       if (response.status === 401) {
-        throw new Error('Unauthorized - please sign in again');
+        throw new ApiHttpError(401, 'Unauthorized - please sign in again');
       }
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+      throw new ApiHttpError(
+        response.status,
+        `API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     // Handle 204 No Content responses (common for DELETE operations)
@@ -1774,13 +1788,17 @@ export async function deleteDailySummary(id: string): Promise<void> {
 }
 
 /**
- * Generate a test daily summary for a specific date
+ * Generate or return a recap without requiring or sending push notifications.
  */
-export async function generateTestDailySummary(date: string): Promise<DailySummary> {
-  return fetchWithAuth<DailySummary>('/v1/users/daily-summary-settings/test', {
+export async function createDailySummary(date: string): Promise<DailySummary> {
+  const recap = await fetchWithAuth<DailySummary>('/v1/users/daily-summaries', {
     method: 'POST',
     body: JSON.stringify({ date }),
   });
+  if (!recap || typeof recap.id !== 'string' || !recap.id || recap.date !== date) {
+    throw new Error('Invalid recap response');
+  }
+  return recap;
 }
 
 /**
@@ -1916,9 +1934,6 @@ export async function getAllUsageData(): Promise<AllUsageData> {
   return { today, monthly, yearly, all_time };
 }
 
-/**
- * Get user subscription info
- */
 export async function getUserSubscription(): Promise<UserSubscription | null> {
   try {
     const response = await fetchWithAuth<UserSubscriptionResponse>(
@@ -1930,9 +1945,10 @@ export async function getUserSubscription(): Promise<UserSubscription | null> {
       plan: plan.raw ?? '',
       plan_identity: plan,
       status: response.subscription?.status || 'active',
-      // Unknown plans are deliberately excluded. A future wire value must not
-      // inherit paid capability merely because it is non-empty.
+      // Unknown plans never infer paid capability.
       is_unlimited: planGrantsPaidCapability(plan),
+      transcription_seconds_used: response.transcription_seconds_used,
+      transcription_seconds_limit: response.transcription_seconds_limit,
       current_period_end: response.subscription?.current_period_end,
       stripe_subscription_id: response.subscription?.stripe_subscription_id,
       cancel_at_period_end: response.subscription?.cancel_at_period_end,
@@ -1978,7 +1994,7 @@ export async function createCheckoutSession(
     return response;
   } catch (error) {
     console.error('createCheckoutSession error:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -1999,7 +2015,7 @@ export async function upgradeSubscription(
     return response;
   } catch (error) {
     console.error('upgradeSubscription error:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -2250,11 +2266,22 @@ export async function getMcpApiKeys(
   }
 }
 
+/** Default read-only scopes for newly minted MCP API keys. */
+export const MCP_READ_ONLY_SCOPES = [
+  'memories.read',
+  'conversations.read',
+  'action_items.read',
+  'goals.read',
+] as const;
+
 /** Create a new MCP API key */
-export async function createMcpApiKey(name: string): Promise<McpApiKey> {
+export async function createMcpApiKey(
+  name: string,
+  scopes: readonly string[] = MCP_READ_ONLY_SCOPES,
+): Promise<McpApiKey> {
   return fetchWithAuth<McpApiKey>('/v1/mcp/keys', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, scopes }),
   });
 }
 
