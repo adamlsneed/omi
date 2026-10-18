@@ -45,7 +45,7 @@ Never run `flutterfire configure` — it overwrites prod credentials. Config fil
 - iOS side: `ios/Runner/PigeonCommunicator.g.swift`
 - Android side: `android/app/src/main/kotlin/com/friend/ios/PigeonCommunicator.g.kt`
 - Implementation: `ios/Runner/RecorderHostApiImpl.swift`
-- After editing the contract, regenerate all platforms: `bash scripts/generate_pigeon.sh`
+- Regenerate all platforms: `bash scripts/generate_pigeon.sh`
 
 ### MethodChannel (Phone Calls)
 - Channel: `com.omi/phone_calls` + EventChannel `com.omi/phone_calls/events`
