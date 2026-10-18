@@ -348,8 +348,7 @@ if UNRELEASED_MD="$(python3 "$CHANGELOG_PY" unreleased --format markdown 2>/dev/
 $UNRELEASED_MD"
 fi
 gh release create "$TAG" "$ZIP_PATH" --repo "$GH_REPO" --title "Omi desktop (fork) $VERSION" \
-  --notes "$RELEASE_NOTES" || \
-  gh release upload "$TAG" "$ZIP_PATH" --repo "$GH_REPO" --clobber
+  --notes "$RELEASE_NOTES"
 ASSET_URL="https://github.com/$GH_REPO/releases/download/$TAG/$(basename "$ZIP_PATH")"
 
 step "Updating cask in $TAP_REPO"

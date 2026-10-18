@@ -57,6 +57,8 @@ After publishing, the changelog consolidation runs in a temporary worktree on
 A failure there only warns; fragments stay pending for the next release.
 The script leaves the changelog PR open. Complete its required metadata and verify
 CI on its final head before merging it with a merge commit.
+Existing release assets are never replaced. After partial publication, inspect
+the published bytes and metadata before resuming only the missing steps.
 
 Smoke-test without shipping:
 ```
