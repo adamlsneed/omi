@@ -102,7 +102,7 @@ final class ClientDeviceService {
   }
 
   private func loadOrCreateInstallId() -> String {
-    // All non-production bundles (Omi Dev + named omi-*) stay out of Keychain
+    // All non-production bundles, including test runners, stay out of Keychain
     // entirely — UserDefaults is enough for throwaway local identity and never
     // prompts. Production Beta/Prod use the team+bundle scoped Keychain item.
     if usesUserDefaultsInstallId {
@@ -138,11 +138,8 @@ final class ClientDeviceService {
   }
 
   private var usesUserDefaultsInstallId: Bool {
-    guard let bundleIdentifier else { return false }
-    // Any non-production com.omi.* bundle (desktop-dev + omi-*) — avoid Keychain.
     // Production-family bundles (stable + Omi Beta) keep the durable Keychain id.
-    return bundleIdentifier.hasPrefix("com.omi.")
-      && !AppBuild.productionFamilyBundleIdentifiers.contains(bundleIdentifier)
+    return !AppBuild.productionFamilyBundleIdentifiers.contains(bundleIdentifier ?? "")
   }
 
   private func loadOrCreateDevInstallId() -> String {
