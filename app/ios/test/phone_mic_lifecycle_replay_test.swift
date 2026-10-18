@@ -697,14 +697,14 @@ struct Harness {
             waitUntil({
                 world.sink.deliveries.dropFirst(resumedAt).contains { $0.kind == .state && $0.state == "running" }
             }, "batch pacing resumed")
-            drainMain(seconds: 0.05)
-            let afterResume = progressCount(world.sink)
-            // Recovery reaching .running must preserve the pending fast first
-            // beat: emitting it ~1s later keeps the beat gap under the Dart 10s
-            // stall deadline instead of silently retargeting to the slow cadence.
-            drainMain(seconds: 2.0)
-            precondition(progressCount(world.sink) > afterResume,
-                "recovery must emit its pending fast beat within ~1s, not wait out the healthy cadence")
+            // Observe from the running event itself: the pending fast beat can
+            // arrive while the main run loop is delivering that event.
+            let runningIndex = world.sink.deliveries[resumedAt...].firstIndex {
+                $0.kind == .state && $0.state == "running"
+            }!
+            waitUntil({
+                world.sink.deliveries.dropFirst(runningIndex + 1).contains { $0.kind == .progress }
+            }, timeout: 2.0, "recovery heartbeat within ~1s, before the healthy cadence")
             let fastBeatCount = progressCount(world.sink)
             // After that fast beat the repeating cadence is the slow one.
             drainMain(seconds: 2.0)
