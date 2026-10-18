@@ -31,11 +31,15 @@ class MobileBatchBuffer {
 
   Future<void> initialize() async {
     await directory.create(recursive: true);
-    _files = directory.listSync().whereType<File>().where((f) => _isRetainedBatchAudio(f.path)).length;
-    _bytes = directory.listSync().whereType<File>().where((f) => _isRetainedBatchAudio(f.path)).fold<int>(
-          0,
-          (sum, f) => sum + f.lengthSync(),
-        );
+    var files = 0;
+    var bytes = 0;
+    await for (final entry in directory.list()) {
+      if (entry is! File || !_isRetainedBatchAudio(entry.path)) continue;
+      bytes += await entry.length();
+      files++;
+    }
+    _files = files;
+    _bytes = bytes;
   }
 
   /// Synchronous ownership boundary: true means these bytes belong ONLY to
@@ -83,19 +87,23 @@ class MobileBatchBuffer {
           recordingSessionId: recordingSessionId,
         );
         _journal = File('${directory.path}/$name.batch-journal');
+        // omi-perf-allow: sync-file-io -- Persist one WAL's recovery metadata before accepting ownership of its first frame.
         _journal!.writeAsStringSync(jsonEncode(wal.toJson()), flush: true);
+        // omi-perf-allow: sync-file-io -- Open the current chunk before the synchronous route can suppress the live path.
         _writer = File('${directory.path}/$name').openSync(mode: FileMode.append);
         _files++;
         _wal = wal;
         _chunkFrames = 0;
       }
       final bytes = encodeWalFrames([payload]);
+      // omi-perf-allow: sync-file-io -- Commit this single frame before returning exclusive batch ownership to the caller.
       _writer!.writeFromSync(bytes);
       accepted = true;
       // OS-visible writes survive process kill; periodic fsync also bounds
       // power-loss exposure to one second. Seal always fsyncs before publish.
       _bytes += bytes.length;
       _chunkFrames++;
+      // omi-perf-allow: sync-file-io -- Upstream's once-per-second durability checkpoint bounds power-loss exposure.
       if (_chunkFrames % codec.getFramesPerSecond() == 0) _writer!.flushSync();
       _wal!.totalFrames = _chunkFrames;
       _wal!.seconds = (_chunkFrames / codec.getFramesPerSecond()).ceil();
@@ -118,6 +126,7 @@ class MobileBatchBuffer {
     final writer = _writer, wal = _wal, journal = _journal;
     if (writer == null || wal == null || journal == null) return;
     try {
+      // omi-perf-allow: sync-file-io -- Seal the current chunk durably before publishing it to the upload pipeline.
       writer.flushSync();
       writer.closeSync();
     } on FileSystemException {

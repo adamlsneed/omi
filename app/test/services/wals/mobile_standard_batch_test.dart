@@ -229,6 +229,26 @@ void main() {
     expect(published, isEmpty);
   });
 
+  test('startup scan counts retained audio once and ignores unrelated files', () async {
+    await File('${directory.path}/audio_omimobilebatchfirst.bin').writeAsBytes(List.filled(8, 1));
+    await File('${directory.path}/audio_omimobilebatchsecond.bin.torn').writeAsBytes(List.filled(4, 2));
+    await File('${directory.path}/unrelated.bin').writeAsBytes(List.filled(100, 3));
+    await File('${directory.path}/audio_omimobilebatchfirst.bin.batch-journal').writeAsString('metadata');
+    final tiny = MobileBatchBuffer(
+      directory: directory,
+      maxBytes: 17,
+      maxFiles: 3,
+      publish: (wal) async => published.add(wal),
+    );
+    await tiny.initialize();
+    expect(tiny.append([9], uid: uid, codec: BleAudioCodec.opus, now: clock), true);
+    expect(tiny.append([10], uid: uid, codec: BleAudioCodec.opus, now: clock), false);
+    await tiny.close();
+    expect(readFrames(File('${directory.path}/${published.single.filePath}')), [
+      [9]
+    ]);
+  });
+
   test('restart recovers writes missing from shared WAL index and never duplicates indexed files', () async {
     await enable();
     expect(route(1), true);
