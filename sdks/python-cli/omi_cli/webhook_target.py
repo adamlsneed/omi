@@ -72,7 +72,7 @@ def inspect_target(url: str, resolver: Optional[Resolver] = None) -> TargetRepor
     except socket.gaierror as exc:
         return TargetReport(False, f"Omi cannot resolve {host}", str(exc))
 
-    addresses: list[IPAddress] = []
+    addresses: dict[IPAddress, str] = {}
     for candidate in resolved:
         try:
             ip = ipaddress.ip_address(candidate)
@@ -81,12 +81,12 @@ def inspect_target(url: str, resolver: Optional[Resolver] = None) -> TargetRepor
             # when one of them raises, so an unreadable address is a failure
             # here too rather than an answer to skip.
             return TargetReport(False, f"{host} resolves to an address Omi cannot read: {candidate}")
-        if ip not in addresses:
-            addresses.append(ip)
+        # Keep the resolver's spelling; mapped IPv6 formatting varies by Python patch release.
+        addresses.setdefault(ip, candidate)
     if not addresses:
         return TargetReport(False, f"Omi cannot resolve {host}", "No addresses returned.")
 
-    private = [str(ip) for ip in addresses if not is_public_address(ip)]
+    private = [display for ip, display in addresses.items() if not is_public_address(ip)]
     if private:
         return TargetReport(
             False,
@@ -96,4 +96,4 @@ def inspect_target(url: str, resolver: Optional[Resolver] = None) -> TargetRepor
         )
 
     detail = None if parts.scheme == "https" else "Omi delivers over http too, but the payload is unencrypted."
-    return TargetReport(True, f"{host} resolves to {', '.join(str(ip) for ip in addresses)}", detail)
+    return TargetReport(True, f"{host} resolves to {', '.join(addresses.values())}", detail)
