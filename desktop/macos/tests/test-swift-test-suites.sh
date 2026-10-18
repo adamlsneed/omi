@@ -414,11 +414,27 @@ fi
 # A discovery set made entirely of serial suites still executes with one
 # effective worker and must not report the misleading zero-worker summary.
 export OMI_SWIFT_TEST_SERIAL_SUITES="ActionItemsFTSRepairTests AlphaTests APIClientRoutingTests AuthRefreshResilienceTests AuthTokenStorageTests BetaTests ChatDiscoverabilityTests PiMonoWiringTests"
+: >"$FAKE_XCRUN_SCRATCH_LOG"
+: >"$FAKE_XCRUN_LOG"
 if "$RUNNER" >"$TMPDIR/all-serial-runner.out" 2>"$TMPDIR/all-serial-runner.err"; then
   fail "all-serial runner unexpectedly succeeded despite AlphaTests failure"
 fi
 if ! grep -q "Ran 9 Swift suites in isolation with 1 worker(s)," "$TMPDIR/all-serial-runner.out"; then
   fail "all-serial runner did not report one effective worker"
+fi
+if [ "$(awk -F '\t' '{print $2}' "$FAKE_XCRUN_SCRATCH_LOG" | sort -u | wc -l | tr -d ' ')" != "1" ]; then
+  fail "serial suites did not reuse their compiled build scratch"
+fi
+for column in 4 5; do
+  if [ "$(awk -F '\t' -v column="$column" '{print $column}' "$FAKE_XCRUN_SCRATCH_LOG" | sort -u | wc -l | tr -d ' ')" != "9" ]; then
+    fail "serial suites did not retain separate runtime homes and temporary directories"
+  fi
+done
+if ! awk '/swift test/ && /--filter/ { if (gsub(/--filter/, "&") != 1) exit 1; count++ } END { if (count != 9) exit 1 }' "$FAKE_XCRUN_LOG"; then
+  fail "serial suites did not retain one SwiftPM process per suite"
+fi
+if [ -f "$FAKE_XCRUN_SYNC_DIR/serial-overlap" ]; then
+  fail "serial suites overlapped while sharing their compiled build scratch"
 fi
 export OMI_SWIFT_TEST_SERIAL_SUITES="AuthRefreshResilienceTests AuthTokenStorageTests"
 
