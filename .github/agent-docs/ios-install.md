@@ -65,6 +65,14 @@ through its Watch app and expose Watch crash reports under `systemCrashLogs` in
 `devicectl device info files`. Look for `ProxiedDevice-*/.../omiWatchApp-*.ips` and
 copy the report with `devicectl device copy from`, preserving the device's logs.
 Confirm actual installation rather than only the placeholder, then verify launch.
+The companion can retain an older Watch binary when both bundles have the same
+`CFBundleVersion`, even after reinstalling the phone app. If the Watch payload
+changed, use a newer Watch build number in a fresh canonical-config copy via
+`CURRENT_PROJECT_VERSION[sdk=watchos*]` in `LocalSigning.xcconfig`, then rerun the
+canonical installer with `OMI_LOCAL_CONFIG`. Preserve the original configuration
+and recordings. With the phone wired, bounded `appconduitd` logs can distinguish
+`Finished placeholder install` from `Finished install` and report
+`watchKitAppExecutableHash`; compare that hash with the built Watch executable.
 End temporary Device Hub screen sessions afterward; an active session suppressed
 the iPhone's onscreen keyboard even with keyboard capture off during this recovery.
 
