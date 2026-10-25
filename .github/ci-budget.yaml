@@ -2036,7 +2036,6 @@
         "python-cli-ci",
         "repo-checks",
         "role_images",
-        "runtime_image_contracts",
         "sdk-cpp",
         "sdk-rust",
         "web-checks",
@@ -2064,25 +2063,6 @@
       "owner": "CI maintainers",
       "rationale": "P18 daily orchestration only; called test workflows retain their own runner/time caps and account for one extra daily invocation. Source and report use standard Ubuntu.",
       "reusable": "./.github/workflows/role_images.yml",
-      "runner": "reusable",
-      "runner_counts": {
-        "reusable": 1
-      },
-      "runs_on": null
-    },
-    "main_nightly_full.yml/runtime_image_contracts": {
-      "budget_p50_minutes": 5,
-      "display_name": "runtime_image_contracts",
-      "expected_nightly_runs_per_day": 1,
-      "expected_runs_class": "daily-main-health",
-      "expected_runs_per_day": 1,
-      "if": null,
-      "matrix": {},
-      "matrix_size": 1,
-      "needs": "source",
-      "owner": "CI maintainers",
-      "rationale": "P18 daily orchestration only; called test workflows retain their own runner/time caps and account for one extra daily invocation. Source and report use standard Ubuntu.",
-      "reusable": "./.github/workflows/runtime_image_contracts.yml",
       "runner": "reusable",
       "runner_counts": {
         "reusable": 1

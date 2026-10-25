@@ -80,6 +80,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("          ref: main", self.nightly)
         self.assertEqual(self.nightly.count("nightly_main_sha: ${{ needs.source.outputs.main_sha }}"), len(self.calls))
         self.assertEqual(set(jobs(self.nightly)) - set(self.calls), {"source", "report"})
+        report_needs = re.findall(r"(?m)^      - ([\w-]+)$", jobs(self.nightly)["report"].split("    runs-on:", 1)[0])
+        self.assertEqual(set(report_needs), {"source", *self.calls})
 
     def test_checkouts_are_pinned_and_external_writer_jobs_are_disabled(self):
         for filename in self.calls.values():

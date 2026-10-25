@@ -198,7 +198,6 @@ jobs:
       - python-cli-ci
       - repo-checks
       - role_images
-      - runtime_image_contracts
       - sdk-cpp
       - sdk-rust
       - web-checks
