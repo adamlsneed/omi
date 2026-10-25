@@ -6,79 +6,80 @@ rename_person validates target names before dispatching to MCP handlers.
 """
 
 import importlib.util
-import os
-import sys
-import types
 from pathlib import Path
+from types import ModuleType
 from unittest.mock import MagicMock
+
 import pytest
 
-BACKEND_DIR = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(BACKEND_DIR))
-
-# Stub database and external dependencies so test suite runs in pure isolation
-for mod in [
-    'database',
-    'database.conversations',
-    'database.users',
-    'database._client',
-    'database.chat_edits',
-    'utils.memory',
-    'utils.memory.memory_service',
-    'utils.memory.memory_system',
-    'utils.memory.canonical_memory_adapter',
-    'utils.messaging',
-    'utils.messaging.undo',
-    'utils.mcp_server',
-    'utils.mcp_server.handlers',
-    'utils.mcp_server.handlers.other',
-]:
-    if mod not in sys.modules:
-        sys.modules[mod] = types.ModuleType(mod)
-
-sys.modules['database._client'].get_data_plane_firestore_client = MagicMock()
-sys.modules['database.chat_edits'].envelope = lambda item, label: {'item': item, 'label': label}
-sys.modules['database.chat_edits'].snapshot = MagicMock()
-sys.modules['database.chat_edits'].decode = MagicMock()
-sys.modules['utils.messaging.undo'].record_write = MagicMock()
-sys.modules['utils.mcp_server.handlers.other'].rename_person = MagicMock(return_value={'person': {'name': 'New'}})
-sys.modules['utils.memory.memory_service'].MemoryService = MagicMock()
-sys.modules['utils.memory.memory_system'].MemorySystem = MagicMock()
-sys.modules['utils.memory.canonical_memory_adapter'].read_canonical_memory_item = MagicMock()
-
-# Load edit_tools directly
-edit_tools_path = BACKEND_DIR / 'utils' / 'retrieval' / 'tools' / 'edit_tools.py'
-spec = importlib.util.spec_from_file_location('utils.retrieval.tools.edit_tools', edit_tools_path)
-edit_tools = importlib.util.module_from_spec(spec)
-sys.modules['utils.retrieval.tools.edit_tools'] = edit_tools
-spec.loader.exec_module(edit_tools)
-
+from testing.import_isolation import stub_modules
 from utils.retrieval import turn_refs
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+
+@pytest.fixture
+def edit_tools():
+    modules = {
+        name: ModuleType(name)
+        for name in [
+            'database',
+            'database.conversations',
+            'database.users',
+            'database._client',
+            'database.chat_edits',
+            'utils.memory',
+            'utils.memory.memory_service',
+            'utils.memory.memory_system',
+            'utils.memory.canonical_memory_adapter',
+            'utils.messaging',
+            'utils.messaging.undo',
+            'utils.mcp_server',
+            'utils.mcp_server.handlers',
+            'utils.mcp_server.handlers.other',
+        ]
+    }
+    modules['database._client'].get_data_plane_firestore_client = MagicMock()
+    modules['database.chat_edits'].envelope = lambda item, label: {'item': item, 'label': label}
+    modules['database.chat_edits'].snapshot = MagicMock()
+    modules['database.chat_edits'].decode = MagicMock()
+    modules['utils.messaging.undo'].record_write = MagicMock()
+    modules['utils.mcp_server.handlers.other'].rename_person = MagicMock(return_value={'person': {'name': 'New'}})
+    modules['utils.memory.memory_service'].MemoryService = MagicMock()
+    modules['utils.memory.memory_system'].MemorySystem = MagicMock()
+    modules['utils.memory.canonical_memory_adapter'].read_canonical_memory_item = MagicMock()
+
+    with stub_modules(modules):
+        path = BACKEND_DIR / 'utils' / 'retrieval' / 'tools' / 'edit_tools.py'
+        spec = importlib.util.spec_from_file_location('isolated_edit_tools', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        yield module
 
 
 class TestOwnerResilience:
-    def test_owner_none_config_raises_permission_error(self):
+    def test_owner_none_config_raises_permission_error(self, edit_tools):
         with pytest.raises(PermissionError, match="Authenticated owner required"):
             edit_tools.owner(None)
 
-    def test_owner_empty_config_raises_permission_error(self):
+    def test_owner_empty_config_raises_permission_error(self, edit_tools):
         with pytest.raises(PermissionError, match="Authenticated owner required"):
             edit_tools.owner({})
 
-    def test_owner_none_configurable_raises_permission_error(self):
+    def test_owner_none_configurable_raises_permission_error(self, edit_tools):
         # When configurable is explicitly None, must raise PermissionError, NOT AttributeError
         with pytest.raises(PermissionError, match="Authenticated owner required"):
             edit_tools.owner({"configurable": None})
 
-    def test_owner_empty_configurable_raises_permission_error(self):
+    def test_owner_empty_configurable_raises_permission_error(self, edit_tools):
         with pytest.raises(PermissionError, match="Authenticated owner required"):
             edit_tools.owner({"configurable": {}})
 
-    def test_owner_blank_user_id_raises_permission_error(self):
+    def test_owner_blank_user_id_raises_permission_error(self, edit_tools):
         with pytest.raises(PermissionError, match="Authenticated owner required"):
             edit_tools.owner({"configurable": {"user_id": ""}})
 
-    def test_owner_valid_user_id_returns_uid(self):
+    def test_owner_valid_user_id_returns_uid(self, edit_tools):
         assert edit_tools.owner({"configurable": {"user_id": "user_123"}}) == "user_123"
 
 
@@ -124,27 +125,27 @@ class TestEditToolsArgumentValidation:
             }
         }
 
-    def test_rename_person_rejects_empty_name(self, valid_config):
+    def test_rename_person_rejects_empty_name(self, edit_tools, valid_config):
         res = edit_tools.rename_person.func("person_1", "", config=valid_config)
         assert "invalid_name" in res
         assert "1 to 100 characters" in res
 
-    def test_rename_person_rejects_none_name(self, valid_config):
+    def test_rename_person_rejects_none_name(self, edit_tools, valid_config):
         res = edit_tools.rename_person.func("person_1", None, config=valid_config)
         assert "invalid_name" in res
         assert "1 to 100 characters" in res
 
-    def test_rename_person_rejects_whitespace_name(self, valid_config):
+    def test_rename_person_rejects_whitespace_name(self, edit_tools, valid_config):
         res = edit_tools.rename_person.func("person_1", "   \t\n  ", config=valid_config)
         assert "invalid_name" in res
         assert "1 to 100 characters" in res
 
-    def test_rename_person_rejects_too_long_name(self, valid_config):
+    def test_rename_person_rejects_too_long_name(self, edit_tools, valid_config):
         res = edit_tools.rename_person.func("person_1", "a" * 101, config=valid_config)
         assert "invalid_name" in res
         assert "1 to 100 characters" in res
 
-    def test_tools_raise_permission_error_on_none_configurable(self):
+    def test_tools_raise_permission_error_on_none_configurable(self, edit_tools):
         bad_config = {"configurable": None}
         with pytest.raises(PermissionError):
             edit_tools.update_conversation.func("c1", "correction", "title", config=bad_config)

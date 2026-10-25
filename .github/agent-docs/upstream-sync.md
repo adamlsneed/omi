@@ -20,8 +20,8 @@ relevant checks again after fixing the cause. Bound retries for transient
 infrastructure failures. Never bypass hooks, weaken assertions, count a failure
 as passed, force-push, rewrite published history, or push directly to main.
 Merge through a fork PR with a regular merge commit only after verification.
-Backend files remain an exact upstream mirror; never deploy a fork backend or
-send changes to BasedHardware.
+Backend files follow the mirror policy and sole approved test exception in
+`fork-rules.md`; never deploy a fork backend or send changes to BasedHardware.
 
 If an external prerequisite cannot be supplied by the agent, finish independent
 work, preserve artifacts and recovery evidence, and report the exact missing
@@ -78,7 +78,8 @@ mirror checks even if another process fetches newer upstream commits.
 - Follow upstream removals/renames when the fork touched a file incidentally.
 - Keep both localization key sets; regenerate generated files using current tools.
 - Apply the standing policy to product conflicts without waiting for Adam.
-- Keep `backend/` byte-equivalent to the selected upstream commit. If formatting
+- Keep `backend/` byte-equivalent to the selected upstream commit apart from the
+  exact approved test-only exception in `fork-rules.md`. If formatting
   or hooks change that mirror, fix the fork tooling responsible before committing;
   do not amend with `--no-verify` or edit upstream backend files to satisfy it.
 - Remove superseded fork implementations, tests, audit entries and docs together
@@ -100,7 +101,10 @@ adaptations, not only the upstream range. Always run:
 
 ```bash
 ./scripts/fork-feature-audit.sh
-git diff --quiet "$UPSTREAM_SHA" -- backend/
+git diff --quiet "$UPSTREAM_SHA" -- backend/ \
+  ":(exclude)backend/tests/unit/test_edit_tools_resilience.py"
+# Verify the excluded test against the hook's approved blob, or restore upstream
+# when its equivalent repair lands. All production backend bytes must match.
 git diff --check origin/main HEAD
 make preflight
 ```

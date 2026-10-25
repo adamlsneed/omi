@@ -4,6 +4,11 @@
 # Checks that consume PR metadata declare `requires_pr_body: true`; post-merge
 # push runs exclude only that category because no authoritative PR body is available.
 checks:
+  - id: fork-backend-mirror-exception-tests
+    command: ["python3", ".github/scripts/test_fork_backend_mirror_exception.py"]
+    triggers: ["scripts/pre-commit", ".github/scripts/test_fork_backend_mirror_exception.py", "backend/tests/unit/test_edit_tools_resilience.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "October 25 sync: Adam approved one test-only isolation repair; pin both blobs and reject other backend edits or upstream drift."
   - id: pcloud-backup-contract-tests
     command: ["bash", "scripts/run-plugin-pcloud-tests.sh"]
     triggers: ["plugins/omi-pcloud-app/**", "plugins/omi-plugin-sdk/**", "backend/utils/plugin_transport.py", "backend/utils/plugin_backup_audio.py", "scripts/run-plugin-pcloud-tests.sh", ".github/checks-manifest.yaml"]

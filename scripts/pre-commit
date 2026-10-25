@@ -108,11 +108,23 @@ if [ -n "$STAGED_PYTHON_FILES" ]; then
       if ! git merge-base --is-ancestor "$mirror_ref" upstream/main; then
         mirror_ref=$(git merge-base HEAD upstream/main)
       fi
-      if ! git diff --cached --quiet "$mirror_ref" -- backend/; then
-        echo "Fork backend must exactly mirror $mirror_ref; restore upstream bytes before committing." >&2
-        exit 1
+      if git diff --cached --quiet "$mirror_ref" -- backend/; then
+        echo "Verified exact upstream backend mirror ($mirror_ref); preserving its formatting."
+      else
+        # Adam approved this one test-only isolation repair on 2026-10-25.
+        # Both blobs are pinned: any upstream drift or extra fork edit fails.
+        exception_path=backend/tests/unit/test_edit_tools_resilience.py
+        upstream_blob=32acf6628b479ce2c9d6b9b5fac81b265386d8a7
+        approved_blob=a66d38337a6f7e510c6c6144625de1750cf3d452
+        if [ "$(git rev-parse "$mirror_ref:$exception_path" 2>/dev/null)" = "$upstream_blob" ] &&
+           [ "$(git rev-parse ":$exception_path" 2>/dev/null)" = "$approved_blob" ] &&
+           git diff --cached --quiet "$mirror_ref" -- backend/ ":(exclude)$exception_path"; then
+          echo "Verified upstream backend mirror with the approved test-isolation exception; preserving its bytes."
+        else
+          echo "Fork backend differs from $mirror_ref beyond the approved test-only exception; restore upstream bytes." >&2
+          exit 1
+        fi
       fi
-      echo "Verified exact upstream backend mirror ($mirror_ref); preserving its formatting."
       ;;
     *)
       echo "Formatting staged Python files in backend/ with the pinned formatter..."
