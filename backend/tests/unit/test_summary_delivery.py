@@ -1,12 +1,22 @@
 """Summary success is a fenced durable outcome, never upload/model success."""
 
+import importlib
 from copy import deepcopy
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
 from config import summary_guarantee as flags
 from utils.conversations import summary_delivery as delivery
 from utils.conversations.deterministic_minimum import build_deterministic_minimum_structured
+
+
+@pytest.fixture(scope='module', autouse=True)
+def summary_database_dependency():
+    # The banked-summary branch lazily imports effective_user_title. Load the
+    # real dependency in setup so the call CPU guard measures merge logic,
+    # while import failures still fail this suite and all assertions stay real.
+    importlib.import_module('database.conversations')
 
 
 @pytest.fixture
@@ -37,12 +47,29 @@ def test_dark_defaults_and_no_shape_change(monkeypatch):
     delivery.prepare(row, 'u', now=100)
     assert row == before
     assert not flags.enabled('u') and not flags.repair_enabled()
-    result = build_deterministic_minimum_structured(SimpleNamespace(transcript_segments=[]))
+    result = build_deterministic_minimum_structured(SimpleNamespace(transcript_segments=[]), uid='u')
     assert 'title_provenance' not in result.model_dump()
 
 
+def test_server_title_provenance_is_stamped_only_for_cohort_owners(monkeypatch):
+    """PFS-F1: the gate being on somewhere must not stamp every owner's minimum."""
+    monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_PERCENT', '0')
+    monkeypatch.delenv('FIRST_SUMMARY_UID_ALLOWLIST', raising=False)
+    row = SimpleNamespace(transcript_segments=[])
+    assert flags.enabled() and not flags.enabled('outside-owner')
+    assert 'title_provenance' not in build_deterministic_minimum_structured(row, uid='outside-owner').model_dump()
+    assert 'title_provenance' not in build_deterministic_minimum_structured(row, uid=None).model_dump()
+    assert 'title_provenance' not in build_deterministic_minimum_structured(row).model_dump()
+
+    monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_PERCENT', '100')
+    assert build_deterministic_minimum_structured(row, uid='outside-owner').model_dump()['title_provenance'] == (
+        'server_minimum'
+    )
+
+
 def test_server_title_provenance_is_not_a_model_or_manual_title(enabled):
-    result = build_deterministic_minimum_structured(SimpleNamespace(transcript_segments=[]))
+    result = build_deterministic_minimum_structured(SimpleNamespace(transcript_segments=[]), uid='u')
     assert result.model_dump()['title_provenance'] == 'server_minimum'
     assert 'title_provenance' not in result.model_json_schema()['properties']
     assert delivery.refusal(debt()) is None
@@ -67,6 +94,38 @@ def test_deadline_metadata_survives_appends(enabled):
     delivery.prepare(row, 'u', now=10000)
     assert row['summary_first_pending_at'] == 100
     assert row['summary_due_at'] == 220
+
+
+def test_current_finalizer_finishes_completed_minimum_but_background_repair_cannot(enabled, monkeypatch):
+    row = {**debt(), 'finalization_job_id': 'current-job', 'finalization_status': 'queued'}
+    assert delivery.refusal(row) == 'generation_owned'
+    assert delivery.finalization_pending(row, 'u', 'current-job')
+    for changes in (
+        {'structured': {'overview': 'Already delivered'}},
+        {'user_title': 'Manual title'},
+        {'deleted': True},
+        {'discarded': True},
+        {'terminal_no_derived_effects': True},
+        {'data_protection_level': 'e2ee'},
+        {'summary_title_provenance': None},
+        {'summary_blocked_reason': 'empty_output_exhausted'},
+        {'finalization_status': 'blocked_byok'},
+        {'finalization_job_id': 'replacement-job'},
+        {'finalization_job_id': None},
+    ):
+        assert not delivery.finalization_pending({**row, **changes}, 'u', 'current-job')
+    monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'false')
+    assert not delivery.finalization_pending(row, 'u', 'current-job')
+
+
+@pytest.mark.parametrize('finish,expected', [(50, 1900), (1800, 200), (2100, None), (None, None)])
+def test_post_speech_latency_excludes_time_before_acceptance_and_open_speech(enabled, finish, expected):
+    row = debt()
+    if finish is not None:
+        row['finished_at'] = datetime.fromtimestamp(finish, timezone.utc)
+    receipt = delivery.merge_result(row, {'status': 'completed', 'summary_output_present': True}, 'u', now=2000)
+    assert receipt['latency'] == 1900
+    assert receipt['closed_latency'] == expected
 
 
 def test_intake_discard_never_indexes_debt_and_keep_gets_a_new_deadline(enabled):
@@ -118,10 +177,25 @@ def test_empty_model_output_retains_debt_and_prior_good_output(enabled):
     with pytest.raises(delivery.SummaryOutputUnavailable):
         delivery.merge_result(row, minimum(), 'u', now=300)
     assert row['summary_due_at'] == 220
-    # A failed model attempt never gets to overwrite a prior usable summary.
-    old = {**row, 'summary_completed_at': 150, 'summary_due_at': None, 'summary_output_present': True}
-    with pytest.raises(delivery.SummaryOutputUnavailable):
-        delivery.merge_result(old, minimum(), 'u', now=300)
+    # A failed model attempt never gets to overwrite a prior usable summary:
+    # the enriched row now commits (no lane stranding without an outbox), but
+    # the banked content and receipts are re-applied onto the write instead
+    # of letting the empty structured payload clobber them.
+    old = {
+        **row,
+        'structured': {'title': 'Kept', 'overview': 'Banked summary'},
+        'summary_completed_at': 150,
+        'summary_due_at': None,
+        'summary_output_present': True,
+    }
+    empty_write = minimum()
+    assert delivery.merge_result(old, empty_write, 'u', now=300) is None
+    banked_structured = empty_write['structured']
+    assert isinstance(banked_structured, dict)
+    assert banked_structured['overview'] == 'Banked summary'
+    assert empty_write['summary_output_present'] is True
+    assert empty_write['summary_completed_at'] == 150
+    assert empty_write['summary_due_at'] is None
 
 
 def test_lost_ack_does_not_emit_second_terminal_receipt(enabled):

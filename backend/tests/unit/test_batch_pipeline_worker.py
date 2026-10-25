@@ -1,5 +1,7 @@
 from dataclasses import replace
 from contextlib import nullcontext
+from tests.unit.fixtures.cap_rollout import full_cap_dispatch_rollout  # noqa: F401
+
 import io
 import logging
 import sys
@@ -11,6 +13,7 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
+from config import stt_cap_dispatch as cap_policy
 from config.batch_pipeline import worker_silence_disposition_enabled
 from config.batch_pipeline_providers import ProviderConfig, provider_config
 from diarizer import batch_pipeline, batch_pipeline_models
@@ -24,13 +27,21 @@ from diarizer.batch_pipeline import (
     speech_windows,
 )
 from diarizer.batch_pipeline_models import ParakeetWords, PyannoteVAD, decode_pcm16_wav
-from utils.batch_pipeline.contracts import WorkItem, Priority
+from utils.batch_pipeline.contracts import WorkItem, Priority, WorkResult, ValidationFailureWork
 from utils.batch_pipeline.scheduler import Scheduler
 from utils.batch_pipeline.pump import Pump
 from utils.batch_pipeline.recovery_disposition import result_outcome
 from utils.batch_pipeline.worker_silence import inspect_worker_silence
 from utils.stt import local_vad as vad
 from tests.unit.test_batch_pipeline_scheduler import MemoryStore
+
+
+@pytest.fixture(autouse=True)
+def _full_gpu_stages(monkeypatch):
+    # This suite pins the full-stage chain. The ship-on GPU skips have their own
+    # contract in test_batch_pipeline_diarization_gate.py.
+    monkeypatch.setenv('BATCH_PIPELINE_DIARIZE_SPEECH_ONLY_ENABLED', 'false')
+    monkeypatch.setenv('BATCH_PIPELINE_SHORT_SPEECH_SINGLE_ENABLED', 'false')
 
 
 class Samples:
@@ -73,6 +84,7 @@ def setup_worker(**kwargs):
         return {'turns': []}
 
     settings = dict(
+        language_of=lambda item: 'en',  # Synthetic English fixture.
         decode=decode,
         vad=lambda s: [(0, len(s) / 16000)],
         words_providers={'parakeet': provider},
@@ -140,7 +152,9 @@ def test_item_failures_log_class_and_stage_without_callback_or_private_content(s
     else:
         settings['persist'] = broken
     worker, *_ = setup_worker(**settings)
-    assert worker.process_batch([item(duration=60)]) == []
+    results = worker.process_batch([item(duration=60)])
+    expected_reason = {'word_clocks': 'word_clock', 'assemble_words': 'empty_asr'}.get(stage)
+    assert results == ([ValidationFailureWork('a', stage, expected_reason)] if expected_reason else [])
     records = [record for record in caplog.records if 'event=batch_worker_failed' in record.getMessage()]
     assert len(records) == worker.counts['failed'] == 1
     reason = {'word_clocks': 'word_clock', 'assemble_words': 'empty_asr'}.get(stage, 'unclassified')
@@ -218,7 +232,7 @@ def test_empty_asr_on_vad_speech_stays_failure_with_numeric_shape(caplog):
         words_providers={'parakeet': EmptyWords()},
         on_failure=None,
     )
-    assert worker.process_batch([item(duration=7.9)]) == []
+    assert worker.process_batch([item(duration=7.9)]) == [ValidationFailureWork('a', 'assemble_words', 'empty_asr')]
     assert not saved
     message = next(r.getMessage() for r in caplog.records if 'event=batch_worker_failed' in r.getMessage())
     assert 'stage=assemble_words' in message and 'reason=empty_asr' in message
@@ -308,7 +322,9 @@ def test_empty_recovery_remains_failure_and_healthy_sibling_survives(caplog):
     worker, _, saved, _, diarized, failures = setup_worker(
         words_providers={'parakeet': EmptyWords()}, recover_words=recover
     )
-    assert [r.segment_id for r in worker.process_batch([item(), item('b', 3)])] == ['b']
+    results = worker.process_batch([item(), item('b', 3)])
+    assert ValidationFailureWork('a', 'assemble_words', 'empty_asr') in results
+    assert [r.segment_id for r in results if isinstance(r, WorkResult)] == ['b']
     assert calls == [32000, 48000] and set(saved) == {'b'}
     assert failures == [('a', 'BatchValidationError')] and diarized == [48000]
     assert 'reason=empty_asr' in caplog.text
@@ -325,7 +341,8 @@ def test_recovery_only_runs_for_valid_empty_speech(mode):
         words_providers={'parakeet': Provider()},
         recover_words=lambda *args: pytest.fail('must not retry silence, successful words or malformed clocks'),
     )
-    assert bool(worker.process_batch([item()])) == (mode != 'invalid')
+    results = worker.process_batch([item()])
+    assert any(isinstance(r, WorkResult) for r in results) == (mode != 'invalid')
 
 
 def test_recovery_fatal_cuda_quarantines_chain():
@@ -369,7 +386,9 @@ def test_context_only_hypothesis_is_observable_failure_not_silence(caplog):
         words_providers={'parakeet': ContextWords()},
         on_failure=None,
     )
-    assert worker.process_batch([item(duration=10.02)]) == []
+    assert worker.process_batch([item(duration=10.02)]) == [
+        ValidationFailureWork('a', 'assemble_words', 'no_owned_words')
+    ]
     assert not saved
     message = next(r.getMessage() for r in caplog.records if 'event=batch_worker_failed' in r.getMessage())
     assert 'reason=no_owned_words' in message and 'asr_words=1 owned_words=0' in message
@@ -525,7 +544,8 @@ def test_reuse_default_off_never_reads_lineage():
 
 
 @pytest.mark.parametrize('spans', [[(-1, 1)], [(0, float('nan'))], [(0, 100)]])
-def test_invalid_vad_is_failure_not_silence(spans):
+def test_invalid_vad_is_failure_not_silence(spans, monkeypatch):
+    monkeypatch.setenv('BATCH_PIPELINE_WORKER_VALIDATION_DISPOSITION_ENABLED', 'false')
     worker, _, _, _, _, failures = setup_worker(vad=lambda s: spans)
     assert worker.process_batch([item()]) == []
     assert failures == [('a', 'BatchValidationError')]
@@ -730,7 +750,7 @@ def test_capture_vad_groups_keep_words_and_diarization_on_original_span_clocks()
 def test_cap_provenance_is_additive_and_uses_actual_padded_provider_audio(monkeypatch, enforce):
     monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', str(enforce))
     worker, words, saved, _, _, _ = setup_worker()
-    worker.process_batch([item('a', 2)], authorize_dispatch=lambda ids: ids)
+    worker.process_batch([item('a', 2)], authorize_dispatch=lambda ids: {i: None for i in ids})
     if enforce:
         assert saved['a']['cap_dispatch'] == {
             'omi_funded_accepted_provider_audio_seconds': 2,
@@ -742,19 +762,21 @@ def test_cap_provenance_is_additive_and_uses_actual_padded_provider_audio(monkey
     assert words.calls == [[2]]
 
 
-def test_worker_rechecks_immediately_before_asr_and_holds_without_failure(monkeypatch):
+@pytest.mark.parametrize('dispatch', [False, True])
+def test_worker_rechecks_immediately_before_asr_and_holds_without_failure(monkeypatch, dispatch):
     from utils.batch_pipeline.contracts import HeldWork
 
-    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', 'true')
+    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', str(dispatch).lower())
+    monkeypatch.setenv('LADDER_V1_BUDGET_ENFORCEMENT_ENABLED', 'true')
     worker, words, saved, _, diarized, failures = setup_worker()
     checks = []
 
     def authorize(ids):
         checks.append(ids)
-        return set()
+        return {segment_id: 'allowance_exhausted' for segment_id in ids}
 
     result = worker.process_batch([item('a', 2)], authorize_dispatch=authorize)
-    assert result == [HeldWork('a')]
+    assert result == [HeldWork('a', reason='allowance_exhausted')]
     assert checks == [{'a'}]
     assert not words.calls and not saved and not diarized and not failures
 
@@ -768,12 +790,18 @@ def test_worker_missing_authority_does_not_spend_at_cap(monkeypatch):
     assert not words.calls and not saved
 
 
+@pytest.mark.parametrize('scope', ['legacy', 'offline'])
 @pytest.mark.parametrize('enforce', [False, True])
 @pytest.mark.parametrize('recovery_allowed', [False, True])
-def test_full_capture_retry_rechecks_cap_and_counts_actual_padding(monkeypatch, enforce, recovery_allowed):
+def test_full_capture_retry_rechecks_cap_and_counts_actual_padding(monkeypatch, scope, enforce, recovery_allowed):
     from utils.batch_pipeline.contracts import HeldWork
 
-    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', str(enforce))
+    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', str(enforce if scope == 'legacy' else False))
+    monkeypatch.setenv('STT_CAP_OFFLINE_ENFORCEMENT', str(enforce if scope == 'offline' else False))
+    if scope == 'offline':
+        # Exercise the new boundary with both legacy selection fences closed.
+        monkeypatch.setenv('STT_CAP_DISPATCH_COHORT', 'off')
+        monkeypatch.setattr(cap_policy, '_BATCH_LANE_READY', False)
     calls, checks = [], []
 
     class Model:
@@ -791,11 +819,13 @@ def test_full_capture_retry_rechecks_cap_and_counts_actual_padding(monkeypatch, 
 
     def authorize(ids):
         checks.append(ids)
-        return ids if len(checks) == 1 or recovery_allowed else set()
+        if len(checks) == 1 or recovery_allowed:
+            return {segment_id: None for segment_id in ids}
+        return {segment_id: 'allowance_exhausted' for segment_id in ids}
 
     result = worker.process_batch([item('a', 2)], authorize_dispatch=authorize)
     if enforce and not recovery_allowed:
-        assert result == [HeldWork('a')]
+        assert result == [HeldWork('a', reason='allowance_exhausted')]
         assert calls == [[2]]
         assert not saved and not diarized and not failures
     else:
@@ -839,15 +869,15 @@ def test_oversized_empty_retry_holds_only_when_enforced(monkeypatch, enforce):
         words_providers={'parakeet': provider},
         recover_words=provider.recover_empty,
     )
-    result = worker.process_batch([item('a', 117)], authorize_dispatch=lambda ids: ids)
+    result = worker.process_batch([item('a', 117)], authorize_dispatch=lambda ids: {i: None for i in ids})
     assert model.transcribe.call_count == 1  # Initial ASR only; 121s padded retry cannot fit.
     assert not saved and not diarized
     if enforce:
         assert result == [HeldWork('a')]
         assert not failures
     else:
-        # Exact main behavior: an empty retry enters ordinary provider failure.
-        assert not result and failures == [('a', 'BatchValidationError')]
+        assert result == [ValidationFailureWork('a', 'assemble_words', 'empty_asr')]
+        assert failures == [('a', 'BatchValidationError')]
 
 
 @pytest.mark.parametrize('enabled', [False, True])
@@ -863,7 +893,11 @@ def test_exhausted_padded_empty_asr_hands_off_without_fabricating_silence(monkey
     retry = Mock(return_value=[])
     worker, _, saved, _, diarized, _ = setup_worker(words_providers={'parakeet': EmptyWords()}, recover_words=retry)
     results = worker.process_batch([item()])
-    assert results == ([RecoveryWork('a', padded_retry_empty=True)] if enabled else [])
+    assert results == (
+        [RecoveryWork('a', padded_retry_empty=True)]
+        if enabled
+        else [ValidationFailureWork('a', 'assemble_words', 'empty_asr')]
+    )
     retry.assert_called_once()
     assert not saved and not diarized
     assert worker.counts['silence'] == 0
@@ -933,7 +967,7 @@ def test_worker_strict_vad_failure_retains_empty_asr(monkeypatch, raw):
         words_providers={'parakeet': provider},
         recover_words=lambda *_: [],
     )
-    assert worker.process_batch([item()]) == []
+    assert worker.process_batch([item()]) == [ValidationFailureWork('a', 'assemble_words', 'empty_asr')]
     assert failures == [('a', 'BatchValidationError')] and not saved and not diarized
 
 
@@ -971,7 +1005,9 @@ def test_worker_disposition_does_not_replace_positive_asr(monkeypatch, recovered
         recover_words=lambda *_: [{'word': 'heard', 'timestamp': [1, 1.1]}] if recovered else [],
     )
     results = worker.process_batch([item(duration=10.02)])
-    assert bool(results) is recovered
+    assert any(isinstance(r, WorkResult) for r in results) is recovered
+    if not recovered:
+        assert results == [ValidationFailureWork('a', 'assemble_words', 'no_owned_words')]
     assert bool(saved) is recovered
     strict.assert_not_called()
 
@@ -1026,3 +1062,51 @@ async def test_empty_asr_records_padded_retry_empty_only_when_padded_retry_ran(
     assert job.get('worker_empty_evidence') == expected_evidence
     direct = worker.process_batch([item('b', duration)])
     assert direct == [RecoveryWork('b', padded_retry_empty=expected_empty, padded_retry=expected_retry)]
+
+
+@pytest.mark.parametrize('ladder', [False, True])
+def test_mixed_owner_gpu_batch_only_enforces_enrolled_owner(monkeypatch, ladder):
+    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', str(not ladder).lower())
+    monkeypatch.setenv('LADDER_V1_BUDGET_ENFORCEMENT_ENABLED', str(ladder).lower())
+    monkeypatch.setenv('STT_CAP_DISPATCH_COHORT', 'uid:owner-a')
+    monkeypatch.setenv('STT_CAP_DISPATCH_LANES', 'batch')
+    worker, words, saved, _, _, failures = setup_worker()
+    checks = []
+
+    def authorize(ids):
+        checks.append(ids)
+        return {segment_id: 'allowance_exhausted' for segment_id in ids}
+
+    result = worker.process_batch([item('a', 2), item('b', 2)], authorize_dispatch=authorize)
+    assert checks == [{'a'}]
+    assert words.calls == [[2]]
+    assert set(saved) == {'b'} and not failures
+    assert 'cap_dispatch' not in saved['b']
+    assert any(isinstance(row, batch_pipeline.HeldWork) and row.segment_id == 'a' for row in result)
+
+
+@pytest.mark.parametrize('lanes', ['live', 'sync', ''])
+def test_gpu_batch_outside_lane_does_not_require_cap_authority(monkeypatch, lanes):
+    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', 'true')
+    monkeypatch.setenv('STT_CAP_DISPATCH_LANES', lanes)
+    worker, words, saved, _, _, failures = setup_worker()
+    worker.process_batch([item('a', 2)])
+    assert words.calls == [[2]] and set(saved) == {'a'} and not failures
+
+
+@pytest.mark.parametrize('kill', [False, True])
+@pytest.mark.parametrize('authorized', [False, True])
+def test_offline_default_rechecks_gpu_spend_outside_legacy_scope(monkeypatch, kill, authorized):
+    monkeypatch.setenv('STT_CAP_OFFLINE_ENFORCEMENT', 'false' if kill else 'true')
+    monkeypatch.setenv('STT_CAP_DISPATCH_ENFORCEMENT', 'false')
+    monkeypatch.setenv('STT_CAP_DISPATCH_LANES', 'live')
+    worker, words, saved, _, _, failures = setup_worker()
+    authorize = Mock(side_effect=lambda ids: {i: None for i in ids} if authorized else {i: '' for i in ids})
+    result = worker.process_batch([item('a', 2)], authorize_dispatch=authorize)
+    if kill or authorized:
+        assert words.calls == [[2]] and set(saved) == {'a'}
+    else:
+        assert words.calls == [] and not saved
+        assert result == [batch_pipeline.HeldWork('a')]
+    assert not failures
+    assert authorize.call_count == int(not kill)

@@ -43,8 +43,13 @@ def create_subscription_checkout_session(
     idempotency_key: Optional[str] = None,
     customer_id: Optional[str] = None,
     promotion_code_id: Optional[str] = None,
+    trial_period_days: Optional[int] = None,
 ):
-    """Create a Stripe Checkout session for a subscription."""
+    """Create a Stripe Checkout session for a subscription.
+
+    `trial_period_days` starts the subscription with a free trial; Checkout still collects the
+    card, and Stripe charges the first period when the trial ends unless the subscriber cancels.
+    """
     try:
         success_url = urljoin(base_url, 'v1/payments/success?session_id={CHECKOUT_SESSION_ID}')  # type: ignore[reportArgumentType]  # base_url validated at runtime
         cancel_url = urljoin(base_url, 'v1/payments/cancel')  # type: ignore[reportArgumentType]  # base_url validated at runtime
@@ -74,8 +79,16 @@ def create_subscription_checkout_session(
             },
         }
 
+        if trial_period_days:
+            session_params['subscription_data']['trial_period_days'] = trial_period_days
+
         if promotion_code_id:
             session_params['discounts'] = [{'promotion_code': promotion_code_id}]
+            # Pin presentment to the price's currency. Stripe evaluates a promotion
+            # code's minimum_amount restriction against the checkout's presentment
+            # currency, so Adaptive Pricing's converted total (e.g. EUR) can fall
+            # below a USD-authored minimum and reject a valid code (issue #23299).
+            session_params['adaptive_pricing'] = {'enabled': False}
         else:
             session_params['allow_promotion_codes'] = True
 

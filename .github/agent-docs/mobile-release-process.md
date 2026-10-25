@@ -122,7 +122,9 @@ stages a candidate):
   (`1.0.554 (gate 2026-10-17-1307)`; legacy date-only receipts still parse).
   A retry inside the window reads the receipt and holds position instead of
   hopping twice; receipts live in server-side Play state and survive
-  ephemeral build machines.
+  ephemeral build machines. A staged release with no receipt (renamed in
+  Play Console, or in flight from before receipts) is not hopped: the train
+  stamps a receipt at the current fraction and holds for the window.
 
 Audited-candidate pins: the operator release gate audits a specific
 platform/version/build before dispatching. Those identifiers travel with the
@@ -140,6 +142,20 @@ Gate receipts: see "Intraday exposure ladder" above — every advancing Android
 action stamps a minute-precision receipt into the Play release name so a
 retry inside an observation window cannot hop twice.
 
+### One iOS version with Apple at a time
+
+A version that is `WAITING_FOR_REVIEW`, `IN_REVIEW`, waiting for export
+compliance, processing, or approved and unreleased (`PENDING_DEVELOPER_RELEASE`
+or `PENDING_APPLE_RELEASE`) is never withdrawn or developer-rejected to make
+room for a newer build. Withdrawing restarts Apple's queue: on 2026-10-23 three
+overnight withdrawals (1.0.571 at 04:44Z, 1.0.572 at 12:03Z, 1.0.573 at 15:14Z
+UTC), each made to ship a newer build, kept every one of them out of the store.
+A newer build waits for the next train after the in-flight version is released;
+urgent fixes ask Apple to expedite the version already in review. The train
+holds on these states, `mobile_store_promote.py` refuses an iOS submission while
+another version is in them, and an exception needs Nik's explicit go-ahead in
+chat naming the version to withdraw.
+
 iOS (App Store Connect, versions are read per state because the unfiltered
 listing only returns live versions):
 
@@ -155,7 +171,8 @@ listing only returns live versions):
   1.0.564 — Apple honors the endpoint for COMPLETE review submissions even
   though it refuses to cancel them, 409), so the version starts at day-1 1%
   exposure with the pause brake available, and the newer candidate can then
-  be submitted. A paused live phased rollout defers the release (plain hold).
+  be submitted. As on submit, a duplicate-attach rejection is tolerated only
+  when the read-back confirms the phased resource exists. A paused live phased rollout defers the release (plain hold).
   A pending version newer than every TestFlight build, or two pending
   versions, stops the train.
 - Submission: `builds submit-to-app-store` with

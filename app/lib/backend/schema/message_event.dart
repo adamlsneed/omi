@@ -1,4 +1,5 @@
 import 'package:omi/backend/schema/conversation.dart';
+import 'capture_committed_event.dart';
 import 'package:omi/backend/schema/transcript_segment.dart';
 
 abstract class MessageEvent {
@@ -8,6 +9,8 @@ abstract class MessageEvent {
 
   factory MessageEvent.fromJson(Map<String, dynamic> json) {
     switch (json['type']) {
+      case 'capture_committed':
+        return CaptureCommittedEvent.parse(json);
       case 'service_status':
         return MessageServiceStatusEvent.fromJson(json);
       case 'memory_processing_started':
@@ -32,6 +35,8 @@ abstract class MessageEvent {
         return OnboardingCompleteEvent.fromJson(json);
       case 'freemium_threshold_reached':
         return FreemiumThresholdReachedEvent.fromJson(json);
+      case 'stt_cap_live_held':
+        return SttCapLiveHeldEvent.fromJson(json);
       case 'segments_deleted':
         return SegmentsDeletedEvent.fromJson(json);
       default:
@@ -157,6 +162,8 @@ class SpeakerLabelSuggestionEvent extends MessageEvent {
   /// With an empty [personId]: a pinned person this voice nearly matched. A question, never a label.
   final String? suggestedPersonId;
   final bool retracted;
+  final bool? isUser;
+  bool get resolvesOwner => isUser ?? personId == 'user';
 
   SpeakerLabelSuggestionEvent({
     required this.speakerId,
@@ -165,6 +172,7 @@ class SpeakerLabelSuggestionEvent extends MessageEvent {
     required this.segmentId,
     this.suggestedPersonId,
     this.retracted = false,
+    this.isUser,
   }) : super(eventType: 'speaker_label_suggestion');
 
   factory SpeakerLabelSuggestionEvent.fromJson(Map<String, dynamic> json) {
@@ -173,7 +181,7 @@ class SpeakerLabelSuggestionEvent extends MessageEvent {
         (json['speaker_id'] as int) < 0 ||
         json['person_id'] is! String ||
         json['person_name'] is! String ||
-        (!retracted && (json['person_name'] as String).trim().isEmpty) ||
+        (!retracted && json['is_user'] != true && (json['person_name'] as String).trim().isEmpty) ||
         (retracted && (json['person_id'] != '' || json['person_name'] != '')) ||
         json['segment_id'] is! String ||
         (json['segment_id'] as String).isEmpty) {
@@ -181,6 +189,7 @@ class SpeakerLabelSuggestionEvent extends MessageEvent {
     }
     return SpeakerLabelSuggestionEvent(
       retracted: retracted,
+      isUser: json['is_user'] is bool ? json['is_user'] as bool : null,
       speakerId: json['speaker_id'],
       personId: json['person_id'],
       personName: json['person_name'],
@@ -279,6 +288,26 @@ class FreemiumThresholdReachedEvent extends MessageEvent {
     return FreemiumThresholdReachedEvent(
       remainingSeconds: json['remaining_seconds'] ?? 0,
       action: FreemiumAction.fromString(json['action']),
+    );
+  }
+}
+
+/// UI acknowledgement of audio durably saved by this listen connection.
+class SttCapLiveHeldEvent extends MessageEvent {
+  final String sessionId;
+  final int heldSeconds;
+  final int resetAt;
+  final bool paused;
+
+  SttCapLiveHeldEvent({required this.sessionId, required this.heldSeconds, required this.paused, this.resetAt = 0})
+      : super(eventType: 'stt_cap_live_held');
+
+  factory SttCapLiveHeldEvent.fromJson(Map<String, dynamic> json) {
+    return SttCapLiveHeldEvent(
+      sessionId: json['session_id'] as String,
+      heldSeconds: json['held_seconds'] as int,
+      resetAt: json['reset_at'] as int? ?? 0,
+      paused: json['paused'] as bool,
     );
   }
 }

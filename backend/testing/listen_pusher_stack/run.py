@@ -64,10 +64,28 @@ class Child:
     log_path: Path
 
 
+def _free_ports(count: int) -> list[int]:
+    """Reserve and return `count` distinct ephemeral ports on loopback.
+
+    Holding all probe sockets open simultaneously guarantees that the kernel
+    allocates non-conflicting, unique port numbers across the stack's services (#19802).
+    """
+    probes = []
+    ports = []
+    try:
+        for _ in range(count):
+            probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            probe.bind(('127.0.0.1', 0))
+            probes.append(probe)
+            ports.append(int(probe.getsockname()[1]))
+        return ports
+    finally:
+        for probe in probes:
+            probe.close()
+
+
 def _free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.bind(('127.0.0.1', 0))
-        return int(probe.getsockname()[1])
+    return _free_ports(1)[0]
 
 
 def _wait_for_port(
@@ -95,6 +113,10 @@ def _wait_for_port(
             )
         try:
             with socket.create_connection(('127.0.0.1', port), timeout=0.25):
+                if child and child.process.poll() is not None:
+                    raise StackFailure(
+                        f'{label} exited with status {child.process.returncode} before listening{child_diagnostics()}'
+                    )
                 return
         except OSError:
             time.sleep(0.1)
@@ -177,11 +199,12 @@ class Stack:
         self.memory_enabled = memory_enabled
         self.finalization_worker_memory_enabled = finalization_worker_memory_enabled
         self.recording_lifecycle_retry_file = self.state_dir / 'release-recording-lifecycle-retry'
-        self.redis_port = _free_port()
-        self.backend_port = _free_port()
-        self.finalization_worker_port = _free_port()
-        self.pusher_port = _free_port()
-        self.parakeet_port = _free_port()
+        ports = _free_ports(5)
+        self.redis_port = ports[0]
+        self.backend_port = ports[1]
+        self.finalization_worker_port = ports[2]
+        self.pusher_port = ports[3]
+        self.parakeet_port = ports[4]
         self.children: dict[str, Child] = {}
         self.env = self._environment()
         self.firestore = firestore.Client(project=PROJECT)
@@ -227,6 +250,9 @@ class Stack:
                 'LISTEN_FINALIZATION_DISPATCH_MODE': self.finalization_mode,
                 'RECORDING_SESSION_MODE': self.recording_session_mode,
                 'OMI_STACK_STATE_DIR': str(self.state_dir),
+                'OMI_HARNESS_STATE_ROOT': str(self.state_dir),
+                'OMI_LOCAL_STORAGE_ROOT': str(self.state_dir / 'audio-storage'),
+                'BUCKET_PRIVATE_CLOUD_SYNC': 'stack-private-audio',
                 'PYTHONPATH': str(BACKEND),
                 # Child logs are evidence when a process fails to bind; avoid
                 # losing a short Python traceback in the file buffer.
@@ -515,9 +541,9 @@ class Stack:
         return body
 
     def seed_user(self, uid: str) -> None:
-        # Private cloud is enabled solely to exercise 103 + 101.  The pusher
-        # process receives the real frames, but storage leaves are not invoked
-        # by this harness because it intentionally has no cloud credentials.
+        # Consented capture exercises the real 103 + 101 and durable archive
+        # paths against the owned local storage adapter. Derived projection
+        # leaves remain instrumented; no cloud credentials are available.
         self.firestore.collection('users').document(uid).set(
             {
                 'id': uid,

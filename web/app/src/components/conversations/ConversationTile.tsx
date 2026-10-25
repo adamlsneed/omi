@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Star, Check, CheckSquare, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatTime, formatDuration } from '@/lib/utils';
 import { conversationSignals } from '@/lib/conversationTimeline';
+import { conversationDisplayTitle } from '@/lib/conversationTitle';
 import type { Conversation } from '@/types/conversation';
 import { PostHogManager } from '@/lib/analytics/posthog';
 
 interface ConversationTileProps {
   conversation: Conversation;
   onClick?: () => void;
-  onStarToggle?: (id: string, starred: boolean) => void;
+  // Rejects when the server did not save the change, so the tile can take it back
+  onStarToggle?: (id: string, starred: boolean) => Promise<void> | void;
   isSelected?: boolean;
   // Selection mode props for merge feature
   isSelectionMode?: boolean;
@@ -36,6 +38,14 @@ export const ConversationTile = memo(function ConversationTile({
 }: ConversationTileProps) {
   const [isStarred, setIsStarred] = useState(conversation.starred);
   const [isHovered, setIsHovered] = useState(false);
+  // One star request at a time, so a failed one puts back the value it replaced
+  const starRequestPending = useRef(false);
+
+  useEffect(() => {
+    if (!starRequestPending.current) {
+      setIsStarred(conversation.starred);
+    }
+  }, [conversation.starred]);
 
   const startedAt = new Date(conversation.started_at || conversation.created_at);
   const finishedAt = conversation.finished_at ? new Date(conversation.finished_at) : null;
@@ -48,15 +58,24 @@ export const ConversationTile = memo(function ConversationTile({
   const { excerpt, category, actionItemCount, speakerCount } =
     conversationSignals(conversation);
 
-  const handleStarClick = (e: React.MouseEvent) => {
+  const handleStarClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (starRequestPending.current) return;
+    starRequestPending.current = true;
     const newStarred = !isStarred;
     setIsStarred(newStarred);
-    onStarToggle?.(conversation.id, newStarred);
     PostHogManager.track('Conversation Starred', {
       conversation_id: conversation.id,
       starred: newStarred,
     });
+    try {
+      await onStarToggle?.(conversation.id, newStarred);
+    } catch {
+      // The server kept the old value, so the tile must not keep showing the new one
+      setIsStarred(!newStarred);
+    } finally {
+      starRequestPending.current = false;
+    }
   };
 
   const handleClick = () => {
@@ -99,7 +118,7 @@ export const ConversationTile = memo(function ConversationTile({
       )}
       tabIndex={0}
       role="button"
-      aria-label={`Conversation: ${conversation.structured.title}`}
+      aria-label={`Conversation: ${conversationDisplayTitle(conversation)}`}
       aria-selected={isSelected || isChecked}
     >
       {/* Top row: Time + Star */}
@@ -159,7 +178,7 @@ export const ConversationTile = memo(function ConversationTile({
         </div>
 
         <h3 className="line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-snug text-text-primary">
-          {conversation.structured.title || 'Untitled conversation'}
+          {conversationDisplayTitle(conversation) || 'Untitled conversation'}
         </h3>
       </div>
 

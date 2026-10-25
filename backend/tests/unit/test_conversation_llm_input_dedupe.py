@@ -159,7 +159,6 @@ def memory_stack(memory_module, monkeypatch):
     monkeypatch.setattr(pc, 'conversation_transcript_and_speaker_map', lambda *_: ('Ship Friday', {}))
     monkeypatch.setattr(pc, 'may_attribute_to_owner', lambda *_: True)
     monkeypatch.setattr(pc, '_rejected_memory_examples_for_l1', lambda *_, **__: ())
-    monkeypatch.setattr(pc, 'select_owner_shadow_indices', lambda *_: ([], 0))
     yield pc, conversation, service
 
 
@@ -225,22 +224,6 @@ def test_invalid_checkpoint_output_is_a_cache_miss(enabled, monkeypatch):
     monkeypatch.setattr(dedupe, '_stored', lambda *_: {**hashes, 'structured': 'invalid stored shape'})
     assert dedupe.notes('u', enabled, 'input', generate, {}) == 'valid generated output'
     assert generate.call_count == 2
-
-
-def test_owner_adjudication_summary_is_part_of_l1_effective_input(enabled, memory_stack, monkeypatch):
-    pc, conversation, _ = memory_stack
-    row = {}
-    monkeypatch.setattr(pc, 'memory_owner_jev_flip_enabled', lambda: True)
-    monkeypatch.setattr(dedupe, '_stored', lambda *_, **__: row)
-    monkeypatch.setattr(
-        dedupe, 'l1_succeeded', lambda uid, conv, digest, **kwargs: row.update({dedupe.L1_HASH: digest})
-    )
-    extract = Mock(return_value=[])
-    monkeypatch.setattr(pc, 'extract_canonical_l1_memory_candidates', extract)
-    pc._extract_memories_canonical('u', conversation, db_client=Mock())
-    conversation.structured.overview = 'Changed notes context for owner attribution'
-    pc._extract_memories_canonical('u', conversation, db_client=Mock())
-    assert extract.call_count == 2
 
 
 @pytest.mark.parametrize('enabled_flag', [False, True])
@@ -325,3 +308,34 @@ def test_empty_notes_checkpoint_is_not_first_summary_success(monkeypatch, summar
     else:
         generate.assert_not_called()
         assert output.overview == ''
+
+
+def test_effective_packet_cohort_and_version_invalidate_notes_checkpoint(enabled, monkeypatch):
+    from utils.llm import notes_packet
+    from config.refactor_modes import uid_digest
+
+    owner = 'synthetic-packet-account'
+    monkeypatch.setenv('NOTES_PACKET_V2_MODE', 'shadow')
+    monkeypatch.delenv('NOTES_PACKET_V2_MODE_SERVE_UID_SHA256S', raising=False)
+    monkeypatch.delenv('NOTES_PACKET_V2_MODE_SERVE_PERCENT', raising=False)
+    generate = Mock(return_value='synthetic output')
+
+    def digest():
+        hashes = {}
+        dedupe.notes(owner, enabled, 'synthetic prefix', generate, hashes)
+        return hashes[dedupe.NOTES_HASH]
+
+    legacy = digest()
+    monkeypatch.setenv('NOTES_PACKET_V2_MODE_SERVE_UID_SHA256S', uid_digest(owner))
+    serving = digest()
+    assert serving != legacy
+    monkeypatch.setattr(notes_packet, 'PACKET_VERSION', notes_packet.PACKET_VERSION + 1)
+    assert digest() != serving
+    monkeypatch.setenv('NOTES_PACKET_V2_MODE', 'off')
+    assert digest() == legacy
+
+
+def test_implementation_digest_tracks_packet_output_language_and_evidence_modules():
+    # Read the actual dependency closure; a missing/renamed module must invalidate generation.
+    dedupe.implementation_digest.cache_clear()
+    assert len(dedupe.implementation_digest('notes')) == 64

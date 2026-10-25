@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 import os
+from copy import deepcopy
 from contextvars import ContextVar
 from datetime import datetime
 from typing import Any, Mapping, cast
@@ -25,6 +26,12 @@ LATENCY = Histogram(
     'Acceptance to first durable summary',
     ['lane'],
     buckets=(30, 60, 120, 300, 600, 1800, 3600, 14400, 43200),
+)
+CLOSED_LATENCY = Histogram(
+    'omi_closed_to_summary_seconds',
+    'First durable summary after both server acceptance and last speech',
+    ['lane'],
+    buckets=(30, 60, 120, 180, 300, 600, 1800, 3600, 14400),
 )
 DEBT = Gauge('omi_summary_debt_overdue', 'Overdue summary debt in the bounded repair window')
 OLDEST = Gauge('omi_summary_debt_oldest_age_seconds', 'Oldest overdue summary debt observed by repair')
@@ -131,6 +138,18 @@ def refusal(row: Row) -> str | None:
     return None
 
 
+def finalization_pending(row: Row, uid: str, job_id: str) -> bool:
+    """The current finalization lease may finish its own completed minimum.
+
+    Completed is a lifecycle state, not proof of summary delivery. Never bypass
+    another generation through the background repair path; the finalizer has
+    already checked its job/revision/lease before calling this predicate.
+    """
+    if not enabled(uid) or row.get('finalization_job_id') != job_id or present(row.get('structured')):
+        return False
+    return refusal({**row, 'finalization_job_id': None}) is None
+
+
 def creation_result(write: Row, uid: str) -> Row | None:
     # A deliberate minimum is durable debt, not a terminal summary receipt.
     if (
@@ -176,9 +195,44 @@ def merge_result(existing: Row, write: Row, uid: str, *, now: float | None = Non
         write['summary_first_pending_at'] = accepted
     rich = bool(write.get('summary_output_present'))
     discarded = bool(write.get('discarded'))
-    if not rich and not discarded:
+    # The fence guards an open first-summary obligation only. Rows outside the
+    # server-minimum protocol, already-enriched rows, and rows whose empty
+    # budget is exhausted have no caller that catches this exception — the
+    # sync outbox alone records empty-output strikes — so raising there
+    # strands the completed write instead of retaining recoverable debt.
+    obligation_open = (
+        write.get('summary_title_provenance') == 'server_minimum'
+        and not write.get('summary_completed_at')
+        and existing.get('summary_blocked_reason') != 'empty_output_exhausted'
+    )
+    if not rich and not discarded and obligation_open:
         raise SummaryOutputUnavailable('kept first-summary output is empty')
     if existing.get('summary_completed_at'):
+        # An enriched row already holds a usable summary. The old fence refused
+        # the whole write to protect it, which stranded completed results in
+        # every lane without an outbox. Commit instead, but never let an empty
+        # reprocess overwrite the banked summary: re-apply its content and
+        # receipts onto this write so `merge=True` restores what the empty
+        # structured payload would otherwise clobber.
+        if not rich and not discarded:
+            banked = existing.get('structured')
+            if banked:
+                # The caller re-applies manual edits onto the write before this
+                # merge; restoring the banked content must not bury them.
+                from database.conversations import effective_user_title
+
+                restored = deepcopy(banked)
+                user_title = effective_user_title(existing.get('user_title'))
+                if user_title is not None:
+                    restored['title'] = user_title
+                if existing.get('user_overview'):
+                    restored['overview'] = existing['user_overview']
+                write['structured'] = restored
+            write['summary_output_present'] = bool(banked)
+            write['summary_title_provenance'] = existing.get('summary_title_provenance') or 'generated'
+            write['summary_completed_at'] = existing['summary_completed_at']
+            write['summary_discard_receipted'] = existing.get('summary_discard_receipted', False)
+            write['summary_processing_lease_until'] = 0
         return None
     if discarded and existing.get('summary_discard_receipted'):
         return None
@@ -191,11 +245,16 @@ def merge_result(existing: Row, write: Row, uid: str, *, now: float | None = Non
         write['summary_blocked_reason'] = None
         if rich:
             write['summary_title_provenance'] = 'generated'
+        finished = write.get('finished_at', existing.get('finished_at'))
+        closed_latency = None
+        if accepted is not None and isinstance(finished, datetime) and finished.timestamp() <= current:
+            closed_latency = max(0, current - max(accepted, finished.timestamp()))
         return dict(
             lane=lane(existing),
             reason=('discarded' if discarded else 'summary') if accepted is not None else 'accept_unknown',
             present=rich,
             latency=max(0, current - accepted) if accepted is not None else None,
+            closed_latency=closed_latency,
         )
     return None
 
@@ -222,3 +281,5 @@ def emit(receipt: Row | None) -> None:
     RECEIPTS.labels(receipt['lane'], receipt['reason'], str(receipt['present']).lower()).inc()
     if receipt['present'] and receipt['latency'] is not None:
         LATENCY.labels(receipt['lane']).observe(receipt['latency'])
+    if receipt['present'] and receipt.get('closed_latency') is not None:
+        CLOSED_LATENCY.labels(receipt['lane']).observe(receipt['closed_latency'])

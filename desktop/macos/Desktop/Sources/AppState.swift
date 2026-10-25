@@ -518,11 +518,17 @@ class AppState: ObservableObject {
   }
   /// A relaunch mid-meeting splits the call into two conversations; the updater defers on this.
   func publishMeetingCaptureActivity() {
-    UpdateInstallActivity.setMeetingCaptureActive(isLiveCapturing && currentConversationRole == .meeting)
+    UpdateInstallActivity.setMeetingCaptureActive(
+      isTranscribing && currentConversationRole == .meeting
+        && (isLiveCapturing || meetingDetector?.resumeOffAt != nil))
   }
   var meetingDetectorMode: AssistantSettings.AudioRecordingMode?
-  var meetingBoundaryInProgress = false
+  var (meetingBoundaryInProgress, meetingBoundaryEvidence) = (false, MeetingBoundaryEvidence())
   var pendingMeetingState: Bool?
+  var pendingMeetingEndedAt: Date?
+  var meetingRelaunchChecked = false
+  var meetingRelaunchCheckGeneration: UInt64?
+  var meetingRelaunchCheckMode: AssistantSettings.AudioRecordingMode?
   /// True while `finishConversation` is rotating the logical conversation.
   /// Serializes ALL rotation callers — `handleMeetingObservation`'s boundary
   /// flag only covers detector edges; the deferred `.meetingEnded` finalizer,
@@ -716,7 +722,7 @@ class AppState: ObservableObject {
   /// switch posts only .runtimeOwnerDidChange, so without this the previous
   /// account's folders, filters, counts, and people kept rendering.
   func resetOwnerScopedContent() {
-    ownerScopeGeneration &+= 1
+    (ownerScopeGeneration, meetingBoundaryEvidence) = (ownerScopeGeneration &+ 1, MeetingBoundaryEvidence())
     folders = []
     selectedFolderId = nil
     selectedDateFilter = nil

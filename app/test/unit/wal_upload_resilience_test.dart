@@ -66,6 +66,9 @@ void main() {
   // What the injected uploader throws. Defaults to a generic failure; groups
   // that exercise a specific server rejection override it in their own setUp.
   late Object uploadFailure;
+  Future<UploadFilesResult> Function(List<File>)? uploadResponse;
+  late List<List<String>> uploadAttempts;
+  late List<bool> liveClaims;
 
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -85,24 +88,27 @@ void main() {
     listener = _MockListener();
     SyncRateLimiter.instance.clear();
     uploadFailure = StateError('deterministic test upload failure');
+    uploadResponse = null;
+    uploadAttempts = [];
+    liveClaims = [];
     sync = LocalWalSyncImpl(
       listener,
       uploadGate: SyncUploadGate(
         limiter: SyncRateLimiter.instance,
-        uploader:
-            (
-              files, {
-              onUploadProgress,
-              conversationId,
-              captureEvidence,
-              recordingSessionId,
-              audioStartSeconds,
-              audioEndSeconds,
-              claimLiveCapture = false,
-              geolocation,
-            }) async {
-              throw uploadFailure;
-            },
+        uploader: (files,
+            {onUploadProgress,
+            conversationId,
+            captureEvidence,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation}) async {
+          uploadAttempts.add(files.map((file) => file.uri.pathSegments.last).toList());
+          liveClaims.add(claimLiveCapture);
+          if (uploadResponse != null) return uploadResponse!(files);
+          throw uploadFailure;
+        },
         fairUseStatusLoader: () async => {'stage': 'none'},
       ),
     );
@@ -283,8 +289,7 @@ void main() {
       expect(
         sync.testWals.first.status,
         WalStatus.miss,
-        reason:
-            'a WAL whose file exists must not be corrupted by pre-upload checks; '
+        reason: 'a WAL whose file exists must not be corrupted by pre-upload checks; '
             'a failed upload leaves it retryable as miss',
       );
     });
@@ -333,8 +338,7 @@ void main() {
       expect(
         stuck.retryCount,
         0,
-        reason:
-            'syncAll() never increments retryCount, so the WAL looks brand-new '
+        reason: 'syncAll() never increments retryCount, so the WAL looks brand-new '
             'on every app open and is unconditionally re-queued',
       );
       expect(stuck.isSyncing, false, reason: 'isSyncing must be cleared so the WAL is eligible for the next attempt');
@@ -501,6 +505,64 @@ void main() {
   });
 
   group('definitive upload refusals', () {
+    test('isolated retries never claim a partial live-capture manifest', () async {
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final wals = <Wal>[];
+      for (var i = 0; i < 2; i++) {
+        final start = now - 180 + i * 60;
+        final name = 'audio_omi_$start.bin';
+        await File('${tempDir.path}/$name').writeAsBytes([0xAA, i]);
+        wals.add(_makeWal(timerStart: start, filePath: name)
+          ..conversationId = 'live-recording'
+          ..captureRoot = '12345678-1234-1234-1234-123456789abc'
+          ..sourceFrameStart = i * 6000
+          ..sourceClockEpoch = 0
+          ..totalFrames = 6000);
+      }
+      sync.testWals = wals;
+      uploadResponse = (files) async {
+        if (files.length > 1) throw const SyncUploadHttpException(413, 'request too large');
+        return UploadFilesResult.queued('job-${uploadAttempts.length}');
+      };
+
+      await sync.syncAll();
+
+      expect(liveClaims, [true, false, false]);
+      expect(wals.map((wal) => wal.status), everyElement(WalStatus.uploaded));
+    });
+
+    for (final statusCode in [400, 413]) {
+      test('HTTP $statusCode isolates a refused request before retiring any member', () async {
+        final wals = <Wal>[];
+        for (var i = 0; i < 3; i++) {
+          final name = 'audio_omi_1000$i.bin';
+          await File('${tempDir.path}/$name').writeAsBytes([0xAA, i]);
+          wals.add(_makeWal(timerStart: 10000 + i, filePath: name));
+        }
+        sync.testWals = wals;
+        uploadResponse = (files) async {
+          // 400: one invalid file rejects the request. 413: only the combined
+          // request is too large. Neither response proves every file unusable.
+          if (files.length > 1 || (statusCode == 400 && files.single.path.endsWith('10002.bin'))) {
+            throw SyncUploadHttpException(statusCode, 'request refused');
+          }
+          return UploadFilesResult.queued('job-${uploadAttempts.length}');
+        };
+
+        final result = await sync.syncAll();
+
+        expect(uploadAttempts.map((attempt) => attempt.length), [3, 1, 1, 1]);
+        expect(wals.take(2).map((wal) => wal.status), everyElement(WalStatus.uploaded));
+        expect(wals.last.status, statusCode == 400 ? WalStatus.uploadRejected : WalStatus.uploaded);
+        expect(result?.localUploadPermanentFailures, statusCode == 400 ? 1 : 0);
+        expect(result?.localUploadFailures, statusCode == 400 ? 1 : 0);
+        for (final wal in wals) {
+          expect(File('${tempDir.path}/${wal.filePath}').existsSync(), isTrue);
+          expect(wal.timerStart, 10000 + wals.indexOf(wal), reason: 'recovery never invents a capture time');
+        }
+      });
+    }
+
     Future<Wal> refusedWal(int statusCode) async {
       uploadFailure = SyncUploadHttpException(statusCode, 'definitive refusal');
       final filename = 'refused_$statusCode.bin';
@@ -531,11 +593,61 @@ void main() {
     }
 
     test('only permanent request refusals share the terminal classifier', () {
-      for (final statusCode in [400, 403, 413]) {
+      for (final statusCode in [400, 413]) {
         expect(isDefinitiveUploadRefusal(SyncUploadHttpException(statusCode, 'refused')), isTrue);
       }
       expect(isDefinitiveUploadRefusal(const SyncUploadHttpException(401, 're-login required')), isFalse);
+      expect(isDefinitiveUploadRefusal(const SyncUploadHttpException(403, 'authentication failed')), isFalse);
       expect(isDefinitiveUploadRefusal(const SyncUploadHttpException(500, 'retryable')), isFalse);
+    });
+
+    for (final statusCode in [401, 403]) {
+      test('HTTP $statusCode retains audio with a bounded retry budget', () async {
+        final wal = await refusedWal(statusCode);
+        for (var i = 0; i < walMaxAutoRetries; i++) {
+          await sync.syncAll();
+        }
+        expect(await sync.syncAll(), isNull);
+        expect(uploadAttempts, hasLength(1), reason: 'do not repeat the same denied credentials automatically');
+        expect(wal.status, WalStatus.miss, reason: 'credentials are not an audio verdict');
+        expect(wal.syncDisplayState, WalSyncDisplayState.failed);
+        expect(File('${tempDir.path}/${wal.filePath}').existsSync(), isTrue);
+      });
+
+      test('a single-file HTTP $statusCode persists a retryable authentication pause', () async {
+        final wal = await refusedWal(statusCode);
+
+        await expectLater(sync.syncWal(wal: wal), throwsA(isA<SyncUploadHttpException>()));
+
+        final restored = (await WalFileManager.loadWals()).single;
+        expect(restored.status, WalStatus.miss);
+        expect(restored.retryCount, walMaxAutoRetries);
+        expect(await sync.syncAll(), isNull, reason: 'a manual failure must not spawn an automatic auth loop');
+        expect(uploadAttempts, hasLength(1));
+      });
+    }
+
+    test('a refused batch cannot start isolation under a replacement account', () async {
+      final originals = <Wal>[];
+      for (var i = 0; i < 2; i++) {
+        final name = 'audio_old_$i.bin';
+        await File('${tempDir.path}/$name').writeAsBytes([0xAA, i]);
+        originals.add(_makeWal(timerStart: 10100 + i, filePath: name));
+      }
+      final next = _makeWal(timerStart: 10200, filePath: 'audio_next.bin');
+      await File('${tempDir.path}/${next.filePath}').writeAsBytes([0xBB]);
+      sync.testWals = originals;
+      uploadResponse = (_) async {
+        sync.clearUserData();
+        sync.testWals = [next];
+        throw const SyncUploadHttpException(400, 'request refused');
+      };
+
+      await sync.syncAll();
+
+      expect(uploadAttempts, hasLength(1));
+      expect(next.status, WalStatus.miss);
+      expect(originals.map((wal) => wal.status), everyElement(WalStatus.miss));
     });
 
     test('HTTP 401 is re-armed after a re-login connectivity reset', () async {
@@ -558,23 +670,22 @@ void main() {
         listener,
         uploadGate: SyncUploadGate(
           limiter: SyncRateLimiter.instance,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                conversationId,
-                captureEvidence,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                uploads++;
-                return UploadFilesResult.done(
-                  SyncLocalFilesResponse(newConversationIds: const [], updatedConversationIds: const ['recovered']),
-                );
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            conversationId,
+            captureEvidence,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            uploads++;
+            return UploadFilesResult.done(
+              SyncLocalFilesResponse(newConversationIds: const [], updatedConversationIds: const ['recovered']),
+            );
+          },
           fairUseStatusLoader: () async => {'stage': 'none'},
         ),
       );
@@ -612,25 +723,24 @@ void main() {
         now: () => now,
         uploadGate: SyncUploadGate(
           limiter: SyncRateLimiter.instance,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                conversationId,
-                captureEvidence,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                uploads++;
-                uploadedConversationId = conversationId;
-                claimedLiveCapture = claimLiveCapture;
-                return UploadFilesResult.done(
-                  SyncLocalFilesResponse(newConversationIds: ['recovered'], updatedConversationIds: []),
-                );
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            conversationId,
+            captureEvidence,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            uploads++;
+            uploadedConversationId = conversationId;
+            claimedLiveCapture = claimLiveCapture;
+            return UploadFilesResult.done(
+              SyncLocalFilesResponse(newConversationIds: ['recovered'], updatedConversationIds: []),
+            );
+          },
           fairUseStatusLoader: () async => {'stage': 'none'},
         ),
       );

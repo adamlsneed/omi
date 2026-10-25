@@ -163,16 +163,32 @@ extension _CaptureUplinkPolicy on CaptureController {
     // feedback channel and it's non-functional on some units.
     HapticFeedback.mediumImpact();
     await BatteryWidgetService().updateMuteState(true);
-    if (_preferences.capturePolicy.revision != revision) return;
+    if (_preferences.capturePolicy.revision != revision) {
+      updateRecordingState(RecordingState.pause);
+      _publishCaptureChange();
+      return;
+    }
     await _setDeviceRecordingPaused(true);
-    if (_preferences.capturePolicy.revision != revision) return;
-    await _cancelUplinkAudio();
-    if (_preferences.capturePolicy.revision != revision) return;
+    if (_preferences.capturePolicy.revision != revision) {
+      updateRecordingState(RecordingState.pause);
+      _publishCaptureChange();
+      return;
+    }
+    await _cancelUplinkAudio().timeout(const Duration(milliseconds: 500), onTimeout: () => null);
+    if (_preferences.capturePolicy.revision != revision) {
+      updateRecordingState(RecordingState.pause);
+      _publishCaptureChange();
+      return;
+    }
     await _preferences.saveBool('nativeBleForegroundReady', false);
     await _preferences.saveBool('nativeBleStreamingEnabled', false);
     _keepAliveTimer?.cancel();
     _keepAliveTimer = null;
-    await _abandonTranscriptionSocket(reason: 'device capture paused');
+    await _abandonTranscriptionSocket(reason: 'device capture paused').timeout(
+      const Duration(milliseconds: 500),
+      onTimeout: () => null,
+    );
+    updateRecordingState(RecordingState.pause);
     _publishCaptureChange();
   }
 

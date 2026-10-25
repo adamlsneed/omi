@@ -12,18 +12,11 @@ For difficult SwiftUI/AppKit runtime bugs—stale views, lost input, layout loop
   launch writes to its own owner-only log; ask the running named bundle for its
   exact path with `./scripts/omi-ctl log-path` rather than reading a shared dev log.
 
-### Release Health (Sentry)
-Check errors in the latest (or specific) release using the **sentry-release skill**:
-```bash
-./scripts/sentry-release.sh              # new issues in latest version (default)
-./scripts/sentry-release.sh --version X  # specific version
-./scripts/sentry-release.sh --all        # include carryover issues
-./scripts/sentry-release.sh --quota      # billing/quota status
-```
-Run the script with `--help` for the full option list.
-
 ### User Issue Investigation
-When debugging issues for a specific user, check Sentry dashboard for crashes and PostHog for events.
+When debugging issues for a specific user, check PostHog events, the local log, and the
+diagnostics ring buffer. Desktop crash reporting was removed together with Sentry; the
+release lane retains the UUID-verified dSYM as a GitHub release artifact for offline
+symbolication.
 
 ### Product analytics integrity
 
@@ -42,7 +35,7 @@ When debugging issues for a specific user, check Sentry dashboard for crashes an
   analytics is disabled or refactored.
 - PostHog receives bounded dimensions and shape metadata only. Never send raw
   prompts, responses, notification/window titles, filesystem paths, or exception
-  messages. Keep diagnostic detail in the private local log and Sentry.
+  messages. Keep diagnostic detail in the private local log.
 - Production `QueryTracer` output is shape-only and stored under a `0700`
   directory in `0600` files. Full prompt/response/tool content is a deliberate
   non-production debugging capability only.
@@ -211,7 +204,7 @@ do not hand-edit those paths to match a specific machine.
 - `screen_activity_lossless_sync` enables durable per-row delivery, five-minute `(app, window)` compaction, and bounded embedding recovery. Production-family bundles wait for that PostHog flag; non-production dogfoods it (`OMI_FORCE_LOSSLESS_SCREEN_SYNC=0` off).
 - OCR-bearing rows sync independently from embeddings. Embeddings are an optional later projection and must never gate capture, OCR, or text delivery.
 - Firestore screen-activity timestamps use the lexicographically sortable UTC form `yyyy-MM-dd HH:mm:ss.SSS`. The backend normalizes ISO-8601 input before storage.
-- Local embeddings (opt-in): [ARCHITECTURE.md](Desktop/Sources/LocalInference/ARCHITECTURE.md).
+- Local embeddings: [ARCHITECTURE.md](Desktop/Sources/LocalInference/ARCHITECTURE.md).
 
 ### Feature-flag authority
 
@@ -301,7 +294,7 @@ Fast path (skips web login and sidebar click-through):
    - `agent-swift` only for UI the bridge can't reach yet (`click` moves the cursor).
 3. **Read logs to confirm behavior:** app + chat bridge in the exact path from
    `./scripts/omi-ctl log-path` (named dev bundles) or `/private/tmp/omi.log`
-   (production); per-user issues in Sentry/PostHog.
+   (production); PostHog for remote events.
 4. **Verify the actual behavior**, not just that the app launched — exercise the feature and check the logs/UI reflect the change.
 
 ### Default agent development loop

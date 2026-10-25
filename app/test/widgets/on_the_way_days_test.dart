@@ -110,6 +110,23 @@ void main() {
     );
   });
 
+  testWidgets('a recording stamped before 2024 lists without a time instead of on a bogus day', (tester) async {
+    await _pump(tester, [
+      _wal(DateTime(2026, 10, 18, 8), 4 * 60, WalStatus.uploaded),
+      // A pendant clock that was never set: 1985-09-05 16:17 local.
+      _wal(DateTime(1985, 9, 5, 16, 17), 3 * 60, WalStatus.uploaded),
+    ]);
+
+    expect(_row('8:00 AM · 4m'), findsOneWidget);
+    // No 1985 day header, and no time-of-day row for the bogus clock value.
+    expect(_day('1985-09-05'), findsNothing);
+    expect(find.textContaining('1985'), findsNothing);
+    expect(_row('4:17 PM · 3m'), findsNothing);
+    // The recording still lists — undated, like server work without a start:
+    // its row carries only the stage label, so "Transcribing…" appears twice.
+    expect(find.text('Transcribing…'), findsNWidgets(2));
+  });
+
   testWidgets('the summary and day headers total recordings and name only the exceptions', (tester) async {
     await _pump(tester, [
       _wal(DateTime(2026, 10, 18, 8), 4 * 60, WalStatus.uploaded),
@@ -137,6 +154,35 @@ void main() {
     expect(reason.style?.color, OmiColors.warning);
     // Sync Details still counts the refused recordings.
     expect(find.text('2 recordings need attention'), findsOneWidget);
+  });
+
+  testWidgets('a wearable source outlives its exhausted phone copy: the block shows the worse state', (tester) async {
+    // A device drain copies audio to the phone piece by piece; copy and source
+    // share the recording id. Here the phone copy exhausted its retries while
+    // the audio still sits on the wearable: the recording must read as needing
+    // attention (its worst part), never as merely syncing (its healthy part).
+    Wal drainPiece(DateTime start, int seconds, {WalStorage? original, int retries = 0}) => Wal(
+          timerStart: start.millisecondsSinceEpoch ~/ 1000,
+          codec: BleAudioCodec.opus,
+          seconds: seconds,
+          status: WalStatus.miss,
+          storage: original == null ? WalStorage.sdcard : WalStorage.disk,
+          originalStorage: original,
+          device: 'pendant',
+          retryCount: retries,
+        );
+    final start = DateTime(2026, 10, 18, 8);
+    await _pump(tester, [
+      drainPiece(start, 4 * 60, original: WalStorage.sdcard, retries: 3),
+      drainPiece(start, 4 * 60),
+    ]);
+
+    // One recording, shown once — as refused, not as waiting.
+    expect(_row('8:00 AM · 4m'), findsOneWidget);
+    expect(_headerLine(tester, '2026-10-18'), '1 recording · 4m · 1 needs attention');
+    expect(find.text('Failed — tap Retry'), findsOneWidget);
+    expect(find.text('1 recording need attention'), findsOneWidget);
+    expect(find.text('2 recordings need attention'), findsNothing);
   });
 
   testWidgets('a day opens and folds on tap, and stays that way for the session', (tester) async {
