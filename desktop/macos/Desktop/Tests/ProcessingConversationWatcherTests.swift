@@ -150,17 +150,21 @@ final class ProcessingConversationWatcherTests: XCTestCase {
     let clock = StepClock()
     let script = FetchScript([.success(Self.conversation(status: .failed))])
     var completedEvents: [String] = []
+    let completed = expectation(description: "Failed outcome published")
     let watcher = ProcessingConversationWatcher(
       fetch: { _ in try await script.next() },
       sleeper: { try await clock.sleep($0) },
       now: { Self.base.addingTimeInterval(5) },
       onResolved: { _ in },
-      onCompleted: { completedEvents.append($2) },
+      onCompleted: {
+        completedEvents.append($2)
+        completed.fulfill()
+      },
       onStalled: { _, _ in }
     )
     watcher.sync(with: [Self.conversation(status: .processing)])
     await clock.step()
-    await settle()
+    await fulfillment(of: [completed], timeout: 2)
     XCTAssertEqual(completedEvents, ["failed"])
     XCTAssertFalse(watcher.isSettlingDerived("c1"))
   }

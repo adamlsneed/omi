@@ -1,9 +1,10 @@
 """Dark empty-output repair: real recovery, privacy, assignment and upload completion."""
 
 from copy import deepcopy
-from dataclasses import fields
+from dataclasses import fields, replace
 import importlib.util
 import io
+import os
 from pathlib import Path
 from unittest.mock import Mock
 import wave
@@ -11,14 +12,27 @@ import wave
 import pytest
 
 from tests.unit.test_batch_pipeline_quarantine_recovery import setup, legacy_dependencies, row
-from utils.batch_pipeline.contracts import WorkItem
+from utils.batch_pipeline.contracts import WorkItem, RecoveryWork
 from utils.batch_pipeline.quarantine_recovery import transcribe
 from utils.batch_pipeline.recovery_disposition import inspect_audio, RecoveryFailure, silence_payload
 from database.batch_pipeline_quarantine_recovery import SilenceDispositionStore
 from database.batch_pipeline_privacy import BatchPrivacyBlocked
 from database.batch_pipeline_projection_protocol import ProjectionBlocked
+from tests.unit.test_batch_pipeline_worker import setup_worker, item
+from diarizer import batch_pipeline
 from utils.batch_pipeline.merge import OrderedMerge
 from utils.batch_pipeline.scheduler import owner_key
+
+# Operator stores take the serving role's settings explicitly. These tests model
+# them with the fixtures' synthetic env (a live mapping, so per-test edits apply).
+SERVING_ENV = os.environ
+
+
+@pytest.fixture(scope='module', autouse=True)
+def worker_dependencies():
+    # Importing the worker harness belongs to setup, outside the call CPU budget.
+    from tests.unit.test_batch_pipeline_worker import setup_worker, item
+    from diarizer import batch_pipeline
 
 
 def wav(seconds=5):
@@ -70,7 +84,7 @@ def test_strict_silence_is_success_without_provider_and_releases_siblings(setup,
     monkeypatch.setattr(llm_usage, 'resolve_usage_plan_id', lambda *args, **kwargs: 'synthetic-plan')
     monkeypatch.setattr(hourly_usage_updates, 'prepare_hourly_usage_updates', lambda *args, **kwargs: {})
     monkeypatch.setattr(fair_use, 'record_speech_ms', Mock())
-    monkeypatch.setattr('utils.batch_pipeline.retention.expire_completed_segment', lambda *args: True)
+    monkeypatch.setattr('utils.batch_pipeline.retention.expire_completed_segment', lambda *args, **kwargs: True)
     publish = Mock()
     projector = Projector(store, Mock(), publish=publish, clock=lambda: 102)
     assert projector.project('bad')['outcome'] == 'expected_silence'
@@ -157,7 +171,7 @@ def test_operator_silence_preserves_paid_intent_and_replay_is_once(setup, monkey
     client, store, binding, _, stt, _ = setup
     enable(monkeypatch, legacy_dependencies)
     old = spent(client)
-    protocol = SilenceDispositionStore(store)
+    protocol = SilenceDispositionStore(store, server_flags=SERVING_ENV)
     job = protocol.prepare_silence('bad', binding.owner_id, 'plan', 100)
     token = job['silence_disposition']['token']
     assert token != old['token'] and row(client)['recovery'] == old
@@ -208,13 +222,11 @@ def test_operator_fences_refuse_mutation(setup, monkeypatch, legacy_dependencies
         row(client)['silence_disposition'] = {'plan_digest': 'another'}
     before = deepcopy(client.rows)
     with pytest.raises((ProjectionBlocked, BatchPrivacyBlocked)):
-        SilenceDispositionStore(store).prepare_silence('bad', binding.owner_id, 'plan', 100)
+        SilenceDispositionStore(store, server_flags=SERVING_ENV).prepare_silence('bad', binding.owner_id, 'plan', 100)
     assert client.rows == before
 
 
 def test_no_owned_words_without_silence_evidence_is_not_silence(monkeypatch):
-    from tests.unit.test_batch_pipeline_worker import setup_worker, item
-    from utils.batch_pipeline.contracts import RecoveryWork
 
     monkeypatch.setenv('BATCH_PIPELINE_EMPTY_ASR_DISPOSITION_ENABLED', 'true')
     monkeypatch.setenv('BATCH_PIPELINE_EMPTY_ASR_RECOVERY_ENABLED', 'false')
@@ -224,17 +236,14 @@ def test_no_owned_words_without_silence_evidence_is_not_silence(monkeypatch):
             return [[{'word': 'Synthetic', 'timestamp': [1, 1.1]}] for _ in samples]
 
     # Restrict window ownership without making a semantic no-speech claim.
-    from diarizer import batch_pipeline
-
     original = batch_pipeline.speech_windows
-    from dataclasses import replace
 
     monkeypatch.setattr(
         batch_pipeline, 'speech_windows', lambda *args: [replace(w, core_end=0.5) for w in original(*args)]
     )
     worker, _, saved, *_ = setup_worker(words_providers={'parakeet': OutsideCore()}, recover_words=lambda *_: [])
     result = worker.process_batch([item()])
-    assert result == [RecoveryWork('a', padded_retry_empty=True)] and not saved
+    assert result == [RecoveryWork('a', padded_retry_empty=True, reason='no_owned_words')] and not saved
 
 
 def test_operator_replay_after_durable_upload_completion_does_not_need_live_run(
@@ -243,7 +252,7 @@ def test_operator_replay_after_durable_upload_completion_does_not_need_live_run(
     client, store, binding, _, _, _ = setup
     enable(monkeypatch, legacy_dependencies)
     spent(client)
-    protocol = SilenceDispositionStore(store)
+    protocol = SilenceDispositionStore(store, server_flags=SERVING_ENV)
     job = protocol.prepare_silence('bad', binding.owner_id, 'plan', 100)
     token = job['silence_disposition']['token']
     assert protocol.complete_silence('bad', token, 'plan', 'gs://synthetic/silence', 102)
@@ -317,7 +326,7 @@ def test_silence_does_not_require_paid_allowance(setup, monkeypatch, legacy_depe
     provider = enable(monkeypatch, legacy_dependencies)
     artifacts.fetch_audio.return_value = wav()
     recovery.stt = transcribe
-    monkeypatch.setattr('utils.batch_pipeline.quarantine_recovery.sync_allowed', lambda *args: False)
+    monkeypatch.setattr('utils.batch_pipeline.quarantine_recovery.sync_allowed', lambda *args, **kwargs: False)
     assert recovery.recover('bad', binding.owner_id) == 'recovered'
     provider.assert_not_called()
 
@@ -361,15 +370,21 @@ def test_operator_lost_upload_reply_reconciles_without_touching_paid_intent(setu
     key = module.fingerprint(row(client))
     artifacts.persist_recovery_result.side_effect = TimeoutError('PRIVATE_SENTINEL')
     with pytest.raises(TimeoutError):
-        module.apply_silent(store, artifacts, 'bad', binding.owner_id, key, 'plan')
+        module.apply_silent(store, artifacts, 'bad', binding.owner_id, key, 'plan', server_flags=SERVING_ENV)
     token = row(client)['silence_disposition']['token']
     assert row(client)['recovery'] == old and row(client)['state'] == 'quarantined'
     artifacts.find_recovery_result.return_value = 'gs://synthetic/silence'
     artifacts.load_result.return_value = silence_payload(5)
-    assert module.apply_silent(store, artifacts, 'bad', binding.owner_id, key, 'plan') == 'applied_silence'
+    assert (
+        module.apply_silent(store, artifacts, 'bad', binding.owner_id, key, 'plan', server_flags=SERVING_ENV)
+        == 'applied_silence'
+    )
     assert row(client)['silence_disposition']['token'] == token
     assert module.fingerprint(row(client)) == key and row(client)['recovery'] == old
-    assert module.apply_silent(store, artifacts, 'bad', binding.owner_id, key, 'plan') == 'already_applied'
+    assert (
+        module.apply_silent(store, artifacts, 'bad', binding.owner_id, key, 'plan', server_flags=SERVING_ENV)
+        == 'already_applied'
+    )
     assert artifacts.persist_recovery_result.call_count == 1
     stt.assert_not_called()
     provider.assert_not_called()
@@ -381,7 +396,9 @@ def test_operator_artifact_registration_accepts_only_its_new_token(setup, monkey
     client, store, binding, _, _, _ = setup
     enable(monkeypatch, legacy_dependencies)
     old = spent(client)
-    prepared = SilenceDispositionStore(store).prepare_silence('bad', binding.owner_id, 'plan', 100)
+    prepared = SilenceDispositionStore(store, server_flags=SERVING_ENV).prepare_silence(
+        'bad', binding.owner_id, 'plan', 100
+    )
     token = prepared['silence_disposition']['token']
     uri = f'gs://synthetic/results/bad/{token}.enc'
     register_batch_artifact(store, binding.owner_id, 'bad', uri, 'results', 0)
@@ -404,5 +421,5 @@ def test_operator_respects_deleted_deterministic_candidate(setup, monkeypatch, l
     client.rows[('users', binding.owner_id, 'deleted_conversations', target)] = {'deleted': True}
     before = deepcopy(client.rows)
     with pytest.raises(BatchPrivacyBlocked):
-        SilenceDispositionStore(store).prepare_silence('bad', binding.owner_id, 'plan', 100)
+        SilenceDispositionStore(store, server_flags=SERVING_ENV).prepare_silence('bad', binding.owner_id, 'plan', 100)
     assert client.rows == before

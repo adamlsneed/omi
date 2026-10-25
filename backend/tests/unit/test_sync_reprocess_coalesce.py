@@ -15,6 +15,8 @@ _MUTATE = reprocess._mutate
 
 @pytest.fixture
 def state(monkeypatch):
+    from utils.enrichment import scan as enrichment_scan
+
     rows, tasks = {}, []
 
     def mutate(key, operation):
@@ -28,6 +30,9 @@ def state(monkeypatch):
     monkeypatch.setattr(reprocess, 'owns_runtime', lambda: True)
     monkeypatch.setattr(reprocess, '_mutate', mutate)
     monkeypatch.setattr(reprocess, '_enqueue', lambda row: tasks.append(deepcopy(row)))
+    monkeypatch.setattr(reprocess, '_wake_exists', lambda *_: False)
+    monkeypatch.setattr(enrichment_scan, 'begin', lambda *_: (None, None))
+    monkeypatch.setattr(enrichment_scan, 'finish', lambda *_: None)
 
     def empty_failure(_client, _collection, document_id, owner, token):
         row = rows[document_id]
@@ -464,7 +469,7 @@ def test_mark_never_persists_invalid_worker_or_sibling_audience(state, monkeypat
 
 def test_integration_manifest_has_fresh_worker_queue_and_receiving_audience(runtime_manifest):
     env = runtime_manifest['environments']['prod']['cloud_run']['services']['backend-integration']['env']
-    assert env['SYNC_TASKS_QUEUE']['value'] == 'sync-jobs'
+    assert env['SYNC_TASKS_QUEUE']['value'] == 'sync-jobs-fresh'
     assert env['SYNC_TASKS_OIDC_AUDIENCE']['env_var'] == env['SYNC_TASKS_HANDLER_URL']['env_var']
     assert env['SYNC_TASKS_INVOKER_SA']['env_var'] == 'SYNC_TASKS_INVOKER_SA'
 
@@ -713,6 +718,7 @@ def test_short_first_summary_lease_and_rolled_back_later_revision(state, monkeyp
 
 
 def test_first_summary_retry_preserves_queued_token(state, monkeypatch):
+    monkeypatch.setattr(reprocess, '_wake_exists', lambda *_: True)
     monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
     monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'u')
     rows, tasks = state
@@ -728,7 +734,8 @@ def test_first_summary_retry_preserves_queued_token(state, monkeypatch):
     for now in (240, 360, 480):
         reprocess.sweep(now=now)
         assert rows[key]['task_token'] == earliest
-    assert rows[key]['wake_generation'] == 3
+    assert rows[key].get('wake_generation', 0) == 0
+    assert len(tasks) == 1
     output = SimpleNamespace(discarded=False, structured={'overview': 'Real summary'})
     assert reprocess.run(key, earliest, lambda *_: output, now=480) == 'processed'
 
@@ -927,6 +934,7 @@ def test_percent_rollback_cannot_forget_admitted_first_summary_when_drain_is_ena
 
     rows, tasks = state
     monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', '')
     monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'u')
     monkeypatch.setenv('FIRST_SUMMARY_PRESERVE_ADMITTED_ENABLED', str(preserve).lower())
     reprocess.mark('u', 'c', 'en', now=0)
@@ -972,6 +980,7 @@ def test_invalid_deadline_never_grants_summary_drain_eligibility(monkeypatch, de
     from config import summary_guarantee
 
     monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', '')
     monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'other-owner')
     monkeypatch.setenv('FIRST_SUMMARY_PRESERVE_ADMITTED_ENABLED', 'true')
     row = {'uid': 'u', 'summary_deadline_at': deadline}
@@ -984,6 +993,7 @@ def test_preserved_deadline_bypasses_demand_wait_and_repairs_without_rotating_qu
 
     rows, tasks = state
     monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', '')
     monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'u')
     monkeypatch.setenv('FIRST_SUMMARY_PRESERVE_ADMITTED_ENABLED', 'true')
     reprocess.mark('u', 'c', 'en', now=0)
@@ -1002,7 +1012,7 @@ def test_preserved_deadline_bypasses_demand_wait_and_repairs_without_rotating_qu
     query.stream.return_value = [SimpleNamespace(id=key)]
     monkeypatch.setattr(reprocess, 'get_firestore_client', lambda: SimpleNamespace(collection=lambda _: query))
     assert reprocess.sweep(now=240) == {'repaired': 1, 'error': 0}
-    assert rows[key]['task_token'] == token and rows[key]['wake_generation'] == 1
+    assert rows[key]['task_token'] != token and rows[key].get('wake_generation', 0) == 0
     for exclusions in ({'effects_only': True}, {'summary_seen': True}):
         rows[key].update(exclusions)
         from config import summary_guarantee
@@ -1014,6 +1024,7 @@ def test_preserved_deadline_bypasses_demand_wait_and_repairs_without_rotating_qu
 def test_preserved_callback_rule_discard_receipt_settles_without_empty_failure(state, monkeypatch):
     rows, tasks = state
     monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', '')
     monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'u')
     monkeypatch.setenv('FIRST_SUMMARY_PRESERVE_ADMITTED_ENABLED', 'true')
     reprocess.mark('u', 'c', 'en', now=0)
@@ -1040,8 +1051,13 @@ def test_pipeline_only_receipts_a_rule_discard_after_persistence(pipeline, monke
     monkeypatch.setattr(pipeline, 'fragment_rule', lambda *_: ('discard', 'synthetic-rule'))
     monkeypatch.setattr(pipeline, 'is_user_curated', lambda *_: False)
     monkeypatch.setattr(pipeline, 'repair_fenced', lambda *_: False)
-    monkeypatch.setattr(pipeline.lifecycle_service, 'discard_by_relevance', lambda *a, **k: persisted)
-    monkeypatch.setattr(pipeline, 'record_conversation_relevance', Mock())
+    monkeypatch.setattr(
+        pipeline.lifecycle_service,
+        'rule_discard_outcome',
+        lambda *a, **k: 'discarded' if persisted else 'refused',
+    )
+    relevance = Mock()
+    monkeypatch.setattr(pipeline, 'record_conversation_relevance', relevance)
     context = {}
     token = pipeline.PROCESS_CONTEXT.set(context)
     try:
@@ -1049,12 +1065,83 @@ def test_pipeline_only_receipts_a_rule_discard_after_persistence(pipeline, monke
     finally:
         pipeline.PROCESS_CONTEXT.reset(token)
     assert context.get('discarded', False) == persisted
+    assert relevance.call_count == int(persisted)
+
+
+@pytest.mark.parametrize('with_context', [False, True])
+def test_pipeline_receipts_an_intake_discarded_fragment_without_a_second_write(pipeline, monkeypatch, with_context):
+    # The read predicate shows every uncurated review row as discarded, so the
+    # callback cannot tell a stored discard apart from an unpersisted one; only
+    # the write's own outcome can.
+    monkeypatch.setattr(
+        pipeline.conversations_db,
+        'get_conversation',
+        lambda *_: {
+            'status': 'completed',
+            'sync_relevance': 'review',
+            'discarded': True,
+            'sync_content_revision': 3,
+            'transcript_segments': [],
+        },
+    )
+    monkeypatch.setattr(pipeline, 'fragment_rule', lambda *_: ('discard', 'synthetic-rule'))
+    monkeypatch.setattr(pipeline, 'is_user_curated', lambda *_: False)
+    monkeypatch.setattr(pipeline, 'repair_fenced', lambda *_: False)
+    outcome, relevance = Mock(return_value='already_discarded'), Mock()
+    monkeypatch.setattr(pipeline.lifecycle_service, 'rule_discard_outcome', outcome)
+    monkeypatch.setattr(pipeline, 'record_conversation_relevance', relevance)
+    context = {} if with_context else None
+    token = pipeline.PROCESS_CONTEXT.set(context)
+    try:
+        assert pipeline._reprocess_conversation_after_update('u', 'c', 'en') is None
+    finally:
+        pipeline.PROCESS_CONTEXT.reset(token)
+    # The stored discard owes no summary and is not a new rule decision; the
+    # receipt is what stops reprocess.run from raising FirstSummaryCallbackPending.
+    assert (context or {}).get('discarded', False) == with_context
+    assert outcome.call_args.kwargs['expected_sync_content_revision'] == 3
+    relevance.assert_not_called()
+
+
+def test_intake_discarded_fragment_settles_admitted_obligation_instead_of_callback_pending(
+    state, pipeline, monkeypatch
+):
+    rows, tasks = state
+    monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', '')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'u')
+    monkeypatch.setenv('FIRST_SUMMARY_PRESERVE_ADMITTED_ENABLED', 'true')
+    reprocess.mark('u', 'c', 'en', now=0)
+    key, token = reprocess.key('u', 'c'), tasks[-1]['task_token']
+    monkeypatch.setattr(
+        pipeline.conversations_db,
+        'get_conversation',
+        lambda *_: {'status': 'completed', 'sync_relevance': 'review', 'discarded': True, 'transcript_segments': []},
+    )
+    monkeypatch.setattr(pipeline, 'fragment_rule', lambda *_: ('discard', 'synthetic-rule'))
+    monkeypatch.setattr(pipeline, 'is_user_curated', lambda *_: False)
+    monkeypatch.setattr(pipeline, 'repair_fenced', lambda *_: False)
+    monkeypatch.setattr(pipeline.lifecycle_service, 'rule_discard_outcome', Mock(return_value='already_discarded'))
+    monkeypatch.setattr(pipeline, 'record_conversation_relevance', Mock())
+
+    def callback(uid, conversation_id, language):
+        # The freshly loaded pipeline module carries its own PROCESS_CONTEXT
+        # object; bridge run()'s context into it the way the request path shares one.
+        token = pipeline.PROCESS_CONTEXT.set(reprocess.summary_delivery.PROCESS_CONTEXT.get())
+        try:
+            return pipeline._reprocess_conversation_after_update(uid, conversation_id, language)
+        finally:
+            pipeline.PROCESS_CONTEXT.reset(token)
+
+    assert reprocess.run(key, token, callback, now=120) == 'processed'
+    assert key not in rows
 
 
 @pytest.mark.parametrize('preserve', [False, True])
 @pytest.mark.parametrize('has_output', [False, True])
 def test_later_summary_keeps_legacy_callback_validation_and_completion(state, monkeypatch, preserve, has_output):
     monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'true')
+    monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', '')
     monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'u')
     monkeypatch.setenv('FIRST_SUMMARY_PRESERVE_ADMITTED_ENABLED', str(preserve).lower())
     rows, tasks = state

@@ -234,6 +234,7 @@ final class WatchQuickCapture: NSObject, ObservableObject, AVAudioRecorderDelega
 
 struct WatchQuickCaptureView: View {
     @ObservedObject var capture: WatchQuickCapture
+    @ObservedObject var recorder: WatchAudioRecorderViewModel
 
     var body: some View {
         ScrollView {
@@ -247,6 +248,16 @@ struct WatchQuickCaptureView: View {
                         .accessibilityIdentifier("watch-stop-save")
                     Text("watch.capture.limit").font(.caption2).foregroundStyle(.secondary)
                 } else {
+                    if let error = recorder.recoveryError {
+                        Text(error).font(.caption2).multilineTextAlignment(.center)
+                    }
+                    if recorder.pendingRecoverySegments > 0 {
+                        if recorder.recoveryError == nil {
+                            Text("watch.recovery.pending").font(.caption2)
+                        }
+                        Button("watch.recovery.retry") { recorder.retryRecoveryTransfers() }
+                            .accessibilityIdentifier("watch-retry-recording-recovery")
+                    }
                     Button { capture.start("idea") } label: {
                         Label("watch.capture.idea", systemImage: "lightbulb")
                             .frame(maxWidth: .infinity, minHeight: 44)

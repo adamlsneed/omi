@@ -161,11 +161,11 @@ void main() {
     final host = hostForTest();
     final now = DateTime.now();
     ServerConversation row(String id) => ServerConversation(
-      id: id,
-      createdAt: now,
-      structured: Structured(id, 'summary'),
-      status: ConversationStatus.completed,
-    );
+          id: id,
+          createdAt: now,
+          structured: Structured(id, 'summary'),
+          status: ConversationStatus.completed,
+        );
     final provider = ConversationProvider(
       conversationLifecycleFetcher: (_) async => (item: row('merged'), ok: true),
       isSignedIn: () => true,
@@ -234,7 +234,7 @@ void main() {
     expect(host.conversations, contains(row.id));
   });
 
-  test('complete unfiltered memory fetch removes remotely deleted ids', () async {
+  test('complete current and history fetch removes remotely deleted ids', () async {
     final host = hostForTest();
     host.memories['remote-deleted'] = SiriMemory(
       id: 'remote-deleted',
@@ -244,6 +244,8 @@ void main() {
     final provider = MemoriesProvider(
       fetchMemoriesRequest: ({int limit = 100, int offset = 0, bool thisDeviceOnly = false}) async =>
           const GetMemoriesResult([], true),
+      fetchLedgerHistoryRequest: ({int limit = 500, int offset = 0}) async =>
+          const GetLedgerHistoryResult([], supported: true),
     );
     addTearDown(provider.dispose);
 
@@ -264,28 +266,24 @@ void main() {
     addTearDown(() => SiriIntegration.testInstance = null);
     final now = DateTime.now();
     Memory row(String id) => Memory(
-      id: id,
-      uid: 'siri-fetch-owner',
-      content: id,
-      category: MemoryCategory.manual,
-      createdAt: now,
-      updatedAt: now,
-      visibility: MemoryVisibility.private,
-    );
+          id: id,
+          uid: 'siri-fetch-owner',
+          content: id,
+          category: MemoryCategory.manual,
+          createdAt: now,
+          updatedAt: now,
+          visibility: MemoryVisibility.private,
+        );
     await SiriIntegration.current.upsertMemories([row('outside-useful-now')]);
-    final requestedViews = <MemoryReadView?>[];
     final provider = MemoriesProvider(
-      fetchMemoriesCursorRequest: ({limit = 100, offset = 0, thisDeviceOnly = false, cursor, view}) async {
-        requestedViews.add(view);
-        return GetMemoriesResult([row('useful-now')], true, beliefEnabled: true);
-      },
+      fetchMemoriesCursorRequest: ({limit = 100, offset = 0, thisDeviceOnly = false, cursor}) async =>
+          GetMemoriesResult([row('useful-now')], true),
       fetchLedgerHistoryRequest: ({limit = 500, offset = 0}) async =>
           const GetLedgerHistoryResult([], supported: false),
     );
     addTearDown(provider.dispose);
     await provider.loadMemories();
     await SiriIntegration.current.drainIndexForTest();
-    expect(requestedViews, contains(MemoryReadView.usefulNow));
     expect(host.memories.keys, contains('outside-useful-now'));
   });
 
@@ -620,9 +618,16 @@ void main() {
     final host = hostForTest();
     final now = DateTime.now().millisecondsSinceEpoch;
     final provider = ActionItemsProvider(
-      getActionItems:
-          ({limit = 100, offset = 0, completed, conversationId, startDate, endDate, dueStartDate, dueEndDate}) async =>
-              const ActionItemsResponse(actionItems: [], hasMore: false),
+      getActionItems: (
+              {limit = 100,
+              offset = 0,
+              completed,
+              conversationId,
+              startDate,
+              endDate,
+              dueStartDate,
+              dueEndDate}) async =>
+          const ActionItemsResponse(actionItems: [], hasMore: false),
     );
     addTearDown(provider.dispose);
 
@@ -648,9 +653,16 @@ void main() {
     final now = DateTime.now().millisecondsSinceEpoch;
     host.tasks['outside-page'] = SiriTask(id: 'outside-page', title: 'private', completed: false, createdAtMs: now);
     final provider = ActionItemsProvider(
-      getActionItems:
-          ({limit = 100, offset = 0, completed, conversationId, startDate, endDate, dueStartDate, dueEndDate}) async =>
-              const ActionItemsResponse(actionItems: [], hasMore: true),
+      getActionItems: (
+              {limit = 100,
+              offset = 0,
+              completed,
+              conversationId,
+              startDate,
+              endDate,
+              dueStartDate,
+              dueEndDate}) async =>
+          const ActionItemsResponse(actionItems: [], hasMore: true),
     );
     addTearDown(provider.dispose);
 
@@ -735,16 +747,16 @@ void main() {
       memoryPageFetcher: ({required limit, required offset, cursor}) async {
         memoryCursors.add(cursor);
         Memory row(String id) => Memory(
-          id: id,
-          uid: 'siri-fetch-owner',
-          content: id,
-          category: MemoryCategory.manual,
-          createdAt: now,
-          updatedAt: now,
-          visibility: MemoryVisibility.private,
-          layer: MemoryLayer.longTerm,
-          layerIsExplicit: true,
-        );
+              id: id,
+              uid: 'siri-fetch-owner',
+              content: id,
+              category: MemoryCategory.manual,
+              createdAt: now,
+              updatedAt: now,
+              visibility: MemoryVisibility.private,
+              layer: MemoryLayer.longTerm,
+              layerIsExplicit: true,
+            );
         return cursor == null
             ? GetMemoriesResult([row('memory-first')], true, nextCursor: 'second')
             : GetMemoriesResult([row('memory-beyond-page')], true);
@@ -881,15 +893,15 @@ void main() {
     final release = Completer<GetMemoriesResult>();
     final now = DateTime.now();
     Memory row({required bool locked}) => Memory(
-      id: 'lock-race',
-      uid: 'siri-fetch-owner',
-      content: 'Private',
-      category: MemoryCategory.manual,
-      createdAt: now,
-      updatedAt: now,
-      visibility: MemoryVisibility.private,
-      isLocked: locked,
-    );
+          id: 'lock-race',
+          uid: 'siri-fetch-owner',
+          content: 'Private',
+          category: MemoryCategory.manual,
+          createdAt: now,
+          updatedAt: now,
+          visibility: MemoryVisibility.private,
+          isLocked: locked,
+        );
     final siri = SiriIntegration.forTest(
       host,
       'siri-fetch-owner',
@@ -918,12 +930,12 @@ void main() {
     final release = Completer<ApiResult<ActionItemsResponse>>();
     final now = DateTime.now();
     ActionItemWithMetadata row({required bool locked}) => ActionItemWithMetadata(
-      id: 'task-lock-race',
-      description: 'Private',
-      completed: false,
-      createdAt: now,
-      isLocked: locked,
-    );
+          id: 'task-lock-race',
+          description: 'Private',
+          completed: false,
+          createdAt: now,
+          isLocked: locked,
+        );
     final siri = SiriIntegration.forTest(
       host,
       'siri-fetch-owner',
@@ -953,12 +965,12 @@ void main() {
     final release = Completer<ApiResult<List<ServerConversation>>>();
     final now = DateTime.now();
     ServerConversation row({required bool locked}) => ServerConversation(
-      id: 'conversation-lock-race',
-      createdAt: now,
-      structured: Structured('Private', 'Summary'),
-      status: ConversationStatus.completed,
-      isLocked: locked,
-    );
+          id: 'conversation-lock-race',
+          createdAt: now,
+          structured: Structured('Private', 'Summary'),
+          status: ConversationStatus.completed,
+          isLocked: locked,
+        );
     final siri = SiriIntegration.forTest(
       host,
       'siri-fetch-owner',

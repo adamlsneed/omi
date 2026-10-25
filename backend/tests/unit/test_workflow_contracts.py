@@ -57,6 +57,33 @@ def test_memory_policy_core_change_selects_inv_mem_guard(selector_and_all_tests)
     assert reason == "selected backend unit tests from changed paths and workflow contracts"
 
 
+def test_background_task_ratchet_change_selects_the_ratchet(selector_and_all_tests):
+    """Any module the ratchet can scan (utils/routers/services top-level dirs)
+    selects the background-task ratchet and drain harness (#22198); modules
+    outside those directories do not."""
+    selector, all_tests = selector_and_all_tests
+    ratchet = "tests/unit/test_background_task_ratchet.py"
+    harness = "tests/unit/test_revision_drain_harness.py"
+
+    for path in (
+        "backend/routers/sync.py",
+        "backend/services/users/account_deletion.py",
+        "backend/utils/stt/soniox.py",  # transitive closure member, not an AREA seed
+        "backend/utils/retrieval/agentic.py",
+    ):
+        selected, reason = selector.tests_for_changed_paths([path], all_tests)
+        assert ratchet in selected and harness in selected, path
+        assert reason == "selected backend unit tests from changed paths and workflow contracts"
+
+    # Negatives: narrow-area paths outside the ratchet's scanned directories.
+    # (backend/database/_client.py is not a valid negative: database/ changes
+    # fall back to the full suite, which includes the ratchet.)
+    for path in ("backend/models/users.py", "backend/database/csat.py"):
+        selected, reason = selector.tests_for_changed_paths([path], all_tests)
+        assert ratchet not in selected, path
+        assert reason == "selected backend unit tests from changed paths and workflow contracts"
+
+
 def test_workflow_contract_sources_select_adjacent_tests(selector_and_all_tests):
     selector, all_tests = selector_and_all_tests
 
@@ -304,18 +331,28 @@ def test_backend_unit_ci_runner_stays_in_ci_while_pre_push_keeps_its_budget():
 
 def test_expensive_pr_contracts_cancel_only_superseded_pull_request_runs():
     repo = BACKEND_DIR.parent
-    workflows = {
-        "backend-unit-tests.yml": "backend-unit-tests-",
-        "openapi-contract.yml": "openapi-contract-",
-    }
-
-    for filename, group_prefix in workflows.items():
-        workflow = (repo / ".github/workflows" / filename).read_text(encoding="utf-8")
-        assert "concurrency:" in workflow
-        assert f"group: {group_prefix}${{{{ github.event_name == 'pull_request'" in workflow
-        assert "format('pr-{0}', github.event.pull_request.number)" in workflow
-        assert "format('run-{0}', github.run_id)" in workflow
-        assert "cancel-in-progress: true" in workflow
+    # backend-unit-tests (2026-10-21 runner economy, named by David): PR runs
+    # still cancel that PR's older run, but main pushes share one ref-keyed
+    # group with cancel-in-progress false — the running suite finishes and
+    # only the newest pending main SHA runs next, so a merge burst no longer
+    # queues a full superseded suite per intermediate SHA. Manual dispatches
+    # keep per-run groups so they can never evict a pending push run.
+    backend_unit_tests = (repo / ".github/workflows/backend-unit-tests.yml").read_text(encoding="utf-8")
+    assert "concurrency:" in backend_unit_tests
+    assert "group: backend-unit-tests-${{ github.event_name == 'pull_request'" in backend_unit_tests
+    assert "format('pr-{0}', github.event.pull_request.number)" in backend_unit_tests
+    assert (
+        "|| (github.event_name == 'push' && github.ref) || format('run-{0}', github.run_id) }}-" in backend_unit_tests
+    )
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in backend_unit_tests
+    # openapi-contract keeps per-run main isolation: its runs are cheap and
+    # path-filtered, and its pending-run accounting is not release evidence.
+    openapi_contract = (repo / ".github/workflows/openapi-contract.yml").read_text(encoding="utf-8")
+    assert "concurrency:" in openapi_contract
+    assert "group: openapi-contract-${{ github.event_name == 'pull_request'" in openapi_contract
+    assert "format('pr-{0}', github.event.pull_request.number)" in openapi_contract
+    assert "format('run-{0}', github.run_id)" in openapi_contract
+    assert "cancel-in-progress: true" in openapi_contract
 
 
 def test_backend_unit_suite_is_sharded_with_a_literal_gate_and_budget():
@@ -575,10 +612,23 @@ def test_mobile_android_compile_smoke_uploads_debug_apk_and_runs_jvm_tests_in_pa
     assert "app/build/app/outputs/flutter-apk/app-dev-debug.apk" in android
     assert "retention-days: 5" in android
     assert "${{ secrets." not in android
-    # Compile-smoke is the wall: restore-only so main does not pay Gradle
-    # save+cleanup after the APK, and so it does not race the JVM writer
-    # for the same content keys (runs 35256814704 / 35268313733).
-    assert "cache-read-only: true" in android
+    # Cold Gradle homes took 11-12m (40022514904 / 40025498700), and
+    # 40030083284 hit the 25m cap. Compile-smoke must seed its own cache on
+    # PRs and main; basic and enhanced use separate key namespaces, avoiding
+    # the old ReserveCacheError race with the parallel JVM writer.
+    android_gradle = next(
+        step["with"]
+        for step in yaml.safe_load(android)["steps"]
+        if step.get("uses") == "gradle/actions/setup-gradle@v6"
+    )
+    unit_gradle = next(
+        step["with"]
+        for step in yaml.safe_load(unit_tests)["steps"]
+        if step.get("uses") == "gradle/actions/setup-gradle@v6"
+    )
+    assert android_gradle["cache-provider"] == "basic"
+    assert android_gradle["cache-read-only"] is False
+    assert unit_gradle.get("cache-provider", "enhanced") == "enhanced"
     assert "cache-read-only: ${{ github.ref != 'refs/heads/main' }}" not in android
 
     # Size report is a zip breakdown of the debug APK this job already built.
@@ -653,7 +703,7 @@ def test_mobile_ios_compile_check_is_path_gated_simulator_unsigned_and_secret_fr
     assert "has_app_ios_compile" in ios
     assert "has_app_ios_compile" in changes
     assert "has_app_ios_compile:" in detect_changes
-    assert "timeout-minutes: 40" in ios
+    assert "timeout-minutes: 50" in ios
     assert "fetch-depth: 0" in ios
     assert "run-swift-ci.sh --select-toolchain" in ios
     assert "Prove stable iOS compiler emits no Siri metadata" in ios
@@ -883,6 +933,46 @@ def test_gcp_diarizer_checks_deployment_files_only_after_checkout():
     target_script = steps[target_index]["run"]
     assert re.search(r"(?:\[\[?|\btest\b)[^\n]*-f[^\n]*\$dockerfile", target_script)
     assert re.search(r"(?:\[\[?|\btest\b)[^\n]*-f[^\n]*\$values_file", target_script)
+
+
+def test_gcp_diarizer_batch_deploys_dedicated_release_like_the_runbook():
+    """W1: the diarizer-batch dispatch must reproduce the lead-only install.
+
+    backend/scripts/diarization_eval/batch_install.md installs the separate
+    prod-omi-diarizer-batch release from the same chart and image as diarizer,
+    stacking the batch values on the base values and pinning the published
+    digest with the tag emptied. The workflow option must not drift from that.
+    """
+    workflow_path = BACKEND_DIR.parent / ".github/workflows/gcp_diarizer.yml"
+    workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+
+    service_input = workflow[True]["workflow_dispatch"]["inputs"]["service"]
+    assert "diarizer-batch" in service_input["options"]
+
+    steps = workflow["jobs"]["deploy"]["steps"]
+    target_step = next(step for step in steps if step.get("name") == "Resolve deployment target")
+    target_script = target_step["run"]
+    assert 'diarizer-batch)' in target_script
+    assert 'values_overlay="backend/charts/diarizer/${DEPLOY_ENV}_omi_diarizer_batch_values.yaml"' in target_script
+    assert '[[ -n "$values_overlay" && ! -f "$values_overlay" ]]' in target_script
+    assert 'echo "values_overlay=$values_overlay"' in target_script
+    # release_name stays ${DEPLOY_ENV}-omi-${SERVICE}, so diarizer-batch targets
+    # prod-omi-diarizer-batch, never prod-omi-diarizer.
+    assert 'echo "release_name=${DEPLOY_ENV}-omi-${SERVICE}"' in target_script
+
+    build_step = next(step for step in steps if step.get("name") == "Build and Push Docker image")
+    assert '"$SERVICE" == "batch-pipeline-worker" || "$SERVICE" == "diarizer-batch"' in build_step["run"]
+
+    helm_step = next(step for step in steps if "Helm" in step.get("name", ""))
+    helm_script = helm_step["run"]
+    assert helm_step["env"]["TARGET_VALUES_OVERLAY"] == "${{ steps.target.outputs.values_overlay }}"
+    assert '-f "./$TARGET_VALUES" -f "./$TARGET_VALUES_OVERLAY"' in helm_script
+    assert "--set-string image.tag= --set-string" in helm_script
+    assert '--atomic --wait --timeout 15m' in helm_script
+
+    verify_step = next(step for step in steps if step.get("name") == "Verify rollout")
+    assert '"$SERVICE" == "diarizer-batch"' in verify_step["run"]
+    assert "rollout_timeout=900s" in verify_step["run"]
 
 
 def test_firestore_readiness_gate_covers_every_backend_image_shipment():
@@ -1372,18 +1462,6 @@ runs:
     )
 
 
-def test_firestore_gate_policy_pins_qa_database_and_environment():
-    policy = _workflow_policy()
-    repo = BACKEND_DIR.parent
-    dockerfiles = policy._runtime_images(repo)
-    for workflow_name in ('jit_qa_cloud_run.yml', 'jit_qa_typesense_projection.yml'):
-        workflow = (repo / '.github/workflows' / workflow_name).read_text(encoding='utf-8')
-        wrong_db = workflow.replace('database: ${{ env.QA_FIRESTORE_DATABASE }}', 'database: (default)')
-        assert policy.workflow_gate_violations(wrong_db, name=workflow_name, dockerfiles=dockerfiles)
-        wrong_env = workflow.replace('environment: development', 'environment: qa-sandbox')
-        assert policy.workflow_gate_violations(wrong_env, name=workflow_name, dockerfiles=dockerfiles)
-
-
 def test_firestore_gate_policy_rejects_source_sha_workflow_commit_substitution():
     policy = _workflow_policy()
     repo = BACKEND_DIR.parent
@@ -1423,16 +1501,12 @@ _LANE_SOURCE_BINDINGS = {
     'gcp_memory_maintenance_job_auto_dev.yml': '${{ github.sha }}',
     'gcp_notifications_job.yml': '${{ env.CHECKED_OUT_SHA }}',
     'gcp_x_connector_sync_job.yml': '${{ env.CHECKED_OUT_SHA }}',
-    'gcp_daily_memory_sweep_job.yml': '${{ steps.admitted_source.outputs.admitted_sha }}',
-    'gcp_daily_memory_sweep_job_auto_dev.yml': '${{ steps.admitted_source.outputs.admitted_sha }}',
     'gcp_day3_reengagement_email_job.yml': '${{ steps.admitted_source.outputs.admitted_sha }}',
     'gcp_day3_reengagement_email_job_auto_dev.yml': '${{ steps.admitted_source.outputs.admitted_sha }}',
     'gcp_frame_request_retention_job.yml': '${{ github.event.inputs.release_sha }}',
     'gcp_backend_pusher.yml': '${{ env.FIRESTORE_GATE_SOURCE_SHA }}',
     'gcp_backend_pusher_auto_deploy.yml': '${{ github.sha }}',
     'gcp_backend_listen_helm.yml': '${{ env.BACKEND_LISTEN_SOURCE_SHA }}',
-    'jit_qa_cloud_run.yml': '${{ needs.admit.outputs.source_sha }}',
-    'jit_qa_typesense_projection.yml': '${{ needs.admit.outputs.source_sha }}',
 }
 
 
@@ -1462,18 +1536,18 @@ def test_firestore_gate_lane_source_and_target_bindings():
     assert 'BACKEND_LISTEN_SOURCE_SHA=$SELECTED_SHA' not in listen
     # Rollback replays the operator's requested Helm revision verbatim; there is
     # no resolver step and no source-sha derivation on that lane.
-    assert 'helm -n "$NS" rollback "$RELEASE" "$TARGET_REVISION" --wait --timeout 30m' in listen
-    assert 'helm -n "$NS" rollback "$RELEASE" --wait --timeout 30m' in listen
+    assert 'helm -n "$NS" rollback "$RELEASE" "$TARGET_REVISION" --wait --timeout 70m' in listen
+    assert 'helm -n "$NS" rollback "$RELEASE" --wait --timeout 70m' in listen
     assert 'TARGET_REVISION: ${{ github.event.inputs.helm_revision }}' in listen
     assert 'BACKEND_LISTEN_ROLLBACK_REVISION' not in listen
+    # A listen rollback must not roll back or uninstall the NEG coverage
+    # exporter; it is a separate monitoring release (2026-10-18 rollback
+    # 39161774715 uninstalled its only revision).
+    assert 'uninstall' not in listen
+    assert 'RELEASE=prod-omi-neg-coverage-exporter' not in listen
     assert 'BACKEND_LISTEN_SOURCE_SHA=$RUNNING_TAG' not in listen
     gate_condition = "if: ${{ env.BACKEND_LISTEN_SOURCE_SHA != '' }}"
     assert listen.count(gate_condition) == 2
-
-    for jit_name in ('jit_qa_cloud_run.yml', 'jit_qa_typesense_projection.yml'):
-        jit = (workflows / jit_name).read_text(encoding='utf-8')
-        assert 'project_id: ${{ env.QA_PROJECT }}' in jit, jit_name
-        assert 'database: ${{ env.QA_FIRESTORE_DATABASE }}' in jit, jit_name
 
     auto_dev = (workflows / 'gcp_backend_auto_dev.yml').read_text(encoding='utf-8')
     assert "verify_credential_project: 'true'" in auto_dev
@@ -1495,6 +1569,16 @@ def test_listen_gate_is_the_conditional_source_sha_gate():
     name = 'gcp_backend_listen_helm.yml'
     workflow = (repo / '.github/workflows' / name).read_text(encoding='utf-8')
     assert policy.workflow_gate_violations(workflow, name=name, dockerfiles=dockerfiles) == []
+
+    # A separate exporter deployment job may inherit protection from the
+    # listen rollout only through a required successful dependency.
+    without_exporter_dependency = workflow.replace('    needs: helm-upgrade\n', '    needs: []\n', 1)
+    assert any(
+        'listen requires the env.BACKEND_LISTEN_SOURCE_SHA-conditional readiness gate' in violation
+        for violation in policy.workflow_gate_violations(
+            without_exporter_dependency, name=name, dockerfiles=dockerfiles
+        )
+    )
 
     gate_block = re.search(r'      - name: Verify serving Firestore indexes\n(?:        .*\n)+', workflow).group(0)
     removed = workflow.replace(gate_block, '')
@@ -1701,8 +1785,6 @@ def test_no_customer_data_gate_for_central_or_qa():
     for workflow_name in (
         'gcp_backend.yml',
         'gcp_backend_auto_dev.yml',
-        'jit_qa_cloud_run.yml',
-        'jit_qa_typesense_projection.yml',
     ):
         workflow = (repo / '.github/workflows' / workflow_name).read_text(encoding='utf-8')
         violations = policy.workflow_gate_violations(
@@ -1762,7 +1844,18 @@ cmd = args[0]
 if cmd == 'fetch':
     sys.exit(0)
 if cmd == 'cat-file':
-    sys.exit(0 if args[-1].removesuffix('^{commit}') in tags else 1)
+    spec = args[-1].removesuffix('^{commit}')
+    if ':' in spec:
+        # Path-object probe ("<sha>:<path>"): resolvable commits are cohort-aware
+        # unless the case explicitly opts out with STUB_GIT_COHORT_PATH_COMMITS.
+        cohort_file = os.environ.get('STUB_GIT_COHORT_PATH_COMMITS', '')
+        cohort = (
+            json.load(open(cohort_file))
+            if cohort_file and os.path.exists(cohort_file)
+            else list(tags.values()) + list(tags)
+        )
+        sys.exit(0 if spec.split(':', 1)[0] in cohort else 1)
+    sys.exit(0 if spec in tags else 1)
 if cmd == 'merge-base':
     sys.exit(0 if args[2] in ancestors else 1)
 if cmd == 'rev-parse':
@@ -1827,19 +1920,22 @@ def _stub_bin(tmp_path: Path) -> Path:
 def _run_step(run: str, env: dict[str, str], substitutions: dict[str, str], tmp_path: Path):
     tmp_path.mkdir(parents=True, exist_ok=True)
     env_file = tmp_path / 'github.env'
+    output_file = tmp_path / 'github.output'
     env_file.touch()
+    output_file.touch()
     proc = subprocess.run(
         ['bash', '-c', _render_run(run, substitutions)],
-        env={**os.environ, **env, 'GITHUB_ENV': str(env_file)},
+        env={**os.environ, **env, 'GITHUB_ENV': str(env_file), 'GITHUB_OUTPUT': str(output_file)},
         capture_output=True,
         text=True,
     )
     outputs = {}
-    if env_file.exists():
-        for line in env_file.read_text(encoding='utf-8').splitlines():
-            if '=' in line:
-                key, value = line.split('=', 1)
-                outputs[key] = value
+    for output_path in (env_file, output_file):
+        if output_path.exists():
+            for line in output_path.read_text(encoding='utf-8').splitlines():
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    outputs[key] = value
     return proc, outputs
 
 
@@ -1883,13 +1979,22 @@ def test_listen_deploy_tag_resolution_executes_against_stubbed_tools(tmp_path):
     # The kept lane replays an already-gated image; it must not resolve a SHA.
     assert 'BACKEND_LISTEN_SOURCE_SHA' not in outputs
 
-    # Even when the kept tag cannot be resolved locally, the kept lane exits
-    # before any git lookup and still emits no source SHA.
+    # A chart-only upgrade must not land cohort-removal values on an image whose
+    # commit predates the Firestore cohort resolver.
+    case = tmp_path / 'kept-tag-pre-cohort'
+    env = base_env | _listen_env(case, {'abc1234': 'c' * 40}, image='gcr.io/test-project/backend:abc1234')
+    (case / 'cohort-commits.json').write_text(json.dumps([]), encoding='utf-8')
+    env |= {'STUB_GIT_COHORT_PATH_COMMITS': str(case / 'cohort-commits.json'), 'REQUESTED_TAG': ''}
+    proc, outputs = _run_step(run, env, _LISTEN_SUBSTITUTIONS, case)
+    assert proc.returncode == 1
+    assert 'cohort resolver' in proc.stderr
+
+    # An unresolvable running tag cannot be proven cohort-aware; the kept lane
+    # must fail closed rather than apply cohort-removal values blindly.
     case = tmp_path / 'kept-tag-unresolvable'
     env = base_env | _listen_env(case, {}, image='gcr.io/test-project/backend:eeeeeee') | {'REQUESTED_TAG': ''}
     proc, outputs = _run_step(run, env, _LISTEN_SUBSTITUTIONS, case)
-    assert proc.returncode == 0, proc.stderr
-    assert outputs['BACKEND_LISTEN_IMAGE_TAG'] == 'eeeeeee'
+    assert proc.returncode == 1
     assert 'BACKEND_LISTEN_SOURCE_SHA' not in outputs
 
     case = tmp_path / 'explicit-tag'
@@ -1902,6 +2007,7 @@ def test_listen_deploy_tag_resolution_executes_against_stubbed_tools(tmp_path):
     assert proc.returncode == 0, proc.stderr
     assert outputs['BACKEND_LISTEN_IMAGE_TAG'] == 'ddddddd'
     assert outputs['BACKEND_LISTEN_SOURCE_SHA'] == 'd' * 40
+    assert outputs['neg_coverage_exporter_image_tag'] == 'ddddddd'
 
     case = tmp_path / 'missing-tag'
     env = base_env | _listen_env(case, {'abc1234': 'c' * 40}, image='') | {'REQUESTED_TAG': ''}
@@ -1923,6 +2029,7 @@ def _composite_control_root(tmp_path: Path) -> Path:
         '__init__.py',
         'firestore_index_registry.py',
         'firestore_query_types.py',
+        'mcp_read_queries.py',
         'review_queries.py',
         'messaging_queries.py',
         'sync_pipeline_indexes.py',

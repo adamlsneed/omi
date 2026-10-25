@@ -4,10 +4,12 @@ Do not import the existing Parakeet GPUWorker here: it owns a second GPU thread
 and loads unrelated embedding models. This chain is the sole model owner.
 """
 
+from collections import OrderedDict
 import io
 from copy import deepcopy
 from contextlib import nullcontext
 import wave
+from typing import Any, Callable
 import numpy as np
 
 try:
@@ -30,7 +32,10 @@ from diarizer.batch_pipeline import (
     padded_retry_seconds,
     validate_words,
 )
-from utils.stt.diarization_turns import exclusive_from_activity, overlap_regions
+from diarizer.batch_pipeline_context import capture_stream
+from diarizer.batch_pipeline_flight import FlightPyannote, diarization_payload
+from utils.batch_pipeline.audio import read_context
+from utils.batch_pipeline import leaf_timings
 
 
 def pin_parakeet_decoding(model):
@@ -127,24 +132,16 @@ class ParakeetWords:
 
 
 class PyannoteDiarizer:
-    def __init__(self, model):
+    def __init__(self, model, *, timings_of: Callable[[], Any] | None = None):
         self.model = model
+        self.timings_of = timings_of or (lambda: None)
 
     def __call__(self, samples):
         if torch is None:
             raise RuntimeError('pyannote adapter requires the GPU runtime with torch')
-        with torch.inference_mode():
+        with leaf_timings.active(self.timings_of()), leaf_timings.embedding_hook(self.model), torch.inference_mode():
             output = self.model({'waveform': torch.from_numpy(samples).unsqueeze(0), 'sample_rate': 16000})
-        activity = [
-            {'start': float(t.start), 'end': float(t.end), 'speaker': str(s)} for t, s in output.speaker_diarization
-        ]
-        exclusive = getattr(output, 'exclusive_speaker_diarization', None)
-        turns = (
-            [{'start': float(t.start), 'end': float(t.end), 'speaker': str(s)} for t, s in exclusive]
-            if exclusive is not None
-            else exclusive_from_activity(activity)
-        )
-        return {'turns': turns, 'overlaps': overlap_regions(activity), 'backend': 'pyannote'}
+        return diarization_payload(output)
 
 
 class PyannoteVAD:
@@ -159,6 +156,69 @@ class PyannoteVAD:
         return crop_model_vad_spans(
             [(float(t.start), float(t.end)) for t in output.get_timeline().support()], len(samples) / 16000
         )
+
+
+class StagedAudio:
+    """Fetch+decode staged audio once, keeping each unit's capture-stream identity.
+
+    The authenticated intake context frozen in the staged WAV names the source,
+    device and lock the per-unit chunk identity was built from. Record-lane
+    audio carries no intake context; its conversation is its stream.
+    """
+
+    MAX_PENDING = 256
+
+    def __init__(self, fetch_audio, *, timings_of: Callable[[], Any] | None = None):
+        self.fetch_audio = fetch_audio
+        self.timings_of = timings_of or (lambda: None)
+        self._streams: OrderedDict[str, str | None] = OrderedDict()
+        self._languages: OrderedDict[str, str | None] = OrderedDict()
+
+    def decode(self, item):
+        with leaf_timings.active(self.timings_of()):
+            body = self.fetch_audio(item)
+            return self._decode(item, body)
+
+    def _decode(self, item, body):
+        try:
+            context = read_context(body)
+        except Exception:
+            context = None
+        self._streams[item.segment_id] = capture_stream(item, context)
+        self._languages[item.segment_id] = stt_language(context, duration_seconds=item.duration_seconds)
+        for pending in (self._streams, self._languages):
+            while len(pending) > self.MAX_PENDING:
+                pending.popitem(last=False)
+        return leaf_timings.call('decode', decode_pcm16_wav, body)
+
+    def stream(self, item):
+        stream = self._streams.pop(item.segment_id, None)
+        return ('shadow:' + stream) if item.shadow and stream else stream
+
+    def language(self, item):
+        """Intake's resolved STT language ('' unknown); None when intake did not record one."""
+        return self._languages.pop(item.segment_id, None)
+
+
+def stt_language(context, *, duration_seconds=None):
+    if not isinstance(context, dict) or 'stt_language' not in context:
+        return None
+    value = context['stt_language']
+    from config.prerecorded_language import MIN_AUDIO_LID_CONFIDENCE, audio_lid_confidence_floor, language_class
+
+    if language_class(value) == 'supported':
+        # Older intake copied the app's primary language even in multilingual
+        # mode. Such a hint is not proof that this audio is supported.
+        evidence, confidence = context.get('stt_language_evidence'), context.get('stt_language_confidence')
+        minimum = audio_lid_confidence_floor(duration_seconds) if evidence == 'audio_lid' else MIN_AUDIO_LID_CONFIDENCE
+        if (
+            evidence not in ('declared', 'audio_lid')
+            or isinstance(confidence, bool)
+            or not isinstance(confidence, (int, float))
+            or not minimum <= confidence <= 1
+        ):
+            return None
+    return value if isinstance(value, str) else None
 
 
 def decode_pcm16_wav(body):
@@ -199,15 +259,31 @@ def create_local_worker(
         )
     pin_parakeet_decoding(parakeet_model)
     words = ParakeetWords(parakeet_model, enforce_eager=True)
-    return PipelineWorker(
-        decode=lambda item: decode_pcm16_wav(fetch_audio(item)),
+    flight = (
+        FlightPyannote.create(pyannote_model, vad_model, budget_seconds=config.flight_batch_seconds)
+        if config.flight_batching
+        else None
+    )
+    # Resolve dynamically: run_process binds its private registry after loading.
+    staged = StagedAudio(fetch_audio, timings_of=lambda: worker.timings)
+
+    def persist(item, payload):
+        with leaf_timings.active(worker.timings):
+            return persist_result(item, payload)
+
+    worker = PipelineWorker(
+        decode=staged.decode,
         vad=PyannoteVAD(vad_model),
         words_providers={'parakeet': words},
         recover_words=words.recover_empty,
-        diarizers={'pyannote': PyannoteDiarizer(pyannote_model)},
-        persist=persist_result,
+        diarizers={'pyannote': PyannoteDiarizer(pyannote_model, timings_of=lambda: worker.timings)},
+        persist=persist,
         config=config,
         live_words=live_words,
         single_speaker=single_speaker,
         on_failure=on_failure,
+        flight_models=flight,
+        stream_of=staged.stream,
+        language_of=staged.language,
     )
+    return worker

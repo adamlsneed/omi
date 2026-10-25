@@ -136,9 +136,12 @@ void main() {
     await provider.syncWal(wal);
 
     expect(syncs.syncWalCalls, 1);
-    expect(wakes, [
-      WakeTrigger.cooldownElapsed,
-    ], reason: 'successful syncWal must wake coordinator so uploaded WALs reconcile');
+    expect(
+        wakes,
+        [
+          WakeTrigger.cooldownElapsed,
+        ],
+        reason: 'successful syncWal must wake coordinator so uploaded WALs reconcile');
     provider.dispose();
   });
 
@@ -174,9 +177,12 @@ void main() {
     expect(provider.syncState.hasError, isFalse);
     expect(provider.syncState.isIdle, isTrue);
     expect(wal.status, WalStatus.miss);
-    expect(wakes, [
-      WakeTrigger.cooldownElapsed,
-    ], reason: 'transient localUploadFailures must emit exactly one re-arm wake from _performSync');
+    expect(
+        wakes,
+        [
+          WakeTrigger.cooldownElapsed,
+        ],
+        reason: 'transient localUploadFailures must emit exactly one re-arm wake from _performSync');
     provider.dispose();
   });
 
@@ -263,7 +269,9 @@ void main() {
     SyncRateLimiter.instance.clear();
 
     final wal = Wal(timerStart: 1000, codec: BleAudioCodec.pcm16, seconds: 30, status: WalStatus.miss);
-    final other = Wal(timerStart: 2000, codec: BleAudioCodec.pcm16, seconds: 30, status: WalStatus.miss);
+    final other = Wal(timerStart: 2000, codec: BleAudioCodec.pcm16, seconds: 30, status: WalStatus.uploadRejected)
+      ..retryCount = walMaxAutoRetries
+      ..lastRetryAt = 1900;
     final hang = Completer<SyncLocalFilesResponse?>();
     final syncs = _FakeSyncs([wal, other])..hangSyncWal = hang;
     final wakes = <WakeTrigger>[];
@@ -288,6 +296,9 @@ void main() {
 
     expect(syncs.syncWalCalls, 1, reason: 'contended syncWal must not start a parallel upload');
     expect(wakes, [WakeTrigger.userRetry]);
+    expect(other.status, WalStatus.miss, reason: 'coalescing a refused-row retry must actually admit that row');
+    expect(other.retryCount, 0);
+    expect(other.lastRetryAt, 0);
 
     hang.complete(SyncLocalFilesResponse(newConversationIds: [], updatedConversationIds: []));
     await first;

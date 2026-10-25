@@ -18,6 +18,8 @@ import Foundation
 /// may only shrink).
 enum DefaultsKey: String {
   case devClientDeviceInstallId = "dev-client-device-install-uuid"
+  /// Retired unowned value, retained only for regression fixtures; never sync authority.
+  case screenActivitySyncLegacyCursor = "screenActivitySync_lastId"
   case authIsSignedIn = "auth_isSignedIn"
   case authUserEmail = "auth_userEmail"
   case authUserId = "auth_userId"
@@ -126,6 +128,10 @@ enum DefaultsKey: String {
   /// (contract §3/§9). Absent key means enabled (default on) — see
   /// `MeetingNoteScreenshotsFeature.isEnabled`.
   case meetingNoteScreenshotsEnabled = "meetingNoteScreenshotsEnabled"
+  /// Explicit local opt-in for read-only pre-meeting context in Conversations.
+  case meetingMemoryBriefsEnabled = "meetingMemoryBriefsEnabled"
+  /// Last meeting brief dismissed on this Mac; includes owner identity to prevent cross-account carryover.
+  case meetingMemoryBriefDismissedKey = "meetingMemoryBriefDismissedKey"
   /// Test hook: forces TTS playback start to report failure (non-prod gauntlets).
   case forceTTSPlaybackStartFalse = "forceTTSPlaybackStartFalse"
   case shortcutPTTInputDeviceUID = "shortcut_pttInputDeviceUID"
@@ -176,10 +182,9 @@ enum DefaultsKey: String {
   /// Whether the last extension connection test succeeded; `@AppStorage` in
   /// SettingsPage reads it under the same raw name.
   case playwrightExtensionVerified = "playwrightExtensionVerified"
-  /// Local embedding runtime: skip Apple NLCE / hybrid and keep Gemini screen search.
+  /// Hard kill local vectors. Entitled plans retain Gemini search; other plans retain FTS.
   case disableLocalEmbeddings = "disableLocalEmbeddings"
-  /// Local embedding runtime: opt in to on-device hybrid search. Defaults off on
-  /// production-family bundles and on in non-production; `OMI_LOCAL_EMBEDDINGS` overrides.
+  /// Local hybrid search defaults on in every channel; `OMI_LOCAL_EMBEDDINGS` overrides.
   case localEmbeddingsEnabled = "localEmbeddingsEnabled"
   /// Local embedding runtime: pin an engine id. Unknown ids fail closed to keyword-only.
   case forceLocalEmbeddingEngine = "forceLocalEmbeddingEngine"
@@ -189,6 +194,10 @@ enum DefaultsKey: String {
 /// derived at runtime.
 struct ScopedDefaultsKey {
   fileprivate let rawValue: String
+
+  static func screenActivitySyncCursor(ownerID: String) -> Self {
+    Self(rawValue: "screenActivitySync_lastId_\(ownerID)")
+  }
 
   static func taskContextSubjectMatches(ownerHash: String) -> Self {
     Self(rawValue: "taskContextSubjectMatches.v1.\(ownerHash)")
@@ -257,14 +266,6 @@ struct ScopedDefaultsKey {
   /// most once per summary, and per account on a shared Mac.
   static func dailySummaryLastSeenID(ownerID: String) -> Self {
     Self(rawValue: "dailySummary.lastSeenID.v1.\(ownerID)")
-  }
-
-  /// Owner-scoped id of the newest daily summary the memory_v1 postcard-first
-  /// landing has already opened on. Separate from the notch-announcement latch
-  /// so neither consumes the other; the arm lands on the postcard exactly once
-  /// per summary.
-  static func dailySummaryPostcardLandedID(ownerID: String) -> Self {
-    Self(rawValue: "dailySummary.postcardLandedID.v1.\(ownerID)")
   }
 
   /// Owner-scoped id of the daily summary that was on screen when the owner last cleared Chat.

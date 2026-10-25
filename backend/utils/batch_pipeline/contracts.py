@@ -7,6 +7,8 @@ from typing import Protocol, Sequence
 
 from config.batch_pipeline import Priority
 from utils.batch_pipeline.capacity import PoolCapacity as PoolCapacity
+from utils.batch_pipeline.errors import validate_worker_failure
+from utils.observability.reasons import WorkerValidationReason, WorkOutcome, reason_values
 
 MAX_PROJECTION_PARTS = 128
 
@@ -59,6 +61,7 @@ class WorkItem:
     conversation_id: str | None = None
     privacy_generation: int | None = None
     requires_compute_admission: bool = False
+    shadow: bool = False
 
     def __post_init__(self):
         if not self.segment_id or len(self.segment_id) > 128 or '/' in self.segment_id:
@@ -81,6 +84,8 @@ class WorkItem:
             raise ValueError('privacy_generation must be a nonnegative integer')
         if type(self.requires_compute_admission) is not bool:
             raise ValueError('requires_compute_admission must be boolean')
+        if type(self.shadow) is not bool:
+            raise ValueError('shadow must be boolean')
         Priority(self.priority)
         if self.unit_kind not in {'conversation', 'capture_span'}:
             raise ValueError('unit_kind must be conversation or capture_span')
@@ -94,6 +99,10 @@ class LeasedWork:
     lease_until: float
 
 
+WORK_OUTCOMES = reason_values(WorkOutcome)
+EMPTY_WORKER_REASONS = frozenset({WorkerValidationReason.EMPTY_ASR.value, WorkerValidationReason.NO_OWNED_WORDS.value})
+
+
 @dataclass(frozen=True)
 class WorkResult:
     segment_id: str
@@ -103,7 +112,7 @@ class WorkResult:
     def __post_init__(self):
         if not self.segment_id or len(self.segment_id) > 128 or '/' in self.segment_id:
             raise ValueError('segment_id must be a bounded opaque document ID')
-        if self.outcome not in {'success', 'silence', 'no_recoverable_speech'}:
+        if self.outcome not in WORK_OUTCOMES:
             raise ValueError('unsupported batch result outcome')
         if not self.result_uri or len(self.result_uri.encode()) > 2048:
             raise ValueError('result_uri must be a bounded durable encrypted reference')
@@ -113,6 +122,9 @@ class WorkResult:
 class HeldWork:
     segment_id: str
     retry_after: int = 60
+    # Bounded machine reason from the dispatch-time admission decision; empty
+    # means no policy decision was recorded (unknown holds stay unclassified).
+    reason: str = ''
 
 
 @dataclass(frozen=True)
@@ -122,20 +134,37 @@ class RecoveryWork:
     segment_id: str
     padded_retry_empty: bool = False
     padded_retry: str | None = None
+    reason: str = 'empty_asr'
 
     def __post_init__(self):
+        if self.reason not in EMPTY_WORKER_REASONS:
+            raise ValueError('closed empty worker reason required')
         if self.padded_retry is None and self.padded_retry_empty:
             object.__setattr__(self, 'padded_retry', 'empty')
         elif self.padded_retry == 'empty' and not self.padded_retry_empty:
             object.__setattr__(self, 'padded_retry_empty', True)
-        if self.padded_retry not in {None, 'empty', 'skipped_oversize'}:
+        if self.padded_retry not in {None, 'empty', 'skipped_oversize', 'skipped_long_speech'}:
             raise ValueError('unsupported padded retry evidence')
         if self.padded_retry_empty and self.padded_retry != 'empty':
             raise ValueError('conflicting padded retry evidence')
 
 
+@dataclass(frozen=True)
+class ValidationFailureWork:
+    """Terminal for this GPU chain, retained for independent fenced recovery."""
+
+    segment_id: str
+    stage: str
+    reason: str
+
+    def __post_init__(self):
+        validate_worker_failure({'stage': self.stage, 'reason': self.reason})
+
+
 class BatchWorker(Protocol):
-    def process_batch(self, items: Sequence[WorkItem], **kwargs) -> Sequence[WorkResult | HeldWork | RecoveryWork]: ...
+    def process_batch(
+        self, items: Sequence[WorkItem], **kwargs
+    ) -> Sequence[WorkResult | HeldWork | RecoveryWork | ValidationFailureWork]: ...
 
 
 @dataclass(frozen=True)
@@ -145,7 +174,9 @@ class ProjectionBinding:
     Stored as ``jobs[segment_id].projection_binding``. Every sibling names the
     same bounded complete ``segment_ids`` set. Result-log entries additionally
     carry ``previous_segment_id`` (null at the start of an owner log), so
-    projection can preserve the committed capture order under concurrent pumps.
+    projection preserves the committed log order under concurrent pumps. Log
+    order is capture order except where the bounded merge head wait or a late
+    capture appends an earlier capture at the tail (``late_capture``).
     """
 
     owner_id: str

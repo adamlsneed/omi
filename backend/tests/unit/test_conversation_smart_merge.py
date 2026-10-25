@@ -13,6 +13,8 @@ from types import SimpleNamespace
 import pytest
 
 from config import conversation_smart_merge as config
+from database import conversation_quiet_checks as quiet_checks
+from google.cloud import firestore
 from database import conversation_finalization_jobs as jobs_db
 from database import capture_groups as capture_groups_db
 from database import conversations as conversations_db
@@ -197,7 +199,6 @@ class World:
 @pytest.fixture
 def world(monkeypatch):
     monkeypatch.setenv(config.SMART_MERGE_MODE_ENV, 'off')
-    monkeypatch.delenv(config.SMART_MERGE_UID_ALLOWLIST_ENV, raising=False)
     return World(monkeypatch)
 
 
@@ -230,13 +231,6 @@ def test_unset_mode_is_merge_by_default(monkeypatch):
     monkeypatch.delenv(config.SMART_MERGE_MODE_ENV, raising=False)
     assert config.smart_merge_mode() is config.SmartMergeMode.MERGE
     assert config.DEFAULT_SMART_MERGE_MODE is config.SmartMergeMode.MERGE
-
-
-def test_uid_allowlist(monkeypatch):
-    monkeypatch.setenv(config.SMART_MERGE_UID_ALLOWLIST_ENV, 'a, b')
-    assert config.smart_merge_uid_allowed('a') and not config.smart_merge_uid_allowed('c')
-    monkeypatch.setenv(config.SMART_MERGE_UID_ALLOWLIST_ENV, '')
-    assert config.smart_merge_uid_allowed('c')
 
 
 def test_metric_reason_is_bounded_to_known_values(monkeypatch):
@@ -385,8 +379,19 @@ def test_merge_at_threshold_absorbs_redirects_and_refreshes_once(world):
     world.add('p', 0, 10)
     world.add('n', 15, 10, private_cloud_sync_enabled=True)
     world.jev_answers = [0.35]
+    quiet_paths = [('conversation_finalization_jobs', quiet_checks.quiet_check_id(UID, cid)) for cid in ('p', 'n')]
+    for path in quiet_paths:
+        world.store.rows[path] = {
+            'kind': 'listen_quiet_check',
+            'status': 'waiting_quiet',
+            'dispatch_generation': 1,
+            'reconcile_after_at': T0,
+        }
 
     assert world.finish('n') is True
+    for path in quiet_paths:
+        assert world.store.rows[path]['status'] == 'quiet_done'
+        assert world.store.rows[path]['reconcile_after_at'] is firestore.DELETE_FIELD
 
     donor = world.raw('n')
     assert donor['deleted'] is True and donor['discarded'] is True and donor['sync_merged_into'] == 'p'
@@ -979,132 +984,3 @@ def test_transaction_never_rekeys_corrected_capture_anchors(world, protected):
     )
     assert result.outcome == 'rejected'
     assert world.store.rows == before
-
-
-# --------------------------------------------------------------------------- call group continuation
-
-
-def _call_group(world, monkeypatch):
-    monkeypatch.setenv('DESKTOP_PENDANT_CALL_LINK_MODE', 'on')
-    monkeypatch.setenv('DESKTOP_PENDANT_CALL_LINK_PERCENT', '100')
-    monkeypatch.setenv(config.SMART_MERGE_WALLCLOCK_GAP_MODE_ENV, 'off')
-    monkeypatch.setattr(capture_groups_db, 'get_firestore_client', lambda: world.store)
-    world.add('desktop', 0, 10, source='desktop', external_data={'conversation_role': 'meeting'})
-    world.add('pendant', 0, 5)
-    # Existing shared-speech groups are eligible too; today's groups predate the flag.
-    gid = capture_groups_db.join_capture_group(UID, 'desktop', 'pendant', {'method': 'shared_speech'})
-    world.add('next', 8, 4)
-    return gid
-
-
-@pytest.mark.parametrize('link_mode', ['off', 'typo', 'shadow', 'on'])
-def test_call_group_continuation_modes(world, monkeypatch, link_mode):
-    gid = _call_group(world, monkeypatch)
-    monkeypatch.setenv('DESKTOP_PENDANT_CALL_LINK_MODE', link_mode)
-    assert world.finish('next') is False  # metadata grouping never creates a donor
-    group = world.raw('next').get('capture_group')
-    if link_mode == 'on':
-        assert group['id'] == gid and group['primary_id'] == 'desktop'
-        assert {m['id'] for m in group['members']} == {'desktop', 'pendant', 'next'}
-        assert world.raw('desktop')['capture_group'] == world.raw('pendant')['capture_group'] == group
-        assert not world.raw('next').get('deleted')
-    else:
-        assert not group
-    assert not world.processed and not world.retracted
-
-
-@pytest.mark.parametrize('target', ['desktop', 'pendant', 'next'])
-@pytest.mark.parametrize(
-    'guard', ['starred', 'user_title', 'has_transcript_corrections', 'manual_speaker_assignments', 'folder_user_set']
-)
-def test_call_group_continuation_preserves_user_edits(world, monkeypatch, target, guard):
-    _call_group(world, monkeypatch)
-    world.raw(target)[guard] = {'0': 'self'} if guard == 'manual_speaker_assignments' else True
-    world.finish('next')
-    assert not world.raw('next').get('capture_group')
-    assert not world.jev_calls
-
-
-@pytest.mark.parametrize(
-    'guard',
-    [
-        'starred',
-        'has_transcript_corrections',
-        'unlink',
-        'transcript',
-        'role',
-        'revision',
-        'deleted',
-        'device',
-        'user_end',
-    ],
-)
-def test_call_group_continuation_rechecks_after_jev(world, monkeypatch, guard):
-    _call_group(world, monkeypatch)
-
-    def race():
-        if guard in {'starred', 'has_transcript_corrections', 'deleted'}:
-            world.raw('desktop')[guard] = True
-        elif guard == 'unlink':
-            capture_groups_db.leave_capture_group(UID, 'pendant', sticky=True)
-        elif guard == 'transcript':
-            world.raw('pendant')['transcript_segments'] = []
-        elif guard == 'role':
-            world.raw('desktop')['external_data']['conversation_role'] = 'ambient'
-        elif guard == 'device':
-            world.raw('next')['client_device_id'] = 'another-pendant'
-        elif guard == 'user_end':
-            world.raw('pendant')['relevance_decision'] = {'trigger': 'client_finalize'}
-        else:
-            world.raw('pendant')['capture_group']['revision'] += 1
-
-    world.on_ask = race
-    world.finish('next')
-    assert len(world.jev_calls) == 1
-    assert not world.raw('next').get('capture_group')
-
-
-@pytest.mark.parametrize('answer', [None, 0.1])
-def test_call_group_continuation_requires_jev(world, monkeypatch, answer):
-    _call_group(world, monkeypatch)
-    world.jev_answers = [answer]
-    world.finish('next')
-    assert not world.raw('next').get('capture_group')
-
-
-def test_call_group_continuation_respects_smart_merge_shadow(world, monkeypatch):
-    _call_group(world, monkeypatch)
-    world.finish('next', mode='shadow')
-    assert world.jev_calls and not world.raw('next').get('capture_group')
-
-
-def test_call_group_continuation_retains_device_and_gap_guards(world, monkeypatch):
-    _call_group(world, monkeypatch)
-    world.raw('next')['client_device_id'] = 'other-pendant'
-    world.finish('next')
-    assert not world.jev_calls and not world.raw('next').get('capture_group')
-    world.raw('next')['client_device_id'] = 'pendant-1'
-    world.raw('next')['started_at'] = T0 + timedelta(minutes=5, seconds=30)
-    world.finish('next')
-    assert not world.jev_calls and not world.raw('next').get('capture_group')
-
-
-def test_call_group_continuation_does_not_ignore_unrelated_duplicate_pointer(world, monkeypatch):
-    _call_group(world, monkeypatch)
-    world.raw('pendant')['external_data'] = {'duplicate_capture_of': 'unrelated-call'}
-    world.finish('next')
-    assert not world.jev_calls and not world.raw('next').get('capture_group')
-
-
-def test_call_group_continuation_honors_unlink_exclusions(world, monkeypatch):
-    _call_group(world, monkeypatch)
-    world.raw('next')['capture_group_exclusions'] = ['desktop']
-    world.finish('next')
-    assert not world.raw('next').get('capture_group')
-
-
-def test_call_group_continuation_rechecks_intervening_discard_after_jev(world, monkeypatch):
-    _call_group(world, monkeypatch)
-    world.on_ask = lambda: world.add('barrier', 6, 1, discarded=True)
-    world.finish('next')
-    assert len(world.jev_calls) == 1 and not world.raw('next').get('capture_group')

@@ -1,3 +1,4 @@
+from utils.generated_compute import generated_compute_allowed, generated_compute_scope
 import asyncio
 from collections.abc import Mapping
 from datetime import datetime, timezone
@@ -7,6 +8,7 @@ import os
 import time
 
 import httpx
+from utils.plugin_transport import plugin_transport
 
 from utils.http_client import (
     safe_request_target,
@@ -78,6 +80,7 @@ import database.conversations as conversations_db
 from utils.conversations.render import conversation_to_dict, redact_conversation_for_integration, serialize_datetimes
 from utils.log_sanitizer import sanitize
 from utils.mentor_notifications import process_mentor_notification
+from utils.episodes.live import on_realtime_segments
 from utils.journey_metrics_contract import ClientKind, bounded_client_kind, resolve_client_kind
 from utils.observability.fallback import record_fallback
 from utils.observability.journeys import ClientJourneyAttempt
@@ -306,6 +309,12 @@ async def trigger_external_integrations(
         try:
             payload = serialize_datetimes(conversation_dict)
             headers = dict(pin_kwargs['headers'])
+            transport = plugin_transport(app.id)
+            if transport:
+                payload['_omi_backup_audio_token'] = transport.token(
+                    uid, 'audio', ttl=7 * 86400, conversation_id=conversation.id
+                )
+                headers.update(transport.delivery_headers(uid, url, payload))
             if idempotency_key:
                 headers['X-Omi-Idempotency-Key'] = idempotency_key
             async with get_webhook_semaphore():
@@ -435,7 +444,8 @@ async def trigger_realtime_audio_bytes(uid: str, sample_rate: int, data: bytearr
 
 # proactive notification
 def _retrieve_contextual_memories(uid: str, user_context):
-    vector = generate_embedding(user_context.get('question', '')) if user_context.get('question') else [0] * 3072
+    with generated_compute_scope(uid):
+        vector = generate_embedding(user_context.get('question', '')) if user_context.get('question') else [0] * 3072
     logger.info(f"query_vectors vector: {vector[:5]}")
 
     date_filters = {}  # not support yet
@@ -668,6 +678,8 @@ def _mentor_gate_debounce_skip_reason(
 
 def admit_mentor_evaluation(uid: str, conversation_messages: list[dict]) -> tuple[int, float] | None:
     # 1. Get frequency setting
+    if not generated_compute_allowed(uid, 'proactive_notification', allow_byok=False):
+        return None
     frequency = get_mentor_notification_frequency(uid)
     if frequency == 0:
         return None
@@ -763,6 +775,8 @@ def _process_proactive_notification(uid: str, app: App, data):
     ERROR level, which is the exact signature this guard used to emit for
     every no-notification webhook response in production.
     """
+    if not generated_compute_allowed(uid, 'app_integration'):
+        return None
     if not app.has_capability("proactive_notification"):
         logger.error(f"App {app.id} lacks proactive_notification capability {uid}")
         return None
@@ -955,6 +969,10 @@ async def _async_trigger_realtime_integrations(
     # Reactivates automatically when the user upgrades or activates BYOK.
     if await run_blocking(db_executor, is_trial_paywalled, uid, source):
         return {}
+
+    # Live episode moments (utils/episodes/live.py): buffers in process and
+    # schedules its own fail-open background update; never blocks this fan-out.
+    await on_realtime_segments(uid, segments, conversation_id, source)
 
     # The mentor lane is v2-only: the legacy mentor pipeline was deleted once
     # v2 reached 100%. Shared buffering/admission still gates it, and any

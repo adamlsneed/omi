@@ -18,6 +18,7 @@ import 'package:omi/providers/user_provider.dart';
 import 'package:omi/services/wals.dart';
 import 'package:omi/ui/ui.dart';
 import 'package:omi/utils/l10n_extensions.dart';
+import 'package:omi/utils/logger.dart';
 import 'package:omi/utils/other/temp.dart';
 import 'package:omi/utils/sync/offline_sync_amounts.dart';
 import 'package:omi/utils/sync_confirmation.dart';
@@ -220,9 +221,8 @@ class _AutoSyncPageState extends State<AutoSyncPage> {
     } else if (attentionWals.isNotEmpty) {
       title = l.syncCardNeedsAttention(groupRecordingBlocks(attentionWals).length);
       titleColor = Colors.orangeAccent;
-      // Only a recording whose retry budget is spent can still upload; the
-      // others are terminal, and a plain Sync skipped both kinds. Offer the
-      // button only when it can do something.
+      // A deliberate retry re-arms spent budgets and retained request refusals.
+      // Missing files and permanent audio/lookback verdicts stay excluded.
       if (p.retryableAttentionWals.isNotEmpty) {
         action = KeyedSubtree(
           key: const Key('offline_sync_card_retry_attention'),
@@ -633,7 +633,9 @@ class _AutoSyncPageState extends State<AutoSyncPage> {
   /// go, Delete removes a recording nothing can move forward. Mixed or healthy blocks open.
   Widget _blockTrailing(RecordingBlock block, WalSyncDisplayState state) {
     if (state == WalSyncDisplayState.syncing) return const OmiSpinner(size: OmiSpinnerSize.small);
-    if (state == WalSyncDisplayState.failed || state == WalSyncDisplayState.retrying) {
+    if (block.wals.any((w) =>
+        !w.onDeviceOnly &&
+        (isRetryableSyncState(w.syncDisplayState) || w.syncDisplayState == WalSyncDisplayState.retrying))) {
       return OmiButton.secondary(
         label: context.l10n.tryAgain,
         size: OmiButtonSize.compact,
@@ -641,7 +643,9 @@ class _AutoSyncPageState extends State<AutoSyncPage> {
           final sync = context.read<SyncProvider>();
           for (final wal in block.wals) {
             final s = wal.syncDisplayState;
-            if (s == WalSyncDisplayState.failed || s == WalSyncDisplayState.retrying) await sync.syncWal(wal);
+            if (!wal.onDeviceOnly && (isRetryableSyncState(s) || s == WalSyncDisplayState.retrying)) {
+              await sync.syncWal(wal);
+            }
           }
         },
       );
@@ -690,18 +694,44 @@ class _AutoSyncPageState extends State<AutoSyncPage> {
         builder: (_, __) {
           final wals = sync.displaySortedWals.where((w) => ids.contains('${w.id}#${w.storage.name}')).toList();
           if (wals.isEmpty) return const SizedBox.shrink();
+          // Audio still on the device has nothing on the phone to share yet.
+          final onPhone = wals.where((w) => w.storage != WalStorage.sdcard && sync.canPlayOrShareWal(w)).toList();
           return ConstrainedBox(
             constraints: BoxConstraints(maxHeight: MediaQuery.of(sheetContext).size.height * 0.7),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: wals.length,
-              separatorBuilder: (_, __) => _rowDivider,
-              itemBuilder: (_, i) => _walRow(wals[i]),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onPhone.isNotEmpty)
+                  OmiSettingsRow(
+                    leading: const Icon(Icons.ios_share_rounded),
+                    title: context.l10n.shareRecording,
+                    showChevron: false,
+                    onTap: () => _shareRecording(sync, onPhone),
+                  ),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: wals.length,
+                    separatorBuilder: (_, __) => _rowDivider,
+                    itemBuilder: (_, i) => _walRow(wals[i]),
+                  ),
+                ),
+              ],
             ),
           );
         },
       ),
     );
+  }
+
+  /// The whole recording as one audio file, instead of one share per short file.
+  Future<void> _shareRecording(SyncProvider sync, List<Wal> wals) async {
+    try {
+      await sync.shareRecordingAsWav(wals);
+    } catch (e) {
+      Logger.error('Offline Sync: failed to share recording audio: $e');
+      if (mounted) OmiFeedback.error(context, context.l10n.audioPlaybackFailed);
+    }
   }
 
   /// Bar fraction for the recording that is actually leaving the device.
@@ -799,7 +829,7 @@ class _AutoSyncPageState extends State<AutoSyncPage> {
     if (state == WalSyncDisplayState.syncing) {
       return const OmiSpinner(size: OmiSpinnerSize.small);
     }
-    if (state == WalSyncDisplayState.failed || state == WalSyncDisplayState.retrying) {
+    if (!wal.onDeviceOnly && (isRetryableSyncState(state) || state == WalSyncDisplayState.retrying)) {
       return OmiButton.secondary(
         label: context.l10n.tryAgain,
         size: OmiButtonSize.compact,
@@ -819,14 +849,12 @@ class _AutoSyncPageState extends State<AutoSyncPage> {
     return FaIcon(FontAwesomeIcons.chevronRight, color: Colors.grey.shade600, size: 12);
   }
 
-  /// Terminal states no upload can resolve. [WalSyncDisplayState.failed] is
-  /// deliberately absent: its retry budget is spent but a deliberate retry can
-  /// still succeed, so that row keeps its Retry.
+  /// Confirmed audio/window verdicts no upload can resolve. Spent budgets and
+  /// request refusals deliberately remain outside this set: they keep Retry.
   static bool _isUnsyncableState(WalSyncDisplayState state) =>
       state == WalSyncDisplayState.corrupted ||
       state == WalSyncDisplayState.outsideRecoveryWindow ||
-      state == WalSyncDisplayState.unsupportedAudio ||
-      state == WalSyncDisplayState.uploadRejected;
+      state == WalSyncDisplayState.unsupportedAudio;
 
   Future<void> _confirmDeleteWals(List<Wal> wals) async {
     final syncProvider = context.read<SyncProvider>();

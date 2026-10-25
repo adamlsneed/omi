@@ -31,10 +31,13 @@ final class ClientDeviceServiceTests: XCTestCase {
           XCTFail("A non-production bundle must not write the login keychain")
         }
       )
-      let identity = service.installationIdentity
+      let hash = service.deviceIdHash
+      let identity = try XCTUnwrap(defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
       XCTAssertFalse(identity.isEmpty)
-      XCTAssertEqual(identity, defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
-      XCTAssertEqual(identity, service.installationIdentity)
+      let expectedHash = SHA256.hash(data: Data(identity.utf8))
+        .map { String(format: "%02x", $0) }.joined().prefix(8).description
+      XCTAssertEqual(hash, expectedHash)
+      XCTAssertEqual(hash, service.deviceIdHash)
     }
   }
 
@@ -51,8 +54,10 @@ final class ClientDeviceServiceTests: XCTestCase {
         },
         keychainWriter: { _ in XCTFail("An existing identity must not be replaced") }
       )
-      XCTAssertEqual(service.installationIdentity, "existing-production-install")
-      XCTAssertEqual(service.installationIdentity, "existing-production-install")
+      let expectedHash = SHA256.hash(data: Data("existing-production-install".utf8))
+        .map { String(format: "%02x", $0) }.joined().prefix(8).description
+      XCTAssertEqual(service.deviceIdHash, expectedHash)
+      XCTAssertEqual(service.deviceIdHash, expectedHash)
       XCTAssertEqual(reads, 1)
       XCTAssertNil(defaults.string(forKey: DefaultsKey.devClientDeviceInstallId.rawValue))
     }

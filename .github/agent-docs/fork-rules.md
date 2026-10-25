@@ -4,8 +4,8 @@ This repository is a soft fork of BasedHardware/Omi that tracks upstream one way
 upstream changes are merged in regularly; nothing flows back.
 
 - Never deploy fork-owned backends (Python, Rust, pusher, agent-proxy, GKE). The fork
-  runs against BasedHardware's hosted services; `backend/` is pulled as an exact mirror
-  and never deployed. Upstream workflows that deploy on push to `main` live in
+  runs against BasedHardware's hosted services; `backend/` production code is pulled as an exact mirror
+  and never deployed. The sole test-only exception is recorded below. Upstream workflows that deploy on push to `main` live in
   `.github/disabled-workflows/` (see its README) or are disabled in the repository's
   Actions settings.
 - Push, merge, and open PRs only against `adamlsneed` remotes, never BasedHardware.
@@ -23,7 +23,12 @@ upstream changes are merged in regularly; nothing flows back.
 
 The pre-commit hook verifies staged backend bytes against the upstream merge
 revision and preserves upstream formatting. Backend formatting runs only outside
-the fork; a backend difference in the fork must be repaired before committing.
+the fork. On October 25, 2026, Adam approved one test-only exception:
+`backend/tests/unit/test_edit_tools_resilience.py` uses the sanctioned fixture-scoped
+`stub_modules` helper while preserving all 15 original test bodies. The hook pins
+both upstream and approved fork blobs, rejects every other backend difference,
+and fails if either blob changes. Retire the exception when upstream supplies an
+equivalent isolated test; do not expand it without explicit authorization.
 
 The logging-entrypoint guard runs unchanged against disposable snapshots with
 archived deployment definitions restored locally. Its first adoption uses the

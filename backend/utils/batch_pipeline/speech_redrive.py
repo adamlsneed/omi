@@ -1,15 +1,13 @@
 """One explicit operator-paid epoch, with create-only output reconciliation."""
 
+from utils.observability.stt_cap_dispatch import DispatchPath, DispatchReason, record_decision
+
 from dataclasses import fields
 import time
 
-from config.batch_pipeline import (
-    recovery_enabled_for,
-    speech_empty_multilingual_enabled,
-    terminal_empty_disposition_enabled,
-)
+from database.batch_pipeline_policy import load_stage_policy, UnpinnedPolicyRefused
 from config.prerecorded_stt import require_provider_environment, PrerecordedSTTService
-from config.stt_cap_dispatch import enabled as cap_enabled
+from config.stt_cap_dispatch import execution_admission_enabled as cap_enabled
 from database.batch_pipeline_privacy import BatchPrivacyBlocked
 from database.batch_pipeline_projection_protocol import normalized_binding
 from database.batch_pipeline_speech_redrive import SpeechRedriveStore
@@ -25,6 +23,7 @@ from utils.batch_pipeline.recovery_disposition import (
     padded_empty,
     padded_skipped,
 )
+from utils.batch_pipeline.admission import admitted_as_byok
 from utils.stt_cap_dispatch import sync_allowed, funded_allowance
 from utils.observability.fallback import record_fallback
 from utils.observability.stt_cap_dispatch import record_audio
@@ -38,16 +37,27 @@ def redrive_one(
     plan_digest,
     expected_recovery,
     *,
+    server_flags,
+    silent=False,
     clock=time.time,
     stt=transcribe,
     gpu_padded_retry_empty=False
 ):
-    """No automatic retry after dispatch, even on uncertain network/process loss."""
-    if not speech_empty_multilingual_enabled() or not recovery_enabled_for(uid):
+    """No automatic retry after dispatch, even on uncertain network/process loss.
+
+    `server_flags` is required: the serving role's live settings for a unit with
+    no stored recovery part, or None to refuse that unit ('policy_unpinned').
+    This operator process's own environment is never pinned.
+    """
+    try:
+        _, policy = load_stage_policy(store, sid, 'recovery', server_flags=server_flags)
+    except UnpinnedPolicyRefused:
+        return 'policy_unpinned'
+    if policy is None or not policy.speech_empty_multilingual or not policy.recovery_enabled:
         return 'disabled'
-    protocol = SpeechRedriveStore(store)
+    protocol = SpeechRedriveStore(store, server_flags=server_flags)
     job = protocol.prepare(
-        sid, uid, plan_digest, expected_recovery, clock(), gpu_padded_retry_empty=gpu_padded_retry_empty
+        sid, uid, plan_digest, expected_recovery, clock(), gpu_padded_retry_empty=gpu_padded_retry_empty, silent=silent
     )
     marker = job['speech_redrive']
     token = marker['token']
@@ -80,7 +90,9 @@ def redrive_one(
     _, _, spans = inspect_audio(item, audio)
     if not spans:
         raise RecoveryFailure('strict_vad', 'no_speech')
-    if not sync_allowed(uid, item.duration_seconds, 'modulate'):
+    if admitted_as_byok(job):
+        record_decision(DispatchPath.SPEECH_REDRIVE, True, DispatchReason.BYOK)
+    elif not sync_allowed(uid, item.duration_seconds, 'modulate', lane='batch', path=DispatchPath.SPEECH_REDRIVE):
         return 'allowance_held'
     # Check deployment dependencies before spending the sole intent. No fallback
     # to Parakeet is permitted if the alternate provider is unconfigured.
@@ -104,7 +116,7 @@ def redrive_one(
             else {'stage': 'provider', 'reason': 'operation_failed'}
         )
         if (
-            terminal_empty_disposition_enabled()
+            policy.terminal_empty_disposition
             and isinstance(error, MultilingualEmpty)
             and not padded_skipped(job)
             and (padded_empty(job) or marker.get('gpu_padded_retry_empty') is True)
@@ -119,13 +131,15 @@ def redrive_one(
         return 'failed_held'
     if payload is None:
         raise RecoveryFailure('payload_validation', 'invalid_payload')
-    if cap_enabled():
+    # The operator path meters only answers with words. The automatic recovery
+    # path also meters valid-empty Modulate answers as accepted provider audio.
+    if cap_enabled(uid, 'batch') and result_outcome(payload) != 'no_recoverable_speech':
         record_audio(
             'sync',
             'accepted',
             'modulate',
             item.duration_seconds,
-            funded_allowance(uid).reason == 'plan_allowance_exhausted',
+            funded_allowance(uid, lane='batch').reason == 'plan_allowance_exhausted',
         )
     # A storage/commit exception intentionally leaves running intact. A later
     # invocation may reconcile the object, but can never call the provider again.

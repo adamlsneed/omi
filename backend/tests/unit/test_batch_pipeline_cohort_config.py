@@ -45,6 +45,27 @@ def hosts(config):
     }
 
 
+def test_shadow_controls_ship_off_and_capped_on_every_cloud_run_host(manifest):
+    for config in manifest.values():
+        for service in SERVICES:
+            env = config['cloud_run']['services'][service]['env']
+            assert env['BATCH_PIPELINE_SHADOW_PERCENT']['value'] == '0'
+            assert env['BATCH_PIPELINE_SHADOW_PAID_RECOVERY_PER_HOUR']['value'] == '200'
+
+
+def test_shadow_recovery_role_accepts_its_rendered_gpu_worker_identity(manifest):
+    for stage, config in manifest.items():
+        env = config['cloud_run']['services']['backend-integration']['env']
+        chart = yaml.load(
+            (ROOT / f'charts/batch-pipeline-worker/{stage}_omi_batch-pipeline-worker_values.yaml').read_text(),
+            Loader=yaml.CSafeLoader,
+        )
+        assert env['BATCH_PIPELINE_WORKER_SERVICE_ACCOUNT']['value'] == chart['gcpServiceAccount']
+        assert env['BATCH_PIPELINE_RECOVERY_TASK_AUDIENCE']['value'] == chart['worker']['shadowRecoveryApiUrl']
+        # The other GPU worker RPCs stay closed on the recovery-only role.
+        assert env['BATCH_PIPELINE_WORKER_AUDIENCE']['value'] == ''
+
+
 def test_batch_pipeline_admission_is_configured_without_uid_allowlists(manifest, listen_chart_envs):
     for stage, config in manifest.items():
         for env in hosts(config).values():
@@ -87,47 +108,38 @@ def test_prod_sync_redrive_and_summary_deadline_manifest_fail_safe(manifest, mon
     for service in ('backend-sync', 'backend-sync-backfill', 'backend-integration'):
         env = prod_hosts[service]
         assert env['FIRST_SUMMARY_DEADLINE_ENABLED']['value'] == 'true'
-        assert env['FIRST_SUMMARY_DEADLINE_PERCENT']['value'] == '0'
+        assert env['FIRST_SUMMARY_DEADLINE_PERCENT']['value'] == '100'
         assert 'FIRST_SUMMARY_UID_ALLOWLIST' not in env
         monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', env['FIRST_SUMMARY_DEADLINE_ENABLED']['value'])
         monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_PERCENT', env['FIRST_SUMMARY_DEADLINE_PERCENT']['value'])
         monkeypatch.delenv('FIRST_SUMMARY_UID_ALLOWLIST', raising=False)
-        assert not summary_guarantee.enabled('any-user')
+        assert summary_guarantee.enabled('any-user')
         monkeypatch.setenv('FIRST_SUMMARY_UID_ALLOWLIST', 'canary-owner')
         assert summary_guarantee.enabled('canary-owner')
+        assert summary_guarantee.enabled('any-user')
+        monkeypatch.setenv('FIRST_SUMMARY_DEADLINE_ENABLED', 'false')
+        assert not summary_guarantee.enabled('canary-owner')
         assert not summary_guarantee.enabled('any-user')
 
 
-def test_quarantine_recovery_is_david_only_on_prod_integration(
+def test_quarantine_recovery_uses_private_membership_only_on_prod_integration(
     manifest,
     recovery_base_hosts,
     listen_chart_envs,
-    monkeypatch,
 ):
     for stage, config in manifest.items():
         for name, env in hosts(config).items():
-            recovery_mode = env['BATCH_PIPELINE_RECOVERY_MODE']
-            recovery_allowlist = env['BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST']
-            assert recovery_mode['category'] == 'rollout'
-            assert recovery_allowlist['category'] == 'rollout'
-
-            if stage == 'prod' and name == 'backend-integration':
-                assert recovery_mode['value'] == 'on'
-                assert recovery_allowlist['value'] == UID
-                expected = (UID,)
+            if name == 'backend-listen':
+                assert env['BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST']['value'] == ''
             else:
-                assert recovery_mode['value'] == 'off'
-                assert recovery_allowlist['value'] == ''
-                expected = ()
-
-            monkeypatch.setenv('BATCH_PIPELINE_RECOVERY_MODE', recovery_mode['value'])
-            monkeypatch.setenv('BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST', recovery_allowlist['value'])
-            assert recovery_owners() == expected
-
-    for host in recovery_base_hosts.values():
-        assert host['env']['BATCH_PIPELINE_RECOVERY_MODE'] == {'value': 'off', 'category': 'rollout'}
-        assert host['env']['BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST'] == {'value': '', 'category': 'rollout'}
-
+                assert 'BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST' not in env
+            expected = 'on' if stage == 'prod' and name == 'backend-integration' else 'off'
+            assert env['BATCH_PIPELINE_RECOVERY_MODE']['value'] == expected
+    for name, host in recovery_base_hosts.items():
+        if name == 'backend-listen':
+            assert host['env']['BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST']['value'] == ''
+        else:
+            assert 'BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST' not in host['env']
     for chart_env in listen_chart_envs:
         assert chart_env['BATCH_PIPELINE_RECOVERY_MODE'] == 'off'
         assert chart_env['BATCH_PIPELINE_RECOVERY_UID_ALLOWLIST'] == ''
@@ -141,7 +153,10 @@ def test_only_always_cpu_integration_host_runs_projection_pump(manifest):
         assert active == (['backend-integration'] if stage == 'prod' else [])
     deploy = (ROOT.parent / '.github/actions/deploy-backend-stack/action.yml').read_text()
     integration = deploy.split('id: deploy-backend-integration', 1)[1].split('id: capture-backend-integration', 1)[0]
-    assert '--no-cpu-throttling' in integration and '--min-instances=3' in integration
+    # 2026-10-24 right-sizing: prod integration stays warm for the projection pump;
+    # the dev project (based-hardware-dev) idles at 0 (lead's live change).
+    integration_min = "--min-instances=${{ inputs.runtime_env == 'prod' && '3' || '0' }}"
+    assert '--no-cpu-throttling' in integration and integration_min in integration
 
 
 def test_policy_identity_storage_and_unit_ceiling_match_chart(manifest):
@@ -155,11 +170,28 @@ def test_policy_identity_storage_and_unit_ceiling_match_chart(manifest):
     for values in hosts(manifest['prod']).values():
         assert values['BUCKET_BATCH_PIPELINE']['value'] == worker['bucket']
         assert int(values['BATCH_PIPELINE_UNIT_SECONDS']['value']) == defaults['worker']['unitSeconds'] == 3600
-    # No CPU host other than the policy target accepts this worker identity.
+    # Normal worker RPCs remain restricted to the policy target. Integration
+    # accepts the same principal only under the separate shadow recovery audience.
     for name, values in hosts(manifest['prod']).items():
         if name != 'backend-sync':
-            assert values['BATCH_PIPELINE_WORKER_SERVICE_ACCOUNT']['value'] == ''
+            expected = worker['gcpServiceAccount'] if name == 'backend-integration' else ''
+            assert values['BATCH_PIPELINE_WORKER_SERVICE_ACCOUNT']['value'] == expected
             assert values['BATCH_PIPELINE_WORKER_AUDIENCE']['value'] == ''
+
+
+def test_worker_head_priority_is_prod_only_and_values_driven():
+    chart = ROOT / 'charts/batch-pipeline-worker'
+    defaults = yaml.safe_load((chart / 'values.yaml').read_text())
+    prod = yaml.safe_load((chart / 'prod_omi_batch-pipeline-worker_values.yaml').read_text())
+    dev = yaml.safe_load((chart / 'dev_omi_batch-pipeline-worker_values.yaml').read_text())
+    deployment = (chart / 'templates/deployment.yaml').read_text()
+
+    assert (
+        '- {name: BATCH_PIPELINE_HEAD_PRIORITY_ENABLED, ' 'value: {{ .Values.worker.headPriorityEnabled | quote }}}'
+    ) in deployment
+    assert defaults['worker']['headPriorityEnabled'] is False
+    assert dev['worker']['headPriorityEnabled'] is False
+    assert prod['worker']['headPriorityEnabled'] is True
 
 
 @pytest.mark.parametrize(

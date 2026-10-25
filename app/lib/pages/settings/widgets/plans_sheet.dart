@@ -395,34 +395,47 @@ class _PlansSheetState extends State<PlansSheet> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => OmiAlertDialog(
-          title: l10n.upgradeToAnnualPlan,
+          title: storefrontPrice?.confirmLines.isNotEmpty == true
+              ? (storefrontPrice!.ctaLabel ?? l10n.upgradeToAnnualPlan)
+              : l10n.upgradeToAnnualPlan,
           content: Material(
             type: MaterialType.transparency,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.importantBillingInfo,
-                  textAlign: TextAlign.start,
-                  style: OmiType.subhead.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: OmiSpacing.xxs),
-                PlanDialogLine(icon: FontAwesomeIcons.clock, text: l10n.monthlyPlanContinues),
-                PlanDialogLine(icon: FontAwesomeIcons.creditCard, text: l10n.paymentMethodCharged),
-                PlanDialogLine(icon: FontAwesomeIcons.calendarDay, text: l10n.annualSubscriptionStarts),
-                const SizedBox(height: OmiSpacing.xs),
-                PlanDialogLine(
-                  icon: FontAwesomeIcons.circleInfo,
-                  text: l10n.thirteenMonthsCoverage,
-                  color: OmiColors.success,
-                ),
+                if (storefrontPrice?.confirmLines.isNotEmpty == true)
+                  ...storefrontPrice!.confirmLines.map((line) => Padding(
+                      padding: const EdgeInsets.only(bottom: OmiSpacing.sm),
+                      child: Text(line, style: OmiType.callout.copyWith(color: OmiColors.textPrimary))))
+                else ...[
+                  Text(
+                    l10n.importantBillingInfo,
+                    textAlign: TextAlign.start,
+                    style: OmiType.subhead.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: OmiSpacing.xxs),
+                  PlanDialogLine(icon: FontAwesomeIcons.clock, text: l10n.monthlyPlanContinues),
+                  PlanDialogLine(icon: FontAwesomeIcons.creditCard, text: l10n.paymentMethodCharged),
+                  PlanDialogLine(icon: FontAwesomeIcons.calendarDay, text: l10n.annualSubscriptionStarts),
+                  const SizedBox(height: OmiSpacing.xs),
+                  PlanDialogLine(
+                    icon: FontAwesomeIcons.circleInfo,
+                    text: l10n.thirteenMonthsCoverage,
+                    color: OmiColors.success,
+                  ),
+                ],
               ],
             ),
           ),
           actions: [
             OmiDialogAction(label: l10n.cancel, onPressed: () => Navigator.of(ctx).pop(false)),
-            OmiDialogAction(label: l10n.confirmUpgrade, isDefault: true, onPressed: () => Navigator.of(ctx).pop(true)),
+            OmiDialogAction(
+                label: storefrontPrice?.confirmLines.isNotEmpty == true
+                    ? (storefrontPrice!.ctaLabel ?? l10n.confirmUpgrade)
+                    : l10n.confirmUpgrade,
+                isDefault: true,
+                onPressed: () => Navigator.of(ctx).pop(true)),
           ],
         ),
       );
@@ -444,6 +457,7 @@ class _PlansSheetState extends State<PlansSheet> {
       billingInterval: isYearly ? 'year' : 'month',
       releaseUpgradingLock: releaseUpgradingLock,
       storefrontDecision: storefrontDecision,
+      confirmedByStorefront: isUpgradingFromMonthlyToAnnual && storefrontPrice?.confirmLines.isNotEmpty == true,
     );
   }
 
@@ -453,6 +467,7 @@ class _PlansSheetState extends State<PlansSheet> {
     required String billingInterval,
     bool releaseUpgradingLock = true,
     StorefrontCheckoutDecision? storefrontDecision,
+    bool confirmedByStorefront = false,
   }) async {
     final provider = context.read<UsageProvider>();
     final l10n = context.l10n;
@@ -483,7 +498,7 @@ class _PlansSheetState extends State<PlansSheet> {
       return;
     }
 
-    if (currentSub.plan.isPaid && !resubscribing) {
+    if (currentSub.plan.isPaid && !resubscribing && !confirmedByStorefront) {
       final confirmed = await showOmiConfirm(
         context,
         title: l10n.confirmPlanChange,
@@ -515,10 +530,10 @@ class _PlansSheetState extends State<PlansSheet> {
           promotionCode: promoCode.isNotEmpty ? promoCode : null,
         );
         if (result != null && result['error'] == true) {
-          final detail = isPendingCancelConflict(result['status_code'])
+          final detail = isUpgradePendingCancelConflict(result['status_code'])
               ? l10n.resubscribeFirstToChangePlans
               : result['detail'] as String? ?? l10n.invalidPromotionCode;
-          if (promoCode.isNotEmpty && !isPendingCancelConflict(result['status_code'])) {
+          if (promoCode.isNotEmpty && !isUpgradePendingCancelConflict(result['status_code'])) {
             setState(() => _promoCodeError = detail);
           } else {
             _surfacePurchaseError(detail);
@@ -544,9 +559,10 @@ class _PlansSheetState extends State<PlansSheet> {
         );
         if (!mounted) return;
         if (sessionData != null && sessionData['error'] == true) {
+          // Checkout's 409 is an existing subscription, not a pending cancellation.
           _surfacePurchaseError(
-            isPendingCancelConflict(sessionData['status_code'])
-                ? l10n.resubscribeFirstToChangePlans
+            sessionData['status_code'] == 409
+                ? l10n.checkoutExistingSubscription
                 : sessionData['detail'] as String? ?? l10n.couldNotProcessSubscription,
           );
         } else if (sessionData != null) {

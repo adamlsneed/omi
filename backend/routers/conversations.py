@@ -1,9 +1,10 @@
+from utils.generated_compute import require_generated_compute, generated_compute_allowed, generated_compute_scope
 import asyncio
 import hashlib
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, BackgroundTasks
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 from datetime import datetime, timezone
 
 import database.conversation_scan as conversation_scan_db
@@ -15,6 +16,7 @@ import database.users as users_db
 from utils.agent_capabilities.errors import TRANSCRIPT_EDIT_HTTP_ERRORS
 from database import conversation_tombstones
 from database.firestore_read_metrics import FirestoreReadSite
+from utils.list_version_check import ListVersionCheck
 from database.vector_db import (
     delete_action_item_vector,
     delete_action_item_vectors_batch,
@@ -29,6 +31,7 @@ from utils.other.storage import (
 )
 from utils.screen_frames.store import delete_conversation_screen_frames
 from models.calendar_context import CalendarMeetingContext
+from utils.free_tier_processing_policy import client_summaries_at_cap_enabled
 from models.client_processing import PROJECTION_FAMILY_FIELDS, ClientProcessing
 from models.conversation import (
     BulkAssignSegmentsRequest,
@@ -55,7 +58,7 @@ from models.conversation import (
 from utils.conversations.fragment_visibility import is_completed_rule_discard
 from utils.conversations.factory import deserialize_conversation
 from utils.conversations.processing_trigger import ProcessingTrigger
-from utils.conversations.reprocess_contract import reprocess_result_contract_enabled
+from utils.conversations.reprocess_contract import DERIVED_EFFECTS_TRANSCRIPT_FIELD, FIRST_PARTY_SUMMARY_SOURCE
 from utils.conversations.analytics import build_conversation_analytics
 from utils.conversations.render import redact_conversations_for_list
 from utils.conversations.onopen_translation import translate_open_page
@@ -81,10 +84,10 @@ from utils.conversations.process_conversation import (
     AppUsageAttribution,
     DerivedEffectsDisposition,
     process_conversation,
-    run_first_open_derived_work,
     retrieve_in_progress_conversation,
 )
 from utils.conversations import lifecycle as lifecycle_service
+from utils.episodes import finalize as episode_finalize
 from utils.conversations import share_email
 from utils.conversations.meeting_receipt import record_finalized_meeting_receipt
 from utils.integration_telemetry import emit_posthog_event
@@ -131,11 +134,21 @@ from utils.retrieval.tools.google_utils import refresh_google_token
 from utils.conversations.location import resolve_geolocation
 from utils.conversations.transcript_hash import transcript_sha256_for_binding
 from utils.observability.fallback import record_fallback
+from utils.conversations import paid_lock_recovery
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _heal_locked_conversations_if_eligible(uid: str, conversations: List[Dict[str, Any]]) -> None:
+    try:
+        paid_lock_recovery.heal_conversations(uid, conversations)
+    except paid_lock_recovery.RecoveryUnavailable as error:
+        raise HTTPException(
+            status_code=503, detail="Saved conversation access could not be restored. Please retry."
+        ) from error
 
 
 def _get_valid_conversation_by_id(uid: str, conversation_id: str, *, follow_sync_bridge: bool = False) -> dict:
@@ -148,15 +161,13 @@ def _get_valid_conversation_by_id(uid: str, conversation_id: str, *, follow_sync
     if conversations_db.is_soft_deleted(conversation):
         if not follow_sync_bridge or not conversation.get('sync_merged_into'):
             raise HTTPException(status_code=404, detail="Conversation not found")
-        survivor_id = conversations_db.resolve_sync_conversation_redirect(uid, conversation_id)
-        if not survivor_id:
-            raise HTTPException(status_code=404, detail="Conversation not found")
-        conversation = conversations_db.get_conversation(
-            uid, survivor_id, read_site=FirestoreReadSite.CONVERSATIONS_VALID_BY_ID
+        conversation = conversations_db.get_sync_redirected_conversation(
+            uid, conversation_id, read_site=FirestoreReadSite.CONVERSATIONS_VALID_BY_ID
         )
         if not conversation or conversations_db.is_soft_deleted(conversation):
             raise HTTPException(status_code=404, detail="Conversation not found")
 
+    _heal_locked_conversations_if_eligible(uid, [conversation])
     if conversation.get('is_locked', False):
         raise HTTPException(status_code=402, detail="A paid plan is required to access this conversation.")
 
@@ -279,40 +290,6 @@ def _enrich_deferred_conversation(uid: str, conversation: dict) -> dict:
     return conversation
 
 
-def _dispatch_first_open_work(uid: str, conversation: dict) -> None:
-    """Claim once and run in the background; failure remains retryable."""
-    conversation_id = conversation.get('id')
-    if not conversation_id or not conversation.get('jit_first_open'):
-        return
-    try:
-        token = conversations_db.claim_authorized_first_open_work(uid, conversation_id, conversation.get('source'))
-    except Exception as error:
-        logger.warning('JIT first-open claim failed uid=%s conv=%s: %s', uid, conversation_id, error)
-        return
-    if token is None:
-        return
-
-    def _run() -> None:
-        succeeded = False
-        try:
-            latest = conversations_db.get_conversation(uid, conversation_id)
-            if latest is None:
-                raise RuntimeError('conversation disappeared before first-open work')
-            run_first_open_derived_work(uid, latest, token)
-            succeeded = True
-        except Exception as error:
-            logger.exception('JIT first-open worker failed uid=%s conv=%s: %s', uid, conversation_id, error)
-        finally:
-            try:
-                conversations_db.finish_first_open_work(uid, conversation_id, token, succeeded=succeeded)
-            except Exception as error:
-                logger.exception(
-                    'JIT first-open lease finalization failed uid=%s conv=%s: %s', uid, conversation_id, error
-                )
-
-    submit_with_context(postprocess_executor, _run)
-
-
 class ProcessConversationRequest(BaseModel):
     calendar_meeting_context: Optional[CalendarMeetingContext] = None
     # Unvalidated on purpose: a malformed projection must not 422 a finished recording.
@@ -375,10 +352,10 @@ def _accepted_client_projection(raw: Any, segments: Any) -> Optional[ClientProce
     """Bind a client projection to the persisted transcript, or drop it.
 
     Schema failures and hash mismatch are not request errors: the conversation
-    still finalizes on the deterministic minimum. Warnings are content-free
+    still finalizes under the funded processing policy. Warnings are content-free
     (reason plus provenance only — never transcript or body).
     """
-    if raw is None:
+    if raw is None or not client_summaries_at_cap_enabled():
         return None
     try:
         projection = ClientProcessing.model_validate(raw)
@@ -579,6 +556,8 @@ def process_in_progress_conversation(
     current_in_progress_id = redis_db.get_in_progress_conversation_id(uid)
     if current_in_progress_id == conversation.id:
         redis_db.remove_in_progress_conversation_id(uid)
+    # The user ended it (Wrap up, a pendant double-tap): its live episode ends now, not after processing.
+    episode_finalize.close_now(uid, conversation.id, ProcessingTrigger.CLIENT_FINALIZE)
 
     conversation.status = ConversationStatus.processing
     persisted = False
@@ -609,6 +588,8 @@ def process_in_progress_conversation(
     if not persisted:
         latest = _get_valid_conversation_by_id(uid, conversation.id)
         return CreateConversationResponse(conversation=deserialize_conversation(latest), messages=[])
+    # The durable finalizer's episode hook: tail notes and item reconciliation, off the request path.
+    episode_finalize.schedule_after_finalization(uid, conversation.id, ProcessingTrigger.CLIENT_FINALIZE)
     # A terminal free-tier minimum persists successfully but must not fan out
     # apps/webhooks — the same decision the durable finalizer already honours
     # via derived_effects_disposition_observer (section 1.7). The conversation
@@ -723,6 +704,8 @@ def finalize_conversation(
     current_in_progress_id = redis_db.get_in_progress_conversation_id(uid)
     if current_in_progress_id == conversation_id:
         redis_db.remove_in_progress_conversation_id(uid)
+    # The worker repeats this when it starts; closing here means the episode ends with the request.
+    episode_finalize.close_now(uid, conversation_id, ProcessingTrigger.CLIENT_FINALIZE)
 
     # The outbox transaction reports whether the submitted projection bound.
     # A follow-up read would attribute a later request's projection to this one.
@@ -754,7 +737,7 @@ def get_conversation_finalization_status(
     '/v1/conversations/{conversation_id}/reprocess',
     response_model=Conversation,
     responses={
-        400: {'description': 'The selected app cannot summarize conversations'},
+        400: {'description': 'The selected app cannot summarize conversations, or app_id was combined with source=omi'},
         403: {'description': 'The selected app is not available to this user'},
         404: {'description': 'The conversation or selected app does not exist'},
         409: {
@@ -769,6 +752,7 @@ def reprocess_conversation(
     conversation_id: str,
     language_code: Optional[str] = None,
     app_id: Optional[str] = None,
+    source: Optional[Literal['omi']] = None,
     uid: str = Depends(auth.with_rate_limit(auth.get_current_user_uid, "conversations:reprocess")),
     response: Response = None,  # type: ignore[assignment]
     background_tasks: BackgroundTasks = None,
@@ -778,8 +762,13 @@ def reprocess_conversation(
     :param conversation_id: The ID of the conversation to reprocess
     :param language_code: Optional language code to use for processing
     :param app_id: Optional app ID to use for processing (if provided, only this app will be triggered)
+    :param source: ``omi`` asks for Omi's own notes only: neither the preferred app nor a suggested
+        app runs. Omitted keeps the legacy meaning (Omi notes plus the user's preferred app).
     :return: The updated conversation after reprocessing.
     """
+    first_party_only = source == FIRST_PARTY_SUMMARY_SOURCE
+    if first_party_only and app_id:
+        raise HTTPException(status_code=400, detail='app_id and source=omi are mutually exclusive')
     conversation = _get_valid_conversation_by_id(uid, conversation_id)
     # Reprocess force-processes a *discarded* conversation to revive it, but a
     # soft-deleted tombstone is invisible to the user and must not be reprocessed:
@@ -793,6 +782,8 @@ def reprocess_conversation(
 
     input_generation = attention_db.generation(conversation)
     was_discarded = bool(conversation.get('discarded'))
+    # A hidden conversation's derived effects are not trusted to be current.
+    effects_transcript = None if was_discarded else conversation.get(DERIVED_EFFECTS_TRANSCRIPT_FIELD)
     conversation = deserialize_conversation(conversation)
     if not language_code:
         language_code = conversation.language or 'en'
@@ -808,11 +799,10 @@ def reprocess_conversation(
     except attention_db.ClaimRejected as error:
         raise HTTPException(status_code=404, detail='Conversation not found') from error
     if not owned or not attention_db.owns_live_claim(uid, operation):
-        if reprocess_result_contract_enabled():
-            # Echoing the stale row as 200 made clients report "updated" with
-            # no new summary; another writer still owns this conversation.
-            raise HTTPException(status_code=409, detail=REPROCESS_IN_PROGRESS_ERROR_DETAIL)
-        return deserialize_conversation(_get_valid_conversation_by_id(uid, conversation_id))
+        # Echoing the stale row as 200 made clients report "updated" with no new
+        # summary; another writer still owns this conversation. Every released
+        # client treats a non-200 reprocess answer as failure.
+        raise HTTPException(status_code=409, detail=REPROCESS_IN_PROGRESS_ERROR_DETAIL)
     try:
         result = execute_reprocess(
             uid,
@@ -824,6 +814,8 @@ def reprocess_conversation(
             was_discarded,
             background_tasks,
             response,
+            first_party_only=first_party_only,
+            derived_effects_transcript_sha256=effects_transcript if isinstance(effects_transcript, str) else None,
         )
     except Exception:
         attention_db.finish(uid, operation, 'failed')
@@ -854,7 +846,18 @@ def _reprocess_succeeded(result: Any, app_id: Optional[str]) -> bool:
 
 
 def execute_reprocess(
-    uid, conversation_id, conversation, language_code, app_id, explicit_app, was_discarded, background_tasks, response
+    uid,
+    conversation_id,
+    conversation,
+    language_code,
+    app_id,
+    explicit_app,
+    was_discarded,
+    background_tasks,
+    response,
+    *,
+    first_party_only: bool = False,
+    derived_effects_transcript_sha256: Optional[str] = None,
 ):
     receipt_applied: list = []
 
@@ -869,6 +872,8 @@ def execute_reprocess(
             AppUsageAttribution.EXPLICIT_SELECTION if explicit_app else AppUsageAttribution.NON_USER_REPROCESS
         ),
         speaker_receipt_observer=receipt_applied.append,
+        first_party_only=first_party_only,
+        derived_effects_transcript_sha256=derived_effects_transcript_sha256,
     )
 
     # Reprocessing a hidden conversation is an explicit recovery: persist it as
@@ -981,6 +986,10 @@ def get_conversations(
     _reject_oversized_filter(status_filter, "statuses")
     _reject_oversized_filter(source_list, "sources")
 
+    version_check = ListVersionCheck.start(request, uid, 'conversations')
+    if version_check.not_modified is not None:
+        return version_check.not_modified
+
     # Request-scoped budget: the server-side offset is charged before the
     # query and the page stream runs under the derived per-RPC timeout, so a
     # deep page cannot consume the whole HTTP_GET_TIMEOUT (#11831).
@@ -1000,10 +1009,16 @@ def get_conversations(
         list_fields_only=True,
     )
 
+    _heal_locked_conversations_if_eligible(uid, conversations)
     redact_conversations_for_list(conversations)
     if budget.truncated and response is not None:
         response.headers[OMI_LIST_TRUNCATED_HEADER] = OMI_LIST_TRUNCATED_VALUE
     budget.observe('truncated' if budget.truncated else 'complete')
+    # Paid lock recovery depends on the current allowance (including rollover)
+    # and must run on every locked-page read, even without a source mutation.
+    version_check.finish(
+        response, truncated=budget.truncated, cacheable=not any(row.get('is_locked') for row in conversations)
+    )
     return conversations
 
 
@@ -1081,12 +1096,10 @@ def get_conversation_by_id(
         raise HTTPException(status_code=404, detail="Conversation not found")
     if not conversations_db.is_visible_conversation(conversation, include_discarded=show_discarded):
         raise HTTPException(status_code=404, detail="Conversation not found")
-    # Lazy processing: a desktop conversation stored raw (deferred) for a freemium/Neo user is
+    # A desktop conversation stored raw (deferred) for a freemium/Neo user is
     # enriched on first open. Other conversations are returned unchanged.
-    if conversation.get('deferred'):
+    if conversation.get('deferred') and not conversation.get('processing_deferred'):
         conversation = _enrich_deferred_conversation(uid, conversation)
-    else:
-        _dispatch_first_open_work(uid, conversation)
     if include_translations is True:
         try:
             conversation, translation_status, next_cursor = translate_open_page(uid, conversation, translation_cursor)
@@ -2056,6 +2069,7 @@ async def _search_exact_conversation_reference(
         [exact_conversation_id],
         include_discarded=bool(search_request.include_discarded),
     )
+    await run_blocking(db_executor, _heal_locked_conversations_if_eligible, uid, conversations)
     conversations = [conversation for conversation in conversations if not conversation.get('is_locked')]
     conversations = [
         conversation
@@ -2091,20 +2105,29 @@ async def _browse_speaker_conversations(
     budget = await run_blocking(
         db_executor, conversation_scan_db.conversation_scan_budget, request, route='speaker-browse'
     )
-    # One bounded snapshot-cursor pass (never offset): invisible rows advance the cursor (#19908).
-    browse_results = await run_blocking(
-        db_executor,
-        lambda: browse_conversations_by_speaker(
-            conversation_scan_db.speaker_browse_scan(
-                uid, include_discarded=include_discarded, start_date=start_dt, end_date=end_dt, budget=budget
+    # Admit recoverable matches before the helper drops locked rows, but persist
+    # only this response page, not skipped pages or the scan's lookahead.
+    recovery = paid_lock_recovery.PaidLockRecovery(uid)
+    try:
+        browse_results = await run_blocking(
+            db_executor,
+            lambda: browse_conversations_by_speaker(
+                conversation_scan_db.speaker_browse_scan(
+                    uid, include_discarded=include_discarded, start_date=start_dt, end_date=end_dt, budget=budget
+                ),
+                search_request.speaker_id,
+                page=browse_page,
+                per_page=browse_per_page,
+                include_discarded=include_discarded,
+                budget=budget,
+                can_recover_locked=recovery.can_recover,
             ),
-            search_request.speaker_id,
-            page=browse_page,
-            per_page=browse_per_page,
-            include_discarded=include_discarded,
-            budget=budget,
-        ),
-    )
+        )
+        await run_blocking(db_executor, recovery.heal, browse_results['items'])
+    except paid_lock_recovery.RecoveryUnavailable as error:
+        raise HTTPException(
+            status_code=503, detail="Saved conversation access could not be restored. Please retry."
+        ) from error
     redact_conversations_for_list(browse_results['items'])
     finish_list_budget(response, budget)
     return browse_results
@@ -2143,6 +2166,8 @@ async def search_conversations_endpoint(
     )
 
     def _typesense_page() -> Dict[str, Any]:
+        # These owner-scoped candidates stay server-side until authoritative
+        # hydration/recovery below. Only locked rows need an entitlement read.
         search_results = search_conversations(
             query=search_request.query,
             page=effective_page,
@@ -2152,6 +2177,7 @@ async def search_conversations_endpoint(
             start_date=start_timestamp,
             end_date=end_timestamp,
             speaker_id=search_request.speaker_id,
+            include_locked=True,
         )
         return search_results
 
@@ -2201,8 +2227,9 @@ async def search_conversations_endpoint(
     # Preserve merge order (transcript-first on page 1); Firestore fetch may reshuffle.
     by_id = {c.get('id'): c for c in conversations if c.get('id')}
     conversations = [by_id[cid] for cid in conversation_ids if cid in by_id]
-    # Typesense filters locked hits, but the index can lag Firestore. Re-check after hydration
-    # so search never leaks that a locked conversation matched a query.
+    # The index can lag Firestore. Restore an eligible owner's historical
+    # access, then filter all remaining locks before returning any matches.
+    await run_blocking(db_executor, _heal_locked_conversations_if_eligible, uid, conversations)
     conversations = [conversation for conversation in conversations if not conversation.get('is_locked')]
     # Speaker filtering happens here, not in Typesense: the index has no transcript_segments field, so
     # asking Typesense for one 400'd and 500'd the request. The hydrated Firestore documents do carry
@@ -2225,7 +2252,9 @@ async def search_conversations_endpoint(
     # Recompute total_pages from the effective (clamped) pagination the search actually ran with, not the
     # raw request: search_request.page/per_page are optional and unbounded, so a null/0/huge value here
     # would 500 (None + 1 / len(...) >= None). search_conversations returns clamped current_page/per_page.
-    has_more = len(conversations) >= effective_per_page or len(typesense_ids) >= effective_per_page
+    # Internal locked candidates must not leak through pagination metadata.
+    unlocked_keyword_hits = sum(1 for cid in typesense_ids if cid in by_id and not by_id[cid].get('is_locked'))
+    has_more = len(conversations) >= effective_per_page or unlocked_keyword_hits >= effective_per_page
     search_results['total_pages'] = effective_page + 1 if has_more else effective_page
     return search_results
 
@@ -2317,10 +2346,12 @@ def test_prompt(
         raise HTTPException(status_code=400, detail="Conversation has no text content to summarize.")
 
     # Pass language code from conversation to match app behavior
+    require_generated_compute(uid, 'daily_summary')
     try:
-        summary = generate_summary_with_prompt(
-            full_transcript, request.prompt, language_code=conversation.language or 'en'
-        )
+        with generated_compute_scope(uid):
+            summary = generate_summary_with_prompt(
+                full_transcript, request.prompt, language_code=conversation.language or 'en'
+            )
     except SummaryProviderError as exc:
         # The provider failed on its own account, so this is an upstream failure and not a fault
         # of the request: report it as one instead of as a 500 the client cannot act on.
@@ -2344,29 +2375,14 @@ def merge_conversations(
     background_tasks: BackgroundTasks,
     uid: str = Depends(auth.with_rate_limit(auth.get_current_user_uid, "conversations:merge")),
 ):
-    """
-    Merge multiple conversations into a new conversation (async).
-
-    Flow:
-    1. Validates conversations (locked? completed?)
-    2. Returns immediately with 200 OK
-    3. Background task creates new merged conversation
-    4. Background task deletes source conversations
-    5. FCM notification sent on completion
-
-    The merged conversation will have:
-    - A new ID (source conversations are deleted)
-    - Merged transcript segments with adjusted timestamps
-    - Copied audio chunks
-    - Regenerated title, summary, action items, memories via process_conversation()
-    """
+    """Admit completed sources, merge into a new ID asynchronously, then notify the client."""
     from utils.conversations.merge_conversations import validate_merge_compatibility, perform_merge_async
 
-    # Validate minimum number of conversations
     if len(request.conversation_ids) < 2:
         raise HTTPException(status_code=400, detail="At least 2 conversations required to merge")
+    if len(request.conversation_ids) != len(set(request.conversation_ids)):
+        raise HTTPException(status_code=400, detail="Cannot merge duplicate conversations.")
 
-    # Fetch all conversations
     conversations = []
     for conv_id in request.conversation_ids:
         conv = conversations_db.get_conversation(uid, conv_id)
@@ -2374,16 +2390,33 @@ def merge_conversations(
             raise HTTPException(status_code=404, detail=f"Conversation {conv_id} not found")
         conversations.append(conv)
 
-    # Validate merge compatibility (returns warning for large gaps but doesn't reject)
     is_valid, error_message, warning_message = validate_merge_compatibility(conversations)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_message)
 
-    # Set all source conversations to 'merging' status so user knows they're being processed
-    for conv_id in request.conversation_ids:
-        lifecycle_service.begin_merge(uid, conv_id)
+    from config.refactor_modes import serving_for
 
-    # Start background merge task
+    if serving_for('LIFECYCLE_V2_MODE', uid):
+        job = lifecycle_service.merge_jobs.admit(uid, request.conversation_ids, request.reprocess)
+        if job is None:
+            raise HTTPException(status_code=409, detail='Conversation changed during merge admission')
+        background_tasks.add_task(lifecycle_service.merge_jobs.run, job['job_id'], job['dispatch_generation'])
+        return MergeConversationsResponse(
+            status='merging',
+            message='Merge started',
+            warning=warning_message,
+            conversation_ids=request.conversation_ids,
+        )
+
+    # refactor: superseded by lifecycle.merge_jobs when LIFECYCLE_V2_MODE=serve
+    admitted = []
+    for conv_id in request.conversation_ids:
+        if not lifecycle_service.begin_merge(uid, conv_id):
+            for prior_id in admitted:
+                lifecycle_service.complete(uid, prior_id)
+            raise HTTPException(status_code=409, detail='Conversation changed during merge admission')
+        admitted.append(conv_id)
+
     background_tasks.add_task(
         perform_merge_async,
         uid=uid,

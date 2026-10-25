@@ -11,6 +11,17 @@ let operatorDeprecationFallbackPrice = "$49/mo"
 enum SubscriptionPlanPresentation {
   static let resubscribeFirst = "Resubscribe first to change plans."
 
+  /// The two routes use 409 for different refusals: upgrade means a pending
+  /// cancellation, checkout means the account already has a subscription.
+  static func upgradeErrorMessage(_ error: APIError) -> String {
+    if case .httpError(let statusCode, _) = error, statusCode == 409 { return resubscribeFirst }
+    return error.detail ?? "Failed to schedule plan change."
+  }
+
+  static func checkoutErrorMessage(_ error: APIError) -> String {
+    error.detail ?? "Failed to open checkout."
+  }
+
   enum Purchase {
     case resubscribe
     case blocked
@@ -851,6 +862,7 @@ extension SettingsContentView {
     transcriptionLanguage = AssistantSettings.shared.transcriptionLanguage
     transcriptionAutoDetect = AssistantSettings.shared.transcriptionAutoDetect
     vocabularyList = AssistantSettings.shared.transcriptionVocabulary
+    vocabularyLoadedFromAccount = false
     let transcriptionVocabularyRevisionAtLoadStart =
       AssistantSettings.shared.transcriptionVocabularyRevision
     let dailySummaryDepthRevisionAtLoadStart = dailySummaryDepthRevision
@@ -880,6 +892,8 @@ extension SettingsContentView {
 
         await MainActor.run {
           dailySummaryEnabled = dailySummary.enabled
+          savedDailySummaryEnabled = dailySummary.enabled
+          dailySummaryEnabledError = nil
           dailySummaryHour = dailySummary.hour
           if dailySummaryDepthRevision == dailySummaryDepthRevisionAtLoadStart {
             savedDailySummaryDepth = dailySummary.depth
@@ -893,7 +907,11 @@ extension SettingsContentView {
           notificationFrequency = NotificationService.currentFrequencyLevel()
           userLanguage = language.language
           recordingPermissionEnabled = recording.enabled
+          savedRecordingPermissionEnabled = recording.enabled
+          recordingPermissionError = nil
           privateCloudSyncEnabled = cloudSync.enabled
+          savedPrivateCloudSyncEnabled = cloudSync.enabled
+          privateCloudSyncError = nil
           singleLanguageMode = transcription.singleLanguageMode
           // Do not let a GET that began before a local/PATCH mutation overwrite
           // the newer vocabulary when it finally completes.
@@ -902,9 +920,11 @@ extension SettingsContentView {
           ) {
             vocabularyList = transcription.vocabulary
             AssistantSettings.shared.transcriptionVocabulary = transcription.vocabulary
+            savedVocabularyList = transcription.vocabulary
           } else {
             vocabularyList = AssistantSettings.shared.transcriptionVocabulary
           }
+          vocabularyLoadedFromAccount = true
 
           // Sync backend language to local if different (backend is source of truth for language)
           let normalizedLanguage = AssistantSettings.normalizeTranscriptionLanguageCode(language.language)
@@ -943,7 +963,12 @@ extension SettingsContentView {
 
     Task {
       do {
-        let subscription = try await APIClient.shared.getUserSubscription()
+        let authorization = RuntimeOwnerIdentity.captureAuthorizationSnapshot()
+        let subscription = try await APIClient.shared.getUserSubscription(authorizationSnapshot: authorization)
+        if let authorization {
+          guard RuntimeOwnerIdentity.isAuthorizationCurrent(authorization) else { return }
+          ScreenCloudEntitlementService.shared.accept(subscription, authorization: authorization)
+        }
         let availablePlans = try? await APIClient.shared.getAvailablePlans()
         await MainActor.run {
           userSubscription = subscription
@@ -1060,7 +1085,9 @@ extension SettingsContentView {
     return ("unknown", "unknown")
   }
 
-  func startCheckout(for priceId: String) {
+  /// `selection` names the plan and interval when the caller already knows them (the
+  /// storefront payload); otherwise they are looked up in the local catalog.
+  func startCheckout(for priceId: String, selection known: (plan: String, interval: String)? = nil) {
     guard activeCheckoutPriceId == nil else { return }
     if let subscription = userSubscription?.subscription,
       SubscriptionPlanPresentation.purchase(
@@ -1076,7 +1103,7 @@ extension SettingsContentView {
     pendingSubscriptionPriceId = priceId
     subscriptionError = nil
     subscriptionConfirmation = nil
-    let selection = checkoutSelection(for: priceId)
+    let selection = known ?? checkoutSelection(for: priceId)
     pendingCheckoutPlanId = selection.plan
     pendingCheckoutInterval = selection.interval
     AnalyticsManager.shared.upgradePlanSelected(
@@ -1109,9 +1136,7 @@ extension SettingsContentView {
           await MainActor.run {
             activeCheckoutPriceId = nil
             pendingSubscriptionPriceId = nil
-            subscriptionError =
-              pendingCancelCheckoutMessage(apiError) ?? apiError.detail
-              ?? "Failed to schedule plan change."
+            subscriptionError = SubscriptionPlanPresentation.upgradeErrorMessage(apiError)
           }
         } catch {
           logError("Failed to schedule plan change", error: error)
@@ -1171,7 +1196,7 @@ extension SettingsContentView {
           activeCheckoutPriceId = nil
           pendingSubscriptionPriceId = nil
           pendingCheckoutSessionId = nil
-          subscriptionError = pendingCancelCheckoutMessage(apiError) ?? apiError.detail ?? "Failed to open checkout."
+          subscriptionError = SubscriptionPlanPresentation.checkoutErrorMessage(apiError)
         }
       } catch {
         logError("Failed to create checkout session", error: error)
@@ -1183,13 +1208,6 @@ extension SettingsContentView {
         }
       }
     }
-  }
-
-  func pendingCancelCheckoutMessage(_ error: APIError) -> String? {
-    if case .httpError(let statusCode, _) = error, statusCode == 409 {
-      return SubscriptionPlanPresentation.resubscribeFirst
-    }
-    return nil
   }
 
   func openCustomerPortal() {
@@ -1247,7 +1265,12 @@ extension SettingsContentView {
     Task {
       for attempt in 0..<8 {
         do {
-          let subscription = try await APIClient.shared.getUserSubscription()
+          let authorization = RuntimeOwnerIdentity.captureAuthorizationSnapshot()
+          let subscription = try await APIClient.shared.getUserSubscription(authorizationSnapshot: authorization)
+          if let authorization {
+            guard RuntimeOwnerIdentity.isAuthorizationCurrent(authorization) else { return }
+            ScreenCloudEntitlementService.shared.accept(subscription, authorization: authorization)
+          }
           let matchedPrice =
             expectedPriceId == nil || subscription.subscription.currentPriceId == expectedPriceId
           let hasPaidPlan =

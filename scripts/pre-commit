@@ -26,8 +26,26 @@ EOF
   fi
 fi
 
+# A merge commit stages every file the other side changed. A file whose staged
+# content is exactly the incoming side's belongs to that side's own history, so
+# the formatters below must not rewrite it (or refuse over its toolchain): doing
+# so sweeps unrelated churn into the merge. Conflict resolutions and this
+# branch's own edits differ from MERGE_HEAD and are still formatted.
+drop_merge_incoming() {
+  if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+    cat
+    return
+  fi
+  while IFS= read -r file; do
+    [ -n "$file" ] || continue
+    if [ "$(git rev-parse -q --verify ":$file" 2>/dev/null)" != "$(git rev-parse -q --verify "MERGE_HEAD:$file" 2>/dev/null)" ]; then
+      printf '%s\n' "$file"
+    fi
+  done
+}
+
 # Dart formatting for app/
-STAGED_DART_FILES=$(git diff --cached --name-only --diff-filter=ACM "app/**.dart" | grep -v -e '\.gen\.dart$' -e '\.g\.dart$' -e '^app/lib/l10n/app_localizations.*\.dart$')
+STAGED_DART_FILES=$(git diff --cached --name-only --diff-filter=ACM "app/**.dart" | grep -v -e '\.gen\.dart$' -e '\.g\.dart$' -e '^app/lib/l10n/app_localizations.*\.dart$' | drop_merge_incoming)
 
 if [ -n "$STAGED_DART_FILES" ] && [ "${OMI_SKIP_DART_FORMAT:-}" = "1" ]; then
   echo "OMI_SKIP_DART_FORMAT=1: leaving staged Dart files unformatted."
@@ -67,13 +85,21 @@ if [ -n "$STAGED_DART_FILES" ]; then
     echo "Refusing to run an unrelated 'dart' from PATH. Set OMI_SKIP_DART_FORMAT=1 to commit unformatted." >&2
     exit 1
   fi
+  # dart format takes the formatting style from the package's language version,
+  # which it reads from package_config.json. Without it the pinned SDK falls back
+  # to its newest style and rewrites whole files into a shape CI rejects.
+  if [ ! -f "$ROOT/app/.dart_tool/package_config.json" ]; then
+    echo "app/.dart_tool/package_config.json is missing, so dart format cannot read the package language version." >&2
+    echo "Formatting refused. Run 'flutter pub get' in app/, or set OMI_SKIP_DART_FORMAT=1 to commit unformatted." >&2
+    exit 1
+  fi
   echo "Formatting staged Dart files in app/ with Flutter $PINNED_FLUTTER..."
   echo "$STAGED_DART_FILES" | xargs "$DART_BIN" format --line-length 120
   echo "$STAGED_DART_FILES" | xargs git add
 fi
 
 # Python formatting for backend/
-STAGED_PYTHON_FILES=$(git diff --cached --name-only --diff-filter=ACM "backend/**.py")
+STAGED_PYTHON_FILES=$(git diff --cached --name-only --diff-filter=ACM "backend/**.py" | drop_merge_incoming)
 
 if [ -n "$STAGED_PYTHON_FILES" ]; then
   case "$(git remote get-url origin)" in
@@ -82,11 +108,23 @@ if [ -n "$STAGED_PYTHON_FILES" ]; then
       if ! git merge-base --is-ancestor "$mirror_ref" upstream/main; then
         mirror_ref=$(git merge-base HEAD upstream/main)
       fi
-      if ! git diff --cached --quiet "$mirror_ref" -- backend/; then
-        echo "Fork backend must exactly mirror $mirror_ref; restore upstream bytes before committing." >&2
-        exit 1
+      if git diff --cached --quiet "$mirror_ref" -- backend/; then
+        echo "Verified exact upstream backend mirror ($mirror_ref); preserving its formatting."
+      else
+        # Adam approved this one test-only isolation repair on 2026-10-25.
+        # Both blobs are pinned: any upstream drift or extra fork edit fails.
+        exception_path=backend/tests/unit/test_edit_tools_resilience.py
+        upstream_blob=32acf6628b479ce2c9d6b9b5fac81b265386d8a7
+        approved_blob=a66d38337a6f7e510c6c6144625de1750cf3d452
+        if [ "$(git rev-parse "$mirror_ref:$exception_path" 2>/dev/null)" = "$upstream_blob" ] &&
+           [ "$(git rev-parse ":$exception_path" 2>/dev/null)" = "$approved_blob" ] &&
+           git diff --cached --quiet "$mirror_ref" -- backend/ ":(exclude)$exception_path"; then
+          echo "Verified upstream backend mirror with the approved test-isolation exception; preserving its bytes."
+        else
+          echo "Fork backend differs from $mirror_ref beyond the approved test-only exception; restore upstream bytes." >&2
+          exit 1
+        fi
       fi
-      echo "Verified exact upstream backend mirror ($mirror_ref); preserving its formatting."
       ;;
     *)
       echo "Formatting staged Python files in backend/ with the pinned formatter..."
@@ -97,7 +135,7 @@ if [ -n "$STAGED_PYTHON_FILES" ]; then
 fi
 
 # ARB (l10n JSON) formatting for app/lib/l10n/
-STAGED_ARB_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.arb$')
+STAGED_ARB_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.arb$' | drop_merge_incoming)
 
 if [ -n "$STAGED_ARB_FILES" ]; then
   if command -v jq >/dev/null 2>&1; then
@@ -115,7 +153,7 @@ fi
 # Web (JS/TS/JSX/TSX) formatting with Prettier
 # Auto-generated TypeScript (e.g. the admin OpenAPI client) is excluded: a
 # regenerated artifact must not be swept through Prettier's format-and-add.
-STAGED_WEB_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -E '^web/' | grep -v '\.generated\.ts$')
+STAGED_WEB_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx)$' | grep -E '^web/' | grep -v '\.generated\.ts$' | drop_merge_incoming)
 
 if [ -n "$STAGED_WEB_FILES" ] && [ "${OMI_SKIP_WEB_FORMAT:-}" = "1" ]; then
   echo "OMI_SKIP_WEB_FORMAT=1: leaving staged web files unformatted."
