@@ -26,11 +26,15 @@ class DirectBackendProductionAdmissionTests(unittest.TestCase):
             root = Path(directory)
             for relative in CHECKER.WORKFLOWS:
                 source = ROOT / relative
+                if not source.exists():
+                    source = ROOT / ".github/disabled-workflows" / Path(relative).name
                 target = root / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, target)
             target = root / CHECKER.LISTEN_WORKFLOW
             text = target.read_text(encoding="utf-8")
+            self.assertEqual(CHECKER.validate(root), [])
+            self.assertIn(CHECKER.LISTEN_EXPORTER_CHECKOUT, text)
             text = text.replace(CHECKER.LISTEN_EXPORTER_CHECKOUT, "ref: main", 1)
             target.write_text(text, encoding="utf-8")
 
