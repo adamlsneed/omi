@@ -11,7 +11,7 @@ struct omiwatch_Watch_AppApp: App {
                 if viewModel.isRecording || viewModel.isStarting {
                     WatchRecorderView(viewModel: viewModel)
                 } else {
-                    WatchQuickCaptureView(capture: viewModel.quickCapture)
+                    WatchQuickCaptureView(capture: viewModel.quickCapture, recorder: viewModel)
                 }
             }
                 .onChange(of: scenePhase) { _, phase in

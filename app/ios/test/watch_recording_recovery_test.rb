@@ -45,4 +45,29 @@ class WatchRecordingRecoveryTest < Minitest::Test
     project = File.read(File.join(IOS, 'Runner.xcodeproj/project.pbxproj'))
     assert_equal 3, project.scan(/WatchRecordingStore.swift in Sources \*\/,/).size, 'both phone flavors and the watch must compile the store'
   end
+
+  # Static integration tripwire: WatchConnectivity and the microphone controller
+  # require watchOS; host custody/receipt behavior is exercised by the Swift harnesses.
+  def test_fork_quick_capture_and_standard_recovery_remain_wired_together
+    phone = File.read(File.join(IOS, 'Runner/AppDelegate.swift'))
+    watch = File.read(File.join(IOS, 'omiWatchApp/WatchAudioRecorderViewModel.swift'))
+    host = File.read(File.join(IOS, 'Runner/RecorderHostApiImpl.swift'))
+    quick = File.read(File.join(IOS, 'omiWatchApp/WatchQuickCapture.swift'))
+    app = File.read(File.join(IOS, 'omiWatchApp/omiwatchApp.swift'))
+    assert_equal 1, phone.scan('func session(_ session: WCSession, didReceive file: WCSessionFile)').size
+    assert_includes phone, 'receiveQuickCapture(file)'
+    assert_includes phone, 'WatchRecordingInbox.receive('
+    assert_includes host, 'var context = session.applicationContext'
+    assert_includes watch, 'self.quickCapture.receiveAccountContext(applicationContext)'
+    assert_includes watch, 'case "quickCaptureReceipt":'
+    assert_includes watch, 'case "watchRecordingReceipt":'
+    assert_includes watch, 'guard !isRecording, !isStarting, quickCapture.active == nil, !quickCapture.starting'
+    assert_includes watch, 'guard quickCapture.active == nil, !quickCapture.starting else { return }'
+    assert_includes quick, '@ObservedObject var recorder: WatchAudioRecorderViewModel'
+    assert_includes quick, 'if let error = recorder.recoveryError'
+    assert_includes quick, 'if recorder.pendingRecoverySegments > 0'
+    assert_includes quick, 'recorder.retryRecoveryTransfers()'
+    assert_includes app, 'WatchQuickCaptureView(capture: viewModel.quickCapture, recorder: viewModel)'
+  end
+
 end

@@ -464,13 +464,13 @@ def test_target_rejects_a_scheme_and_a_host_omi_cannot_use() -> None:
     assert "cannot resolve" in unresolvable.summary
 
 
-def test_target_preserves_first_resolver_spelling_when_deduplicating() -> None:
+def test_target_canonicalizes_equivalent_mapped_addresses_once() -> None:
     address = "::FFFF:6440:0001"
     report = webhook_target.inspect_target(
         "https://example.com/webhook", resolver=lambda _: [address, "::ffff:100.64.0.1"]
     )
     assert not report.ok
-    assert report.summary == f"example.com resolves to a non-public address: {address}"
+    assert report.summary == "example.com resolves to a non-public address: ::ffff:100.64.0.1"
 
 
 def test_target_accepts_a_public_address_and_flags_plain_http() -> None:
