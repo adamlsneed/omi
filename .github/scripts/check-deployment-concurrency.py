@@ -36,6 +36,7 @@ from workflow_composite_contract import (  # noqa: E402
 )
 
 WORKFLOWS = ROOT / ".github" / "workflows"
+ARCHIVED_WORKFLOWS = ROOT / ".github" / "disabled-workflows"
 
 
 @dataclass(frozen=True)
@@ -909,6 +910,12 @@ def check_repository() -> list[str]:
         for pattern in ("*.yml", "*.yaml")
         for path in WORKFLOWS.glob(pattern)
     }
+    # Audit current lock contracts even when fork policy archives their writers.
+    # Active definitions take precedence; historical retired archives stay inert.
+    for name in LOCK_CONTRACTS:
+        archived = ARCHIVED_WORKFLOWS / name
+        if name not in workflow_text and archived.is_file():
+            workflow_text[name] = archived.read_text(encoding="utf-8")
     # Fork policy: the backend auto-deploy workflows are deliberately removed
     # (this fork never deploys backends; see AGENTS.md Safety Rules). Audit the
     # policy entries whose workflow is actually present.
