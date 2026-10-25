@@ -152,15 +152,6 @@ jobs:
     with:
       nightly_main_sha: ${{ needs.source.outputs.main_sha }}
 
-  runtime_image_contracts:
-    needs: source
-    uses: ./.github/workflows/runtime_image_contracts.yml
-    with:
-      nightly_main_sha: ${{ needs.source.outputs.main_sha }}
-    permissions:
-      contents: read
-      id-token: write
-
   sdk-cpp:
     needs: source
     uses: ./.github/workflows/sdk-cpp.yml

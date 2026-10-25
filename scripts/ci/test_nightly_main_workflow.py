@@ -100,6 +100,13 @@ class WorkflowTests(unittest.TestCase):
         # after a nightly pinned its source (that would create a false red).
         base = subprocess.run(["git", "merge-base", "origin/main", "HEAD"], cwd=ROOT,
                               capture_output=True, text=True, check=True).stdout.strip()
+        # On first adoption, the fork base has no nightly contract. Use the
+        # imported contract revision, which includes its new reusable workflows.
+        if subprocess.run(["git", "cat-file", "-e", f"{base}:.github/workflows/main_nightly_full.yml"],
+                          cwd=ROOT, capture_output=True).returncode:
+            base = subprocess.run(["git", "log", "--diff-filter=A", "-1", "--format=%H", "HEAD", "--",
+                                   ".github/workflows/main_nightly_full.yml"],
+                                  cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
         for filename in self.calls.values():
             baseline = subprocess.run(["git", "show", f"{base}:.github/workflows/{filename}"],
                                       cwd=ROOT, capture_output=True, text=True, check=True).stdout

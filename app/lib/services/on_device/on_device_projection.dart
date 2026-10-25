@@ -10,7 +10,7 @@ String onDeviceTranscriptHash(List<TranscriptSegment> segments) {
   for (final segment in segments) {
     for (final value in [
       segment.speaker?.trim().isNotEmpty == true ? segment.speaker!.trim() : 'SPEAKER_00',
-      '${segment.speakerId}',
+      segment.speakerId.toString(),
       segment.isUser ? 'Y' : 'N',
       segment.personId?.trim() ?? '',
       segment.text.trim()

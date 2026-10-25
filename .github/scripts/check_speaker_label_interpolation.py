@@ -22,37 +22,133 @@ AUTHORITY = {
     'app/lib/ui/format/speaker_names.dart',
     'app/lib/ui/format/diarization_label.dart',
 }
+# These exact expressions serialize identity for routing or hash parity, never display.
+# Keep the function boundary as well as the fingerprint, so a copied UI leak fails.
+WIRE_EXPRESSIONS = {
+    ('backend/utils/episodes/policy.py', 'speaker_keys'): "keys.add(f\"speaker:{segment['speaker_id']}\")",
+}
+
 RAW = re.compile(r'(?i)(?:\b(?:raw_)?speaker_?id\b|\bdiarization_?label\b|raw_for_transport|rawForTransport)')
 
 
 def findings(path: str, source: str) -> list[tuple[str, int]]:
-    if path in AUTHORITY or '/tests/' in path or '/test/' in path:
+    if path in AUTHORITY or '/tests/' in path or '/test/' in path or path.endswith('_test.py'):
         return []
     if path.startswith('backend/') and path.endswith('.py'):
         tree = ast.parse(source)
+        display_resolvers = {
+            alias.asname or alias.name
+            for node in tree.body if isinstance(node, ast.ImportFrom) and node.module == 'utils.speakers.display'
+            for alias in node.names if alias.name == 'display_participants'
+        }
+        parents = {id(child): node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
         hits = []
-        tainted = set()
+        def scope_nodes(scope):
+            for child in ast.iter_child_nodes(scope):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+                    continue
+                yield child
+                yield from scope_nodes(child)
 
-        def is_raw(expression):
-            return bool(RAW.search(ast.unparse(expression))) or any(
-                isinstance(part, ast.Name)
-                and part.id in tainted
-                or isinstance(part, ast.Attribute)
-                and part.attr in ('speaker', 'speaker_id', 'speakerId')
-                for part in ast.walk(expression)
-            )
+        scopes = [tree] + [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda))]
+        node_taints = {}
+        node_scopes = {}
+        scope_taints = {}
+        scope_paths = {}
+        scope_shadows = {}
+        for scope in scopes:
+            enclosing = parents.get(id(scope))
+            while enclosing is not None and id(enclosing) not in scope_taints:
+                enclosing = parents.get(id(enclosing))
+            tainted = set(scope_taints.get(id(enclosing), set()))
+            tainted_paths = set(scope_paths.get(id(enclosing), set()))
+            local_names = {node.id for node in scope_nodes(scope) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)}
+            if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                local_names.update(arg.arg for arg in ast.walk(scope.args) if isinstance(arg, ast.arg))
+            for node in scope_nodes(scope):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    for alias in node.names:
+                        if not (isinstance(node, ast.ImportFrom) and node.module == 'utils.speakers.display' and alias.name == 'display_participants'):
+                            local_names.add(alias.asname or alias.name.split('.')[0])
+            local_names.update(node.name for node in ast.iter_child_nodes(scope) if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)))
+            tainted.difference_update(local_names)
+            shadows = scope_shadows.get(id(enclosing), set()) | local_names
+            trusted_resolvers = display_resolvers - shadows
+            scope_taints[id(scope)] = tainted
+            scope_paths[id(scope)] = tainted_paths
+            scope_shadows[id(scope)] = shadows
 
-        # Local aliases do not turn storage identity into safe display text.
-        for _ in range(3):
-            for assignment in ast.walk(tree):
-                if (
-                    isinstance(assignment, (ast.Assign, ast.AnnAssign))
-                    and assignment.value is not None
-                    and is_raw(assignment.value)
-                ):
-                    targets = assignment.targets if isinstance(assignment, ast.Assign) else [assignment.target]
+            def is_raw(expression, ignore_slots=False):
+                if not ignore_slots and isinstance(expression, (ast.Name, ast.Attribute, ast.Subscript)):
+                    slot = ast.unparse(expression)
+                    if any(path == slot or path.startswith(slot + '.') or path.startswith(slot + '[') for path in tainted_paths):
+                        return True
+                if isinstance(expression, ast.Name):
+                    return bool(RAW.search(expression.id)) or expression.id in tainted
+                if isinstance(expression, ast.Attribute):
+                    return expression.attr == 'speaker' or bool(RAW.search(expression.attr)) or is_raw(expression.value, ignore_slots=True)
+                if isinstance(expression, ast.Subscript):
+                    key = expression.slice
+                    raw_key = isinstance(key, ast.Constant) and isinstance(key.value, str) and (key.value == 'speaker' or RAW.search(key.value))
+                    return is_raw(expression.value, ignore_slots=True) or is_raw(key) or bool(raw_key)
+                if isinstance(expression, ast.Call):
+                    key = None
+                    if isinstance(expression.func, ast.Name) and expression.func.id in ('getattr', '_get') and len(expression.args) >= 2:
+                        key = expression.args[1]
+                    elif isinstance(expression.func, ast.Attribute) and expression.func.attr == 'get' and expression.args:
+                        key = expression.args[0]
+                    if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                        if key.value == 'speaker' or RAW.search(key.value):
+                            return True
+                        if isinstance(expression.func, ast.Attribute):
+                            lookup = ast.Subscript(value=expression.func.value, slice=key, ctx=ast.Load())
+                        elif expression.func.id == 'getattr':
+                            lookup = ast.Attribute(value=expression.args[0], attr=key.value, ctx=ast.Load())
+                        else:
+                            lookup = ast.Subscript(value=expression.args[0], slice=key, ctx=ast.Load())
+                        if is_raw(lookup):
+                            return True
+                    # Cardinality and approved display resolution do not return raw identities.
+                    if isinstance(expression.func, ast.Name) and expression.func.id in (({'len'} - shadows) | trusted_resolvers):
+                        return False
+                    return (isinstance(expression.func, ast.Attribute) and is_raw(expression.func.value)) or any(is_raw(arg) for arg in expression.args) or any(is_raw(kw.value) for kw in expression.keywords)
+                if isinstance(expression, ast.Dict):
+                    return any(is_raw(value) for value in expression.values) or any(is_raw(key) for key in expression.keys if key is not None)
+                return any(is_raw(child) for child in ast.iter_child_nodes(expression))
+
+            def bind(target, value):
+                if isinstance(target, ast.Name):
+                    if is_raw(value):
+                        tainted.add(target.id)
+                elif isinstance(target, (ast.Tuple, ast.List)):
+                    if isinstance(value, (ast.Tuple, ast.List)) and len(target.elts) == len(value.elts):
+                        for item, item_value in zip(target.elts, value.elts):
+                            bind(item, item_value)
+                    else:
+                        for item in target.elts:
+                            bind(item, value)
+                elif isinstance(target, (ast.Attribute, ast.Subscript)) and is_raw(value):
+                    # Track the written slot, never contaminate unrelated receiver fields.
+                    tainted_paths.add(ast.unparse(target))
+
+            # Snapshot lexical taint in execution order. Later writes must not
+            # retroactively taint earlier strings or names in another function.
+            for node in scope_nodes(scope):
+                if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+                    assignments = [part for part in scope_nodes(node) if isinstance(part, (ast.Assign, ast.AnnAssign)) and part.value is not None]
+                    for _ in range(len(assignments) + 1):
+                        before = (set(tainted), set(tainted_paths))
+                        for assignment in assignments:
+                            for target in assignment.targets if isinstance(assignment, ast.Assign) else [assignment.target]:
+                                bind(target, assignment.value)
+                        if before == (tainted, tainted_paths):
+                            break
+                node_scopes[id(node)] = getattr(scope, 'name', '')
+                node_taints[id(node)] = is_raw(node)
+                if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                     for target in targets:
-                        tainted.update(part.id for part in ast.walk(target) if isinstance(part, ast.Name))
+                        bind(target, node.value)
         for node in ast.walk(tree):
             if (isinstance(node, ast.ImportFrom) and node.module == 'utils.speaker_display') or (
                 isinstance(node, ast.Import) and any(alias.name == 'utils.speaker_display' for alias in node.names)
@@ -97,7 +193,7 @@ def findings(path: str, source: str) -> list[tuple[str, int]]:
                 continue
             rendered = ast.unparse(node)
             # Generic aliases are caught when the template itself says Speaker/SPEAKER.
-            raw = any(is_raw(expr) for expr in expressions)
+            raw = any(node_taints.get(id(expr), False) for expr in expressions)
             template = (
                 node.func.value if isinstance(node, ast.Call) else node.left if isinstance(node, ast.BinOp) else None
             )
@@ -106,6 +202,16 @@ def findings(path: str, source: str) -> list[tuple[str, int]]:
             alias = re.search(r'[Ss][Pp][Ee][Aa][Kk][Ee][Rr][ _]', rendered) and any(
                 re.search(r'\b(?:sid|speaker|speaker_key|speaker_idx)\b', ast.unparse(expr)) for expr in expressions
             )
+            wire = WIRE_EXPRESSIONS.get((path, node_scopes.get(id(node))))
+            wire_node = ast.parse(wire).body[0].value.args[0] if wire else None
+            parent = parents.get(id(node))
+            if (
+                wire_node is not None
+                and isinstance(parent, ast.Call)
+                and ast.dump(parent, include_attributes=False) == ast.dump(ast.parse(wire).body[0].value, include_attributes=False)
+                and ast.dump(node, include_attributes=False) == ast.dump(wire_node, include_attributes=False)
+            ):
+                continue
             if raw or alias or speaker_template:
                 hits.append((ast.dump(node, include_attributes=False), node.lineno))
         return hits
@@ -116,6 +222,7 @@ def findings(path: str, source: str) -> list[tuple[str, int]]:
                 r'''(?:['"][^'"\n]*\$(?:\{[^}\n]*(?:speakerId|rawForTransport)[^}\n]*\}|speakerId\b)[^'"\n]*['"])''',
                 source,
             )
+
         ]
     return []
 

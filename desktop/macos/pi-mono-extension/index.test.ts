@@ -9,6 +9,7 @@
 // CP9 live testing.
 
 import test from "node:test";
+import { once } from "node:events";
 import assert from "node:assert/strict";
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, utimes, writeFile, unlink } from "node:fs/promises";
 
@@ -2054,14 +2055,15 @@ test("callSwiftTool: abort after enqueue resolves with error and cleans up", asy
 
   try {
     await new Promise<void>((resolve) => server.listen(sockPath, resolve));
-    // Server accepts but never responds — tool call hangs until abort
-    server.on("connection", () => {});
+    // Observe relay delivery before aborting. Capability loading does async I/O.
+    const connected = once(server, "connection");
     await __connectOmiPipeForTest(sockPath);
+    const [socket] = await connected;
+    const received = once(socket, "data", { signal: AbortSignal.timeout(2_000) });
 
     const ac = new AbortController();
     const promise = __callSwiftToolForTest("execute_sql", { query: "SELECT 1" }, ac.signal);
-    // Let the call enqueue
-    await new Promise((r) => setTimeout(r, 10));
+    await received;
     assert.equal(__omiPendingCallsForTest.size, 1, "should have 1 pending call");
     ac.abort();
     const result = await promise;

@@ -178,8 +178,10 @@ class _LiveTranscriptViewState extends State<LiveTranscriptView> {
       _timelineNames =
           SpeakerNames.forSegments(_timelineSegments!, people: people, l10n: context.l10n, deferShortVoices: true);
       _timelineDecorations = LiveTranscriptDecorations.of(widget.episode, conversationId, _timelineSegments!);
-      _timelinePhotos = List<ConversationPhoto>.from(provider.photos)
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final sortedPhotos = List<ConversationPhoto>.from(provider.photos);
+      // omi-perf-allow: sort-in-build -- Version-keyed cache; live_episode_notify_perf_test verifies zero re-sorts for 20 unchanged notifies.
+      sortedPhotos.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      _timelinePhotos = sortedPhotos;
 
       // Group consecutive photos taken within 30 seconds of each other
       final List<List<ConversationPhoto>> photoGroups = [];
