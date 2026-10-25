@@ -145,7 +145,7 @@ step "Embedding App Intents metadata"
 ./scripts/embed-app-intents-metadata.sh Desktop "$APP_BUNDLE" Release "$(uname -m)"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME" 2>/dev/null || true
 
-for fw in Sparkle Sentry onnxruntime; do
+for fw in Sparkle onnxruntime; do
   if [ -d "$REL_ARCH_DIR/$fw.framework" ]; then
     rm -rf "$APP_BUNDLE/Contents/Frameworks/$fw.framework"
     cp -R "$REL_ARCH_DIR/$fw.framework" "$APP_BUNDLE/Contents/Frameworks/"
@@ -278,7 +278,7 @@ for nested in "XPCServices/Downloader.xpc" "XPCServices/Installer.xpc" "Autoupda
 done
 
 step "Signing frameworks + app"
-for fw in Sparkle.framework Sentry.framework onnxruntime.framework; do
+for fw in Sparkle.framework onnxruntime.framework; do
   [ -d "$APP_BUNDLE/Contents/Frameworks/$fw" ] && sign --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/$fw"
 done
 for lib in libsharpyuv.0.dylib libwebp.7.dylib; do
