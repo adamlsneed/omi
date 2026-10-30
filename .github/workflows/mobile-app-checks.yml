@@ -164,7 +164,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     if: github.event_name == 'schedule' || needs.changes.outputs.has_app_dart == 'true'
-    timeout-minutes: 30
+    # Run 41073101651 was still passing tests at 30 minutes after a cold setup.
+    # Allow the full suite and diagnostics to finish on hosted Linux runners.
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

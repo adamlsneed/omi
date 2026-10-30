@@ -26,6 +26,10 @@ def jobs(text):
 PR_SCHEMA_WRITERS = {"gcp_firestore_indexes.yml"}
 
 INTENTIONAL_BUDGET_CHANGES = {
+    # PR #170: run 41073101651 canceled the actively progressing Flutter suite
+    # at 7,378 passes after 30 minutes including cold setup. Allow completion
+    # and diagnostics without changing test selection or assertions.
+    ("mobile-app-checks.yml", "analyze-and-test", "timeout-minutes"): "45",
     # iOS Compile Check: the 40-min ceiling sat below the measured cold path
     # (39:25 real steps + ~1 min post-job Post Setup Flutter cache save, run
     # 39634604539 attempt 1), cancelling a healthy cold job after every real
