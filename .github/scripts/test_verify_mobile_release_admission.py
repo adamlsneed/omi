@@ -350,6 +350,38 @@ class MobileReleaseAdmissionTests(unittest.TestCase):
                 self.assertEqual(result.returncode == 0, native == smoke == 0, result.stderr)
                 self.assertEqual(len(calls.read_text().splitlines()), 1 if native else 2)
 
+    def test_fork_android_policy_applies_to_jobs_and_aggregate(self) -> None:
+        import yaml
+
+        jobs = yaml.safe_load((ROOT / ".github/workflows/mobile-app-checks.yml").read_text())["jobs"]
+        self.assertEqual(jobs["changes"]["outputs"]["android_enabled"], "${{ github.repository != 'adamlsneed/omi' }}")
+        gate = "needs.changes.outputs.android_enabled == 'true' && ("
+        for name in ("android-compile-smoke", "android-unit-tests", "android-emulator-checks"):
+            self.assertTrue(jobs[name]["if"].startswith(gate), name)
+        aggregate = jobs["mobile-release-eligibility"]["steps"][0]
+        self.assertTrue(aggregate["env"]["EMULATOR_EXPECTED"].startswith("${{ " + gate))
+        for name in ("ios-compile-check", "analyze-and-test", "dart-tests-kiritimati"):
+            self.assertNotIn("android_enabled", jobs[name]["if"])
+
+    def test_fork_disabled_android_does_not_create_failure_issues(self) -> None:
+        import yaml
+
+        jobs = yaml.safe_load((ROOT / ".github/workflows/mobile-app-checks.yml").read_text())["jobs"]
+        step = jobs["post-merge-failure-issues"]["steps"][0]
+        self.assertEqual(step["env"]["ANDROID_ENABLED"], "${{ needs.changes.outputs.android_enabled }}")
+        with tempfile.TemporaryDirectory() as directory:
+            gh = Path(directory) / "gh"
+            gh.write_text("#!/bin/sh\nexit 97\n")
+            gh.chmod(0o755)
+            env = dict(os.environ, PATH=f"{directory}:{os.environ['PATH']}", EVENT="push",
+                       ANDROID_ENABLED="false", ANDROID_EXPECTED="true", REPO="example/omi")
+            for name in ("DART", "JOURNEYS", "ANDROID_COMPILE", "ANDROID_JVM", "ANDROID_EMULATOR", "TIMEZONES"):
+                env[name] = "skipped"
+            for name in ("DART_EXPECTED", "JOURNEYS_EXPECTED", "TIMEZONES_EXPECTED"):
+                env[name] = "false"
+            result = subprocess.run(["bash", "-c", step["run"]], env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_selected_emulator_failure_or_skip_blocks_actual_aggregate_script(self) -> None:
         import yaml
 

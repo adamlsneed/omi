@@ -175,6 +175,7 @@ class CITierTests(unittest.TestCase):
                 ANDROID_EMULATOR="skipped",
                 TIMEZONES="skipped",
                 JOURNEYS_EXPECTED="false",
+                ANDROID_ENABLED="true",
                 ANDROID_EXPECTED="false",
                 TIMEZONES_EXPECTED="false",
             )

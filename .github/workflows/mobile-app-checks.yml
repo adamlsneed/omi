@@ -51,6 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
+      android_enabled: ${{ github.repository != 'adamlsneed/omi' }}
       diff_base: ${{ steps.changes.outputs.diff_base }}
       full_ci: ${{ inputs.nightly_main_sha != '' && 'true' || (steps.tier.outputs.full_ci) }}
       has_app_codegen: ${{ inputs.nightly_main_sha != '' && 'true' || (steps.changes.outputs.has_app_codegen) }}
@@ -368,7 +369,7 @@ jobs:
     name: Android Compile Smoke
     runs-on: ubuntu-latest
     needs: changes
-    if: github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true')
+    if: needs.changes.outputs.android_enabled == 'true' && (github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true'))
     timeout-minutes: 25
     env:
       # Read by app/android/app/build.gradle (ndkVersion) and the NDK install
@@ -513,7 +514,7 @@ jobs:
     name: Android JVM Unit Tests
     runs-on: ubuntu-latest
     needs: changes
-    if: github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true')
+    if: needs.changes.outputs.android_enabled == 'true' && (github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true'))
     timeout-minutes: 25
     env:
       # Read by app/android/app/build.gradle (ndkVersion) and the NDK install
@@ -623,7 +624,7 @@ jobs:
     name: Android Emulator Acceptance
     runs-on: ubuntu-latest
     needs: changes
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true')
+    if: needs.changes.outputs.android_enabled == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true'))
     timeout-minutes: 35
     env:
       # Read by app/android/app/build.gradle (ndkVersion) and the NDK install
@@ -1020,7 +1021,7 @@ jobs:
           ANDROID_COMPILE_RESULT: ${{ needs.android-compile-smoke.result }}
           ANDROID_UNIT_RESULT: ${{ needs.android-unit-tests.result }}
           ANDROID_EMULATOR_RESULT: ${{ needs.android-emulator-checks.result }}
-          EMULATOR_EXPECTED: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true') }}
+          EMULATOR_EXPECTED: ${{ needs.changes.outputs.android_enabled == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && needs.changes.outputs.has_app_compile_smoke == 'true') || (needs.changes.outputs.full_ci == 'true' && needs.changes.outputs.has_app_android_pr == 'true')) }}
           IOS_COMPILE_RESULT: ${{ needs.ios-compile-check.result }}
           DART_TIMEZONE_RESULT: ${{ needs.dart-tests-kiritimati.result }}
         run: |
@@ -1108,6 +1109,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           DART_EXPECTED: ${{ needs.changes.outputs.has_app_dart }}
           JOURNEYS_EXPECTED: ${{ needs.changes.outputs.has_app_journeys }}
+          ANDROID_ENABLED: ${{ needs.changes.outputs.android_enabled }}
           ANDROID_EXPECTED: ${{ needs.changes.outputs.has_app_compile_smoke }}
           TIMEZONES_EXPECTED: ${{ needs.changes.outputs.has_app_dart }}
         run: |
@@ -1115,6 +1117,7 @@ jobs:
           failed=0
           for spec in "Dart Analyze & Tests:$DART:$DART_EXPECTED" "Seeded Journeys:$JOURNEYS:$JOURNEYS_EXPECTED" "Android Compile Smoke:$ANDROID_COMPILE:$ANDROID_EXPECTED" "Android JVM Unit Tests:$ANDROID_JVM:$ANDROID_EXPECTED" "Android Emulator Acceptance:$ANDROID_EMULATOR:$ANDROID_EXPECTED" "Dart Far Timezones:$TIMEZONES:$TIMEZONES_EXPECTED"; do
             suite="${spec%%:*}"
+            [[ "$suite" == Android* && "$ANDROID_ENABLED" != true ]] && continue
             rest="${spec#*:}"
             result="${rest%%:*}"
             expected="${rest#*:}"
