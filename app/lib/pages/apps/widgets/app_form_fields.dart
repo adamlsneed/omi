@@ -317,17 +317,17 @@ class AppScreenshotsSection extends StatelessWidget {
 
   Widget _thumbnail(BuildContext context, int index) {
     Widget frame({Color? color, DecorationImage? image, Widget? child, bool bordered = false}) => Container(
-      width: _width,
-      height: _height,
-      margin: const EdgeInsets.only(right: 8),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: OmiRadius.smAll,
-        border: bordered ? Border.all(color: OmiColors.border, width: 1) : null,
-        image: image,
-      ),
-      child: child,
-    );
+          width: _width,
+          height: _height,
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: OmiRadius.smAll,
+            border: bordered ? Border.all(color: OmiColors.border, width: 1) : null,
+            image: image,
+          ),
+          child: child,
+        );
 
     return Stack(
       children: [

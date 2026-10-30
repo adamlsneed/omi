@@ -1,5 +1,6 @@
 """Meeting edges are shared by storage, conversation, episode and merge policy."""
 
+import sys
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -14,6 +15,13 @@ ACCOUNT = 'test-account'
 
 @pytest.fixture
 def store(monkeypatch):
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW.astimezone(tz) if tz is not None else NOW.replace(tzinfo=None)
+
+    monkeypatch.setattr(boundary_store, 'datetime', FixedDateTime)
+    monkeypatch.setattr(sys.modules[__name__], 'datetime', FixedDateTime)
     monkeypatch.setenv('EPISODE_BOUNDARIES_MODE_SHADOW_PERCENT', '100')
     db = StrictFirestore()
     monkeypatch.setenv('EPISODE_BOUNDARIES_MODE', 'serve')

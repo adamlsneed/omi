@@ -181,22 +181,23 @@ Map<String, dynamic> screenFrameJson(
   required int rank,
   required String caption,
   String? badge,
-}) => {
-  'id': id,
-  'captured_at': '2026-09-30T10:${(10 + rank * 7).toString().padLeft(2, '0')}:00Z',
-  'role': role,
-  'rank': rank,
-  'caption': caption,
-  'labels': <String>[],
-  'source_badge': badge,
-  'focal_region': null,
-  'width': _w.toInt(),
-  'height': _h.toInt(),
-  'content_url': '${baseUrl}fixture-images/$image',
-  'thumbnail_url': '${baseUrl}fixture-images/$image',
-  'url_expires_at': DateTime.now().toUtc().add(const Duration(minutes: 60)).toIso8601String(),
-  'ground': {
-    'stops': ['#3B5B7A', '#202124'],
-    'is_neutral': false,
-  },
-};
+}) =>
+    {
+      'id': id,
+      'captured_at': '2026-09-30T10:${(10 + rank * 7).toString().padLeft(2, '0')}:00Z',
+      'role': role,
+      'rank': rank,
+      'caption': caption,
+      'labels': <String>[],
+      'source_badge': badge,
+      'focal_region': null,
+      'width': _w.toInt(),
+      'height': _h.toInt(),
+      'content_url': '${baseUrl}fixture-images/$image',
+      'thumbnail_url': '${baseUrl}fixture-images/$image',
+      'url_expires_at': DateTime.now().toUtc().add(const Duration(minutes: 60)).toIso8601String(),
+      'ground': {
+        'stops': ['#3B5B7A', '#202124'],
+        'is_neutral': false,
+      },
+    };

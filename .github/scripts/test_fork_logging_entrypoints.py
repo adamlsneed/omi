@@ -13,6 +13,17 @@ spec.loader.exec_module(guard)
 
 
 class ForkLoggingTests(unittest.TestCase):
+    def test_retired_upstream_workflow_is_not_restored_for_backend_tests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archived = root / '.github/disabled-workflows'
+            archived.mkdir(parents=True)
+            (archived / 'current.yml').write_text('current')
+            (archived / 'retired.yml').write_text('retired')
+            guard.restore_archived_workflows(root, upstream_files={'.github/workflows/current.yml'})
+            self.assertEqual((root / '.github/workflows/current.yml').read_text(), 'current')
+            self.assertFalse((root / '.github/workflows/retired.yml').exists())
+
     def test_archived_workflow_does_not_replace_an_active_definition(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

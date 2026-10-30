@@ -6,7 +6,7 @@
 checks:
   - id: fork-backend-mirror-exception-tests
     command: ["python3", ".github/scripts/test_fork_backend_mirror_exception.py"]
-    triggers: ["scripts/pre-commit", ".github/scripts/test_fork_backend_mirror_exception.py", "backend/tests/unit/test_edit_tools_resilience.py", ".github/checks-manifest.yaml"]
+    triggers: [".github/scripts/fork_policy.py", "scripts/pre-commit", ".github/scripts/test_fork_backend_mirror_exception.py", "backend/tests/unit/test_edit_tools_resilience.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "October 25 sync: Adam approved one test-only isolation repair; pin both blobs and reject other backend edits or upstream drift."
   - id: pcloud-backup-contract-tests
@@ -55,14 +55,19 @@ checks:
     triggers: ["@firestore-index-guard", ".github/checks-manifest.yaml", ".github/scripts/run_checks.py", ".github/actions/release-eligibility/action.yml"]
     lanes: ["local", "ci"]
     reason: "#19941/#20113: undeclared serving queries fail in production; advisory Backend unit suite can be merged over. Run only the selector-owned hermetic guard so the exact offending main SHA cannot acquire Release Eligibility proof. @firestore-index-guard reuses the serving inventory and guard inputs instead of a second path list"
+  - id: fork-mirror-policy-tests
+    command: ["python3", ".github/scripts/test_fork_policy.py"]
+    triggers: [".github/scripts/fork_policy.py", ".github/scripts/test_fork_policy.py", "scripts/pre-commit", ".github/workflows/repo-checks.yml", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "Fork mirror exemptions must require exact inherited bytes and reject unapproved backend edits."
   - id: feature-flag-registry
     command: ["python3", "scripts/check_feature_flag_registry.py"]
-    triggers: ["config/feature-flags.yaml", "scripts/feature_flag_registry.py", "scripts/check_feature_flag_registry.py", "scripts/test_check_feature_flag_registry.py", "scripts/render_feature_flag_registry.py", "scripts/posthog_flag_sync.py", "scripts/test_posthog_flag_sync.py", "backend/docs/feature-flag-registry.md", "backend/**/*.py", "backend/deploy/runtime_env/**", "backend/charts/**", "desktop/macos/Desktop/Sources/**/*.swift", "app/lib/services/experiments/**", "web/**/*.ts", "web/**/*.tsx", "desktop/windows/src/**/*.ts", "desktop/windows/src/**/*.tsx", ".github/checks-manifest.yaml", ".github/scripts/run_checks.py"]
+    triggers: ["config/feature-flags.yaml", "scripts/feature_flag_registry.py", "scripts/check_feature_flag_registry.py", ".github/scripts/fork_policy.py", "scripts/test_check_feature_flag_registry.py", "scripts/render_feature_flag_registry.py", "scripts/posthog_flag_sync.py", "scripts/test_posthog_flag_sync.py", "backend/docs/feature-flag-registry.md", "backend/**/*.py", "backend/deploy/runtime_env/**", "backend/charts/**", "desktop/macos/Desktop/Sources/**/*.swift", "app/lib/services/experiments/**", "web/**/*.ts", "web/**/*.tsx", "desktop/windows/src/**/*.ts", "desktop/windows/src/**/*.tsx", ".github/checks-manifest.yaml", ".github/scripts/run_checks.py"]
     lanes: ["local", "ci"]
     reason: "The 2026-09-24 inventory found an incorrect notes-v2 default and missing calendar, memory and JIT gates in the handwritten catalog; code reads and deploy declarations now require reviewed registry entries and a deterministic rendered doc"
   - id: feature-flag-registry-fixtures
     command: ["python3", "scripts/test_check_feature_flag_registry.py"]
-    triggers: ["config/feature-flags.yaml", "scripts/feature_flag_registry.py", "scripts/check_feature_flag_registry.py", "scripts/test_check_feature_flag_registry.py", "scripts/render_feature_flag_registry.py", ".github/scripts/run_checks.py", ".github/checks-manifest.yaml"]
+    triggers: ["config/feature-flags.yaml", "scripts/feature_flag_registry.py", "scripts/check_feature_flag_registry.py", ".github/scripts/fork_policy.py", "scripts/test_check_feature_flag_registry.py", "scripts/render_feature_flag_registry.py", ".github/scripts/run_checks.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "Registry extraction, uniqueness, date warnings, retirement and rendered-doc drift must remain covered by hermetic fixtures"
   - id: posthog-flag-sync-fixtures
@@ -1070,7 +1075,7 @@ checks:
     reason: "#9494 -> #9696 malformed Firestore documents must use the shared read boundary"
   - id: lifecycle-header-checker-tests
     command: ["python3", ".github/scripts/test_check_lifecycle_headers.py"]
-    triggers: [".github/scripts/check_lifecycle_headers.py", ".github/scripts/test_check_lifecycle_headers.py", ".github/checks-manifest.yaml"]
+    triggers: [".github/scripts/fork_policy.py", ".github/scripts/check_lifecycle_headers.py", ".github/scripts/test_check_lifecycle_headers.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "one-time rollout scaffolding must keep requiring a DELETE-AFTER reference"
   - id: lifecycle-headers

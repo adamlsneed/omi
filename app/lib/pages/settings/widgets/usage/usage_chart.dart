@@ -13,11 +13,11 @@ enum UsageMetric { minutes, words, tasks, memories }
 
 extension UsageMetricValue on UsageMetric {
   double value(UsageHistoryPoint point) => switch (this) {
-    UsageMetric.minutes => point.transcriptionSeconds / 60,
-    UsageMetric.words => point.wordsTranscribed.toDouble(),
-    UsageMetric.tasks => point.insightsGained.toDouble(),
-    UsageMetric.memories => point.memoriesCreated.toDouble(),
-  };
+        UsageMetric.minutes => point.transcriptionSeconds / 60,
+        UsageMetric.words => point.wordsTranscribed.toDouble(),
+        UsageMetric.tasks => point.insightsGained.toDouble(),
+        UsageMetric.memories => point.memoriesCreated.toDouble(),
+      };
 }
 
 class UsageBuckets {
@@ -66,10 +66,10 @@ UsageBuckets usageBuckets(
     _ => 12,
   };
   int index(DateTime date) => switch (period) {
-    'today' => date.hour,
-    'monthly' => date.day - 1,
-    _ => date.month - 1,
-  };
+        'today' => date.hour,
+        'monthly' => date.day - 1,
+        _ => date.month - 1,
+      };
   final byIndex = <int, UsageHistoryPoint>{};
   for (final point in history) {
     final date = decode(point);
@@ -185,11 +185,11 @@ class UsageChart extends StatelessWidget {
       _ => context.l10n.usageBestYear,
     };
     String dateLabel(int i) => switch (period) {
-      'today' => DateFormat.j(locale).format(buckets.dates[i]),
-      'monthly' => DateFormat.MMMd(locale).format(buckets.dates[i]),
-      'yearly' => DateFormat.MMM(locale).format(buckets.dates[i]),
-      _ => DateFormat.y(locale).format(buckets.dates[i]),
-    };
+          'today' => DateFormat.j(locale).format(buckets.dates[i]),
+          'monthly' => DateFormat.MMMd(locale).format(buckets.dates[i]),
+          'yearly' => DateFormat.MMM(locale).format(buckets.dates[i]),
+          _ => DateFormat.y(locale).format(buckets.dates[i]),
+        };
     final groups = [
       for (var i = 0; i < buckets.points.length; i++)
         BarChartGroupData(
@@ -201,14 +201,14 @@ class UsageChart extends StatelessWidget {
               toY: buckets.future[i]
                   ? maxY * .035
                   : buckets.points[i] == null
-                  ? 0
-                  : metric.value(buckets.points[i]!),
+                      ? 0
+                      : metric.value(buckets.points[i]!),
               width: period == 'monthly' || period == 'today' ? 7 : 16,
               color: buckets.future[i]
                   ? Colors.transparent
                   : i == peak
-                  ? color
-                  : color.withValues(alpha: .55),
+                      ? color
+                      : color.withValues(alpha: .55),
               borderSide: buckets.future[i] ? BorderSide(color: OmiColors.border, width: 1) : BorderSide.none,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
             ),
@@ -249,13 +249,11 @@ class UsageChart extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                             decoration: BoxDecoration(
-                              color: metric == choice
-                                  ? colors[choice.index].withValues(alpha: .16)
-                                  : OmiColors.surface2,
+                              color:
+                                  metric == choice ? colors[choice.index].withValues(alpha: .16) : OmiColors.surface2,
                               border: Border.all(
-                                color: metric == choice
-                                    ? colors[choice.index].withValues(alpha: .55)
-                                    : Colors.transparent,
+                                color:
+                                    metric == choice ? colors[choice.index].withValues(alpha: .55) : Colors.transparent,
                               ),
                               borderRadius: OmiRadius.pillAll,
                             ),
@@ -304,9 +302,11 @@ class UsageChart extends StatelessWidget {
             ),
           ),
           Semantics(
-            label:
-                '${labels[metric.index]}: ${[for (var i = 0; i < buckets.points.length; i++)
-                  if (!buckets.future[i]) '${dateLabel(i)}, ${displayAmount(buckets.points[i] == null ? 0.0 : metric.value(buckets.points[i]!))}'].join('; ')}',
+            label: '${labels[metric.index]}: ${[
+              for (var i = 0; i < buckets.points.length; i++)
+                if (!buckets.future[i])
+                  '${dateLabel(i)}, ${displayAmount(buckets.points[i] == null ? 0.0 : metric.value(buckets.points[i]!))}'
+            ].join('; ')}',
             child: SizedBox(
               height: 165,
               child: BarChart(
@@ -373,19 +373,19 @@ class UsageChart extends StatelessWidget {
                           final show = period == 'today'
                               ? i % 6 == 0
                               : period == 'monthly'
-                              ? i % 7 == 0
-                              : period == 'yearly'
-                              ? i % 2 == 0
-                              : true;
+                                  ? i % 7 == 0
+                                  : period == 'yearly'
+                                      ? i % 2 == 0
+                                      : true;
                           if (!show) return const SizedBox.shrink();
                           return Text(
                             period == 'today'
                                 ? DateFormat.j(locale).format(buckets.dates[i])
                                 : period == 'monthly'
-                                ? '${i + 1}'
-                                : period == 'yearly'
-                                ? DateFormat.MMM(locale).format(buckets.dates[i])
-                                : '${buckets.dates[i].year}',
+                                    ? '${i + 1}'
+                                    : period == 'yearly'
+                                        ? DateFormat.MMM(locale).format(buckets.dates[i])
+                                        : '${buckets.dates[i].year}',
                             style: OmiType.caption.copyWith(color: OmiColors.textTertiary),
                           );
                         },

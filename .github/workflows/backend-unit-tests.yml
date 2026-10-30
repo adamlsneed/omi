@@ -301,6 +301,20 @@ jobs:
           path: ~/.cache/native-audio-apt/*.deb
           key: ${{ steps.native-audio-apt.outputs.cache-primary-key }}
 
+      - name: Restore archived contracts in disposable fork runner checkout
+        if: github.repository == 'adamlsneed/omi'
+        run: |
+          git fetch --no-tags --filter=blob:none https://github.com/BasedHardware/omi.git main:refs/remotes/upstream/main
+          python3 - <<'PY'
+          from pathlib import Path
+          import runpy
+          import subprocess
+          base = subprocess.check_output(['git', 'merge-base', 'HEAD', 'upstream/main'], text=True).strip()
+          paths = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', base, '--', '.github/workflows'], text=True)
+          guard = runpy.run_path('scripts/fork/check-logging-entrypoints.py')
+          guard['restore_archived_workflows'](Path('.'), upstream_files=set(paths.splitlines()))
+          PY
+
       - name: Run authoritative backend unit contract
         working-directory: backend
         env:
@@ -347,6 +361,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.nightly_main_sha || github.sha }}
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -365,6 +381,20 @@ jobs:
           uv venv .venv
           uv pip sync pylock.toml --python .venv/bin/python
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Restore archived contracts in disposable fork runner checkout
+        if: github.repository == 'adamlsneed/omi'
+        run: |
+          git fetch --no-tags --filter=blob:none https://github.com/BasedHardware/omi.git main:refs/remotes/upstream/main
+          python3 - <<'PY'
+          from pathlib import Path
+          import runpy
+          import subprocess
+          base = subprocess.check_output(['git', 'merge-base', 'HEAD', 'upstream/main'], text=True).strip()
+          paths = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', base, '--', '.github/workflows'], text=True)
+          guard = runpy.run_path('scripts/fork/check-logging-entrypoints.py')
+          guard['restore_archived_workflows'](Path('.'), upstream_files=set(paths.splitlines()))
+          PY
 
       - name: Run slow-marked backend guardrails
         working-directory: backend

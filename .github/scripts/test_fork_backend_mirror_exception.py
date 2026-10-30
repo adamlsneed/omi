@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """The October 25 test-only exception must not admit arbitrary backend changes."""
 import os
+import runpy
 from pathlib import Path
 import subprocess
 import tempfile
@@ -9,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 TEST_PATH = "backend/tests/unit/test_edit_tools_resilience.py"
 UPSTREAM_BLOB = "32acf6628b479ce2c9d6b9b5fac81b265386d8a7"
+EXCEPTIONS = runpy.run_path(str(ROOT / '.github/scripts/fork_policy.py'))['BACKEND_EXCEPTIONS']
 
 
 class BackendMirrorExceptionTests(unittest.TestCase):
@@ -20,9 +22,11 @@ class BackendMirrorExceptionTests(unittest.TestCase):
         self.git("init", "-q")
         self.git("remote", "add", "origin", "https://github.com/adamlsneed/omi.git")
         self.original = subprocess.check_output(["git", "cat-file", "blob", UPSTREAM_BLOB], cwd=ROOT)
-        self.write(TEST_PATH, self.original)
+        for path, (upstream_blob, _) in EXCEPTIONS.items():
+            self.write(path, subprocess.check_output(['git', 'cat-file', 'blob', upstream_blob], cwd=ROOT))
         self.write("backend/other.py", b"value = 1\n")
         self.write(".github/scripts/check_git_author_identity.py", b"raise SystemExit(0)\n")
+        self.write('.github/scripts/fork_policy.py', (ROOT / '.github/scripts/fork_policy.py').read_bytes())
         self.git("add", ".")
         self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.com", "commit", "-qm", "base")
         self.git("update-ref", "refs/remotes/upstream/main", "HEAD")
@@ -36,8 +40,9 @@ class BackendMirrorExceptionTests(unittest.TestCase):
         target.write_bytes(content)
 
     def stage_approved(self):
-        self.write(TEST_PATH, (ROOT / TEST_PATH).read_bytes())
-        self.git("add", TEST_PATH)
+        for path in EXCEPTIONS:
+            self.write(path, (ROOT / path).read_bytes())
+        self.git("add", 'backend')
 
     def hook(self):
         return subprocess.run(["sh", str(ROOT / "scripts/pre-commit")], cwd=self.root,
@@ -48,14 +53,16 @@ class BackendMirrorExceptionTests(unittest.TestCase):
         self.stage_approved()
         result = self.hook()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("approved test-isolation exception", result.stdout)
+        self.assertIn("approved test-only exceptions", result.stdout)
 
     def test_an_extra_edit_to_the_approved_test_fails(self):
-        self.stage_approved()
-        with (self.root / TEST_PATH).open("a") as output:
-            output.write("\n# additional unapproved change\n")
-        self.git("add", TEST_PATH)
-        self.assertNotEqual(self.hook().returncode, 0)
+        for path in EXCEPTIONS:
+            with self.subTest(path=path):
+                self.stage_approved()
+                with (self.root / path).open('a') as output:
+                    output.write('\n# additional unapproved change\n')
+                self.git('add', path)
+                self.assertNotEqual(self.hook().returncode, 0)
 
     def test_other_backend_changes_still_fail(self):
         self.stage_approved()

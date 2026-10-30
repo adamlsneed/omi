@@ -48,7 +48,8 @@ class _TypedTaskApi extends api.ActionItemsApi {
     DateTime? endDate,
     DateTime? dueStartDate,
     DateTime? dueEndDate,
-  }) async => result;
+  }) async =>
+      result;
 }
 
 ActionItemWithMetadata _item(String id, {String title = 'Original', bool completed = false, DateTime? dueAt}) =>
@@ -74,9 +75,16 @@ void main() {
     SiriIntegration.testInstance = SiriIntegration.forTest(host, 'owner-a');
     addTearDown(() => SiriIntegration.testInstance = null);
     final provider = ActionItemsProvider(
-      getActionItems:
-          ({limit = 100, offset = 0, completed, conversationId, startDate, endDate, dueStartDate, dueEndDate}) async =>
-              ActionItemsResponse(actionItems: rows),
+      getActionItems: (
+              {limit = 100,
+              offset = 0,
+              completed,
+              conversationId,
+              startDate,
+              endDate,
+              dueStartDate,
+              dueEndDate}) async =>
+          ActionItemsResponse(actionItems: rows),
       deleteActionItemRequest: (id) async => deleteSucceeds,
       bulkDeleteActionItemsRequest: (ids) async => bulkDeleted ?? ids,
       createActionItemRequest: ({required description, dueAt, conversationId, completed = false}) async =>
@@ -247,9 +255,16 @@ void main() {
     addTearDown(() => SiriIntegration.testInstance = null);
     final created = Completer<ActionItemWithMetadata?>();
     final provider = ActionItemsProvider(
-      getActionItems:
-          ({limit = 100, offset = 0, completed, conversationId, startDate, endDate, dueStartDate, dueEndDate}) async =>
-              const ActionItemsResponse(actionItems: []),
+      getActionItems: (
+              {limit = 100,
+              offset = 0,
+              completed,
+              conversationId,
+              startDate,
+              endDate,
+              dueStartDate,
+              dueEndDate}) async =>
+          const ActionItemsResponse(actionItems: []),
       createActionItemRequest: ({required description, dueAt, conversationId, completed = false}) => created.future,
     );
     addTearDown(provider.dispose);

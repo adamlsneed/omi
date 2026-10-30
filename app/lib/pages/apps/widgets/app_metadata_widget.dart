@@ -131,14 +131,14 @@ class AppMetadataWidget extends StatelessWidget {
                           ),
                           child: imageFile != null || imageUrl != null
                               ? (imageUrl == null
-                                    ? ClipRRect(
-                                        borderRadius: const BorderRadius.all(Radius.circular(14.0)),
-                                        child: Image.file(imageFile!, fit: BoxFit.cover),
-                                      )
-                                    : ClipRRect(
-                                        borderRadius: const BorderRadius.all(Radius.circular(14.0)),
-                                        child: CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover),
-                                      ))
+                                  ? ClipRRect(
+                                      borderRadius: const BorderRadius.all(Radius.circular(14.0)),
+                                      child: Image.file(imageFile!, fit: BoxFit.cover),
+                                    )
+                                  : ClipRRect(
+                                      borderRadius: const BorderRadius.all(Radius.circular(14.0)),
+                                      child: CachedNetworkImage(imageUrl: imageUrl!, fit: BoxFit.cover),
+                                    ))
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [

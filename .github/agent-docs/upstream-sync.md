@@ -20,7 +20,7 @@ relevant checks again after fixing the cause. Bound retries for transient
 infrastructure failures. Never bypass hooks, weaken assertions, count a failure
 as passed, force-push, rewrite published history, or push directly to main.
 Merge through a fork PR with a regular merge commit only after verification.
-Backend files follow the mirror policy and sole approved test exception in
+Backend files follow the mirror policy and approved test-only exceptions in
 `fork-rules.md`; never deploy a fork backend or send changes to BasedHardware.
 
 If an external prerequisite cannot be supplied by the agent, finish independent
@@ -101,10 +101,9 @@ adaptations, not only the upstream range. Always run:
 
 ```bash
 ./scripts/fork-feature-audit.sh
-git diff --quiet "$UPSTREAM_SHA" -- backend/ \
-  ":(exclude)backend/tests/unit/test_edit_tools_resilience.py"
-# Verify the excluded test against the hook's approved blob, or restore upstream
-# when its equivalent repair lands. All production backend bytes must match.
+python3 .github/scripts/fork_policy.py
+# Verify the integrated upstream base and all approved exception blobs.
+# Retire exceptions when equivalent repairs land; production backend bytes match.
 git diff --check origin/main HEAD
 make preflight
 ```

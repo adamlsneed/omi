@@ -406,6 +406,22 @@ class RegistryFixture(unittest.TestCase):
         errors, _ = check(self.root, check_render=False, as_of=date(2026, 10, 21))
         self.assertIn("review overdue beyond the 7-day grace: EXAMPLE_ENABLED", "\n".join(errors))
 
+    def test_only_unchanged_inherited_registry_reports_upstream_review_debt_as_warning(self):
+        self.write('config/feature-flags.yaml', self.yaml([flag(review_by='2026-10-13')]))
+        for args in [
+            ['remote', 'add', 'origin', 'https://github.com/adamlsneed/omi.git'],
+            ['add', '.'],
+            ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'upstream'],
+            ['update-ref', 'refs/remotes/upstream/main', 'HEAD'],
+        ]:
+            subprocess.run(['git', *args], cwd=self.root, check=True, capture_output=True)
+        errors, warnings = check(self.root, check_render=False, as_of=date(2026, 10, 21))
+        self.assertEqual(errors, [])
+        self.assertTrue(any('UPSTREAM REVIEW OVERDUE: EXAMPLE_ENABLED' in warning for warning in warnings))
+        self.write('config/feature-flags.yaml', self.yaml([flag(review_by='2026-10-13', notes='fork edit')]))
+        errors, _ = check(self.root, check_render=False, as_of=date(2026, 10, 21))
+        self.assertIn('review overdue beyond the 7-day grace: EXAMPLE_ENABLED', '\n'.join(errors))
+
     def test_review_overdue_exception_is_dated_and_prints_loudly(self) -> None:
         self.write("config/feature-flags.yaml", self.yaml([flag(review_by="2026-10-13")]))
         exception = {"EXAMPLE_ENABLED": {"expires": "2026-11-20", "reason": "David must decide"}}

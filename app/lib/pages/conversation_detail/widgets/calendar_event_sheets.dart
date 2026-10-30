@@ -137,10 +137,10 @@ class _CalendarEventPickerSheetState extends State<CalendarEventPickerSheet> {
 
   Widget _buildShimmerList() {
     Widget bar({required double height, double? width}) => Container(
-      height: height,
-      width: width ?? double.infinity,
-      decoration: BoxDecoration(color: OmiColors.textPrimary, borderRadius: OmiRadius.smAll),
-    );
+          height: height,
+          width: width ?? double.infinity,
+          decoration: BoxDecoration(color: OmiColors.textPrimary, borderRadius: OmiRadius.smAll),
+        );
     return Shimmer.fromColors(
       baseColor: OmiColors.surface2,
       highlightColor: OmiColors.surface3,

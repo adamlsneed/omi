@@ -66,9 +66,9 @@ enum ProductValue {
 /// this object owns attempt lifetime, deduplication and identity fencing.
 class ProductTelemetry {
   ProductTelemetry({void Function(RegisteredEvent)? emit, DateTime Function()? now, int Function()? identityEpoch})
-    : _emit = emit ?? const TypedEvents().emit,
-      _now = now ?? DateTime.now,
-      _identityEpoch = identityEpoch ?? (() => AnalyticsManager.identityEpoch);
+      : _emit = emit ?? const TypedEvents().emit,
+        _now = now ?? DateTime.now,
+        _identityEpoch = identityEpoch ?? (() => AnalyticsManager.identityEpoch);
 
   static ProductTelemetry instance = ProductTelemetry();
   final void Function(RegisteredEvent) _emit;

@@ -36,16 +36,14 @@ class PhysicalQualification {
       'error_type': error?.runtimeType.toString(),
       'frames': frames,
     };
-    _runtimeWrites = _runtimeWrites
-        .then((_) async {
-          final documents = await getApplicationDocumentsDirectory();
-          await File(
-            '${documents.path}/physical_capture_runtime.jsonl',
-          ).writeAsString('${jsonEncode(metadata)}\n', mode: FileMode.append, flush: true);
-        })
-        .catchError((Object _) {
-          // A diagnostic I/O failure must not recursively enter the zone handler.
-        });
+    _runtimeWrites = _runtimeWrites.then((_) async {
+      final documents = await getApplicationDocumentsDirectory();
+      await File(
+        '${documents.path}/physical_capture_runtime.jsonl',
+      ).writeAsString('${jsonEncode(metadata)}\n', mode: FileMode.append, flush: true);
+    }).catchError((Object _) {
+      // A diagnostic I/O failure must not recursively enter the zone handler.
+    });
     return _runtimeWrites;
   }
 

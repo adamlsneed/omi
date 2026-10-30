@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import tempfile
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -61,6 +62,24 @@ class HeaderTests(unittest.TestCase):
 
 
 class ValidationTests(unittest.TestCase):
+    def test_only_exact_upstream_baseline_bytes_receive_fork_exemption(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = 'backend/scripts/legacy_readiness.py'
+            source = write(root, path, "print('legacy')\n")
+            baseline = write(root, '.github/lifecycle-header-baseline.txt', f'{path}\n')
+            for args in [
+                ['init', '-q'],
+                ['remote', 'add', 'origin', 'https://github.com/adamlsneed/omi.git'],
+                ['add', '.'],
+                ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'upstream'],
+                ['update-ref', 'refs/remotes/upstream/main', 'HEAD'],
+            ]:
+                subprocess.run(['git', *args], cwd=root, check=True, capture_output=True)
+            self.assertEqual(validate(root, [path], baseline), [])
+            source.write_text("print('fork edit')\n")
+            self.assertTrue(any('require a valid lifecycle header' in error for error in validate(root, [path], baseline)))
+
     def test_new_unlabeled_designated_file_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

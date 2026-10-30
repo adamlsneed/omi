@@ -144,8 +144,8 @@ class OmiSettingsRow extends StatelessWidget {
     this.onTap,
     this.showChevron,
     this.isDestructive = false,
-  }) : toggleValue = null,
-       onToggle = null;
+  })  : toggleValue = null,
+        onToggle = null;
 
   /// A row whose trailing element is an [OmiSwitch]; tapping anywhere on the row flips it.
   const OmiSettingsRow.toggle({
@@ -155,13 +155,13 @@ class OmiSettingsRow extends StatelessWidget {
     required ValueChanged<bool>? onChanged,
     this.leading,
     this.subtitle,
-  }) : toggleValue = value,
-       onToggle = onChanged,
-       value = null,
-       trailing = null,
-       onTap = null,
-       showChevron = false,
-       isDestructive = false;
+  })  : toggleValue = value,
+        onToggle = onChanged,
+        value = null,
+        trailing = null,
+        onTap = null,
+        showChevron = false,
+        isDestructive = false;
 
   final String title;
 

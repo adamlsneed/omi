@@ -124,25 +124,24 @@ void main() {
         var uploads = 0;
         final uploadGate = gate(
           events: events,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                captureEvidence,
-                conversationId,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                uploads++;
-                throw SyncRateLimitedException(
-                  kind: SyncRateLimitKind.backendCapacity,
-                  retryAfterSeconds: 60,
-                  reasonCode: reason,
-                );
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            captureEvidence,
+            conversationId,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            uploads++;
+            throw SyncRateLimitedException(
+              kind: SyncRateLimitKind.backendCapacity,
+              retryAfterSeconds: 60,
+              reasonCode: reason,
+            );
+          },
         );
 
         await expectLater(uploadGate.upload([]), throwsA(isA<SyncRateLimitedException>()));
@@ -162,24 +161,23 @@ void main() {
         final events = <({String name, Map<String, dynamic> properties})>[];
         final uploadGate = gate(
           events: events,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                captureEvidence,
-                conversationId,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                throw SyncRateLimitedException(
-                  kind: reasonCode == 'fair_use' ? SyncRateLimitKind.fairUse : SyncRateLimitKind.backendCapacity,
-                  retryAfterSeconds: 120,
-                  reasonCode: reasonCode,
-                );
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            captureEvidence,
+            conversationId,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            throw SyncRateLimitedException(
+              kind: reasonCode == 'fair_use' ? SyncRateLimitKind.fairUse : SyncRateLimitKind.backendCapacity,
+              retryAfterSeconds: 120,
+              reasonCode: reasonCode,
+            );
+          },
         );
 
         await expectLater(uploadGate.upload([]), throwsA(isA<SyncRateLimitedException>()));
@@ -196,20 +194,19 @@ void main() {
       final events = <({String name, Map<String, dynamic> properties})>[];
       final uploadGate = gate(
         events: events,
-        uploader:
-            (
-              files, {
-              onUploadProgress,
-              captureEvidence,
-              conversationId,
-              recordingSessionId,
-              audioStartSeconds,
-              audioEndSeconds,
-              claimLiveCapture = false,
-              geolocation,
-            }) async {
-              throw const SyncUploadHttpException(503, 'server');
-            },
+        uploader: (
+          files, {
+          onUploadProgress,
+          captureEvidence,
+          conversationId,
+          recordingSessionId,
+          audioStartSeconds,
+          audioEndSeconds,
+          claimLiveCapture = false,
+          geolocation,
+        }) async {
+          throw const SyncUploadHttpException(503, 'server');
+        },
       );
 
       await expectLater(uploadGate.upload([]), throwsA(isA<SyncUploadHttpException>()));
@@ -259,24 +256,23 @@ void main() {
         uploadGate: SyncUploadGate(
           limiter: limiter,
           fairUseStatusLoader: () async => null,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                captureEvidence,
-                conversationId,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                throw SyncRateLimitedException(
-                  kind: SyncRateLimitKind.backendCapacity,
-                  retryAfterSeconds: 60,
-                  reasonCode: 'backfill_paced',
-                );
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            captureEvidence,
+            conversationId,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            throw SyncRateLimitedException(
+              kind: SyncRateLimitKind.backendCapacity,
+              retryAfterSeconds: 60,
+              reasonCode: 'backfill_paced',
+            );
+          },
           telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
         ),
       );
@@ -312,20 +308,19 @@ void main() {
         uploadGate: SyncUploadGate(
           limiter: limiter,
           fairUseStatusLoader: () async => null,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                captureEvidence,
-                conversationId,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                throw StateError('a finalization 503 must not re-upload');
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            captureEvidence,
+            conversationId,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            throw StateError('a finalization 503 must not re-upload');
+          },
           telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
         ),
         jobStatusFetcher: (jobId) async {
@@ -362,20 +357,19 @@ void main() {
         uploadGate: SyncUploadGate(
           limiter: limiter,
           fairUseStatusLoader: () async => null,
-          uploader:
-              (
-                files, {
-                onUploadProgress,
-                captureEvidence,
-                conversationId,
-                recordingSessionId,
-                audioStartSeconds,
-                audioEndSeconds,
-                claimLiveCapture = false,
-                geolocation,
-              }) async {
-                throw const SyncUploadHttpException(500, 'server');
-              },
+          uploader: (
+            files, {
+            onUploadProgress,
+            captureEvidence,
+            conversationId,
+            recordingSessionId,
+            audioStartSeconds,
+            audioEndSeconds,
+            claimLiveCapture = false,
+            geolocation,
+          }) async {
+            throw const SyncUploadHttpException(500, 'server');
+          },
           telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
         ),
       );

@@ -430,9 +430,9 @@ class _MemoryReviewCardState extends State<MemoryReviewCard> {
           label: context.l10n.memoryReviewFix,
           onTap: enabled
               ? () => setState(() {
-                  _failed.remove(item.memoryId);
-                  _editors[item.memoryId] = TextEditingController(text: _contentOf(item, memory));
-                })
+                    _failed.remove(item.memoryId);
+                    _editors[item.memoryId] = TextEditingController(text: _contentOf(item, memory));
+                  })
               : null,
         ),
       ],
@@ -444,8 +444,8 @@ class _MemoryReviewCardState extends State<MemoryReviewCard> {
     final color = onTap == null
         ? OmiColors.textDisabled
         : emphasized
-        ? OmiColors.textPrimary
-        : OmiColors.textSecondary;
+            ? OmiColors.textPrimary
+            : OmiColors.textSecondary;
     return Semantics(
       button: true,
       enabled: onTap != null,

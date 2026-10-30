@@ -25,12 +25,12 @@ void main() {
 
   testWidgets('a step that fills while on screen animates in (the tick-up moment)', (tester) async {
     Widget meter(int level) => MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: OmiLevelMeter(level: level, semanticsLabel: 'Confidence'),
-        ),
-      ),
-    );
+          home: Scaffold(
+            body: Center(
+              child: OmiLevelMeter(level: level, semanticsLabel: 'Confidence'),
+            ),
+          ),
+        );
     await tester.pumpWidget(meter(2));
     await tester.pumpWidget(meter(3));
     await tester.pump(const Duration(milliseconds: 50));
