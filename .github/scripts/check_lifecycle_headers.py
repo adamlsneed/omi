@@ -8,6 +8,8 @@ import re
 import sys
 from pathlib import Path
 
+from fork_policy import mirrors_upstream
+
 BASELINE_PATH = ".github/lifecycle-header-baseline.txt"
 HEADER_LINE_LIMIT = 32
 LIFECYCLE_VALUES = {"one-time", "permanent"}
@@ -137,7 +139,7 @@ def validate(root: Path, changed_paths: list[str], baseline_path: Path) -> list[
         # Baseline entries are frozen legacy debt. This fork mirrors backend/
         # byte-exact from upstream, so upstream edits to a baselined file flow
         # in through syncs and cannot add headers here.
-        if normalized in baseline:
+        if normalized in baseline and mirrors_upstream(root, normalized):
             continue
         path = root / normalized
         if not path.is_file():

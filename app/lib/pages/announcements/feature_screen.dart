@@ -437,8 +437,8 @@ class _FeatureScreenState extends State<FeatureScreen> {
         color: isActive
             ? Colors.white
             : isPast
-            ? Colors.white54
-            : OmiColors.surface2,
+                ? Colors.white54
+                : OmiColors.surface2,
         borderRadius: OmiRadius.smAll,
       ),
     );

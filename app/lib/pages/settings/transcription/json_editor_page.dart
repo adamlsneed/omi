@@ -116,9 +116,8 @@ class _TranscriptionJsonEditorPageState extends State<TranscriptionJsonEditorPag
 
   Widget _buildTemplateSelector() {
     final isResponseSchema = widget.isResponseSchema;
-    final templates = isResponseSchema
-        ? SttResponseSchema.templates.keys.toList()
-        : SttProviderConfig.requestTemplates.keys.toList();
+    final templates =
+        isResponseSchema ? SttResponseSchema.templates.keys.toList() : SttProviderConfig.requestTemplates.keys.toList();
     final liveTemplates = isResponseSchema ? SttResponseSchema.liveTemplates : SttProviderConfig.liveRequestTemplates;
 
     return Column(

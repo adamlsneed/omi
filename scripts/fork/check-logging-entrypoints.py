@@ -14,11 +14,13 @@ ROOT = Path(__file__).resolve().parents[2]
 INPUTS = ('backend', 'plugins', '.github/workflows', '.github/disabled-workflows')
 
 
-def restore_archived_workflows(root: Path) -> None:
+def restore_archived_workflows(root: Path, upstream_files: set[str] | None = None) -> None:
     """Restore names only in a disposable snapshot, never in the checkout."""
     active = root / '.github/workflows'
     active.mkdir(parents=True, exist_ok=True)
     for source in (root / '.github/disabled-workflows').glob('*.yml'):
+        if upstream_files is not None and f'.github/workflows/{source.name}' not in upstream_files:
+            continue
         target = active / source.name
         if not target.exists():
             shutil.copy2(source, target)

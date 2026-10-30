@@ -296,9 +296,9 @@ class LeaveFlowTextField extends StatelessWidget {
 /// Input decoration shared by the leave flows' text fields.
 InputDecoration leaveFlowInputDecoration({String? hint, Color? focusColor}) {
   OutlineInputBorder border(Color color) => OutlineInputBorder(
-    borderRadius: OmiRadius.mdAll,
-    borderSide: BorderSide(color: color),
-  );
+        borderRadius: OmiRadius.mdAll,
+        borderSide: BorderSide(color: color),
+      );
   return InputDecoration(
     hintText: hint,
     hintStyle: OmiType.footnote.copyWith(color: OmiColors.textTertiary),

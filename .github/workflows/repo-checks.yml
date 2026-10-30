@@ -121,6 +121,10 @@ jobs:
           ref: ${{ inputs.nightly_main_sha || github.sha }}
           fetch-depth: 0
 
+      - name: Fetch upstream ancestry for fork mirror verification
+        if: github.repository == 'adamlsneed/omi'
+        run: git fetch --no-tags --filter=blob:none https://github.com/BasedHardware/omi.git main:refs/remotes/upstream/main
+
       - name: Inventory all nightly paths
         if: inputs.nightly_main_sha != ''
         shell: bash
@@ -234,6 +238,10 @@ jobs:
           ref: ${{ inputs.nightly_main_sha || github.sha }}
           fetch-depth: 0
 
+      - name: Fetch upstream ancestry for fork mirror verification
+        if: github.repository == 'adamlsneed/omi'
+        run: git fetch --no-tags --filter=blob:none https://github.com/BasedHardware/omi.git main:refs/remotes/upstream/main
+
       - name: Inventory all nightly paths
         if: inputs.nightly_main_sha != ''
         shell: bash
@@ -282,6 +290,10 @@ jobs:
         # ran, masking four unformatted files run 1 could not report.
         if: ${{ !cancelled() && needs.changes.outputs.has_python == 'true' }}
         run: |
+          if [ "${{ github.repository }}" = "adamlsneed/omi" ]; then
+            python3 .github/scripts/fork_policy.py
+            exit 0
+          fi
           FILES=$(grep 'backend/.*\.py$' /tmp/changed-files.txt | while IFS= read -r f; do [ -f "$f" ] && echo "$f"; done || true)
           if [ -n "$FILES" ]; then
             echo "$FILES" | xargs scripts/backend-python-format --check

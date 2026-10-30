@@ -49,9 +49,9 @@ class TranscriptionHelpText extends StatelessWidget {
 /// The filled, bordered field decoration used on the page.
 InputDecoration transcriptionInputDecoration({String? hint, Widget? suffixIcon}) {
   OutlineInputBorder border(Color color) => OutlineInputBorder(
-    borderRadius: OmiRadius.mdAll,
-    borderSide: BorderSide(color: color),
-  );
+        borderRadius: OmiRadius.mdAll,
+        borderSide: BorderSide(color: color),
+      );
   return InputDecoration(
     hintText: hint,
     hintStyle: OmiType.subhead.copyWith(color: OmiColors.textTertiary),

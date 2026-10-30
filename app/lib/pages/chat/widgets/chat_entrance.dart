@@ -115,7 +115,7 @@ class ChatComposerEntrance extends StatelessWidget {
   final bool maintainBottomViewPadding;
   @override
   Widget build(BuildContext context) => ChatRise(
-    interval: ChatIntro.composer,
-    child: SafeArea(bottom: bottom, maintainBottomViewPadding: maintainBottomViewPadding, child: child),
-  );
+        interval: ChatIntro.composer,
+        child: SafeArea(bottom: bottom, maintainBottomViewPadding: maintainBottomViewPadding, child: child),
+      );
 }

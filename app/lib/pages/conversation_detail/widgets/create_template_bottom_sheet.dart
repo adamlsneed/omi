@@ -228,21 +228,21 @@ class _CreateTemplateBottomSheetState extends State<CreateTemplateBottomSheet> {
   }
 
   InputDecoration _fieldDecoration(String hint) => InputDecoration(
-    hintText: hint,
-    hintStyle: OmiType.subhead.copyWith(color: OmiColors.textTertiary),
-    filled: true,
-    fillColor: OmiColors.surface2,
-    border: const OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide.none),
-    contentPadding: const EdgeInsets.symmetric(horizontal: OmiSpacing.md, vertical: 14),
-  );
+        hintText: hint,
+        hintStyle: OmiType.subhead.copyWith(color: OmiColors.textTertiary),
+        filled: true,
+        fillColor: OmiColors.surface2,
+        border: const OutlineInputBorder(borderRadius: OmiRadius.mdAll, borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: OmiSpacing.md, vertical: 14),
+      );
 
   Widget _fieldLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: OmiSpacing.xs),
-    child: Text(
-      text,
-      style: OmiType.footnote.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w500),
-    ),
-  );
+        padding: const EdgeInsets.only(bottom: OmiSpacing.xs),
+        child: Text(
+          text,
+          style: OmiType.footnote.copyWith(color: OmiColors.textSecondary, fontWeight: FontWeight.w500),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {

@@ -22,6 +22,7 @@ from feature_flag_registry import (
     overdue_beyond_grace,
     validate_registry,
 )
+from fork_policy import mirrors_upstream
 
 AS_OF = re.compile(r"<!-- feature-flag-registry as-of: (\d{4}-\d{2}-\d{2}) -->")
 
@@ -156,7 +157,14 @@ def check(root: Path, *, check_render: bool = True, as_of: date | None = None) -
         warnings.append(f"WARNING: review_by passed but remains within the {REVIEW_GRACE_DAYS}-day grace: {details}")
 
     active_review_exceptions: set[str] = set()
+    inherited_registry = mirrors_upstream(root, 'config/feature-flags.yaml') if beyond_grace else False
     for key in sorted(beyond_grace):
+        if inherited_registry:
+            warnings.append(
+                f'UPSTREAM REVIEW OVERDUE: {key} (review_by {flags[key]["review_by"]}); '
+                'the fork registry is byte-identical to its integrated upstream source.'
+            )
+            continue
         exception = REVIEW_OVERDUE.get(key)
         if exception is None:
             errors.append(

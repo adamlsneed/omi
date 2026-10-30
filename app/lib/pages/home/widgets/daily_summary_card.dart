@@ -93,8 +93,7 @@ class DailySummaryCard extends StatelessWidget {
                           Expanded(
                             child: LayoutBuilder(
                               builder: (context, box) {
-                                final line =
-                                    MediaQuery.textScalerOf(context).scale(_headlineStyle.fontSize!) *
+                                final line = MediaQuery.textScalerOf(context).scale(_headlineStyle.fontSize!) *
                                     _headlineStyle.height!;
                                 final lines = math.min(2, (box.maxHeight / line).floor());
                                 if (lines < 1) return const SizedBox.shrink();

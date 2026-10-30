@@ -212,14 +212,14 @@ class _PreviewCard extends StatelessWidget {
   final Future<void> Function() onPressed;
 
   String _routeLabel(BuildContext context) => switch (route.kind) {
-    VoiceOutputRouteKind.headphones => context.l10n.deviceOnboardingVoiceReplyPreviewThroughDevice(
-      route.name == null || route.name!.isEmpty
-          ? context.l10n.deviceOnboardingVoiceReplyGenericHeadphones
-          : route.name!,
-    ),
-    VoiceOutputRouteKind.speaker => context.l10n.deviceOnboardingVoiceReplyPreviewThroughPhoneSpeaker,
-    VoiceOutputRouteKind.unknown => context.l10n.deviceOnboardingVoiceReplyPreviewThroughCurrentOutput,
-  };
+        VoiceOutputRouteKind.headphones => context.l10n.deviceOnboardingVoiceReplyPreviewThroughDevice(
+            route.name == null || route.name!.isEmpty
+                ? context.l10n.deviceOnboardingVoiceReplyGenericHeadphones
+                : route.name!,
+          ),
+        VoiceOutputRouteKind.speaker => context.l10n.deviceOnboardingVoiceReplyPreviewThroughPhoneSpeaker,
+        VoiceOutputRouteKind.unknown => context.l10n.deviceOnboardingVoiceReplyPreviewThroughCurrentOutput,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -402,51 +402,50 @@ class _OutputStatus extends StatelessWidget {
       );
     }
 
-    final routeName = route.name == null || route.name!.isEmpty
-        ? context.l10n.voiceResponseHeadphonesOnly
-        : route.name!;
+    final routeName =
+        route.name == null || route.name!.isEmpty ? context.l10n.voiceResponseHeadphonesOnly : route.name!;
     if (mode == 1) {
       return switch (route.kind) {
         VoiceOutputRouteKind.headphones => (
-          text: context.l10n.deviceOnboardingVoiceReplyStatusHeadphonesConnected(routeName),
-          tone: OmiColors.success,
-          surface: OmiColors.successSurface,
-          icon: Icons.headphones,
-        ),
+            text: context.l10n.deviceOnboardingVoiceReplyStatusHeadphonesConnected(routeName),
+            tone: OmiColors.success,
+            surface: OmiColors.successSurface,
+            icon: Icons.headphones,
+          ),
         VoiceOutputRouteKind.speaker => (
-          text: context.l10n.deviceOnboardingVoiceReplyStatusHeadphonesDisconnected,
-          tone: OmiColors.warning,
-          surface: OmiColors.surface1,
-          icon: Icons.headset_off_outlined,
-        ),
+            text: context.l10n.deviceOnboardingVoiceReplyStatusHeadphonesDisconnected,
+            tone: OmiColors.warning,
+            surface: OmiColors.surface1,
+            icon: Icons.headset_off_outlined,
+          ),
         VoiceOutputRouteKind.unknown => (
-          text: context.l10n.deviceOnboardingVoiceReplyStatusHeadphonesDisconnected,
-          tone: OmiColors.warning,
-          surface: OmiColors.surface1,
-          icon: Icons.help_outline,
-        ),
+            text: context.l10n.deviceOnboardingVoiceReplyStatusHeadphonesDisconnected,
+            tone: OmiColors.warning,
+            surface: OmiColors.surface1,
+            icon: Icons.help_outline,
+          ),
       };
     }
 
     return switch (route.kind) {
       VoiceOutputRouteKind.headphones => (
-        text: context.l10n.deviceOnboardingVoiceReplyStatusAlwaysHeadphones(routeName),
-        tone: OmiColors.success,
-        surface: OmiColors.successSurface,
-        icon: Icons.headphones,
-      ),
+          text: context.l10n.deviceOnboardingVoiceReplyStatusAlwaysHeadphones(routeName),
+          tone: OmiColors.success,
+          surface: OmiColors.successSurface,
+          icon: Icons.headphones,
+        ),
       VoiceOutputRouteKind.speaker => (
-        text: context.l10n.deviceOnboardingVoiceReplyStatusAlwaysSpeaker,
-        tone: OmiColors.warning,
-        surface: OmiColors.surface1,
-        icon: Icons.volume_up_outlined,
-      ),
+          text: context.l10n.deviceOnboardingVoiceReplyStatusAlwaysSpeaker,
+          tone: OmiColors.warning,
+          surface: OmiColors.surface1,
+          icon: Icons.volume_up_outlined,
+        ),
       VoiceOutputRouteKind.unknown => (
-        text: context.l10n.deviceOnboardingVoiceReplyStatusAlwaysSpeaker,
-        tone: OmiColors.warning,
-        surface: OmiColors.surface1,
-        icon: Icons.volume_up_outlined,
-      ),
+          text: context.l10n.deviceOnboardingVoiceReplyStatusAlwaysSpeaker,
+          tone: OmiColors.warning,
+          surface: OmiColors.surface1,
+          icon: Icons.volume_up_outlined,
+        ),
     };
   }
 }

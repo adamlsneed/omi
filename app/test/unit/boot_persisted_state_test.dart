@@ -54,14 +54,14 @@ void main() {
     var quarantineRecorded = false;
     while (!quarantineRecorded && DateTime.now().isBefore(deadline)) {
       final recordedKeys = stored.getKeys().where(
-        (candidate) => [
-          'onboardingCompleted',
-          'batchModeEnabled',
-          'btDevice',
-          'btDevices',
-          'capturePolicy',
-        ].any((key) => candidate.startsWith('$key.corrupt-')),
-      );
+            (candidate) => [
+              'onboardingCompleted',
+              'batchModeEnabled',
+              'btDevice',
+              'btDevices',
+              'capturePolicy',
+            ].any((key) => candidate.startsWith('$key.corrupt-')),
+          );
       final allOriginalsArchived = recordedKeys.length == 5;
       if (allOriginalsArchived && await journal.exists()) {
         final entries = jsonDecode(await journal.readAsString()) as List<dynamic>;
@@ -119,8 +119,8 @@ void main() {
     expect(loaded.single.ownerUid, isNull);
     expect(directory.listSync().whereType<File>().any((file) => file.path.contains('wals.json.corrupt-')), isTrue);
     final archived = directory.listSync().whereType<File>().singleWhere(
-      (file) => file.path.contains('wals.json.corrupt-'),
-    );
+          (file) => file.path.contains('wals.json.corrupt-'),
+        );
     expect(await archived.readAsString(), contains('old-string'));
     expect(await WalFileManager.loadWals(), hasLength(1));
   });

@@ -82,8 +82,7 @@ class _ActiveCallPageState extends State<ActiveCallPage> {
   Widget build(BuildContext context) {
     return Consumer<PhoneCallProvider>(
       builder: (context, provider, _) {
-        bool isCallInProgress =
-            provider.callState == PhoneCallState.active ||
+        bool isCallInProgress = provider.callState == PhoneCallState.active ||
             provider.callState == PhoneCallState.connecting ||
             provider.callState == PhoneCallState.ringing;
 
@@ -701,9 +700,8 @@ class _AudioRouteSheet extends StatelessWidget {
               child: OmiSettingsRow(
                 leading: Icon(_iconForType(route.type)),
                 title: route.name,
-                trailing: selectedRoute?.id == route.id
-                    ? Icon(Icons.check, color: OmiColors.textPrimary, size: 20)
-                    : null,
+                trailing:
+                    selectedRoute?.id == route.id ? Icon(Icons.check, color: OmiColors.textPrimary, size: 20) : null,
                 showChevron: false,
                 onTap: () => onRouteSelected(route),
               ),

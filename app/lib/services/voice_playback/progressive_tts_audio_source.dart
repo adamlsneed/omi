@@ -25,7 +25,7 @@ class ProgressiveTtsTransferResult {
   const ProgressiveTtsTransferResult.cancelled() : this._(ProgressiveTtsTransferState.cancelled);
 
   const ProgressiveTtsTransferResult.failed(Object error, StackTrace stackTrace)
-    : this._(ProgressiveTtsTransferState.failed, error: error, stackTrace: stackTrace);
+      : this._(ProgressiveTtsTransferState.failed, error: error, stackTrace: stackTrace);
 }
 
 class ProgressiveTtsStallException implements Exception {

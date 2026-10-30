@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:omi/backend/http/shared.dart';
 import 'package:omi/backend/schema/gen/privacy_wire.g.dart' as wire;
+import 'package:omi/backend/schema/user_profile_response.dart';
 import 'package:omi/env/env.dart';
 import 'package:omi/utils/logger.dart';
 
@@ -36,17 +37,11 @@ class PrivacyApi {
       );
 
       if (response != null && response.statusCode == 200) {
-        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-        // Validation only (result is discarded; callers use the raw map). The
-        // hosted backend can omit fields the generated schema marks required
-        // (e.g. uid), so a schema mismatch must not abort profile loading and
-        // the rest of UserProvider.initialize.
-        try {
-          wire.GeneratedUserProfileResponse.fromJson(decoded);
-        } catch (e) {
-          Logger.error('User profile schema mismatch (continuing with raw response): $e');
-        }
-        return decoded;
+        return decodeUserProfileResponse(
+          response.body,
+          onSchemaMismatch: (error) =>
+              Logger.error('User profile schema mismatch (continuing with raw response): $error'),
+        );
       } else {
         if (response?.statusCode == 410) {
           Logger.error('User profile not found: ${response?.statusCode} ${response?.body}');

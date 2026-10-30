@@ -43,8 +43,8 @@ App _app({required String id, String name = 'Asana', String? uid, bool externalI
 /// An AppProvider whose catalog is [apps] under one "Popular" section, with nothing enabled.
 AppProvider _catalog(List<App> apps) => AppProvider()
   ..retrieveAppsGroupedOverride = (() async => [
-    {'title': 'Popular', 'data': apps},
-  ])
+        {'title': 'Popular', 'data': apps},
+      ])
   ..getEnabledAppsOverride = (() async => const [])
   ..retrievePopularAppsOverride = (() async => apps);
 

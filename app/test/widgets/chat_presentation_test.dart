@@ -8,13 +8,14 @@ import 'package:omi/pages/chat/widgets/typing_indicator.dart';
 import 'package:omi/ui/ui.dart';
 
 Widget host(Widget child, {bool reduced = false, double scale = 1}) => MaterialApp(
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
-  home: MediaQuery(
-    data: MediaQueryData(size: const Size(320, 568), disableAnimations: reduced, textScaler: TextScaler.linear(scale)),
-    child: Scaffold(body: child),
-  ),
-);
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: MediaQuery(
+        data: MediaQueryData(
+            size: const Size(320, 568), disableAnimations: reduced, textScaler: TextScaler.linear(scale)),
+        child: Scaffold(body: child),
+      ),
+    );
 
 void main() {
   testWidgets('intro settles once and rebuilds retain the draft, focus and animation position', (tester) async {
@@ -23,10 +24,10 @@ void main() {
     addTearDown(controller.dispose);
     addTearDown(focus.dispose);
     Widget content() => ChatEntrance(
-      child: ChatRise(
-        child: TextField(controller: controller, focusNode: focus),
-      ),
-    );
+          child: ChatRise(
+            child: TextField(controller: controller, focusNode: focus),
+          ),
+        );
     await tester.pumpWidget(host(content()));
     expect(tester.widget<Opacity>(find.byType(Opacity).first).opacity, 0);
     await tester.pump(const Duration(milliseconds: 1100));
@@ -43,9 +44,9 @@ void main() {
 
   testWidgets('only an explicit new-chat revision replays the intro', (tester) async {
     Widget content(int revision) => ChatEntrance(
-      revision: revision,
-      child: const ChatRise(child: Text('Hello')),
-    );
+          revision: revision,
+          child: const ChatRise(child: Text('Hello')),
+        );
     await tester.pumpWidget(host(content(0)));
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpWidget(host(content(1)));

@@ -282,8 +282,8 @@ class _PhoneCallsPageState extends State<PhoneCallsPage> with SingleTickerProvid
                       style: TextStyle(
                         fontSize: hasDigits
                             ? (_dialpadController.text.length > 12
-                                  ? OmiType.title2.fontSize
-                                  : OmiType.largeTitle.fontSize)
+                                ? OmiType.title2.fontSize
+                                : OmiType.largeTitle.fontSize)
                             : OmiType.title3.fontSize,
                         fontWeight: FontWeight.w300,
                         letterSpacing: hasDigits ? 2 : 0,
