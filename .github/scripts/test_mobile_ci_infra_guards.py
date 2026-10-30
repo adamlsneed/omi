@@ -128,11 +128,20 @@ class MobileCIInfraGuardTests(unittest.TestCase):
                     "writer also races the shared key",
                 )
         writer_condition = str(self.jobs[NDK_CACHE_WRITER].get("if", ""))
+        platform_gate = "needs.changes.outputs.android_enabled == 'true' && ("
+        gated = writer_condition.startswith(platform_gate)
+        if gated:
+            self.assertTrue(writer_condition.endswith(")"))
+            writer_condition = writer_condition[len(platform_gate):-1]
         for job_id in NDK_JOBS:
             if job_id == NDK_CACHE_WRITER:
                 continue
             with self.subTest(reader=job_id):
                 reader_condition = str(self.jobs[job_id].get("if", ""))
+                if gated:
+                    self.assertTrue(reader_condition.startswith(platform_gate))
+                    self.assertTrue(reader_condition.endswith(")"))
+                    reader_condition = reader_condition[len(platform_gate):-1]
                 # The reader's whole condition must appear as a disjunct of the
                 # writer's, so any event or path filter that runs a reader also
                 # runs the writer; otherwise a reader's first run per ref would
