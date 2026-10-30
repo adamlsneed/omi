@@ -61,6 +61,17 @@ class ForkPolicyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.policy.verify_backend(self.root, cached=True)
 
+    def test_sync_merge_verifies_the_incoming_upstream_revision(self):
+        self.git('checkout', '-qb', 'incoming')
+        self.path.write_text('new upstream bytes\n')
+        self.git('add', '.')
+        self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-qm', 'upstream update')
+        self.git('update-ref', 'refs/remotes/upstream/main', 'HEAD')
+        self.git('checkout', '-q', '-')
+        self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com',
+                 'merge', '--no-commit', '--no-ff', 'incoming')
+        self.policy.verify_backend(self.root, cached=True)
+
 
 if __name__ == '__main__':
     unittest.main()

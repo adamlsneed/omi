@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The October 25 test-only exception must not admit arbitrary backend changes."""
+"""Approved test-only exceptions must not admit arbitrary backend changes."""
 import os
 import runpy
 from pathlib import Path

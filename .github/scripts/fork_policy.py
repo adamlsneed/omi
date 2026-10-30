@@ -35,6 +35,13 @@ def upstream_base(root):
     origin = subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=root, capture_output=True, text=True)
     if origin.stdout.strip().removesuffix('.git') not in FORK_URLS:
         return None
+    incoming = subprocess.run(['git', 'rev-parse', '-q', '--verify', 'MERGE_HEAD'],
+                              cwd=root, capture_output=True, text=True)
+    if incoming.returncode == 0:
+        revision = incoming.stdout.strip()
+        ancestor = subprocess.run(['git', 'merge-base', '--is-ancestor', revision, 'upstream/main'], cwd=root)
+        if ancestor.returncode == 0:
+            return revision
     return git(root, 'merge-base', 'HEAD', 'upstream/main')
 
 

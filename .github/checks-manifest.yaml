@@ -6,9 +6,9 @@
 checks:
   - id: fork-backend-mirror-exception-tests
     command: ["python3", ".github/scripts/test_fork_backend_mirror_exception.py"]
-    triggers: [".github/scripts/fork_policy.py", "scripts/pre-commit", ".github/scripts/test_fork_backend_mirror_exception.py", "backend/tests/unit/test_edit_tools_resilience.py", ".github/checks-manifest.yaml"]
+    triggers: [".github/scripts/fork_policy.py", "scripts/pre-commit", ".github/scripts/test_fork_backend_mirror_exception.py", "backend/tests/unit/test_edit_tools_resilience.py", "backend/tests/unit/test_task_integrations_sanitization.py", "backend/tests/unit/test_episode_boundary_evidence.py", "backend/config/task_intelligence_sources_v1.json", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
-    reason: "October 25 sync: Adam approved one test-only isolation repair; pin both blobs and reject other backend edits or upstream drift."
+    reason: "October 25 and 30 approvals: pin all test-only exception blobs and reject every other backend edit or upstream drift."
   - id: pcloud-backup-contract-tests
     command: ["bash", "scripts/run-plugin-pcloud-tests.sh"]
     triggers: ["plugins/omi-pcloud-app/**", "plugins/omi-plugin-sdk/**", "backend/utils/plugin_transport.py", "backend/utils/plugin_backup_audio.py", "scripts/run-plugin-pcloud-tests.sh", ".github/checks-manifest.yaml"]
@@ -55,6 +55,11 @@ checks:
     triggers: ["@firestore-index-guard", ".github/checks-manifest.yaml", ".github/scripts/run_checks.py", ".github/actions/release-eligibility/action.yml"]
     lanes: ["local", "ci"]
     reason: "#19941/#20113: undeclared serving queries fail in production; advisory Backend unit suite can be merged over. Run only the selector-owned hermetic guard so the exact offending main SHA cannot acquire Release Eligibility proof. @firestore-index-guard reuses the serving inventory and guard inputs instead of a second path list"
+  - id: fork-backend-mirror
+    command: ["python3", ".github/scripts/fork_policy.py"]
+    triggers: ["backend/**", ".github/scripts/fork_policy.py", "scripts/pre-commit", ".github/workflows/repo-checks.yml", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "Nightly run 41036844705 rejected upstream formatting; exact mirror bytes and approved test-only repairs are the fork backend gate."
   - id: fork-mirror-policy-tests
     command: ["python3", ".github/scripts/test_fork_policy.py"]
     triggers: [".github/scripts/fork_policy.py", ".github/scripts/test_fork_policy.py", "scripts/pre-commit", ".github/workflows/repo-checks.yml", ".github/checks-manifest.yaml"]
