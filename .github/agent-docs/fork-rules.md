@@ -16,6 +16,10 @@ upstream changes are merged in regularly; nothing flows back.
   (notarized build, GitHub Release on `adamlsneed/omi`, Homebrew cask bump). Merging
   `desktop/**` to `main` ships nothing by itself. Full guide: `desktop/macos/RELEASE.md`.
 - `RELEASEWITHBACKEND` is unavailable in this fork.
+- Adam's standing preference (October 30, 2026): do not build, deploy, debug or
+  require Android verification unless he explicitly requests it. Fork mobile CI
+  skips Android compilation, JVM tests and emulator acceptance, including nightly
+  runs. Keep iOS and shared Flutter verification enabled.
 - Upstream sync and the release that follows it: `.github/agent-docs/upstream-sync.md`.
 - Building and installing the iPhone app: `.github/agent-docs/ios-install.md`.
 - Redeploying Adam's local Omi Dev Mac app from `main`: `scripts/fork/redeploy-omi-dev.sh`
