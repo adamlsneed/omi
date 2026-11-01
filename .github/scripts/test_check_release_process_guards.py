@@ -21,6 +21,39 @@ REVIEWED_PARENT = "4e391ee726642d99abc2c61966dcd80a836e6c1c"
 RAW_SCANNER_PARENT = "11ac6d9e9d27677d06d513364f2e658f5ed99870"
 
 
+@pytest.mark.parametrize('directory', ['.harness', '.build', 'node_modules', 'build', '.dart_tool', 'Pods'])
+def test_beta_host_scan_prunes_generated_directories_before_traversal(tmp_path, monkeypatch, directory):
+    generated = tmp_path / 'desktop/macos' / directory
+    generated.mkdir(parents=True)
+    (generated / 'artifact.swiftdeps').write_text('api-beta.omi.me')
+    monkeypatch.setattr(GUARDS, 'ROOT', tmp_path)
+    original_scandir = os.scandir
+
+    def guarded_scandir(path):
+        assert Path(path) != generated, 'generated build output must never be traversed'
+        return original_scandir(path)
+
+    monkeypatch.setattr(os, 'scandir', guarded_scandir)
+    assert GUARDS.check_no_unprovisioned_beta_backend_hosts() == []
+
+
+@pytest.mark.parametrize('relative_path', [
+    'desktop/macos/Desktop/Sources/Endpoint.swift',
+    'app/lib/services/endpoint.dart',
+    'codemagic.yaml',
+    '.github/workflows/release.yml',
+])
+def test_beta_host_scan_still_rejects_production_source_and_config(tmp_path, monkeypatch, relative_path):
+    source = tmp_path / relative_path
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text('endpoint = "https://api-beta.omi.me"')
+    monkeypatch.setattr(GUARDS, 'ROOT', tmp_path)
+    errors = GUARDS.check_no_unprovisioned_beta_backend_hosts()
+    assert len(errors) == 1
+    assert relative_path in errors[0]
+    assert 'api-beta.omi.me' in errors[0]
+
+
 def _copy_contract_tree(tmp_path: Path, monkeypatch) -> Path:
     shutil.copy2(REPO_ROOT / "codemagic.yaml", tmp_path / "codemagic.yaml")
     fixture = tmp_path / ".github/scripts/fixtures/codemagic_workflow_contract/v1.json"

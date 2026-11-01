@@ -976,18 +976,21 @@ def check_no_unprovisioned_beta_backend_hosts() -> list[str]:
     """
     hosts = ("api-beta.omi.me", "pusher-beta.omi.me", "agent-beta.omi.me")
     paths = [ROOT / "app", ROOT / "desktop/macos", ROOT / "codemagic.yaml", ROOT / ".github/workflows"]
-    non_shipped_parts = {".build", ".dart_tool", "Pods", "test", "tests", "Tests", "test_driver"}
+    non_shipped_parts = {
+        ".build", ".dart_tool", ".harness", "node_modules", "build",
+        "Pods", "test", "tests", "Tests", "test_driver",
+    }
     errors: list[str] = []
     for path in paths:
-        files = (
-            [path]
-            if path.is_file()
-            else [
-                item
-                for item in path.rglob("*")
-                if item.is_file() and not non_shipped_parts.intersection(item.relative_to(path).parts)
-            ]
-        )
+        files = [path] if path.is_file() else []
+        if path.is_dir():
+            for directory, children, names in os.walk(path):
+                # Prune before descending into local build and dependency trees.
+                children[:] = [name for name in children if name not in non_shipped_parts]
+                files.extend(
+                    item for name in names
+                    if name not in non_shipped_parts and (item := Path(directory) / name).is_file()
+                )
         for file in files:
             try:
                 text = file.read_text(encoding="utf-8")
