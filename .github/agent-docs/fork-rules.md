@@ -42,7 +42,12 @@ scanning, validation and test assertions remain unchanged. Explicit-path fixture
 loads are unchanged. `scripts/fork/test-backend-support.sh` runs the original
 sanitization and contract tests with regressions for missing Watch registration,
 unregistered writers, stale anchors and real template rendering. Local pre-push,
-ratchet checks and backend unit CI use this environment. For a manual full suite:
+ratchet checks and backend unit CI use this environment. The fork module-isolation
+adapter runs the unchanged upstream checker with a temporary registration for the
+inherited conditional Jinja2 stub only after verifying its exact upstream blob
+and every fork runner's real-dependency preload. It checks the original legacy
+allowlist's monotonicity separately; new pollution and changed test bytes still fail.
+For a manual full suite:
 
 ```bash
 bash scripts/fork/backend-test-env.sh

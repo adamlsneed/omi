@@ -1140,10 +1140,15 @@ checks:
     lanes: ["local", "ci"]
     reason: "The October 2026 sync introduced a logging guard requiring archived fork workflows; snapshot validation must still reject logging regressions and missing declarations."
   - id: backend-module-isolation
-    command: ["python3", "backend/scripts/check_module_stub_pollution.py", "--files", "{changed_files}", "--check-allowlist-monotonic", "{base}"]
-    triggers: ["backend/tests/**/*.py", "backend/testing/**/*.py", "backend/tests/.module_stub_legacy_allowlist", "backend/scripts/check_module_stub_pollution.py"]
+    command: ["python3", "scripts/fork/check-module-isolation.py", "--files", "{changed_files}", "--check-allowlist-monotonic", "{base}"]
+    triggers: ["backend/tests/**/*.py", "backend/testing/**/*.py", "backend/tests/.module_stub_legacy_allowlist", "backend/scripts/check_module_stub_pollution.py", "scripts/fork/**", "scripts/pre-push", "scripts/backend-ratchet-preflight", ".github/workflows/backend-unit-tests.yml", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "backend tests or their isolation allowlist changed"
+  - id: fork-module-isolation-tests
+    command: ["python3", "scripts/fork/test_module_isolation.py"]
+    triggers: ["scripts/fork/**", ".github/scripts/fork_policy.py", "backend/scripts/check_module_stub_pollution.py", "backend/tests/unit/test_task_integrations_sanitization.py", "scripts/pre-push", "scripts/backend-ratchet-preflight", ".github/workflows/backend-unit-tests.yml", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "November 1 sync: the exact inherited conditional Jinja2 stub is unreachable only with real dependency preload; reject changed bytes, missing preload, new pollution and legacy allowlist growth."
   - id: backend-runtime-env-compose
     command: ["bash", "backend/scripts/check_runtime_env_compose.sh"]
     triggers: ["backend/deploy/runtime_env/_base.yaml", "backend/deploy/runtime_env/dev.overlay.yaml", "backend/deploy/runtime_env/prod.overlay.yaml", "backend/deploy/compose_runtime_env.py", "backend/deploy/_generate_runtime_env_sources.py", "backend/deploy/runtime_env.yaml", "backend/scripts/check_runtime_env_compose.sh", ".github/checks-manifest.yaml"]
