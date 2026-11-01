@@ -43,7 +43,31 @@ present) and an npm 10 wrapper at `/tmp/npm10/npm` on its own PATH, creating the
 from the npm 10 copy in `~/.npm/_npx` (or `npm install --prefix /tmp/npm10pkg npm@10`)
 when `/tmp` was wiped. npm 12 fails `npm ci` against the committed lockfiles.
 
+Release assembly reads SwiftPM's canonical `Desktop/.build/release` products
+directory, including when it resolves to Xcode's `out/Products/Release`. It uses
+the same resource normalization as development bundles for both legacy and new
+SwiftPM resource layouts. Missing required frameworks, Node, or ffmpeg stop
+assembly before signing.
+
+Native dependencies must support the minimum macOS version declared in the app's
+`Info.plist`. Homebrew libraries can require a newer system than the app. Select a
+compatible WebP build using `PKG_CONFIG_PATH` before compilation, and set
+`OMI_PCRE2_DYLIB` to the absolute path of a compatible PCRE2 dylib when the bundled
+SDK ripgrep needs it. For example, with dependencies built for the app's deployment
+target in a task-owned prefix:
+
+```bash
+PKG_CONFIG_PATH=/path/to/native-deps/lib/pkgconfig \
+OMI_PCRE2_DYLIB=/path/to/native-deps/lib/libpcre2-8.0.dylib ./release.sh --bump
+```
+
+Both release and development bundle preparation audit every bundled Mach-O slice
+against `LSMinimumSystemVersion` before signing. An invalid explicit PCRE2 path
+fails instead of falling back to a different library.
+
 Hard failures (nothing is published):
+- A bundled native dependency requires a newer macOS version than the app declares,
+  or its Mach-O deployment metadata cannot be validated.
 - No `FIREBASE_API_KEY` in `.env.app.dev`/`.env.app`, the environment, or the installed
   app's `.env`. Without it sign-in against BasedHardware's hosted Firebase fails, and
   Sparkle would auto-install that broken build.

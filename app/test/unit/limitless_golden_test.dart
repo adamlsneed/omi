@@ -361,7 +361,13 @@ void main() {
     final fixtures = fixtureDirectory();
     final transport = FakeDeviceTransport();
     final device = BtDevice(name: 'Limitless Pendant', id: 'fake-limitless', type: DeviceType.limitless, rssi: -50);
-    final connection = LimitlessDeviceConnection(device, transport, streamHealthWindow: const Duration(minutes: 1));
+    final connection = LimitlessDeviceConnection(
+      device,
+      transport,
+      streamHealthWindow: const Duration(minutes: 1),
+      setupSettleDelay: const Duration(milliseconds: 10),
+      reconnectSettleDelay: const Duration(milliseconds: 10),
+    );
     final emittedPages = <Map<String, dynamic>>[];
     final pageSubscription = connection.getFlashPageStream().listen(emittedPages.add);
 
@@ -860,14 +866,22 @@ void main() {
   test('Limitless reconnect repeats time sync before realtime activation', () async {
     final transport = FakeDeviceTransport();
     final device = BtDevice(name: 'Limitless Pendant', id: 'fake-limitless', type: DeviceType.limitless, rssi: -50);
-    final connection = LimitlessDeviceConnection(device, transport, streamHealthWindow: const Duration(minutes: 1));
+    final connection = LimitlessDeviceConnection(
+      device,
+      transport,
+      streamHealthWindow: const Duration(minutes: 1),
+      setupSettleDelay: const Duration(milliseconds: 10),
+      reconnectSettleDelay: const Duration(milliseconds: 10),
+    );
 
     await connection.connect();
     expect(transport.writes.length, 2);
 
     transport.emitState(DeviceTransportState.disconnected);
     transport.emitState(DeviceTransportState.connected);
-    await Future<void>.delayed(const Duration(milliseconds: 450));
+    // 5x the injected 10 ms reconnect settle window; the default-window
+    // equivalent of this wait was 450 ms.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(transport.writes.length, 4, reason: 'a reconnect must repeat time sync before realtime activation');
     expect(decodeWrapperCommand(transport.writes[2])['messageNumber'], 6);
@@ -876,33 +890,31 @@ void main() {
     await connection.disconnect();
   }, timeout: const Timeout(Duration(seconds: 10)));
 
-  test(
-    'silent Limitless realtime start probes status and retries activation only once',
-    () async {
-      final transport = FakeDeviceTransport();
-      final device = BtDevice(name: 'Limitless Pendant', id: 'fake-limitless', type: DeviceType.limitless, rssi: -50);
-      final connection = LimitlessDeviceConnection(
-        device,
-        transport,
-        streamHealthWindow: const Duration(milliseconds: 10),
-        storageStatusTimeout: const Duration(milliseconds: 10),
-      );
+  test('silent Limitless realtime start probes status and retries activation only once', () async {
+    final transport = FakeDeviceTransport();
+    final device = BtDevice(name: 'Limitless Pendant', id: 'fake-limitless', type: DeviceType.limitless, rssi: -50);
+    final connection = LimitlessDeviceConnection(
+      device,
+      transport,
+      streamHealthWindow: const Duration(milliseconds: 10),
+      setupSettleDelay: const Duration(milliseconds: 10),
+      reconnectSettleDelay: const Duration(milliseconds: 10),
+      storageStatusTimeout: const Duration(milliseconds: 10),
+    );
 
-      await connection.connect();
-      await Future<void>.delayed(const Duration(milliseconds: 70));
+    await connection.connect();
+    await Future<void>.delayed(const Duration(milliseconds: 70));
 
-      final messageNumbers = transport.writes.map((write) => decodeWrapperCommand(write)['messageNumber']).toList();
-      expect(messageNumbers, [6, 8, 21, 8, 21]);
-      expect(
-        messageNumbers.where((messageNumber) => messageNumber == 8).length,
-        2,
-        reason: 'the health watchdog may reactivate realtime once but must not loop',
-      );
+    final messageNumbers = transport.writes.map((write) => decodeWrapperCommand(write)['messageNumber']).toList();
+    expect(messageNumbers, [6, 8, 21, 8, 21]);
+    expect(
+      messageNumbers.where((messageNumber) => messageNumber == 8).length,
+      2,
+      reason: 'the health watchdog may reactivate realtime once but must not loop',
+    );
 
-      await connection.disconnect();
-    },
-    timeout: const Timeout(Duration(seconds: 10)),
-  );
+    await connection.disconnect();
+  }, timeout: const Timeout(Duration(seconds: 10)));
 
   test('concurrent Limitless status probes share one control write', () async {
     final transport = FakeDeviceTransport();
@@ -911,6 +923,8 @@ void main() {
       device,
       transport,
       streamHealthWindow: const Duration(minutes: 1),
+      setupSettleDelay: const Duration(milliseconds: 10),
+      reconnectSettleDelay: const Duration(milliseconds: 10),
       storageStatusTimeout: const Duration(milliseconds: 10),
     );
 

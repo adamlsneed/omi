@@ -17,6 +17,7 @@ an upstream sync brings one of them back, move it here again.
 - `gcp_day3_reengagement_email_job_auto_dev.yml`
 - `gcp_storage_lifecycle.yml`
 - `runtime_image_contracts.yml`
+- `ui-author-approval.yml` (upstream-only maintainer approval and notifications)
 
 ## Disabled in the repository's Actions settings
 

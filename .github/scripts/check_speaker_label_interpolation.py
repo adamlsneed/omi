@@ -26,6 +26,8 @@ AUTHORITY = {
 # Keep the function boundary as well as the fingerprint, so a copied UI leak fails.
 WIRE_EXPRESSIONS = {
     ('backend/utils/episodes/policy.py', 'speaker_keys'): "keys.add(f\"speaker:{segment['speaker_id']}\")",
+    ('backend/utils/stt/soniox_batch.py', 'transcript_words'):
+        "speaker = f'SPEAKER_{max(int(raw_speaker) - 1, 0) if raw_speaker is not None else 0:02d}'",
 }
 
 RAW = re.compile(r'(?i)(?:\b(?:raw_)?speaker_?id\b|\bdiarization_?label\b|raw_for_transport|rawForTransport)')
@@ -203,15 +205,17 @@ def findings(path: str, source: str) -> list[tuple[str, int]]:
                 re.search(r'\b(?:sid|speaker|speaker_key|speaker_idx)\b', ast.unparse(expr)) for expr in expressions
             )
             wire = WIRE_EXPRESSIONS.get((path, node_scopes.get(id(node))))
-            wire_node = ast.parse(wire).body[0].value.args[0] if wire else None
-            parent = parents.get(id(node))
-            if (
-                wire_node is not None
-                and isinstance(parent, ast.Call)
-                and ast.dump(parent, include_attributes=False) == ast.dump(ast.parse(wire).body[0].value, include_attributes=False)
-                and ast.dump(node, include_attributes=False) == ast.dump(wire_node, include_attributes=False)
-            ):
-                continue
+            if wire:
+                statement = ast.parse(wire).body[0]
+                wire_parent = statement if isinstance(statement, ast.Assign) else statement.value
+                wire_node = statement.value if isinstance(statement, ast.Assign) else statement.value.args[0]
+                parent = parents.get(id(node))
+                if (
+                    parent is not None
+                    and ast.dump(parent, include_attributes=False) == ast.dump(wire_parent, include_attributes=False)
+                    and ast.dump(node, include_attributes=False) == ast.dump(wire_node, include_attributes=False)
+                ):
+                    continue
             if raw or alias or speaker_template:
                 hits.append((ast.dump(node, include_attributes=False), node.lineno))
         return hits

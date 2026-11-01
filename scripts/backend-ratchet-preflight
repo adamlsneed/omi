@@ -77,12 +77,12 @@ run_test_list() {
     "${RUNNER[@]+"${RUNNER[@]}"}" bash -c '
       cd backend
       BACKEND_UNIT_TEST_FILE_LIST="$1" BACKEND_PYTEST_MARK_EXPR="not integration" \
-        BACKEND_FAST_UNIT_FAIL_SECONDS="$3" PYTHON="$2" bash test.sh
+        BACKEND_FAST_UNIT_FAIL_SECONDS="$3" PYTHON="$2" bash ../scripts/fork/backend-test-env.sh bash test.sh
     ' ratchet "$test_list" "$BACKEND_PYTHON" "$cpu_budget"
   else
     "${RUNNER[@]+"${RUNNER[@]}"}" bash -c '
       cd backend
-      BACKEND_UNIT_TEST_FILE_LIST="$1" BACKEND_PYTEST_MARK_EXPR="not integration" PYTHON="$2" bash test.sh
+      BACKEND_UNIT_TEST_FILE_LIST="$1" BACKEND_PYTEST_MARK_EXPR="not integration" PYTHON="$2" bash ../scripts/fork/backend-test-env.sh bash test.sh
     ' ratchet "$test_list" "$BACKEND_PYTHON"
   fi
 }

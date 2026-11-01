@@ -1,0 +1,13 @@
+{
+  "owner_paths": [
+    "app/lib/services/watch/watch_capture_worker.dart",
+    "app/lib/services/watch/watch_capture_api.dart"
+  ],
+  "writer_anchors": [
+    {
+      "path": "app/lib/services/watch/watch_capture_worker.dart",
+      "symbol": "client.createTask",
+      "discover": true
+    }
+  ]
+}

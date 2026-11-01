@@ -10,7 +10,9 @@ Usage: scripts/prepare-desktop-bundle-native-deps.sh /path/to/Omi.app
 
 Normalizes bundled native Node dependencies before signing:
   - rewrites host-machine LC_ID_DYLIB values in .node dylibs
-  - vendors Homebrew pcre2 next to bundled ripgrep binaries that need it
+  - vendors pcre2 next to bundled ripgrep binaries that need it
+    (OMI_PCRE2_DYLIB selects an absolute path to a compatible dylib)
+  - verifies native deployment targets against LSMinimumSystemVersion
   - strips local symbols from the main app executable before codesign
 USAGE
 }
@@ -195,6 +197,11 @@ find_pcre2() {
 resolve_pcre2_for_dep() {
   local dep="$1"
 
+  if [[ -n "${OMI_PCRE2_DYLIB:-}" ]]; then
+    printf '%s\n' "$OMI_PCRE2_DYLIB"
+    return 0
+  fi
+
   if [[ -f "$dep" ]]; then
     printf '%s\n' "$dep"
     return 0
@@ -216,6 +223,13 @@ vendor_pcre2_for_ripgrep() {
       exit 1
     fi
 
+    local arch
+    for arch in $(macho_arches "$rg"); do
+      if ! lipo -verify_arch "$arch" "$pcre2"; then
+        echo "ERROR: PCRE2 artifact $pcre2 lacks $arch required by $rg" >&2
+        exit 1
+      fi
+    done
     dest="$(dirname "$rg")/libpcre2-8.0.dylib"
     cp -f "$pcre2" "$dest"
     chmod u+w "$dest"
@@ -231,6 +245,14 @@ vendor_pcre2_for_ripgrep() {
     ' | grep -E '^(/opt/homebrew|/usr/local)/.*libpcre2-8\.0\.dylib$' || true
   )
 }
+
+if [[ "${OMI_PCRE2_DYLIB+x}" == "x" ]]; then
+  if [[ "$OMI_PCRE2_DYLIB" != /* || ! -f "$OMI_PCRE2_DYLIB" || ! -r "$OMI_PCRE2_DYLIB" ]] \
+    || ! is_macho "$OMI_PCRE2_DYLIB"; then
+    echo "ERROR: OMI_PCRE2_DYLIB must name an absolute, readable Mach-O dylib; no fallback is used" >&2
+    exit 1
+  fi
+fi
 
 while IFS= read -r -d '' candidate; do
   is_macho "$candidate" || continue
@@ -249,5 +271,6 @@ while IFS= read -r -d '' rg; do
 done < <(find "$CONTENTS_DIR/Resources" -path '*/vendor/ripgrep/*-darwin/rg' -type f -print0 2>/dev/null)
 
 strip_main_executable
+python3 "$(dirname "$0")/check-bundled-macos-floor.py" "$APP_BUNDLE"
 
 echo "Prepared desktop bundle native dependencies"

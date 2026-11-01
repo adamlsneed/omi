@@ -94,6 +94,8 @@ class _CannedHttpClient implements HttpClient {
 
   @override
   Duration idleTimeout = const Duration(seconds: 15);
+  @override
+  Duration? connectionTimeout;
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -151,9 +153,8 @@ class _CannedResponse extends Stream<List<int>> implements HttpClientResponse {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    return Stream<List<int>>.fromIterable([
-      utf8.encode(body),
-    ]).listen(onData, onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+    return Stream<List<int>>.fromIterable([utf8.encode(body)])
+        .listen(onData, onError: onError, onDone: onDone, cancelOnError: cancelOnError);
   }
 
   @override
@@ -277,12 +278,7 @@ void main() {
     ConnectivityPlatform.instance = _NoConnectivityPlatform();
     DeviceInfoPlatform.instance = _TestDeviceInfoPlatform();
     PackageInfo.setMockInitialValues(
-      appName: 'Omi Test',
-      packageName: 'com.omi.test',
-      version: '1.0.543',
-      buildNumber: '992',
-      buildSignature: '',
-    );
+        appName: 'Omi Test', packageName: 'com.omi.test', version: '1.0.543', buildNumber: '992', buildSignature: '');
     try {
       await ServiceManager.init();
     } catch (_) {
@@ -395,7 +391,7 @@ void main() {
     analytics.expectSingle('Diagnostics Send Failed', {
       'failure_stage': 'dialog_cancelled',
       'status_code': 0,
-      'schema_version': 2,
+      'schema_version': 3,
       'disconnect_count': 1,
     });
     expect(analytics.propertiesOf('Diagnostics Send Failed').single['bundle_bytes'] as int, greaterThan(0));
@@ -417,7 +413,7 @@ void main() {
     analytics.expectSingle('Diagnostics Send Failed', {
       'failure_stage': 'upload',
       'status_code': 503,
-      'schema_version': 2,
+      'schema_version': 3,
       'disconnect_count': 1,
     });
     expect(analytics.propertiesOf('Diagnostics Send Failed').single['bundle_bytes'] as int, greaterThan(0));
@@ -438,7 +434,7 @@ void main() {
     analytics.expectSingle('Diagnostics Send Failed', {
       'failure_stage': 'ticket_parse',
       'status_code': 0,
-      'schema_version': 2,
+      'schema_version': 3,
       'disconnect_count': 1,
     });
   });
@@ -458,7 +454,7 @@ void main() {
     analytics.expectSingle('Diagnostics Send Failed', {
       'failure_stage': 'upload',
       'status_code': 0,
-      'schema_version': 2,
+      'schema_version': 3,
       'disconnect_count': 1,
     });
     expect(analytics.propertiesOf('Diagnostics Send Failed').single['bundle_bytes'] as int, greaterThan(0));
@@ -476,7 +472,10 @@ void main() {
     await AnalyticsManager.flushPending(force: true);
 
     expect(find.text('OMI-TKT-42'), findsOneWidget);
-    analytics.expectSingle('Diagnostics Sent', {'schema_version': 2, 'disconnect_count': 1});
+    analytics.expectSingle('Diagnostics Sent', {
+      'schema_version': 3,
+      'disconnect_count': 1,
+    });
     expect(analytics.propertiesOf('Diagnostics Sent').single['bundle_bytes'] as int, greaterThan(0));
     expect(analytics.names, isNot(contains('Diagnostics Send Failed')));
   });

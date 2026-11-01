@@ -27,6 +27,9 @@ for arg in "$@"; do
     *"/Contents/MacOS/Omi Computer")
       echo "$arg: Mach-O universal binary with 2 architectures: [x86_64] [arm64]"
       ;;
+    *.dylib|*/rg)
+      echo "$arg: Mach-O 64-bit dynamically linked shared library arm64"
+      ;;
     *)
       echo "$arg: ASCII text"
       ;;
@@ -60,7 +63,15 @@ exit 0
 EOF
 chmod +x "$fakebin/dyld_info"
 
-head -c 4096 /dev/zero > "$main_binary"
+python3 - "$app_bundle" <<'PYFIXTURE'
+import plistlib, struct, sys
+from pathlib import Path
+contents = Path(sys.argv[1]) / "Contents"
+(contents / "Info.plist").write_bytes(plistlib.dumps({"CFBundleExecutable": "Omi Computer", "LSMinimumSystemVersion": "14.0"}))
+header = struct.pack("<IIIIIIII", 0xFEEDFACF, 0x100000C, 0, 2, 1, 24, 0, 0)
+command = struct.pack("<IIIIII", 0x32, 24, 1, 14 << 16, 0, 0)
+(contents / "MacOS/Omi Computer").write_bytes((header + command).ljust(4096, b"\0"))
+PYFIXTURE
 chmod +x "$main_binary"
 
 before="$(wc -c < "$main_binary" | tr -d ' ')"
@@ -87,5 +98,63 @@ fi
 if ! grep -q "restored main app executable" <<< "$output"; then
   fail "prepare script did not report malformed Mach-O restoration"
 fi
+
+# An explicitly selected artifact must never silently fall back to Homebrew.
+if OMI_PCRE2_DYLIB="$tmpdir/missing.dylib" PATH="$fakebin:$PATH" \
+  "$MACOS_DIR/scripts/prepare-desktop-bundle-native-deps.sh" "$app_bundle" >"$tmpdir/invalid.log" 2>&1; then
+  fail "invalid explicit PCRE2 override was accepted"
+fi
+grep -q 'OMI_PCRE2_DYLIB' "$tmpdir/invalid.log" || fail "invalid override diagnostic missing"
+
+for invalid in "" "relative.dylib" "$tmpdir/not-native.txt"; do
+  printf 'not a native library' > "$tmpdir/not-native.txt"
+  if OMI_PCRE2_DYLIB="$invalid" PATH="$fakebin:$PATH" \
+    "$MACOS_DIR/scripts/prepare-desktop-bundle-native-deps.sh" "$app_bundle" >"$tmpdir/invalid.log" 2>&1; then
+    fail "invalid explicit PCRE2 override was accepted: $invalid"
+  fi
+done
+
+rg_dir="$app_bundle/Contents/Resources/agent/vendor/ripgrep/arm64-darwin"
+mkdir -p "$rg_dir" "$tmpdir/native"
+cp "$main_binary" "$rg_dir/rg"
+pcre="$tmpdir/native/libpcre2-8.0.dylib"
+cp "$main_binary" "$pcre"
+cat > "$fakebin/otool" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == "-L" && "$2" == */rg ]]; then
+  printf '\t/opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib (compatibility version 14.0.0)\n'
+fi
+EOF
+cat > "$fakebin/install_name_tool" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_INSTALL_LOG"
+EOF
+cat > "$fakebin/lipo" <<'EOF'
+#!/usr/bin/env bash
+[[ "${FAKE_PCRE_ARCH_BAD:-0}" == "0" ]]
+EOF
+chmod +x "$fakebin/otool" "$fakebin/install_name_tool" "$fakebin/lipo"
+export FAKE_INSTALL_LOG="$tmpdir/install-names.log"
+OMI_PCRE2_DYLIB="$pcre" PATH="$fakebin:$PATH" \
+  "$MACOS_DIR/scripts/prepare-desktop-bundle-native-deps.sh" "$app_bundle" >"$tmpdir/override.log"
+cmp "$pcre" "$rg_dir/libpcre2-8.0.dylib" || fail "selected PCRE2 bytes were not copied"
+grep -q -- '-change /opt/homebrew/opt/pcre2/lib/libpcre2-8.0.dylib @loader_path/libpcre2-8.0.dylib' \
+  "$FAKE_INSTALL_LOG" || fail "ripgrep does not load its bundled PCRE2"
+if FAKE_PCRE_ARCH_BAD=1 OMI_PCRE2_DYLIB="$pcre" PATH="$fakebin:$PATH" \
+  "$MACOS_DIR/scripts/prepare-desktop-bundle-native-deps.sh" "$app_bundle" >"$tmpdir/arch.log" 2>&1; then
+  fail "wrong architecture PCRE2 was accepted"
+fi
+python3 - "$pcre" <<'PYFIXTURE'
+from pathlib import Path
+import struct, sys
+p = Path(sys.argv[1]); data = bytearray(p.read_bytes())
+struct.pack_into("<I", data, 44, 27 << 16)
+p.write_bytes(data)
+PYFIXTURE
+if OMI_PCRE2_DYLIB="$pcre" PATH="$fakebin:$PATH" \
+  "$MACOS_DIR/scripts/prepare-desktop-bundle-native-deps.sh" "$app_bundle" >"$tmpdir/floor.log" 2>&1; then
+  fail "newer OS dependency was accepted for macOS 14 app"
+fi
+grep -q 'minimum macOS 27.0.0 exceeds app 14.0' "$tmpdir/floor.log" || fail "missing deployment-floor diagnostic"
 
 echo "prepare-desktop-bundle-native-deps tests passed"

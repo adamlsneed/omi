@@ -133,24 +133,16 @@ step "Building Swift app (swift build -c release)"
 xcrun swift build -c release --package-path Desktop -Xswiftc -emit-const-values
 
 REL_BIN_DIR="Desktop/.build/release"
-REL_ARCH_DIR="Desktop/.build/arm64-apple-macosx/release"
 
 # --- Assemble bundle (mirrors run.sh; see note above) ---
 step "Assembling $APP_BUNDLE"
 rm -rf "$STAGING"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks"
 
-cp -f "$REL_BIN_DIR/$BINARY_NAME" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
+./scripts/stage-swiftpm-release-products.sh "$REL_BIN_DIR" "$APP_BUNDLE"
 step "Embedding App Intents metadata"
 ./scripts/embed-app-intents-metadata.sh Desktop "$APP_BUNDLE" Release "$(uname -m)"
 install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$BINARY_NAME" 2>/dev/null || true
-
-for fw in Sparkle onnxruntime; do
-  if [ -d "$REL_ARCH_DIR/$fw.framework" ]; then
-    rm -rf "$APP_BUNDLE/Contents/Frameworks/$fw.framework"
-    cp -R "$REL_ARCH_DIR/$fw.framework" "$APP_BUNDLE/Contents/Frameworks/"
-  fi
-done
 
 # libwebp (+ libsharpyuv) with @rpath load-path rewriting
 WEBP_LIB=""
@@ -201,14 +193,7 @@ else
 fi
 /usr/libexec/PlistBuddy -c "Set :BUNDLE_ID $BUNDLE_ID" "$APP_BUNDLE/Contents/Resources/GoogleService-Info.plist" 2>/dev/null || true
 
-step "Copying resource bundle + bundled Node"
-RESOURCE_BUNDLE="$REL_ARCH_DIR/Omi Computer_Omi Computer.bundle"
-[ -d "$RESOURCE_BUNDLE" ] && cp -Rf "$RESOURCE_BUNDLE" "$APP_BUNDLE/Contents/Resources/"
-BUNDLED_NODE="$APP_BUNDLE/Contents/Resources/Omi Computer_Omi Computer.bundle/node"
-if [ ! -x "$BUNDLED_NODE" ] && [ -x "Desktop/Sources/Resources/node" ]; then
-  mkdir -p "$(dirname "$BUNDLED_NODE")"; cp -f "Desktop/Sources/Resources/node" "$BUNDLED_NODE"; chmod +x "$BUNDLED_NODE"
-fi
-[ -x "$BUNDLED_NODE" ] || { echo "ERROR: bundled node missing at $BUNDLED_NODE (run scripts/prepare-node-resource.sh)"; exit 1; }
+BUNDLED_NODE="$APP_BUNDLE/Contents/Resources/Omi Computer_Omi Computer.bundle/Contents/Resources/node"
 
 step "Copying agent + pi-mono-extension"
 mkdir -p "$APP_BUNDLE/Contents/Resources/agent"
@@ -249,6 +234,9 @@ cp -f omi_icon.icns "$APP_BUNDLE/Contents/Resources/OmiIcon.icns" 2>/dev/null ||
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 # No provisioning profile: release entitlements drop applesignin, so none is needed.
 
+step "Preparing native dependencies"
+./scripts/prepare-desktop-bundle-native-deps.sh "$APP_BUNDLE"
+
 # --- Sign (Developer ID + hardened runtime + secure timestamp, inside-out) ---
 # Notarization requires EVERY Mach-O (node native .node modules, bundled dylibs,
 # Sparkle's nested Updater.app/XPC helpers) signed with Developer ID + hardened
@@ -286,6 +274,8 @@ for lib in libsharpyuv.0.dylib libwebp.7.dylib; do
 done
 sign --entitlements Desktop/Omi-Release.entitlements --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
 codesign --verify --strict --verbose=2 "$APP_BUNDLE"
+./scripts/check-desktop-bundle-signatures.sh "$APP_BUNDLE"
+./scripts/audit-desktop-bundle-deps.sh "$APP_BUNDLE"
 
 # --- Notarize ---
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then

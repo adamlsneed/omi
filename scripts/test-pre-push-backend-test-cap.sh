@@ -47,7 +47,8 @@ printf '%s\n' "${STUB_REASON:-broad selector fallout}" > "$reason_output"
 STUB
 chmod +x "$WORK/fake-python"
 
-mkdir -p "$WORK/repo/backend/tests" "$WORK/repo/backend/scripts"
+mkdir -p "$WORK/repo/backend/tests" "$WORK/repo/backend/scripts" "$WORK/repo/scripts/fork"
+cp "$ROOT/scripts/fork/backend-test-env.sh" "$WORK/repo/scripts/fork/"
 touch "$WORK/repo/backend/scripts/select_backend_unit_tests.py"
 cat > "$WORK/repo/backend/test-preflight.sh" <<'STUB'
 #!/usr/bin/env bash

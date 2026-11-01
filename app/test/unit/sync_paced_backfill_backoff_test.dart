@@ -14,8 +14,8 @@ import 'package:omi/services/wals/wal.dart';
 import 'package:omi/services/wals/wal_interfaces.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Backend pacing (429 `backfill_paced` / `backfill_capacity`, and the 503
-/// returned while a failed backfill job is still finalizing) is expected
+/// Backend pacing (429 `backfill_paced` / `backfill_capacity`, scoped 503
+/// `dispatch_hold`, and the 503 returned while a failed backfill job is finalizing) is expected
 /// backoff. The recording stays pending, Retry-After is honored, and the
 /// client does not mint `Recording Upload Failed`.
 
@@ -57,50 +57,110 @@ void main() {
   });
 
   group('paced backfill response classification', () {
-    test('429 paced and capacity reasons are admission throttles, not silent for every 429', () {
-      for (final reason in ['backfill_paced', 'backfill_capacity']) {
-        final response = http.Response('', 429, headers: {'x-omi-rate-limit-reason': reason, 'retry-after': '60'});
-        expect(isSyncUploadRateLimitResponse(response), isTrue);
-        expect(isPacedBackfillReasonCode(syncRateLimitReasonCode(response)), isTrue);
-        expect(syncRateLimitKindForResponse(response), SyncRateLimitKind.backendCapacity);
-      }
+    test(
+      '429 paced and capacity reasons are admission throttles, not silent for every 429',
+      () {
+        for (final reason in ['backfill_paced', 'backfill_capacity']) {
+          final response = http.Response(
+            '',
+            429,
+            headers: {'x-omi-rate-limit-reason': reason, 'retry-after': '60'},
+          );
+          expect(isSyncUploadRateLimitResponse(response), isTrue);
+          expect(
+            isPacedSyncAdmissionReasonCode(syncRateLimitReasonCode(response)),
+            isTrue,
+          );
+          expect(
+            syncRateLimitKindForResponse(response),
+            SyncRateLimitKind.backendCapacity,
+          );
+        }
 
-      final fairUse = http.Response('', 429, headers: {'x-omi-rate-limit-reason': 'fair_use', 'retry-after': '3600'});
-      expect(isSyncUploadRateLimitResponse(fairUse), isTrue);
-      expect(isPacedBackfillReasonCode(syncRateLimitReasonCode(fairUse)), isFalse);
+        final fairUse = http.Response(
+          '',
+          429,
+          headers: {
+            'x-omi-rate-limit-reason': 'fair_use',
+            'retry-after': '60',
+          },
+        );
+        expect(isSyncUploadRateLimitResponse(fairUse), isTrue);
+        expect(
+          isPacedSyncAdmissionReasonCode(syncRateLimitReasonCode(fairUse)),
+          isFalse,
+        );
 
-      final unscoped = http.Response('{"code":"burst_limit"}', 429, headers: {'retry-after': '30'});
-      expect(isSyncUploadRateLimitResponse(unscoped), isTrue);
-      expect(syncRateLimitReasonCode(unscoped), isNull);
-      expect(isPacedBackfillReasonCode(syncRateLimitReasonCode(unscoped)), isFalse);
-    });
+        final unscoped = http.Response(
+          '{"code":"burst_limit"}',
+          429,
+          headers: {'retry-after': '30'},
+        );
+        expect(isSyncUploadRateLimitResponse(unscoped), isTrue);
+        expect(syncRateLimitReasonCode(unscoped), isNull);
+        expect(
+          isPacedSyncAdmissionReasonCode(syncRateLimitReasonCode(unscoped)),
+          isFalse,
+        );
+      },
+    );
 
-    test('only a header-scoped 503 is an upload throttle; finalization retry is a transient poll', () {
-      final capacity = http.Response(
-        '{"code":"backfill_capacity"}',
-        503,
-        headers: {'x-omi-rate-limit-reason': 'backfill_capacity', 'retry-after': '30'},
-      );
-      expect(isSyncUploadRateLimitResponse(capacity), isTrue);
-      expect(isPacedBackfillReasonCode(syncRateLimitReasonCode(capacity)), isTrue);
+    test(
+      'only a header-scoped 503 is an upload throttle; finalization retry is a transient poll',
+      () {
+        final capacity = http.Response(
+          '{"code":"backfill_capacity"}',
+          503,
+          headers: {
+            'x-omi-rate-limit-reason': 'backfill_capacity',
+            'retry-after': '30',
+          },
+        );
+        expect(isSyncUploadRateLimitResponse(capacity), isTrue);
+        expect(
+          isPacedSyncAdmissionReasonCode(syncRateLimitReasonCode(capacity)),
+          isTrue,
+        );
 
-      final finalizationRetry = http.Response(
-        '{"detail":"Sync recovery finalization is retrying; local audio remains available."}',
-        503,
-        headers: {'retry-after': '10'},
-      );
-      expect(isSyncUploadRateLimitResponse(finalizationRetry), isFalse);
-      expect(syncJobFetchOutcomeForStatusCode(finalizationRetry.statusCode), SyncJobFetchOutcome.transient);
+        final dispatchHold = http.Response(
+          '{"code":"dispatch_hold"}',
+          503,
+          headers: {
+            'x-omi-rate-limit-reason': 'dispatch_hold',
+            'retry-after': '3600',
+          },
+        );
+        expect(isSyncUploadRateLimitResponse(dispatchHold), isTrue);
+        expect(isPacedSyncAdmissionReasonCode(syncRateLimitReasonCode(dispatchHold)), isTrue);
+        expect(syncRateLimitKindForResponse(dispatchHold), SyncRateLimitKind.backendCapacity);
 
-      final dispatchUnavailable = http.Response(
-        '{"code":"sync_dispatch_unavailable"}',
-        503,
-        headers: {'retry-after': '30'},
-      );
-      expect(isSyncUploadRateLimitResponse(dispatchUnavailable), isFalse);
-      expect(syncJobFetchOutcomeForStatusCode(500), SyncJobFetchOutcome.transient);
-      expect(syncJobFetchOutcomeForStatusCode(404), SyncJobFetchOutcome.notFound);
-    });
+        final finalizationRetry = http.Response(
+          '{"detail":"Sync recovery finalization is retrying; local audio remains available."}',
+          503,
+          headers: {'retry-after': '10'},
+        );
+        expect(isSyncUploadRateLimitResponse(finalizationRetry), isFalse);
+        expect(
+          syncJobFetchOutcomeForStatusCode(finalizationRetry.statusCode),
+          SyncJobFetchOutcome.transient,
+        );
+
+        final dispatchUnavailable = http.Response(
+          '{"code":"sync_dispatch_unavailable"}',
+          503,
+          headers: {'retry-after': '30'},
+        );
+        expect(isSyncUploadRateLimitResponse(dispatchUnavailable), isFalse);
+        expect(
+          syncJobFetchOutcomeForStatusCode(500),
+          SyncJobFetchOutcome.transient,
+        );
+        expect(
+          syncJobFetchOutcomeForStatusCode(404),
+          SyncJobFetchOutcome.notFound,
+        );
+      },
+    );
   });
 
   group('upload gate telemetry', () {
@@ -117,43 +177,68 @@ void main() {
       );
     }
 
-    test('paced 429 and header-scoped 503 stay a cooldown and do not emit Recording Upload Failed', () async {
-      for (final reason in ['backfill_paced', 'backfill_capacity']) {
-        limiter.clear();
-        final events = <({String name, Map<String, dynamic> properties})>[];
-        var uploads = 0;
-        final uploadGate = gate(
-          events: events,
-          uploader: (
-            files, {
-            onUploadProgress,
-            captureEvidence,
-            conversationId,
-            recordingSessionId,
-            audioStartSeconds,
-            audioEndSeconds,
-            claimLiveCapture = false,
-            geolocation,
-          }) async {
-            uploads++;
-            throw SyncRateLimitedException(
-              kind: SyncRateLimitKind.backendCapacity,
-              retryAfterSeconds: 60,
-              reasonCode: reason,
-            );
-          },
-        );
+    test(
+      'paced 429 and header-scoped 503 stay a cooldown and do not emit Recording Upload Failed',
+      () async {
+        for (final reason in ['backfill_paced', 'backfill_capacity', 'dispatch_hold']) {
+          limiter.clear();
+          final events = <({String name, Map<String, dynamic> properties})>[];
+          var uploads = 0;
+          final uploadGate = gate(
+            events: events,
+            uploader: (
+              files, {
+              onUploadProgress,
+              captureEvidence,
+              conversationId,
+              recordingSessionId,
+              audioStartSeconds,
+              audioEndSeconds,
+              claimLiveCapture = false,
+              geolocation,
+            }) async {
+              uploads++;
+              throw SyncRateLimitedException(
+                kind: SyncRateLimitKind.backendCapacity,
+                retryAfterSeconds: 60,
+                reasonCode: reason,
+                statusCode: reason == 'dispatch_hold' ? 503 : 429,
+              );
+            },
+          );
 
-        await expectLater(uploadGate.upload([]), throwsA(isA<SyncRateLimitedException>()));
-        await expectLater(uploadGate.upload([]), throwsA(isA<SyncRateLimitedException>()));
+          await expectLater(
+            uploadGate.upload([]),
+            throwsA(isA<SyncRateLimitedException>()),
+          );
+          await expectLater(
+            uploadGate.upload([]),
+            throwsA(isA<SyncRateLimitedException>()),
+          );
 
-        expect(uploads, 1, reason: 'Retry-After must close admission; the client must not loop faster');
-        expect(limiter.reason, RateLimitReason.backendBusy);
-        expect(limiter.activeRetryAfterSeconds, inInclusiveRange(59, 60));
-        expect(events.map((event) => event.name), [RecordingUploadTelemetry.startedEvent]);
-        expect(events.map((event) => event.name), isNot(contains(RecordingUploadTelemetry.failedEvent)));
-      }
-    });
+          expect(
+            uploads,
+            1,
+            reason: 'Retry-After must close admission; the client must not loop faster',
+          );
+          expect(
+            limiter.reason,
+            reason == 'dispatch_hold' ? RateLimitReason.dispatchHold : RateLimitReason.backendBusy,
+          );
+          expect(
+            limiter.activeRetryAfterSeconds,
+            inInclusiveRange(59, 60),
+          );
+          expect(events.map((event) => event.name), [
+            RecordingUploadTelemetry.startedEvent,
+          ]);
+          expect(
+            events.map((event) => event.name),
+            isNot(contains(RecordingUploadTelemetry.failedEvent)),
+          );
+        }
+      },
+    );
 
     test('fair-use and unscoped 429 still emit rate_limited', () async {
       for (final reasonCode in <String?>['fair_use', null]) {
@@ -180,7 +265,10 @@ void main() {
           },
         );
 
-        await expectLater(uploadGate.upload([]), throwsA(isA<SyncRateLimitedException>()));
+        await expectLater(
+          uploadGate.upload([]),
+          throwsA(isA<SyncRateLimitedException>()),
+        );
 
         expect(events.map((event) => event.name), [
           RecordingUploadTelemetry.startedEvent,
@@ -209,14 +297,22 @@ void main() {
         },
       );
 
-      await expectLater(uploadGate.upload([]), throwsA(isA<SyncUploadHttpException>()));
+      await expectLater(
+        uploadGate.upload([]),
+        throwsA(isA<SyncUploadHttpException>()),
+      );
 
       expect(events.map((event) => event.name), [
         RecordingUploadTelemetry.startedEvent,
         RecordingUploadTelemetry.failedEvent,
       ]);
       expect(events.last.properties['failure_class'], 'server');
-      expect(RecordingUploadTelemetry.failureClass(const SyncUploadHttpException(500, 'server')), 'server');
+      expect(
+        RecordingUploadTelemetry.failureClass(
+          const SyncUploadHttpException(500, 'server'),
+        ),
+        'server',
+      );
     });
   });
 
@@ -240,148 +336,178 @@ void main() {
       );
     }
 
-    test('a paced 429 leaves the recording pending and keeps the file', () async {
-      final events = <({String name, Map<String, dynamic> properties})>[];
-      final wal = Wal(
-        timerStart: 1700000000,
-        codec: BleAudioCodec.opus,
-        seconds: 31,
-        status: WalStatus.miss,
-        storage: WalStorage.disk,
-        device: 'omi',
-        filePath: 'audio_paced.bin',
-      );
-      final file = await pendingFile(wal);
-      final sync = syncWith(
-        uploadGate: SyncUploadGate(
-          limiter: limiter,
-          fairUseStatusLoader: () async => null,
-          uploader: (
-            files, {
-            onUploadProgress,
-            captureEvidence,
-            conversationId,
-            recordingSessionId,
-            audioStartSeconds,
-            audioEndSeconds,
-            claimLiveCapture = false,
-            geolocation,
-          }) async {
-            throw SyncRateLimitedException(
-              kind: SyncRateLimitKind.backendCapacity,
-              retryAfterSeconds: 60,
-              reasonCode: 'backfill_paced',
+    test(
+      'a scoped dispatch hold leaves the recording pending and keeps the file without retry spend',
+      () async {
+        final events = <({String name, Map<String, dynamic> properties})>[];
+        final wal = Wal(
+          timerStart: 1700000000,
+          codec: BleAudioCodec.opus,
+          seconds: 31,
+          status: WalStatus.miss,
+          storage: WalStorage.disk,
+          device: 'omi',
+          filePath: 'audio_paced.bin',
+        );
+        final file = await pendingFile(wal);
+        final sync = syncWith(
+          uploadGate: SyncUploadGate(
+            limiter: limiter,
+            fairUseStatusLoader: () async => null,
+            uploader: (
+              files, {
+              onUploadProgress,
+              captureEvidence,
+              conversationId,
+              recordingSessionId,
+              audioStartSeconds,
+              audioEndSeconds,
+              claimLiveCapture = false,
+              geolocation,
+            }) async {
+              throw SyncRateLimitedException(
+                kind: SyncRateLimitKind.backendCapacity,
+                retryAfterSeconds: 60,
+                reasonCode: 'dispatch_hold',
+                statusCode: 503,
+              );
+            },
+            telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
+          ),
+        );
+        sync.testWals = [wal];
+
+        await sync.syncWal(wal: wal);
+
+        expect(wal.status, WalStatus.miss);
+        expect(wal.retryCount, 0);
+        expect(wal.jobId, isNull);
+        expect(wal.isSyncing, isFalse);
+        expect(wal.syncDisplayState, WalSyncDisplayState.waiting);
+        expect(wal.syncDisplayState, isNot(WalSyncDisplayState.failed));
+        expect(isAutoUploadEligible(wal), isTrue);
+        expect(file.existsSync(), isTrue);
+        expect(
+          events.map((event) => event.name),
+          isNot(contains(RecordingUploadTelemetry.failedEvent)),
+        );
+        expect(limiter.activeRetryAfterSeconds, inInclusiveRange(59, 60));
+      },
+    );
+
+    test(
+      'a 503 while backfill finalization is retrying leaves the upload pending',
+      () async {
+        final events = <({String name, Map<String, dynamic> properties})>[];
+        final wal = Wal(
+          timerStart: 1700000001,
+          codec: BleAudioCodec.opus,
+          seconds: 31,
+          status: WalStatus.uploaded,
+          storage: WalStorage.disk,
+          device: 'omi',
+          filePath: 'audio_retrying.bin',
+          retryCount: 1,
+        )..jobId = 'job-finalizing';
+        final sync = syncWith(
+          uploadGate: SyncUploadGate(
+            limiter: limiter,
+            fairUseStatusLoader: () async => null,
+            uploader: (
+              files, {
+              onUploadProgress,
+              captureEvidence,
+              conversationId,
+              recordingSessionId,
+              audioStartSeconds,
+              audioEndSeconds,
+              claimLiveCapture = false,
+              geolocation,
+            }) async {
+              throw StateError('a finalization 503 must not re-upload');
+            },
+            telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
+          ),
+          jobStatusFetcher: (jobId) async {
+            expect(jobId, 'job-finalizing');
+            expect(
+              syncJobFetchOutcomeForStatusCode(503),
+              SyncJobFetchOutcome.transient,
             );
+            return const SyncJobFetch(SyncJobFetchOutcome.transient);
           },
-          telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
-        ),
-      );
-      sync.testWals = [wal];
+        );
+        sync.testWals = [wal];
 
-      await sync.syncWal(wal: wal);
+        await sync.reconcileUploadedWals();
 
-      expect(wal.status, WalStatus.miss);
-      expect(wal.retryCount, 0);
-      expect(wal.jobId, isNull);
-      expect(wal.isSyncing, isFalse);
-      expect(wal.syncDisplayState, WalSyncDisplayState.waiting);
-      expect(wal.syncDisplayState, isNot(WalSyncDisplayState.failed));
-      expect(isAutoUploadEligible(wal), isTrue);
-      expect(file.existsSync(), isTrue);
-      expect(events.map((event) => event.name), isNot(contains(RecordingUploadTelemetry.failedEvent)));
-      expect(limiter.activeRetryAfterSeconds, inInclusiveRange(59, 60));
-    });
+        expect(wal.status, WalStatus.uploaded);
+        expect(wal.jobId, 'job-finalizing');
+        expect(
+          wal.retryCount,
+          1,
+          reason: 'a retrying finalization is not a failed attempt',
+        );
+        expect(wal.syncDisplayState, WalSyncDisplayState.uploaded);
+        expect(wal.syncDisplayState, isNot(WalSyncDisplayState.failed));
+        expect(events, isEmpty);
+      },
+    );
 
-    test('a 503 while backfill finalization is retrying leaves the upload pending', () async {
-      final events = <({String name, Map<String, dynamic> properties})>[];
-      final wal = Wal(
-        timerStart: 1700000001,
-        codec: BleAudioCodec.opus,
-        seconds: 31,
-        status: WalStatus.uploaded,
-        storage: WalStorage.disk,
-        device: 'omi',
-        filePath: 'audio_retrying.bin',
-        retryCount: 1,
-      )..jobId = 'job-finalizing';
-      final sync = syncWith(
-        uploadGate: SyncUploadGate(
-          limiter: limiter,
-          fairUseStatusLoader: () async => null,
-          uploader: (
-            files, {
-            onUploadProgress,
-            captureEvidence,
-            conversationId,
-            recordingSessionId,
-            audioStartSeconds,
-            audioEndSeconds,
-            claimLiveCapture = false,
-            geolocation,
-          }) async {
-            throw StateError('a finalization 503 must not re-upload');
-          },
-          telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
-        ),
-        jobStatusFetcher: (jobId) async {
-          expect(jobId, 'job-finalizing');
-          expect(syncJobFetchOutcomeForStatusCode(503), SyncJobFetchOutcome.transient);
-          return const SyncJobFetch(SyncJobFetchOutcome.transient);
-        },
-      );
-      sync.testWals = [wal];
+    test(
+      'an unscoped 5xx still fails the upload attempt and keeps the file',
+      () async {
+        final events = <({String name, Map<String, dynamic> properties})>[];
+        final wal = Wal(
+          timerStart: 1700000002,
+          codec: BleAudioCodec.opus,
+          seconds: 31,
+          status: WalStatus.miss,
+          storage: WalStorage.disk,
+          device: 'omi',
+          filePath: 'audio_server.bin',
+        );
+        final file = await pendingFile(wal);
+        final sync = syncWith(
+          uploadGate: SyncUploadGate(
+            limiter: limiter,
+            fairUseStatusLoader: () async => null,
+            uploader: (
+              files, {
+              onUploadProgress,
+              captureEvidence,
+              conversationId,
+              recordingSessionId,
+              audioStartSeconds,
+              audioEndSeconds,
+              claimLiveCapture = false,
+              geolocation,
+            }) async {
+              throw const SyncUploadHttpException(500, 'server');
+            },
+            telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
+          ),
+        );
+        sync.testWals = [wal];
 
-      await sync.reconcileUploadedWals();
+        await expectLater(
+          sync.syncWal(wal: wal),
+          throwsA(isA<SyncUploadHttpException>()),
+        );
 
-      expect(wal.status, WalStatus.uploaded);
-      expect(wal.jobId, 'job-finalizing');
-      expect(wal.retryCount, 1, reason: 'a retrying finalization is not a failed attempt');
-      expect(wal.syncDisplayState, WalSyncDisplayState.uploaded);
-      expect(wal.syncDisplayState, isNot(WalSyncDisplayState.failed));
-      expect(events, isEmpty);
-    });
-
-    test('an unscoped 5xx still fails the upload attempt and keeps the file', () async {
-      final events = <({String name, Map<String, dynamic> properties})>[];
-      final wal = Wal(
-        timerStart: 1700000002,
-        codec: BleAudioCodec.opus,
-        seconds: 31,
-        status: WalStatus.miss,
-        storage: WalStorage.disk,
-        device: 'omi',
-        filePath: 'audio_server.bin',
-      );
-      final file = await pendingFile(wal);
-      final sync = syncWith(
-        uploadGate: SyncUploadGate(
-          limiter: limiter,
-          fairUseStatusLoader: () async => null,
-          uploader: (
-            files, {
-            onUploadProgress,
-            captureEvidence,
-            conversationId,
-            recordingSessionId,
-            audioStartSeconds,
-            audioEndSeconds,
-            claimLiveCapture = false,
-            geolocation,
-          }) async {
-            throw const SyncUploadHttpException(500, 'server');
-          },
-          telemetryEmitter: (name, properties) => events.add((name: name, properties: properties)),
-        ),
-      );
-      sync.testWals = [wal];
-
-      await expectLater(sync.syncWal(wal: wal), throwsA(isA<SyncUploadHttpException>()));
-
-      expect(wal.status, WalStatus.miss);
-      expect(wal.syncDisplayState, isNot(WalSyncDisplayState.synced));
-      expect(file.existsSync(), isTrue, reason: 'a server failure must not discard the local recording');
-      expect(events.map((event) => event.name), contains(RecordingUploadTelemetry.failedEvent));
-      expect(events.last.properties['failure_class'], 'server');
-    });
+        expect(wal.status, WalStatus.miss);
+        expect(wal.syncDisplayState, isNot(WalSyncDisplayState.synced));
+        expect(
+          file.existsSync(),
+          isTrue,
+          reason: 'a server failure must not discard the local recording',
+        );
+        expect(
+          events.map((event) => event.name),
+          contains(RecordingUploadTelemetry.failedEvent),
+        );
+        expect(events.last.properties['failure_class'], 'server');
+      },
+    );
   });
 }

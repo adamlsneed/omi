@@ -2,7 +2,19 @@
 
 import hashlib
 import json
+import os
 from typing import Any
+
+from database.audio_timeline import group_chunks_by_coverage
+
+
+def playback_manifest_recovery_enabled() -> bool:
+    """Kill switch for failed-merge retries; unset enables bounded recovery."""
+    return os.getenv('PLAYBACK_MANIFEST_RECOVERY_ENABLED', 'true').strip().lower() == 'true'
+
+
+class PlaybackSourceChanged(RuntimeError):
+    """No immutable source manifest can justify bytes under this artifact key."""
 
 
 def source_fingerprint(chunks: list[dict[str, Any]]) -> str | None:
@@ -24,6 +36,9 @@ def source_fingerprint(chunks: list[dict[str, Any]]) -> str | None:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, allow_nan=False).encode()).hexdigest()
 
 
+_RAW_FRAGMENT_MARKERS = ('raw_source_start', 'pcm_sha256', 'raw_end')
+
+
 def resolve_sources(audio_file: dict[str, Any], chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Resolve current entries only when the complete immutable manifest matches."""
     expected = audio_file.get('source_fingerprint')
@@ -31,6 +46,15 @@ def resolve_sources(audio_file: dict[str, Any], chunks: list[dict[str, Any]]) ->
     selected = [chunk for chunk in chunks if chunk['timestamp'] in timestamps]
     if not expected or source_fingerprint(selected) == expected:
         return selected
+    # Listings are chronological, but equal-timestamp siblings can be separate
+    # coverage groups. Resolve only the group whose complete hash was stamped,
+    # never all siblings sharing a lookup key. Sorting also tolerates list order
+    # changes without accepting a generation/checksum change.
+    ordered = sorted(selected, key=lambda chunk: (chunk['timestamp'], chunk['path']))
+    candidates = [ordered, *group_chunks_by_coverage(ordered, gap_threshold=90)]
+    for candidate in candidates:
+        if source_fingerprint(candidate) == expected:
+            return candidate
     aliases = {
         chunk['legacy_timestamp']
         for chunk in chunks
@@ -47,7 +71,24 @@ def resolve_sources(audio_file: dict[str, Any], chunks: list[dict[str, Any]]) ->
     # checksums, paths, spans and raw selectors must still match the old hash.
     if source_fingerprint([view for view, _ in compatible]) == expected:
         return [current for _, current in compatible]
-    raise RuntimeError('playback source manifest changed')
+    # Stamps created before raw-fragment projection hash the encoded manifest
+    # alone, under filename keys; raw pack fragments only add coverage and carry
+    # no md5/crc identity, so they are not part of those stamps. Re-hash the
+    # encoded-only view before refusing, or every pre-fragment audio_file fails
+    # validation forever once one raw fragment appears in the listing.
+    legacy = []
+    for chunk in chunks:
+        if any(marker in chunk for marker in _RAW_FRAGMENT_MARKERS):
+            continue
+        view = dict(chunk)
+        if 'legacy_timestamp' in view:
+            view['timestamp'] = view.pop('legacy_timestamp')
+        if view['timestamp'] in timestamps:
+            legacy.append((view, chunk))
+    legacy.sort(key=lambda pair: (pair[0]['timestamp'], pair[0]['path']))
+    if source_fingerprint([view for view, _ in legacy]) == expected:
+        return [current for _, current in legacy]
+    raise PlaybackSourceChanged('playback source manifest changed')
 
 
 def validate_sources(audio_files: list[dict[str, Any]], chunks: list[dict[str, Any]]) -> None:

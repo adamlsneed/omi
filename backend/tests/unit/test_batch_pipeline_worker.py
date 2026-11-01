@@ -38,6 +38,7 @@ from tests.unit.test_batch_pipeline_scheduler import MemoryStore
 
 @pytest.fixture(autouse=True)
 def _full_gpu_stages(monkeypatch):
+    monkeypatch.setenv('BATCH_PIPELINE_EMPTY_ASR_SAFETY_NET_ENABLED', 'false')
     # This suite pins the full-stage chain. The ship-on GPU skips have their own
     # contract in test_batch_pipeline_diarization_gate.py.
     monkeypatch.setenv('BATCH_PIPELINE_DIARIZE_SPEECH_ONLY_ENABLED', 'false')
@@ -334,7 +335,8 @@ def test_empty_recovery_remains_failure_and_healthy_sibling_survives(caplog):
 def test_recovery_only_runs_for_valid_empty_speech(mode):
     class Provider:
         def transcribe_batch(self, arrays):
-            return [[{'word': 'synthetic', 'timestamp': [-1 if mode == 'invalid' else 0, 1]}] for _ in arrays]
+            clocks = [-2, -1] if mode == 'invalid' else [0, 1]
+            return [[{'word': 'synthetic', 'timestamp': clocks}] for _ in arrays]
 
     worker, *_ = setup_worker(
         vad=lambda s: [] if mode == 'silence' else [(0, 2)],
@@ -938,7 +940,7 @@ async def test_worker_strict_silence_commits_or_preserves_quarantine(monkeypatch
     await pump.run_once()
     provider.transcribe_batch.assert_called_once()
     retry.assert_called_once()
-    assert strict.call_count == int(enabled)
+    assert strict.call_count == 1 + int(enabled)  # one record-only shadow inspection
     if enabled and not speech:
         assert store.rows['jobs', 'a']['state'] == 'committed'
         assert store.rows['results', 'a']['result']['outcome'] == 'silence'
