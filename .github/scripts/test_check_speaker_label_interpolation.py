@@ -61,6 +61,30 @@ class SpeakerPresentationRatchetTest(unittest.TestCase):
         self.assertTrue(regressions('backend/utils/display.py', '', source))
         self.assertTrue(regressions('backend/utils/episodes/policy.py', '', source.replace('keys.add', 'render')))
 
+    def test_soniox_wire_assignment_is_not_a_display_exception(self):
+        path = 'backend/utils/stt/soniox_batch.py'
+        assignment = "speaker = f'SPEAKER_{max(int(raw_speaker) - 1, 0) if raw_speaker is not None else 0:02d}'"
+        source = (
+            "def transcript_words(payload, duration):\n"
+            " token = payload['tokens'][0]\n"
+            " raw_speaker = token.get('speaker')\n"
+            f" {assignment}\n"
+            " return [{'speaker': speaker}], 'multi'\n"
+        )
+        self.assertFalse(regressions(path, '', source))
+        for mutated_path, mutated_source in [
+            ('backend/utils/display.py', source),
+            (path, source.replace('transcript_words', 'render_words')),
+            (path, source.replace('speaker = f', 'label = f')),
+            (path, source.replace('speaker = f', 'label = speaker = f')),
+            (path, source.replace('SPEAKER_', 'Speaker ')),
+            (path, source.replace(':02d', ':03d')),
+            (path, source.replace(" return [", " label = f'{speaker}'\n return [")),
+            (path, source.replace(" return [", f" label = {assignment.split(' = ', 1)[1]}\n return [")),
+        ]:
+            with self.subTest(path=mutated_path, source=mutated_source):
+                self.assertTrue(regressions(mutated_path, '', mutated_source))
+
     def test_dart_hash_has_no_display_exception(self):
         self.assertTrue(regressions(
             'app/lib/services/on_device/on_device_projection.dart', '',

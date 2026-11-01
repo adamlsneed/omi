@@ -8,7 +8,12 @@ checks:
     command: ["python3", ".github/scripts/test_fork_backend_mirror_exception.py"]
     triggers: [".github/scripts/fork_policy.py", "scripts/pre-commit", ".github/scripts/test_fork_backend_mirror_exception.py", "backend/tests/unit/test_edit_tools_resilience.py", "backend/tests/unit/test_task_integrations_sanitization.py", "backend/tests/unit/test_episode_boundary_evidence.py", "backend/config/task_intelligence_sources_v1.json", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
-    reason: "October 25 and 30 approvals: pin all test-only exception blobs and reject every other backend edit or upstream drift."
+    reason: "October 25 exception only: pin the edit-tools repair and reject every other backend edit or upstream drift."
+  - id: fork-backend-test-support
+    command: ["python3", "scripts/fork/test_watch_task_source.py"]
+    triggers: ["scripts/fork/**", "backend/config/task_intelligence_sources_v1.json", "backend/utils/task_intelligence/contracts.py", "backend/tests/unit/test_task_intelligence_contract_freeze.py", "backend/tests/unit/test_task_integrations_sanitization.py", "app/lib/services/watch/**", ".github/workflows/backend-unit-tests.yml", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "November 1 upstream sync: retain Watch writer registration and real Jinja2 test isolation without widening the sole October 25 backend mirror exception."
   - id: pcloud-backup-contract-tests
     command: ["bash", "scripts/run-plugin-pcloud-tests.sh"]
     triggers: ["plugins/omi-pcloud-app/**", "plugins/omi-plugin-sdk/**", "backend/utils/plugin_transport.py", "backend/utils/plugin_backup_audio.py", "scripts/run-plugin-pcloud-tests.sh", ".github/checks-manifest.yaml"]
@@ -245,6 +250,11 @@ checks:
     triggers: ["backend/database/screen_activity.py", "backend/database/_client.py", "backend/tests/unit/test_screen_activity_batch_resilience.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "Deduplicate documents in screen activity batch commits to prevent Firestore 400 contention errors, enforce 499-op commit chunking, and validate uid inputs"
+  - id: conversation-tools-sanitization-tests
+    command: ["python3", "backend/tests/unit/test_conversation_tools_sanitization.py"]
+    triggers: ["backend/utils/retrieval/tools/conversation_tools.py", "backend/tests/unit/test_conversation_tools_sanitization.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "Conversation chat tools must safely handle date parsing and formatting exceptions and never leak internal traces to LLM context"
   - id: go-device-sdk-tests
     command: ["go", "-C", "sdks/device/go", "test", "-race", "./..."]
     triggers: ["sdks/device/go/**"]
@@ -799,6 +809,12 @@ checks:
     lanes: ["local", "ci"]
     platforms: ["macos"]
     reason: "PR 12935: speech availability must return on deadline without awaiting shared downloads, and recognition cleanup must precede retry"
+  - id: ios-live-preview-plugin
+    command: ["ruby", "app/ios/test/live_preview_plugin_test.rb"]
+    triggers: ["app/ios/Runner/LivePreviewPlugin.swift", "app/ios/Runner/LivePreviewSelection.swift", "app/ios/Runner/AppDelegate.swift", "app/ios/Runner.xcodeproj/project.pbxproj", "app/ios/test/live_preview_plugin_test.rb", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    platforms: ["macos"]
+    reason: "Mobile local preview: on-device engine order and closed reasons, no asset download or permission prompt from capture, and the plugin type-checks against the iOS Speech SDK"
   - id: ios-watch-audio-chunk-relay
     command: ["ruby", "app/ios/test/watch_audio_chunk_relay_test.rb"]
     triggers: ["app/ios/Runner/WatchAudioChunkRelay.swift", "app/ios/Runner/AppDelegate.swift", "app/ios/Runner.xcodeproj/project.pbxproj", "app/ios/test/watch_audio_chunk_relay_test.rb", ".github/checks-manifest.yaml"]
@@ -863,6 +879,12 @@ checks:
     lanes: ["local", "ci"]
     platforms: ["macos"]
     reason: "native pendant audio health must remain bounded across quiet, repair, reconnect, and relaunch transitions"
+  - id: ios-capture-presentation
+    command: ["ruby", "app/ios/test/omi_capture_presentation_test.rb"]
+    triggers: ["app/ios/LiveActivity/OmiCapturePresentationPolicy.swift", "app/ios/LiveActivity/OmiCaptureAttributes.swift", "app/ios/LiveActivity/OmiCaptureIntents.swift", "app/ios/BatteryWidget/OmiCaptureLiveActivity.swift", "app/ios/BatteryWidget/Localizable.xcstrings", "app/ios/Runner/LiveActivity/LiveActivityManager.swift", "app/ios/test/omi_capture_presentation_test.rb", "app/ios/Runner.xcodeproj/project.pbxproj", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    platforms: ["macos"]
+    reason: "the capture Live Activity must warn only on real audio failures (noAudio or unheard past grace) and keep every notice string localized"
   - id: ios-dev-build-configuration
     command: ["ruby", "app/ios/test/omi_dev_build_configuration_test.rb"]
     triggers: ["app/ios/Flutter/devProfile.xcconfig", "app/ios/Flutter/devRelease.xcconfig", "app/ios/Runner.xcodeproj/project.pbxproj", "app/ios/test/omi_dev_build_configuration_test.rb", ".github/checks-manifest.yaml"]
@@ -1040,7 +1062,7 @@ checks:
     reason: "backend Python changed"
   - id: legacy-memory-surface-ratchet
     command: ["python3", "backend/scripts/legacy_memory_surface_inventory.py", "--check-ratchet", "--base-ref", "{base}"]
-    triggers: ["backend/scripts/legacy_memory_surface_inventory.py", "backend/scripts/legacy_memory_surface_baseline.json", "backend/tests/unit/test_legacy_memory_surface_inventory.py", "backend/utils/conversations/process_conversation.py", "backend/utils/conversations/merge_conversations.py", "backend/utils/sync/pipeline.py", "backend/utils/memory/*.py", "backend/jobs/short_term_lifecycle_worker.py", "backend/modal/memory_maintenance_job.py", "backend/routers/conversations.py", "backend/routers/developer.py", "backend/routers/listen/conversations.py", "backend/routers/mcp.py", "backend/routers/mcp_sse.py", "backend/routers/memory_admin.py", "backend/routers/users.py", "backend/database/product_memory_items.py", "backend/database/users.py", "backend/runtime_images.json", "backend/utils/llm/ai_user_profile.py", "backend/deploy/runtime_env/*.yaml", "backend/scripts/memory-continuity-gauntlet.py", "backend/scripts/validate_memory_maintenance_scheduler.py", "desktop/macos/Desktop/Sources/ProactiveAssistants/**/*.swift", "desktop/macos/Desktop/Sources/Providers/ChatProvider.swift", "desktop/macos/Desktop/Sources/Rewind/Core/RewindDatabase.swift", "desktop/windows/src/main/assistants/**/*.ts", "desktop/windows/src/main/agentKernel/desktopChatPrompt.ts", "desktop/windows/src/main/ipc/mainChatPersonalization.ts", "desktop/windows/src/main/ipc/db.ts", ".github/workflows/gcp_memory_maintenance_job*.yml"]
+    triggers: ["backend/scripts/legacy_memory_surface_inventory.py", "backend/scripts/legacy_memory_surface_baseline.json", "backend/tests/unit/test_legacy_memory_surface_inventory.py", "backend/utils/conversations/process_conversation.py", "backend/utils/conversations/merge_conversations.py", "backend/utils/sync/pipeline.py", "backend/utils/memory/*.py", "backend/jobs/short_term_lifecycle_worker.py", "backend/routers/conversations.py", "backend/routers/developer.py", "backend/routers/listen/conversations.py", "backend/routers/mcp.py", "backend/routers/mcp_sse.py", "backend/routers/memory_admin.py", "backend/routers/users.py", "backend/database/product_memory_items.py", "backend/database/users.py", "backend/runtime_images.json", "backend/utils/llm/ai_user_profile.py", "backend/deploy/runtime_env/*.yaml", "backend/scripts/memory-continuity-gauntlet.py", "desktop/macos/Desktop/Sources/ProactiveAssistants/**/*.swift", "desktop/macos/Desktop/Sources/Providers/ChatProvider.swift", "desktop/macos/Desktop/Sources/Rewind/Core/RewindDatabase.swift", "desktop/windows/src/main/assistants/**/*.ts", "desktop/windows/src/main/agentKernel/desktopChatPrompt.ts", "desktop/windows/src/main/ipc/mainChatPersonalization.ts", "desktop/windows/src/main/ipc/db.ts"]
     lanes: ["local", "ci"]
     reason: "Gate F legacy memory surfaces may shrink during the JIT-processing migration but must not gain new source or deployment references"
   - id: backend-datetime-sort-sentinel-ratchet
@@ -1913,6 +1935,36 @@ checks:
     triggers: [".github/scripts/check_speaker_label_interpolation.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "hermetic fixtures cover f-string, format, % and concatenation detection plus the legal log-message and static-label neighbors"
+  - id: docs-site-gate
+    command: ["python3", ".github/scripts/check_docs_site.py"]
+    triggers: ["docs/**", ".github/scripts/check_docs_site.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "docs.omi.me had no gate: three app pages linked /doc/developer/api and OmiConsumer linked /doc/hardware/consumer, none of which resolved, and the 2026-10 docs overhaul moved or deleted 20+ public pages that had zero redirect coverage, so nav-to-file, orphan, broken-link, image and redirect-shadow classes must fail deterministically"
+  - id: docs-site-gate-fixtures
+    command: ["python3", ".github/scripts/test_check_docs_site.py"]
+    triggers: [".github/scripts/check_docs_site.py", ".github/scripts/test_check_docs_site.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "the docs gate is the guard for its failure classes, so each class (missing nav file, orphan, broken link, broken image, redirect-source link, redirect shadow, dead redirect target) stays covered by a hermetic fixture"
+  - id: docs-volatile-facts
+    command: ["python3", ".github/scripts/check_docs_volatile_facts.py"]
+    triggers: ["docs/**", ".github/scripts/check_docs_volatile_facts.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "hand-written docs pages shipped review-SLA promises ('reviewed within 24 hours' in two places), hardware prices, rotting counts ('22+ tools/integrations' in three places), retired bounty links and a model-name table that churns with every provider switch; the lint freezes those classes out of hand-written pages with an explicit allowlist for provider-topic, setup-pin, legacy and generated pages"
+  - id: docs-volatile-facts-fixtures
+    command: ["python3", ".github/scripts/test_check_docs_volatile_facts.py"]
+    triggers: [".github/scripts/check_docs_volatile_facts.py", ".github/scripts/test_check_docs_volatile_facts.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "every pattern class plus the allowlist and api-reference exemptions stay behaviorally covered"
+  - id: cli-commands-doc-drift
+    command: ["python3", "sdks/python-cli/tools/gen_commands_doc.py", "--check"]
+    triggers: ["sdks/python-cli/omi_cli/**", "sdks/python-cli/tools/gen_commands_doc.py", "docs/doc/developer/cli/commands.mdx", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "the CLI commands page told readers to run 'omi --help for the live version' while itself missing the version/ask/chat commands, the entire omi local group, the --timeout flag and two env vars; the tree and inventory are now generated from the Typer registrations so the page cannot lag the code"
+  - id: mcp-tools-doc-drift
+    command: ["python3", "scripts/generate_mcp_tools_doc.py", "--check"]
+    triggers: ["backend/utils/mcp_server/registry.py", "scripts/generate_mcp_tools_doc.py", "docs/doc/developer/mcp/tools.mdx", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "the MCP tools page hand-paraphrased all 26 advertised tools and had already lagged the registry (missing fields/summary_only/cursor/timezone parameters on conversation and screen-activity tools); the tool inventory (name, description, scope) is now generated from TOOL_SPECS so an undocumented new tool fails the drift check"
 exempt:
   - path: ".github/scripts/check-desktop-beta-freshness.py"
     reason: "hourly doctor job hits the public beta appcast; behavioral coverage is desktop-beta-freshness-tests"

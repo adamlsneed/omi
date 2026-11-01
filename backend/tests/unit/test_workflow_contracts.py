@@ -363,7 +363,7 @@ def test_backend_unit_suite_is_sharded_with_a_literal_gate_and_budget():
     test time, and sharing processes across files is blocked by dense
     sys.modules contamination (see the BACKEND_PYTEST_PARALLEL_SESSION
     measurement in backend/test.sh). The workflow therefore runs the SAME
-    selection as six parallel shard jobs whose interleaved slices partition
+    selection as six parallel shard jobs whose weighted partitions cover
     the sorted file list exactly (union = full selection), plus a concurrent
     guardrails job, and publishes the verdict through a literal-named gate so
     the required check surface never changes. Each shard carries a wall-clock
@@ -391,12 +391,13 @@ def test_backend_unit_suite_is_sharded_with_a_literal_gate_and_budget():
     assert '::notice title=Heavy CI deferred::' in workflow
     assert 'echo "Heavy CI deferred: $notice" >> "$GITHUB_STEP_SUMMARY"' in workflow
     assert 'guardrails_required=skipped' in workflow
-    # The runner slices the deterministic selection round-robin with the
-    # one-based mapping (line i runs in shard ((i - 1) % total) + 1, so
-    # shard labels match the files they carry); `index` is an awk builtin,
-    # so the shard variable must be named anything else.
-    assert "(NR - 1) % total == shard - 1" in runner
-    assert "awk -v index=" not in runner
+    # The runner deals the deterministic selection heaviest-first (measured
+    # weights) to the least loaded shard (PR #23767: round-robin left walls
+    # 433-754s); ties fall back to round-robin with one-based shard labels.
+    assert "backend_unit_shard_weights.tsv" in runner
+    assert (BACKEND_DIR / "scripts/backend_unit_shard_weights.tsv").is_file()
+    assert "key=lambda index: (load[index], count[index], index)" in runner
+    assert "assigned[path] = target + 1" in runner
 
 
 def test_backend_test_runner_defaults_python_to_utf8():
@@ -975,6 +976,33 @@ def test_gcp_diarizer_batch_deploys_dedicated_release_like_the_runbook():
     assert "rollout_timeout=900s" in verify_step["run"]
 
 
+def test_gcp_diarizer_verify_rollout_asserts_the_digest_helm_deploys():
+    """Promotion deploys verify the promoted digest, not only freshly built ones.
+
+    bramp2 (2026-10-25) found Verify rollout asserting against steps.build only,
+    while Helm deploys steps.build || steps.promote, so an image_digest
+    promotion skipped the exact deployed-digest check entirely. EXPECTED_DIGEST
+    must stay the same selection Helm deploys for batch-pipeline-worker.
+    """
+    workflow_path = BACKEND_DIR.parent / ".github/workflows/gcp_diarizer.yml"
+    workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["deploy"]["steps"]
+
+    verify_step = next(step for step in steps if step.get("name") == "Verify rollout")
+    assert (
+        verify_step["env"]["EXPECTED_DIGEST"]
+        == "${{ steps.build.outputs.image_digest || steps.promote.outputs.image_digest }}"
+    )
+    # The message must be right for both paths: it reports what was expected, not what was built.
+    assert "not the expected digest" in verify_step["run"]
+    assert "not the built digest" not in verify_step["run"]
+
+    # The expression Helm deploys for batch-pipeline-worker is exactly the one
+    # Verify rollout asserts, so the two selections cannot drift apart again.
+    helm_step = next(step for step in steps if "Helm" in step.get("name", ""))
+    assert f'"image.digest={verify_step["env"]["EXPECTED_DIGEST"]}"' in helm_step["run"]
+
+
 def test_firestore_readiness_gate_covers_every_backend_image_shipment():
     """Every backend-source image push/deploy needs the shared immutable gate."""
     policy = _workflow_policy()
@@ -1058,7 +1086,7 @@ def test_firestore_gate_policy_rejects_ungated_deploy_mutations():
     policy = _workflow_policy()
     repo = BACKEND_DIR.parent
     dockerfiles = policy._runtime_images(repo)
-    workflow = (repo / '.github/workflows/gcp_memory_maintenance_job.yml').read_text(encoding='utf-8')
+    workflow = (repo / '.github/workflows/gcp_frame_request_retention_job.yml').read_text(encoding='utf-8')
 
     gate_block = re.search(r'      - name: Verify serving Firestore indexes\n(?:        .*\n)+', workflow).group(0)
     removed = workflow.replace(gate_block, '')
@@ -1093,11 +1121,6 @@ def test_firestore_gate_policy_rejects_ungated_deploy_mutations():
         1,
     )
     assert policy.workflow_gate_violations(tolerated_control, name='tolerated-control.yml', dockerfiles=dockerfiles)
-
-    push_step = re.search(r'      - name: Push verified runtime image\n(?:        .*\n)+', workflow).group(0)
-    reordered = workflow.replace(gate_block, '')
-    reordered = reordered.replace(push_step, push_step + gate_block)
-    assert policy.workflow_gate_violations(reordered, name='reordered.yml', dockerfiles=dockerfiles)
 
 
 def _synthetic_deploy(steps: str, *, extra_jobs: str = '', job_prefix: str = '') -> str:
@@ -1497,8 +1520,6 @@ _LANE_SOURCE_BINDINGS = {
     'desktop_backend_prod.yml': '${{ steps.admitted-source.outputs.source_sha }}',
     'desktop_backend_auto_dev.yml': '${{ steps.candidate-identity.outputs.source_sha }}',
     'gcp_llm_gateway.yml': '${{ env.CHECKED_OUT_SHA }}',
-    'gcp_memory_maintenance_job.yml': '${{ env.CHECKED_OUT_SHA }}',
-    'gcp_memory_maintenance_job_auto_dev.yml': '${{ github.sha }}',
     'gcp_notifications_job.yml': '${{ env.CHECKED_OUT_SHA }}',
     'gcp_x_connector_sync_job.yml': '${{ env.CHECKED_OUT_SHA }}',
     'gcp_day3_reengagement_email_job.yml': '${{ steps.admitted_source.outputs.admitted_sha }}',
@@ -2033,6 +2054,7 @@ def _composite_control_root(tmp_path: Path) -> Path:
         'review_queries.py',
         'messaging_queries.py',
         'sync_pipeline_indexes.py',
+        'batch_pipeline_indexes.py',
     ):
         (database_dir / name).write_text((backend / 'database' / name).read_text(encoding='utf-8'), encoding='utf-8')
     (scripts_dir / '__init__.py').write_text('', encoding='utf-8')

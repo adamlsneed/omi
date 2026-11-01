@@ -81,7 +81,7 @@ final class SubscriptionPlanCatalogMergerTests: XCTestCase {
     XCTAssertEqual(merged[0].prices.map(\.id), ["price_operator"])
   }
 
-  func testCompatibleWireTitlesKeepOperatorPricesOffArchitectAndDisplayPro() throws {
+  func testCompatibleWireTitlesKeepOperatorPricesOffArchitectAndDisplayOperator() throws {
     let primary = [
       SubscriptionPlanOption(id: "operator", title: "Operator"),
       SubscriptionPlanOption(
@@ -102,12 +102,12 @@ final class SubscriptionPlanCatalogMergerTests: XCTestCase {
     let operatorPlan = try XCTUnwrap(merged.first { $0.id == "operator" })
     let architectPlan = try XCTUnwrap(merged.first { $0.id == "architect" })
     XCTAssertEqual(operatorPlan.title, "Operator")  // primary wire title stays compatible
-    XCTAssertEqual(operatorPlan.displayTitle, "Pro")
+    XCTAssertEqual(operatorPlan.displayTitle, "Operator")
     XCTAssertEqual(Set(operatorPlan.prices.map { $0.id }), ["price_op_Monthly", "price_op_Annual"])
     XCTAssertEqual(architectPlan.prices.map { $0.id }, ["price_arch"])
     XCTAssertEqual(
       SubscriptionPlanPresentation.selectionLabel(planTitle: operatorPlan.displayTitle, startingPrice: "$49"),
-      "Select Pro · $49")
+      "Select Operator · $49")
   }
 
 }

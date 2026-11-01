@@ -33,4 +33,4 @@ both sides in the same change. Changing a value breaks the handshake.
 
 ## Upstream sync
 Pulling BasedHardware/omi is a one-way, fork-specific process. Full runbook:
-`docs/developer/upstream-sync-and-backend-policy.mdx`. Never push to upstream.
+`.github/agent-docs/upstream-sync.md`. Never push to upstream.

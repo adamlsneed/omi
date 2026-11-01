@@ -39,6 +39,28 @@ class ForkPolicyTests(unittest.TestCase):
         self.path.write_text('changed\n')
         self.assertFalse(self.policy.mirrors_upstream(self.root, 'backend/example.py'))
 
+    def test_only_october_25_exception_remains_authorized(self):
+        self.assertEqual(set(self.policy.BACKEND_EXCEPTIONS), {
+            'backend/tests/unit/test_edit_tools_resilience.py',
+        })
+
+    def test_retired_exceptions_require_exact_upstream_bytes(self):
+        for path in (
+            'backend/tests/unit/test_task_integrations_sanitization.py',
+            'backend/tests/unit/test_episode_boundary_evidence.py',
+            'backend/config/task_intelligence_sources_v1.json',
+        ):
+            with self.subTest(path=path):
+                original = (self.root / path).read_text()
+                (self.root / path).write_text(original + 'unapproved change\n')
+                with self.assertRaises(ValueError):
+                    self.policy.verify_backend(self.root)
+                self.git('add', path)
+                with self.assertRaises(ValueError):
+                    self.policy.verify_backend(self.root, cached=True)
+                (self.root / path).write_text(original)
+                self.git('add', path)
+
     def test_nonfork_does_not_receive_an_exemption(self):
         self.git('remote', 'set-url', 'origin', 'https://github.com/example/omi.git')
         self.assertFalse(self.policy.mirrors_upstream(self.root, 'backend/example.py'))
