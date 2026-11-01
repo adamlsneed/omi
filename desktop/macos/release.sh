@@ -249,6 +249,9 @@ cp -f omi_icon.icns "$APP_BUNDLE/Contents/Resources/OmiIcon.icns" 2>/dev/null ||
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 # No provisioning profile: release entitlements drop applesignin, so none is needed.
 
+step "Preparing native dependencies"
+./scripts/prepare-desktop-bundle-native-deps.sh "$APP_BUNDLE"
+
 # --- Sign (Developer ID + hardened runtime + secure timestamp, inside-out) ---
 # Notarization requires EVERY Mach-O (node native .node modules, bundled dylibs,
 # Sparkle's nested Updater.app/XPC helpers) signed with Developer ID + hardened
@@ -286,6 +289,8 @@ for lib in libsharpyuv.0.dylib libwebp.7.dylib; do
 done
 sign --entitlements Desktop/Omi-Release.entitlements --sign "$SIGN_IDENTITY" "$APP_BUNDLE"
 codesign --verify --strict --verbose=2 "$APP_BUNDLE"
+./scripts/check-desktop-bundle-signatures.sh "$APP_BUNDLE"
+./scripts/audit-desktop-bundle-deps.sh "$APP_BUNDLE"
 
 # --- Notarize ---
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
