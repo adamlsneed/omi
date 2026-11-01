@@ -43,6 +43,12 @@ present) and an npm 10 wrapper at `/tmp/npm10/npm` on its own PATH, creating the
 from the npm 10 copy in `~/.npm/_npx` (or `npm install --prefix /tmp/npm10pkg npm@10`)
 when `/tmp` was wiped. npm 12 fails `npm ci` against the committed lockfiles.
 
+Release assembly reads SwiftPM's canonical `Desktop/.build/release` products
+directory, including when it resolves to Xcode's `out/Products/Release`. It uses
+the same resource normalization as development bundles for both legacy and new
+SwiftPM resource layouts. Missing required frameworks, Node, or ffmpeg stop
+assembly before signing.
+
 Native dependencies must support the minimum macOS version declared in the app's
 `Info.plist`. Homebrew libraries can require a newer system than the app. Select a
 compatible WebP build using `PKG_CONFIG_PATH` before compilation, and set

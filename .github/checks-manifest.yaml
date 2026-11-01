@@ -1400,6 +1400,11 @@ checks:
     triggers: ["desktop/macos/release.sh", "desktop/macos/run.sh", "desktop/macos/scripts/prepare-desktop-bundle-native-deps.sh", "desktop/macos/scripts/check-bundled-macos-floor.py", "desktop/macos/tests/test-check-bundled-macos-floor.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "fork desktop 0.1.21 bundled macOS 26/27 dependencies behind a macOS 14 declaration; thin and universal Mach-O fixtures must reject incompatible or malformed native artifacts"
+  - id: desktop-swiftpm-release-products
+    command: ["bash", "desktop/macos/tests/test-stage-swiftpm-release-products.sh"]
+    triggers: ["desktop/macos/release.sh", "desktop/macos/scripts/stage-swiftpm-release-products.sh", "desktop/macos/scripts/launcher-bootstrap.sh", "desktop/macos/tests/test-stage-swiftpm-release-products.sh", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "the November 1 sync candidate used Xcode 27 products under .build/release but packaging read a retired architecture directory, omitting Sparkle and ffmpeg and misplacing Node; require complete staged runtime artifacts in both SwiftPM layouts"
   - id: desktop-release-artifact-helpers
     command: ["bash", "desktop/macos/tests/test-desktop-release-artifact-helpers.sh"]
     triggers: ["codemagic.yaml", "desktop/macos/scripts/create-desktop-dmgs.sh", "desktop/macos/scripts/create-omi-beta-variant.sh", "desktop/macos/scripts/notarize-desktop-artifacts.sh", "desktop/macos/tests/test-desktop-release-artifact-helpers.sh", ".github/checks-manifest.yaml"]
