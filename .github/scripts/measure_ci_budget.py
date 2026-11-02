@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded weekly GitHub Actions PR-job sample and budget alert.
 
-At most 24 workflow-list calls, 144 job-list calls, and two issue calls.
+At most 168 workflow-list calls, 168 job-list calls, and two issue calls.
 Only GITHUB_TOKEN is read; no personal token or historical backfill is used.
 """
 
@@ -20,9 +20,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 TITLE = "Weekly CI budget audit"
-MAX_WORKFLOWS = 20
+MAX_WORKFLOWS = 24
 DAYS = 7
-MAX_CALLS = 282
+MAX_CALLS = MAX_WORKFLOWS * DAYS * 2 + 2
 
 
 def timestamp(value: str) -> datetime:
