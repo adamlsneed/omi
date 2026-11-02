@@ -55,6 +55,20 @@ class SamplerTests(unittest.TestCase):
         self.assertEqual(len(api.calls), DAYS)
         self.assertTrue(all("per_page=1" in path for _, path, _ in api.calls))
 
+    def test_current_inventory_fits_bounded_sampler(self):
+        import json
+        from pathlib import Path
+
+        class EmptyGithub(FakeGithub):
+            def request(self, method, path, body=None):
+                self.calls.append((method, path, body))
+                return {"workflow_runs": []}
+
+        budget = json.loads(Path(".github/ci-budget.yaml").read_text())
+        api = EmptyGithub()
+        collect(api, budget, self.now)
+        self.assertEqual(len(api.calls), DAYS * sum("pull_request" in wf["triggers"] for wf in budget["workflows"].values()))
+
 
 if __name__ == "__main__":
     unittest.main()
