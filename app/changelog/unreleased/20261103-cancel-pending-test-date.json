@@ -1,0 +1,4 @@
+{
+  "kind": "none",
+  "reason": "Keep the cancellation-pending test billing date in the future while preserving timezone coverage. No production behavior change."
+}
