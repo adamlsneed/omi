@@ -175,10 +175,11 @@ Future<_Usage> _pump(
   return usage;
 }
 
-/// 2026-11-03 00:00:00 UTC. Far-east and far-west zones put that instant on different
-/// local calendar days, so the expected label is the local day of the same epoch
-/// the sheet formats.
-final int _periodEndSeconds = DateTime.utc(2026, 11, 3).millisecondsSinceEpoch ~/ 1000;
+// Keep the cancellation pending as the calendar advances. UTC midnight puts the
+// same instant on different local days in the far-east and far-west test zones.
+final DateTime _todayUtc = DateTime.now().toUtc();
+final int _periodEndSeconds =
+    DateTime.utc(_todayUtc.year, _todayUtc.month, _todayUtc.day + 30).millisecondsSinceEpoch ~/ 1000;
 
 String _date(WidgetTester tester) {
   final context = tester.element(find.byType(PlansSheet));
