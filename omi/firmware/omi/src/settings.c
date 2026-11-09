@@ -1,15 +1,21 @@
 #include "lib/core/settings.h"
 
+#include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/atomic.h>
+
+#include "safe_mode.h"
 
 LOG_MODULE_REGISTER(app_settings, CONFIG_LOG_DEFAULT_LEVEL);
 
 // Default values if not found in flash
 #define DEFAULT_DIM_LIGHT_RATIO 50
 #define DEFAULT_MIC_GAIN 6
+/* Fail closed: muted until the omi subtree loads. A healthy load with no
+ * stored value means a device that was never muted (3.0.24). */
+#define DEFAULT_MUTED 1
 
 // In-memory cache for the settings
 static uint8_t dim_light_ratio = DEFAULT_DIM_LIGHT_RATIO;
@@ -18,6 +24,8 @@ static atomic_t recording_paused;
 static atomic_t double_tap_pause_feedback_enabled = ATOMIC_INIT(1);
 // idea-capture: app-driven "idea capture mode" flag; drives the solid-green LED.
 static atomic_t idea_capture_active;
+static uint8_t muted = DEFAULT_MUTED;
+static bool muted_loaded;
 static struct rtc_time rtc_timestamp = {0};
 static uint64_t rtc_epoch = 0;
 
@@ -28,6 +36,7 @@ struct lsm6dsl_time_base {
 };
 
 static struct lsm6dsl_time_base lsm6dsl_time_base = {0};
+static char device_name[MAX_DEVICE_NAME_LEN] = {0};
 
 static int settings_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
 {
@@ -58,6 +67,24 @@ static int settings_set(const char *name, size_t len, settings_read_cb read_cb, 
         return rc;
     }
 
+    if (settings_name_steq(name, "muted", &next) && !next) {
+        /* An unreadable mute may be a user's pause, so stay muted. The app reads this
+         * state back, and an explicit unmute rewrites the setting (issue #5054). */
+        muted_loaded = true;
+        if (len != sizeof(muted)) {
+            muted = 1U;
+            return -EINVAL;
+        }
+        rc = read_cb(cb_arg, &muted, sizeof(muted));
+        if (rc == sizeof(muted)) {
+            muted = muted ? 1U : 0U;
+            LOG_INF("Loaded muted: %u", muted);
+            return 0;
+        }
+        muted = 1U;
+        return rc < 0 ? rc : -EIO;
+    }
+
     if (settings_name_steq(name, "rtc_timestamp", &next) && !next) {
         if (len != sizeof(rtc_timestamp)) {
             return -EINVAL;
@@ -85,7 +112,7 @@ static int settings_set(const char *name, size_t len, settings_read_cb read_cb, 
             uint32_t epoch_u32 = 0;
             rc = read_cb(cb_arg, &epoch_u32, sizeof(epoch_u32));
             if (rc >= 0) {
-                rtc_epoch = (uint64_t)epoch_u32;
+                rtc_epoch = (uint64_t) epoch_u32;
                 LOG_INF("Loaded rtc_epoch(u32)=%u -> %llu", epoch_u32, rtc_epoch);
                 return 0;
             }
@@ -93,7 +120,9 @@ static int settings_set(const char *name, size_t len, settings_read_cb read_cb, 
         }
 
         LOG_WRN("rtc_epoch size mismatch: len=%u expected=%u (or legacy %u)",
-            (unsigned)len, (unsigned)sizeof(rtc_epoch), (unsigned)sizeof(uint32_t));
+                (unsigned) len,
+                (unsigned) sizeof(rtc_epoch),
+                (unsigned) sizeof(uint32_t));
         return -EINVAL;
     }
 
@@ -101,7 +130,9 @@ static int settings_set(const char *name, size_t len, settings_read_cb read_cb, 
         if (len == sizeof(lsm6dsl_time_base)) {
             rc = read_cb(cb_arg, &lsm6dsl_time_base, sizeof(lsm6dsl_time_base));
             if (rc >= 0) {
-                LOG_INF("Loaded lsm6dsl_time_base: epoch_s=%llu ts=0x%08x", lsm6dsl_time_base.epoch_s, lsm6dsl_time_base.ts);
+                LOG_INF("Loaded lsm6dsl_time_base: epoch_s=%llu ts=0x%08x",
+                        lsm6dsl_time_base.epoch_s,
+                        lsm6dsl_time_base.ts);
                 return 0;
             }
             return rc;
@@ -126,11 +157,34 @@ static int settings_set(const char *name, size_t len, settings_read_cb read_cb, 
         }
 
         LOG_WRN("lsm6dsl_time_base size mismatch: len=%u expected=%u (or legacy %u)",
-            (unsigned)len, (unsigned)sizeof(lsm6dsl_time_base), (unsigned)(sizeof(uint64_t) + sizeof(uint32_t)));
+                (unsigned) len,
+                (unsigned) sizeof(lsm6dsl_time_base),
+                (unsigned) (sizeof(uint64_t) + sizeof(uint32_t)));
         return -EINVAL;
     }
 
-    return -ENOENT;
+    if (settings_name_steq(name, "device_name", &next) && !next) {
+        if (len > MAX_DEVICE_NAME_PAYLOAD_LEN) {
+            return -EINVAL;
+        }
+        /* NVS callbacks can write partial data even when returning an error.
+         * Keep the published name intact until the complete record is valid. */
+        char staged_name[sizeof(device_name)] = {0};
+        if (len > 0) {
+            rc = read_cb(cb_arg, staged_name, len);
+            if (rc != (int) len) {
+                return rc < 0 ? rc : -EIO;
+            }
+            if (memchr(staged_name, '\0', len) != NULL) {
+                return -EINVAL;
+            }
+        }
+        memcpy(device_name, staged_name, sizeof(device_name));
+        LOG_INF("Loaded device_name: %s", device_name);
+        return 0;
+    }
+
+    return safe_mode_settings_set(name, len, read_cb, cb_arg);
 }
 
 int app_settings_save_rtc_timestamp(struct rtc_time ts)
@@ -196,9 +250,19 @@ SETTINGS_STATIC_HANDLER_DEFINE(app_settings, "omi", NULL, settings_set, NULL, NU
 
 int app_settings_init(void)
 {
+#ifdef CONFIG_OMI_FAULT_INJECT_SETTINGS_HANG
+    printk("FAULT_INJECT: app settings init hang\n");
+    /* Spin without feeding WDT; busy-waiting lets simulated time (and the
+     * simulator's watchdog) advance on native_sim too. */
+    for (;;) {
+        k_busy_wait(1000);
+    }
+#endif
+    muted_loaded = false;
     int err = settings_subsys_init();
     if (err) {
-        LOG_ERR("Failed to initialize settings subsystem (err %d)", err);
+        LOG_ERR("Failed to initialize settings subsystem (err %d); capture stays muted", err);
+        muted = 1U;
         return err;
     }
 
@@ -210,10 +274,21 @@ int app_settings_init(void)
     err = settings_load_subtree("omi");
     if (err && err != -ENOENT) {
         LOG_ERR("Failed to load app settings (err %d)", err);
+        if (!muted_loaded) {
+            muted = 1U; /* the stored mute is unknown: fail closed */
+        }
+    } else if (!muted_loaded) {
+        muted = 0U; /* loaded, never muted */
     }
 
-    LOG_INF("Settings initialized. dim_ratio=%u mic_gain=%u rtc_epoch=%llu lsm6_base_epoch=%llu lsm6_base_ts=0x%08x",
-		dim_light_ratio, mic_gain, rtc_epoch, lsm6dsl_time_base.epoch_s, lsm6dsl_time_base.ts);
+    LOG_INF("Settings initialized. dim_ratio=%u mic_gain=%u muted=%u rtc_epoch=%llu lsm6_base_epoch=%llu "
+            "lsm6_base_ts=0x%08x",
+            dim_light_ratio,
+            mic_gain,
+            muted,
+            rtc_epoch,
+            lsm6dsl_time_base.epoch_s,
+            lsm6dsl_time_base.ts);
     return (err == -ENOENT) ? 0 : err;
 }
 
@@ -289,4 +364,59 @@ void app_settings_set_double_tap_pause_feedback_enabled(bool enabled)
 bool app_settings_is_double_tap_pause_feedback_enabled(void)
 {
     return atomic_get(&double_tap_pause_feedback_enabled) != 0;
+}
+
+int app_settings_save_muted(uint8_t new_muted)
+{
+    const uint8_t requested = new_muted ? 1U : 0U;
+    if (requested) {
+        /* A mute takes effect even if it cannot be persisted (3.0.24); the
+         * caller still reports the error. A failed unmute stays muted. */
+        muted = 1U;
+    }
+    int err = settings_save_one("omi/muted", &requested, sizeof(requested));
+    if (err) {
+        LOG_ERR("Failed to save muted (err %d)", err);
+    } else {
+        muted = requested;
+        LOG_INF("Saved muted: %u", muted);
+    }
+    return err;
+}
+
+uint8_t app_settings_get_muted(void)
+{
+    return muted;
+}
+
+int app_settings_save_device_name(const char *name)
+{
+    char staged_name[sizeof(device_name)] = {0};
+    if (name == NULL) {
+        staged_name[0] = '\0';
+    } else {
+        if (strlen(name) > MAX_DEVICE_NAME_PAYLOAD_LEN) {
+            LOG_WRN("Device name exceeds max length: %zu (max %u)", strlen(name), MAX_DEVICE_NAME_PAYLOAD_LEN);
+            return -EINVAL;
+        }
+        strncpy(staged_name, name, sizeof(staged_name) - 1);
+        staged_name[sizeof(staged_name) - 1] = '\0';
+    }
+
+    size_t name_len = strlen(staged_name);
+    int err = settings_save_one("omi/device_name", staged_name, name_len);
+    if (err) {
+        LOG_ERR("Failed to save device_name (err %d)", err);
+        return err;
+    }
+
+    strncpy(device_name, staged_name, sizeof(device_name) - 1);
+    device_name[sizeof(device_name) - 1] = '\0';
+    LOG_INF("Saved device_name: %s", device_name);
+    return 0;
+}
+
+const char *app_settings_get_device_name(void)
+{
+    return device_name;
 }

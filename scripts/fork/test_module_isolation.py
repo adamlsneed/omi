@@ -34,11 +34,10 @@ class ModuleIsolationTests(unittest.TestCase):
     def git(self, *args):
         return subprocess.check_output(['git', *args], cwd=self.root, text=True, stderr=subprocess.PIPE).strip()
 
-    def test_original_checker_still_rejects_stub_but_verified_adapter_passes(self):
+    def test_original_checker_and_fork_environment_pass_without_extra_allowance(self):
         checker = self.root / 'backend/scripts/check_module_stub_pollution.py'
         result = subprocess.run([sys.executable, str(checker), '--quiet'], capture_output=True, text=True)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn(GUARD.TEST, result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(GUARD.run(self.root, base='HEAD'), 0)
         self.assertEqual(self.git('status', '--porcelain'), '')
 

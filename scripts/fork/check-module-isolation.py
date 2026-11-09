@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run upstream isolation checks with the proven unreachable Jinja2 stub registered."""
+"""Run upstream isolation checks and verify the fork test environment."""
 
 import argparse
 import ast
@@ -11,7 +11,6 @@ import re
 import shlex
 import subprocess
 import sys
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / '.github/scripts'))
@@ -19,7 +18,7 @@ from fork_policy import git, mirrors_upstream
 from git_bash import bash_executable, bash_path
 
 TEST = 'backend/tests/unit/test_task_integrations_sanitization.py'
-UPSTREAM_BLOB = '7e87f5ea93c7e2930442e7bc4fde922489d20a06'
+UPSTREAM_BLOB = '5446017d0218cff2f4513136a06e74c822e34a3f'
 
 
 def require_preload(root):
@@ -72,18 +71,12 @@ def run(root, *, files=None, base=None):
     spec = importlib.util.spec_from_file_location('upstream_module_isolation', path)
     checker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(checker)
-    # Validate the real legacy inventory before creating the process-local addition.
-    if base and checker._check_monotonic(checker.DEFAULT_ALLOWLIST, base):
-        return 1
-    with tempfile.TemporaryDirectory(prefix='omi-fork-module-isolation-') as directory:
-        allowlist = Path(directory) / 'allowlist'
-        entries = checker._load_allowlist(checker.DEFAULT_ALLOWLIST)
-        allowlist.write_text('\n'.join(sorted(entries | {TEST})) + '\n')
-        arguments = ['--allowlist', str(allowlist)]
-        if files:
-            arguments += ['--files', str(files)]
-        print('Verified inherited Jinja2 stub is unreachable under all fork backend test runners.', flush=True)
-        return checker.main(arguments)
+    arguments = []
+    if base:
+        arguments += ['--check-allowlist-monotonic', base]
+    if files:
+        arguments += ['--files', str(files)]
+    return checker.main(arguments)
 
 
 def main():

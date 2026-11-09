@@ -5,7 +5,7 @@ upstream changes are merged in regularly; nothing flows back.
 
 - Never deploy fork-owned backends (Python, Rust, pusher, agent-proxy, GKE). The fork
   runs against BasedHardware's hosted services; `backend/` production code is pulled as an exact mirror
-  and never deployed. The sole approved test-only exception is recorded below. Upstream workflows that deploy on push to `main` live in
+  and never deployed. No backend exceptions remain. Upstream workflows that deploy on push to `main` live in
   `.github/disabled-workflows/` (see its README) or are disabled in the repository's
   Actions settings.
 - Push, merge, and open PRs only against `adamlsneed` remotes, never BasedHardware.
@@ -27,12 +27,11 @@ upstream changes are merged in regularly; nothing flows back.
 
 The pre-commit hook and CI verify backend bytes against the integrated upstream
 revision using `.github/scripts/fork_policy.py`, preserving upstream formatting.
-The current sync rule permits exactly one blob-pinned test-only exception:
-`backend/tests/unit/test_edit_tools_resilience.py`, approved October 25, 2026,
-uses the fixture-scoped `stub_modules` helper; all 15 original test bodies are
-unchanged. Every other backend byte must match upstream. A changed exception
-blob fails verification. Retire it when upstream supplies equivalent behavior;
-do not expand the exception without explicit authorization.
+Every backend byte must match the integrated upstream revision. The November 9
+sync retired the October 25 test-only exception for
+`backend/tests/unit/test_edit_tools_resilience.py`: upstream now scopes its fakes
+with `stub_modules` and `load_module_fresh`. The mirror regression suite rejects
+both arbitrary edits and the formerly approved exception blob.
 
 Backend tests run through `scripts/fork/backend-test-env.sh`, which preloads real
 Jinja2 and registers the Watch task writer from `scripts/fork/watch-task-source.json`
@@ -43,10 +42,12 @@ loads are unchanged. `scripts/fork/test-backend-support.sh` runs the original
 sanitization and contract tests with regressions for missing Watch registration,
 unregistered writers, stale anchors and real template rendering. Local pre-push,
 ratchet checks and backend unit CI use this environment. The fork module-isolation
-adapter runs the unchanged upstream checker with a temporary registration for the
-inherited conditional Jinja2 stub only after verifying its exact upstream blob
-and every fork runner's real-dependency preload. It checks the original legacy
-allowlist's monotonicity separately; new pollution and changed test bytes still fail.
+adapter runs the unchanged upstream checker without an extra allowlist entry.
+The sanitization test now uses upstream's import helper, which replaces Jinja2
+unconditionally. The fork pytest collector restores the preloaded real Jinja2
+after collecting that module; the combined regression suite proves original
+sanitization assertions and real template rendering still pass together.
+
 For a manual full suite:
 
 ```bash

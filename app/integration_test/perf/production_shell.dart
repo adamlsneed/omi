@@ -1,5 +1,5 @@
 // Derived by python3 tool/perf_shell.py from main.dart. Do not hand edit.
-// Extracted shell SHA256 (imports, telemetry field, builder chain): 25b75eb7352fc6e709d9d9fa929b2a460d79ad46a11b49b92eabf3c4a2a1cec4
+// Extracted shell SHA256 (imports, telemetry field, builder chain): 5a1dfec6461b433457c09ef302a4244a050b139ff051a65a512a156c984ed7db
 // ignore_for_file: unused_import, unnecessary_import
 import 'package:omi/services/watch/watch_capture_runtime.dart';
 import 'package:omi/services/on_device/on_device_background.dart';
@@ -61,6 +61,7 @@ import 'package:omi/pages/apps/providers/add_app_provider.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/payments/payment_method_provider.dart';
 import 'package:omi/backend/http/action_items_api_contract.dart';
+import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/announcement_provider.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/appearance_provider.dart';
@@ -72,6 +73,7 @@ import 'package:omi/services/siri_integration.dart';
 import 'package:omi/services/capture/local_segment_store.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
+import 'package:omi/providers/conversation_task_presence_provider.dart';
 import 'package:omi/providers/episode_provider.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/providers/folder_provider.dart';

@@ -147,7 +147,7 @@ class _LiveEpisodeRowState extends State<LiveEpisodeRow> {
     final status = noAudio
         ? l10n.captureNoAudioDetail
         : listening
-            ? null
+            ? (named.isNotEmpty ? l10n.listening : null)
             : captureStateLabel(l10n, state);
     final details = [
       if (status != null) status,

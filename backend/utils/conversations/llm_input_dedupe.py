@@ -26,9 +26,9 @@ from models.structured import Structured
 from config.summary_guarantee import enabled as summary_enabled
 from utils.conversations.summary_delivery import present as summary_present
 from config.sync_reprocess import dedupe_enabled
-from config.repeat_work import revision_reuse
-from utils.llm.model_config import get_route_ref
+
 from utils.sync.repeat_work_metrics import record_feature
+from utils.task_intelligence import reminder_policy
 
 SKIPPED = Counter(
     'conversation_llm_input_dedupe_skipped_total', 'Successful conversation feature input reused', ['feature']
@@ -119,23 +119,10 @@ def implementation_digest(feature: str) -> str:
 
 def fingerprint(feature: str, inputs: Any) -> str:
     value = {'feature': feature, 'implementation': implementation_digest(feature), 'input': canonical(inputs)}
-    if revision_reuse():
-        value['route'] = canonical(get_route_ref('conv_structure' if feature == 'notes' else 'memory_l1'))
-        value['deployment_version'] = os.getenv('REPEAT_WORK_LLM_VERSION', '2026-10-16-v1')
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False).encode()).hexdigest()
 
 
 def _stored(uid: str, conversation: Any, *, db_client: Any = None) -> dict[str, Any]:
-    if revision_reuse():
-        # The processing caller already loaded this document. Never add another
-        # Firestore hot-path read for an optional exact-input cache check.
-        return {
-            NOTES_HASH: getattr(conversation, NOTES_HASH, None),
-            NOTES_OUTPUT_HASH: getattr(conversation, NOTES_OUTPUT_HASH, None),
-            L1_HASH: getattr(conversation, L1_HASH, None),
-            'structured': getattr(conversation, 'structured', None),
-            'discarded': getattr(conversation, 'discarded', False),
-        }
     from database import conversations
 
     # L1 already has an injected persistence client. Its checkpoint is metadata
@@ -162,13 +149,15 @@ def _notes_packet_identity(uid: str) -> dict[str, Any]:
 
 def notes(uid: str, conversation: Any, prefix: Any, generate, hashes: dict[str, str] | None, **kwargs):
     open_loop_out = kwargs.pop('open_loop_out', None)
+    if kwargs.get('task_intelligence_capture') and reminder_policy.enabled():
+        kwargs['reminder_source'] = reminder_policy.source_input(conversation)
     if not dedupe_enabled() or hashes is None:
         return generate(prefix, uid=uid, open_loop_out=open_loop_out, **kwargs)
     digest = fingerprint(
         'notes',
         {
             'prefix': prefix,
-            **({'content_revision': getattr(conversation, 'sync_content_revision', None)} if revision_reuse() else {}),
+            **({}),
             'arguments': kwargs,
             'notes_packet': _notes_packet_identity(uid),
             'action_items_v2': serving_for('ACTION_ITEMS_V2_MODE', uid),
@@ -240,11 +229,7 @@ def l1_input(uid: str, conversation: Any, inputs: Any, *, db_client: Any = None)
         return None, False
     digest = fingerprint(
         'l1',
-        (
-            {'inputs': inputs, 'content_revision': getattr(conversation, 'sync_content_revision', None)}
-            if revision_reuse()
-            else inputs
-        ),
+        (inputs),
     )
     matched = _stored(uid, conversation, db_client=db_client).get(L1_HASH) == digest
     if matched:

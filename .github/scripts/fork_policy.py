@@ -5,12 +5,7 @@ from pathlib import Path
 import subprocess
 
 FORK_URLS = {'https://github.com/adamlsneed/omi', 'git@github.com:adamlsneed/omi'}
-BACKEND_EXCEPTIONS = {
-    'backend/tests/unit/test_edit_tools_resilience.py': (
-        '32acf6628b479ce2c9d6b9b5fac81b265386d8a7',
-        'a66d38337a6f7e510c6c6144625de1750cf3d452',
-    ),
-}
+BACKEND_EXCEPTIONS = {}
 
 
 def git(root, *args):
