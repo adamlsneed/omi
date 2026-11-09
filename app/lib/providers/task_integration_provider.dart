@@ -375,6 +375,7 @@ class TaskIntegrationProvider extends ChangeNotifier {
     _hasLoadError = false;
     _selectedApp = _supportsAppleReminders ? TaskIntegrationApp.appleReminders : TaskIntegrationApp.googleTasks;
     _hasConfirmedDefault = false;
+    _hasConfiguredDefault = false;
     _connectionDetails = {};
     _isLoading = false;
     _hasLoaded = false;

@@ -86,7 +86,7 @@ checks:
     reason: "2026-10-13 absent-rule audit: retired proactive metric and kube_endpoint_address_available could never evaluate; fingerprinted legacy debt cannot admit new dead selectors or edited rules"
   - id: ui-author-approval-tests
     command: ["node", "--test", ".github/scripts/tests/ui-author-approval.test.cjs"]
-    triggers: [".github/scripts/ui-author-approval.cjs", ".github/scripts/tests/ui-author-approval.test.cjs", ".github/workflows/ui-author-approval.yml", ".github/checks-manifest.yaml"]
+    triggers: [".github/scripts/ui-author-approval.cjs", ".github/scripts/tests/ui-author-approval.test.cjs", ".github/disabled-workflows/ui-author-approval.yml", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "#24477: the generated Swift client exceeds the Contents API inline limit; immutable blob evidence must remain complete without exempting generated UI declarations or bypassing human approval"
   - id: ui-evidence
