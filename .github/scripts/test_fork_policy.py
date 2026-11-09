@@ -39,13 +39,12 @@ class ForkPolicyTests(unittest.TestCase):
         self.path.write_text('changed\n')
         self.assertFalse(self.policy.mirrors_upstream(self.root, 'backend/example.py'))
 
-    def test_only_october_25_exception_remains_authorized(self):
-        self.assertEqual(set(self.policy.BACKEND_EXCEPTIONS), {
-            'backend/tests/unit/test_edit_tools_resilience.py',
-        })
+    def test_no_backend_exception_remains_authorized(self):
+        self.assertEqual(self.policy.BACKEND_EXCEPTIONS, {})
 
     def test_retired_exceptions_require_exact_upstream_bytes(self):
         for path in (
+            'backend/tests/unit/test_edit_tools_resilience.py',
             'backend/tests/unit/test_task_integrations_sanitization.py',
             'backend/tests/unit/test_episode_boundary_evidence.py',
             'backend/config/task_intelligence_sources_v1.json',
