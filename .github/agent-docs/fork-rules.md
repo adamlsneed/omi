@@ -82,3 +82,9 @@ upstream revisions receive no automatic acceptance. This does not remediate the
 hosted speaker defect or permit backend edits/deployment. Expansion requires
 explicit authorization. Regression coverage: `test_fork_sync_acceptance.py` in
 `.github/scripts/`, registered for both local and CI lanes.
+
+Adam separately approved the 73 exact feature-flag deadline-transition diagnostics
+in the same snapshot manifest. Acceptance requires the pinned registry blob and
+individual diagnostic text, and reports each as upstream-owned debt. Schema,
+source coverage, rendered documentation, overdue-review handling, and unlisted
+errors retain their existing rules. Editing registry bytes disables this acceptance.

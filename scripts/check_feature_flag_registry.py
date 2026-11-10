@@ -28,6 +28,7 @@ from feature_flag_registry import (
     validate_registry,
 )
 from fork_policy import mirrors_upstream
+from fork_sync_acceptance import accepted_entry
 
 AS_OF = re.compile(r"<!-- feature-flag-registry as-of: (\d{4}-\d{2}-\d{2}) -->")
 
@@ -179,7 +180,15 @@ def check(root: Path, *, check_render: bool = True, as_of: date | None = None) -
             f"cannot load registry at merge-base with origin/main: {error}"
         )
     else:
-        errors.extend(diff_errors)
+        approved = Counter(accepted_entry(
+            'feature_reviews', 'config/feature-flags.yaml', registry_path.read_bytes()
+        ).get('errors', []))
+        for error in diff_errors:
+            if approved[error]:
+                approved[error] -= 1
+                warnings.append(f'UPSTREAM REVIEW TRANSITION: {error} (approved snapshot debt)')
+            else:
+                errors.append(error)
         warnings.extend(diff_warnings)
     flags = {entry["key"]: entry for entry in registry["flags"]}
     for key, expected in parser_defaults(root).items():

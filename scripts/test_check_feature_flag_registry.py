@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import importlib.util
 import os
 import subprocess
@@ -740,6 +741,25 @@ class RegistryFixture(unittest.TestCase):
                 self.assertIn(f"{key}: due date moved later without an extension; add extension: instead", self.errors())
         self.write_flags([dict(rows[0], extension=extension())])
         self.assertEqual([], self.errors())
+
+    def test_approved_deadline_snapshot_rejects_changed_bytes_and_new_errors(self) -> None:
+        rows = self.backlog_base(count=2)
+        self.write_flags([dict(row, review_by="2026-11-16") for row in rows])
+        path = self.root / 'config/feature-flags.yaml'
+        raw = path.read_bytes()
+        digest = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+        messages = [f"{row['key']}: due date moved later without an extension; add extension: instead" for row in rows]
+        entry = {'blob': digest, 'errors': messages[:1]}
+        with mock.patch('fork_sync_acceptance.ACCEPTANCE', {'feature_reviews': {'config/feature-flags.yaml': entry}}):
+            errors, warnings = check(self.root, check_render=False)
+            self.assertNotIn(messages[0], errors)
+            self.assertIn(messages[1], errors)
+            self.assertIn(messages[0], '\n'.join(warnings))
+            entry['errors'] = messages
+            self.assertEqual([], check(self.root, check_render=False)[0])
+            path.write_bytes(raw + b'\n')
+            errors, _ = check(self.root, check_render=False)
+            self.assertTrue(all(message in errors for message in messages))
 
     def test_new_rows_are_exempt_from_date_movement_rule(self) -> None:
         rows = self.backlog_base(count=1)
