@@ -36,7 +36,9 @@ BUDGETS: dict[str, tuple[int, int]] = {
     "backend/AGENTS.md": (350, 39_000),
     # main grew this with Codemagic release-pipeline detail after the budget was
     # first set from a stale base; recalibrated to current main + headroom.
-    "desktop/macos/AGENTS.md": (560, 47_000),
+    # 2026-11: INV-6/gauntlet, release-train, and analytics detail moved to
+    # desktop/macos/docs/ owners; budget lowered to the trimmed size + headroom.
+    "desktop/macos/AGENTS.md": (380, 32_000),
     "desktop/windows/AGENTS.md": (127, 6_950),
     "omi/firmware/AGENTS.md": (30, 1_500),
     # Fork-authored firmware guide (commit hygiene, feature-flag contract).

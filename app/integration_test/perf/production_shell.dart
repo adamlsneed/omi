@@ -1,5 +1,5 @@
 // Derived by python3 tool/perf_shell.py from main.dart. Do not hand edit.
-// Extracted shell SHA256 (imports, telemetry field, builder chain): 25b75eb7352fc6e709d9d9fa929b2a460d79ad46a11b49b92eabf3c4a2a1cec4
+// Extracted shell SHA256 (imports, telemetry field, builder chain): 30a52d4df332a0fba5d28a75457623700b0ca0556867f04632ef1dbe4324614e
 // ignore_for_file: unused_import, unnecessary_import
 import 'package:omi/services/watch/watch_capture_runtime.dart';
 import 'package:omi/services/on_device/on_device_background.dart';
@@ -72,6 +72,7 @@ import 'package:omi/services/siri_integration.dart';
 import 'package:omi/services/capture/local_segment_store.dart';
 import 'package:omi/providers/connectivity_provider.dart';
 import 'package:omi/providers/conversation_provider.dart';
+import 'package:omi/providers/conversation_task_presence_provider.dart';
 import 'package:omi/providers/episode_provider.dart';
 import 'package:omi/providers/device_provider.dart';
 import 'package:omi/providers/folder_provider.dart';

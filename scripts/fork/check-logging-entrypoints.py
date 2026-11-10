@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the upstream logging guard against inert snapshots of fork deployments."""
+"""Run upstream logging or dependency guards against inert deployment snapshots."""
 
 import argparse
 import os
@@ -40,8 +40,19 @@ def stage_current(root: Path, target: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--base', required=True)
+    parser.add_argument('--base')
+    parser.add_argument('--runtime-third-party', action='store_true')
     args = parser.parse_args()
+    if args.runtime_third_party:
+        with tempfile.TemporaryDirectory(prefix='omi-fork-runtime-') as directory:
+            current = Path(directory)
+            stage_current(ROOT, current)
+            return subprocess.call(
+                [sys.executable, str(current / 'backend/scripts/runtime_image_contracts.py'), 'check-third-party'],
+                cwd=current,
+            )
+    if not args.base:
+        parser.error('--base is required for the logging guard')
     baseline = args.base
     pending = 'backend/logging_rollout_pending.json'
     if subprocess.run(['git', 'cat-file', '-e', f'{baseline}:{pending}'], cwd=ROOT,

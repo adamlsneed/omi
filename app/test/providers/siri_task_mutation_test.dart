@@ -87,7 +87,8 @@ void main() {
           ActionItemsResponse(actionItems: rows),
       deleteActionItemRequest: (id) async => deleteSucceeds,
       bulkDeleteActionItemsRequest: (ids) async => bulkDeleted ?? ids,
-      createActionItemRequest: ({required description, dueAt, conversationId, completed = false}) async =>
+      createActionItemRequest: (
+              {required description, dueAt, conversationId, completed = false, idempotencyKey}) async =>
           _item('created', title: description, completed: completed, dueAt: dueAt),
       updateActionItemRequest: (id, {description, completed, dueAt}) async => _item(
         id,
@@ -265,7 +266,8 @@ void main() {
               dueStartDate,
               dueEndDate}) async =>
           const ActionItemsResponse(actionItems: []),
-      createActionItemRequest: ({required description, dueAt, conversationId, completed = false}) => created.future,
+      createActionItemRequest: ({required description, dueAt, conversationId, completed = false, idempotencyKey}) =>
+          created.future,
     );
     addTearDown(provider.dispose);
     await provider.fetchActionItems();

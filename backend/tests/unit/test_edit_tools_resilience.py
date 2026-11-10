@@ -5,56 +5,60 @@ with unhandled AttributeErrors on None or missing configurable dictionaries, and
 rename_person validates target names before dispatching to MCP handlers.
 """
 
-import importlib.util
+import sys
 from pathlib import Path
-from types import ModuleType
 from unittest.mock import MagicMock
 
 import pytest
 
-from testing.import_isolation import stub_modules
-from utils.retrieval import turn_refs
+from testing.import_isolation import AutoMockModule, load_module_fresh, stub_modules
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(BACKEND_DIR))
+
+from utils.retrieval import turn_refs
+
+STUBBED_MODULES = [
+    'database',
+    'database.conversations',
+    'database.users',
+    'database._client',
+    'database.chat_edits',
+    'utils.memory',
+    'utils.memory.memory_service',
+    'utils.memory.memory_system',
+    'utils.memory.canonical_memory_adapter',
+    'utils.messaging',
+    'utils.messaging.undo',
+    'utils.mcp_server',
+    'utils.mcp_server.handlers',
+    'utils.mcp_server.handlers.other',
+]
 
 
-@pytest.fixture
+def _edit_tools_fakes() -> dict:
+    """Build the isolated database/memory/messaging fakes edit_tools binds at import."""
+    fakes = {name: AutoMockModule(name) for name in STUBBED_MODULES}
+    fakes['database._client'].get_data_plane_firestore_client = MagicMock()
+    fakes['database.chat_edits'].envelope = lambda item, label: {'item': item, 'label': label}
+    fakes['database.chat_edits'].snapshot = MagicMock()
+    fakes['database.chat_edits'].decode = MagicMock()
+    fakes['utils.messaging.undo'].record_write = MagicMock()
+    fakes['utils.mcp_server.handlers.other'].rename_person = MagicMock(return_value={'person': {'name': 'New'}})
+    fakes['utils.memory.memory_service'].MemoryService = MagicMock()
+    fakes['utils.memory.memory_system'].MemorySystem = MagicMock()
+    fakes['utils.memory.canonical_memory_adapter'].read_canonical_memory_item = MagicMock()
+    return fakes
+
+
+@pytest.fixture(scope='module')
 def edit_tools():
-    modules = {
-        name: ModuleType(name)
-        for name in [
-            'database',
-            'database.conversations',
-            'database.users',
-            'database._client',
-            'database.chat_edits',
-            'utils.memory',
-            'utils.memory.memory_service',
-            'utils.memory.memory_system',
-            'utils.memory.canonical_memory_adapter',
-            'utils.messaging',
-            'utils.messaging.undo',
-            'utils.mcp_server',
-            'utils.mcp_server.handlers',
-            'utils.mcp_server.handlers.other',
-        ]
-    }
-    modules['database._client'].get_data_plane_firestore_client = MagicMock()
-    modules['database.chat_edits'].envelope = lambda item, label: {'item': item, 'label': label}
-    modules['database.chat_edits'].snapshot = MagicMock()
-    modules['database.chat_edits'].decode = MagicMock()
-    modules['utils.messaging.undo'].record_write = MagicMock()
-    modules['utils.mcp_server.handlers.other'].rename_person = MagicMock(return_value={'person': {'name': 'New'}})
-    modules['utils.memory.memory_service'].MemoryService = MagicMock()
-    modules['utils.memory.memory_system'].MemorySystem = MagicMock()
-    modules['utils.memory.canonical_memory_adapter'].read_canonical_memory_item = MagicMock()
-
-    with stub_modules(modules):
-        path = BACKEND_DIR / 'utils' / 'retrieval' / 'tools' / 'edit_tools.py'
-        spec = importlib.util.spec_from_file_location('isolated_edit_tools', path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        yield module
+    """Load edit_tools fresh against the isolation fakes; sys.modules is restored on exit."""
+    with stub_modules(_edit_tools_fakes()):
+        yield load_module_fresh(
+            'utils.retrieval.tools.edit_tools',
+            str(BACKEND_DIR / 'utils' / 'retrieval' / 'tools' / 'edit_tools.py'),
+        )
 
 
 class TestOwnerResilience:

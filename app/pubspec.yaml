@@ -163,6 +163,8 @@ dev_dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
+  # Fault-inject preference writes that the legacy test API cannot model.
+  shared_preferences_platform_interface: 2.4.1
   fake_async: ^1.3.3
   # Direct dev deps for the phone-call provider test's fake WebSocketChannel:
   # the forwarding signatures need these types, which web_socket_channel
@@ -183,8 +185,6 @@ dev_dependencies:
   # Direct dev dep for the j5 capture journey's scratch PathProviderPlatform:
   # the fake needs the platform-interface types path_provider does not re-export.
   path_provider_platform_interface: ^2.0.0
-  # Direct dev dependency for shared-preference platform fakes in widget tests.
-  shared_preferences_platform_interface: ^2.4.1
   # hermetic_boot composes providers via SingleChildWidget, which provider
   # consumes but does not re-export.
   nested: ^1.0.0
@@ -193,6 +193,7 @@ dev_dependencies:
   flutter_flavorizr: ^2.2.3
   flutter_gen_runner: 5.15.0
   pigeon: ^26.0.1
+  firebase_messaging_platform_interface: ^4.6.5
 
 flutter_launcher_icons:
   android: true

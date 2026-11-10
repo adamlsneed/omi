@@ -206,7 +206,7 @@ extension _CaptureUplinkPolicy on CaptureController {
     if (!_admitsCapture(revision)) return;
     // Resume streaming from the device (also sends the firmware unpause write).
     await _initiateDeviceAudioStreaming();
-    if (!_admitsCapture(revision)) return;
+    if (!_admitsCapture(revision) || (_bleBytesStream == null && !SyncWakeScope.syncOnly)) return;
     updateRecordingState(RecordingState.deviceRecord);
     _publishCaptureChange();
   }

@@ -24,6 +24,8 @@ warning rather than a failure.
 
 from __future__ import annotations
 
+from fork_sync_acceptance import accepted_entry
+
 import argparse
 import os
 import re
@@ -256,6 +258,17 @@ def evaluate_changes(
         if not requires_exception(base_value, current):
             continue
         expected_base = base_value or 0
+        if candidate_ref is None:
+            raw = (root / relative).read_bytes()
+        else:
+            raw = subprocess.run(
+                ['git', 'show', f'{candidate_ref}:{relative}'], cwd=root,
+                check=True, stdout=subprocess.PIPE, env=clean_git_env(),
+            ).stdout
+        approved = accepted_entry('line_count', relative, raw)
+        if approved and approved['base_lines'] == expected_base and approved['candidate_lines'] == current:
+            print(f'WARN: {relative}: approved November 9 upstream size baseline ({expected_base} -> {current})')
+            continue
         exception = exceptions.get(relative)
         if exception is None:
             failures.append(

@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import io
+import math
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+import re
 
 from config import record_seal_repair as config
 from utils.batch_pipeline import record_seal_nojob as nojob, record_seal_cluster_repair as cluster
@@ -20,6 +22,166 @@ from utils.batch_pipeline.record_seal_budget import SweepBudget
 from utils.batch_pipeline.record_seal_reasons import TAIL_GAP_BUCKETS
 from tests.unit.test_record_seal_nojob import source, SCOPE, SERVER, PATH, JOB_PATH
 from tests.unit.test_record_producer_proof import inventory
+
+
+@pytest.mark.parametrize('fail', [False, True])
+def test_repair_child_terminal_reads_reach_parent_registry_once(fail):
+    from database.firestore_document_probe import FIRESTORE_BILLED_READS, FIRESTORE_BILLED_READS_BY_CALLER
+    from utils.batch_pipeline.record_seal_worker import Metrics
+    from utils.observability import firestore_probe_export as export
+
+    billed = FIRESTORE_BILLED_READS.labels('other', 'query', 'unattributed')
+    caller = FIRESTORE_BILLED_READS_BY_CALLER.labels('other', 'query', 'tests:repair_child_export')
+    before = (billed._value.get(), caller._value.get())
+    entrypoint = Path(__file__).resolve().parents[2] / 'scripts/record_seal_repair_job.py'
+    # Run the real entrypoint/finally in a separate interpreter, replacing only
+    # the row's cloud work with synthetic counter increments.
+    code = (
+        'import runpy, sys\n'
+        f'entry = runpy.run_path({str(entrypoint)!r})\n'
+        'from database.firestore_document_probe import FIRESTORE_BILLED_READS, FIRESTORE_BILLED_READS_BY_CALLER\n'
+        'def row(*args, **kwargs):\n'
+        '    FIRESTORE_BILLED_READS.labels("other", "query", "unattributed").inc(11)\n'
+        '    FIRESTORE_BILLED_READS_BY_CALLER.labels("other", "query", "tests:repair_child_export").inc(11)\n'
+        + ('    raise RuntimeError("private synthetic error")\n' if fail else '    return {"disposition":"sealed"}\n')
+        + 'entry["repair"].row_main = row\n'
+        'sys.argv = ["record_seal_repair_job.py", "--row"]\n'
+        'sys.exit(entry["main"]())\n'
+    )
+    process = export.launch_with_probe(
+        cluster.RowProcess,
+        [sys.executable, '-c', code],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(b'{}', timeout=30)
+        assert process.returncode == int(fail)
+        assert not stderr and b'private synthetic error' not in stdout
+        # communicate closes stdout; stop's normal contract owns an open pipe.
+        process.stdout = io.BytesIO(stdout)
+        cluster.stop(process)
+        assert (billed._value.get(), caller._value.get()) == (before[0] + 11, before[1] + 11)
+        export.collect_child_probe(process)
+        assert (billed._value.get(), caller._value.get()) == (before[0] + 11, before[1] + 11)
+        assert (
+            Metrics('r', 'n').registry.get_sample_value(
+                'omi_firestore_billed_reads_by_caller_total',
+                {'collection': 'other', 'kind': 'query', 'caller': 'tests:repair_child_export'},
+            )
+            == before[1] + 11
+        )
+    finally:
+        if process.poll() is None:
+            cluster.stop(process)
+
+
+def test_launch_row_passes_terminal_fd_without_changing_row_output(monkeypatch):
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_ENABLED', 'false')
+    process = cluster.launch_row('users/synthetic/conversations/synthetic', 1, 'plan')
+    output = process._firestore_probe_output
+    try:
+        process.wait(timeout=30)
+        assert process.returncode == 0
+        records = [json.loads(line) for line in process.stdout.read().splitlines()]
+        assert records[-1]['disposition'] == 'disabled'
+        assert not any('firestore_probe' in json.dumps(record) for record in records)
+        output.seek(0)
+        assert json.load(output) == []
+    finally:
+        cluster.stop(process)
+    assert output.closed and process._firestore_probe_output is None
+
+
+def test_missing_or_invalid_child_aggregate_does_not_change_cleanup(caplog):
+    import tempfile
+    from utils.observability import firestore_probe_export as export
+
+    for data in (b'', b'not-json', b'[["unknown_total",{},1]]'):
+        output = tempfile.TemporaryFile()
+        output.write(data)
+        process = SimpleNamespace(_firestore_probe_output=output)
+        export.collect_child_probe(process)
+        assert output.closed and process._firestore_probe_output is None
+    assert sum(json.loads(record.message).get('outcome') == 'unavailable' for record in caplog.records) == 3
+
+
+def test_terminal_transport_failure_preserves_launch_and_original_exception(monkeypatch, caplog):
+    from utils.observability import firestore_probe_export as export
+
+    def unavailable(**_):
+        raise OSError('synthetic fd exhaustion')
+
+    monkeypatch.setattr(export.tempfile, 'TemporaryFile', unavailable)
+    process = SimpleNamespace()
+    factory = Mock(return_value=process)
+    assert export.launch_with_probe(factory, ['synthetic-child'], stdout=subprocess.PIPE) is process
+    factory.assert_called_once_with(['synthetic-child'], stdout=subprocess.PIPE)
+    assert process._firestore_probe_output is None
+    records = len(caplog.records)
+    with pytest.raises(RuntimeError, match='original job error'):
+        with export.terminal_probe_totals(fd='not-a-file-descriptor'):
+            raise RuntimeError('original job error')
+    assert len(caplog.records) == records  # No telemetry diagnostics on the child's result pipe.
+
+
+def test_spawn_failure_closes_terminal_transport(monkeypatch):
+    import tempfile
+    from utils.observability import firestore_probe_export as export
+
+    output = tempfile.TemporaryFile()
+    monkeypatch.setattr(export.tempfile, 'TemporaryFile', lambda **_: output)
+    with pytest.raises(OSError, match='synthetic launch failure'):
+        export.launch_with_probe(Mock(side_effect=OSError('synthetic launch failure')), ['synthetic-child'])
+    assert output.closed
+
+
+def test_counter_sample_map_matches_served_counter_metadata():
+    from database.firestore_document_probe import FIRESTORE_BILLED_READS, FIRESTORE_BILLED_READS_BY_CALLER
+    from utils.observability.firestore_probe_export import COUNTER_SAMPLES
+
+    FIRESTORE_BILLED_READS.labels(collection='x', kind='query', tier='unattributed').inc(1)
+    FIRESTORE_BILLED_READS_BY_CALLER.labels(collection='x', kind='query', caller='tests:probe_export_pin').inc(1)
+    seen = {}
+    for collector, _label_keys in COUNTER_SAMPLES.values():
+        for family in collector.collect():
+            for sample in family.samples:
+                if sample.name.endswith('_total'):
+                    seen[sample.name] = frozenset(sample.labels)
+    assert seen == {name: frozenset(label_keys) for name, (_collector, label_keys) in COUNTER_SAMPLES.items()}
+
+
+def test_repair_coordinator_terminal_totals_escape_dependency_silencing(tmp_path):
+    entrypoint = Path(__file__).resolve().parents[2] / 'scripts/record_seal_repair_job.py'
+    script = tmp_path / 'terminal_boundary.py'
+    script.write_text(
+        'import runpy, sys\n'
+        f'entry = runpy.run_path({str(entrypoint)!r})\n'
+        'from database.firestore_document_probe import FIRESTORE_BILLED_READS_BY_CALLER\n'
+        'def run(**kwargs):\n'
+        '    FIRESTORE_BILLED_READS_BY_CALLER.labels("other", "query", "tests:coordinator_terminal").inc(13)\n'
+        '    return {"event":"record_seal_repair","outcome":"ok"}\n'
+        'entry["repair"].run = run\n'
+        'sys.argv = ["record_seal_repair_job.py"]\n'
+        'sys.exit(entry["main"]())\n'
+    )
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env={**os.environ, 'RECORD_SEAL_REPAIR_ENABLED': 'false'},
+    )
+    assert result.returncode == 0 and not result.stderr
+    messages = [json.loads(json.loads(line)['message']) for line in result.stdout.splitlines()]
+    assert any(
+        message.get('event') == 'firestore_probe_terminal_sample'
+        and message['labels'].get('caller') == 'tests:coordinator_terminal'
+        and message['value'] == 13
+        for message in messages
+    )
 
 
 @pytest.fixture
@@ -163,7 +325,10 @@ def test_native_and_dependency_diagnostics_never_reach_cli_output(tmp_path):
         'raise SystemExit(entry["main"]())\n'
     )
     result = subprocess.run(
-        [sys.executable, str(script)], capture_output=True, text=True, env={**os.environ, 'OMI_LOG_FORMAT': 'json'}
+        [sys.executable, str(script)],
+        capture_output=True,
+        text=True,
+        env={**os.environ, 'OMI_LOG_FORMAT': 'json', 'PUSHER_PROJECTION_DEBT_DURABLE_ENABLED': 'off'},
     )
     assert result.returncode == 0 and not result.stderr
     assert private not in result.stdout
@@ -331,7 +496,15 @@ def test_discovery_pages_past_closed_rows_and_preserves_oldest_order():
             return self
 
         def select(self, fields):
-            assert fields == ('finished_at', 'record_audio_closed', 'record_audio_partial')
+            assert fields == (
+                'finished_at',
+                'record_audio_closed',
+                'record_audio_partial',
+                'record_upload_revision',
+                'deleted',
+                'discarded',
+                'private_cloud_sync_enabled',
+            )
             return self
 
         def limit(self, _):
@@ -350,7 +523,12 @@ def test_discovery_pages_past_closed_rows_and_preserves_oldest_order():
                         to_dict=lambda: {'finished_at': finish, 'record_audio_closed': True},
                     )
                 ] * 128
-            return [SimpleNamespace(reference=SimpleNamespace(path='oldest'), to_dict=lambda: {'finished_at': finish})]
+            return [
+                SimpleNamespace(
+                    reference=SimpleNamespace(path='oldest'),
+                    to_dict=lambda: {'finished_at': finish, 'private_cloud_sync_enabled': True},
+                )
+            ]
 
     query = Query()
     rows, saturated, cursor = cluster.discover(
@@ -495,6 +673,7 @@ def test_closed_row_scan_cap_also_advances_without_skipping_the_tail():
 
 @pytest.mark.parametrize('mode,writes', [('apply', 1), ('plan', 0)])
 def test_frontier_advances_before_work_and_plan_never_writes(source, proof, monkeypatch, mode, writes):
+    monkeypatch.setattr(config, 'jobs_enabled', lambda: False)
     from database import _client
     from utils.batch_pipeline import record_seal_sweeper
 
@@ -514,6 +693,7 @@ def test_frontier_advances_before_work_and_plan_never_writes(source, proof, monk
 
 
 def test_run_budget_deferral_cannot_reset_the_unattempted_tail(source, proof, monkeypatch):
+    monkeypatch.setattr(config, 'jobs_enabled', lambda: False)
     from database import _client
     from utils.batch_pipeline import record_seal_sweeper
 
@@ -567,6 +747,7 @@ def test_admitted_registration_succeeds_at_zero_and_full_ramp_but_policy_changes
 
 
 def test_last_attempt_checkpoint_skips_refused_prefix_and_wrap_revisits_oldest(source, proof, monkeypatch):
+    monkeypatch.setattr(config, 'jobs_enabled', lambda: False)
     from database import _client
     from utils.batch_pipeline import record_seal_sweeper
 
@@ -673,7 +854,7 @@ def test_row_refusal_reason_survives_canonical_planner(source, proof):
         )
         == 'proof_refused'
     )
-    assert reason == {'proof_reason': 'finish_missing'}
+    assert reason == {'proof_reason': 'finish_missing', 'blocker': 'seal_eligible'}
 
 
 @pytest.mark.parametrize('pending_job', [False, True])
@@ -701,7 +882,7 @@ def test_row_tail_gap_survives_both_canonical_planners(source, proof, pending_jo
         )
         == 'proof_refused'
     )
-    assert reason == {'proof_reason': 'tail_lagging', 'tail_gap_bucket': '30_to_120s'}
+    assert reason == {'proof_reason': 'tail_lagging', 'tail_gap_bucket': '30_to_120s', 'blocker': 'seal_eligible'}
     assert not source[1].rows[PATH].get('record_audio_closed')
 
 
@@ -731,6 +912,9 @@ def test_child_gap_bucket_is_allowlisted(candidate):
     assert report['tail_gap_buckets'] == {expected: 1}
     assert progress[0]['tail_gap_bucket'] == expected
     assert set(progress[0]) == {
+        'elapsed_ms',
+        'stage',
+        'stage_ms',
         'event',
         'count',
         'disposition',
@@ -762,7 +946,7 @@ def test_upload_failed_skips_proof_cost_and_gap(source, proof, monkeypatch):
         )
         == 'upload_failed'
     )
-    assert reason == {}
+    assert reason == {'blocker': 'upload_failed'}
     read.assert_not_called()
     assert source[1].rows[PATH]['record_upload_failed'] is True
 
@@ -859,3 +1043,626 @@ def test_non_tail_child_cannot_emit_gap():
     )
     assert report['tail_gap_buckets'] == {}
     assert 'tail_gap_bucket' not in progress[0]
+
+
+def _partial_mark(revision, finish):
+    return {
+        'version': 1,
+        'reason': sorted(cluster.partial_config.REASONS)[0],
+        'upload_revision': revision,
+        'finished_at': finish,
+        'finished_partial_at': datetime.now(timezone.utc),
+    }
+
+
+@pytest.mark.parametrize(
+    'extra,selected',
+    [
+        ({}, True),  # open, sync on: still a repair candidate
+        ({'deleted': True}, False),
+        ({'discarded': True}, False),
+        ({'private_cloud_sync_enabled': False}, False),
+        ({'record_audio_closed': True, 'record_audio_partial': 'MARK', 'record_upload_revision': 3}, False),
+        # A new upload revision invalidates the barrier and must be revisited.
+        ({'record_audio_closed': False, 'record_audio_partial': 'MARK', 'record_upload_revision': 4}, True),
+    ],
+)
+def test_discovery_skips_rows_repair_can_only_refuse(extra, selected):
+    finish = datetime.fromtimestamp(100, timezone.utc)
+    data = {'finished_at': finish, 'private_cloud_sync_enabled': True, **extra}
+    if data.get('record_audio_partial') == 'MARK':
+        data['record_audio_partial'] = _partial_mark(3, finish)
+
+    class Query:
+        def where(self, **kw):
+            return self
+
+        def order_by(self, field):
+            return self
+
+        def select(self, fields):
+            return self
+
+        def limit(self, _):
+            return self
+
+        def start_after(self, cursor):
+            return self
+
+        def stream(self, **kw):
+            return [SimpleNamespace(reference=SimpleNamespace(path='row'), to_dict=lambda: dict(data))]
+
+    rows, _, _ = cluster.discover(
+        SimpleNamespace(collection_group=lambda _: Query(), document=lambda path: path), budget=SweepBudget(60)
+    )
+    assert bool(rows) is selected
+
+
+@pytest.mark.parametrize('workers', ['1', '16', '48', '64'])
+def test_repair_workers_accept_io_bound_range(monkeypatch, workers):
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_WORKERS', workers)
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_ROW_SECONDS', '270')
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_RUN_SECONDS', '1500')
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_MODE', 'apply')
+    assert config.settings() == (int(workers), 270, 1500, 'apply')
+
+
+@pytest.mark.parametrize('workers', ['0', '65', '128'])
+def test_repair_workers_outside_range_refuse(monkeypatch, workers):
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_WORKERS', workers)
+    with pytest.raises(ValueError, match='invalid repair limits'):
+        config.settings()
+
+
+def test_row_reuses_exactly_one_gcs_client_and_reports_stages(source, proof, monkeypatch):
+    from contextlib import nullcontext
+    from database import batch_pipeline_store
+    from utils.batch_pipeline import artifact_policy, record_seal_repair, record_seal_sweeper
+    from utils.other import local_storage, storage
+
+    store, _, artifacts = source
+    monkeypatch.setattr(config, 'enabled', lambda: True)
+    monkeypatch.setattr(config, 'require_runtime', lambda: None)
+    monkeypatch.setattr(config, 'server_flags', lambda: SERVER)
+    monkeypatch.setattr(cluster, 'silent_dependencies', nullcontext)
+    monkeypatch.setattr(batch_pipeline_store, 'FirestoreStore', lambda _: store)
+    monkeypatch.setattr(record_seal_sweeper, 'read_pusher_pod_proof', proof)
+    monkeypatch.delenv('BUCKET_AUDIO_DERIVED', raising=False)
+    monkeypatch.setattr(storage.audio_archive, 'admitted', lambda *a: False)
+    monkeypatch.setenv('BUCKET_BATCH_PIPELINE', 'synthetic')
+    blob = SimpleNamespace(name='chunks/synthetic/capture/100.bin', size=64000, generation=7, metadata={})
+    bucket = SimpleNamespace(name=storage.private_cloud_sync_bucket, list_blobs=lambda **kw: iter([blob]))
+    client = SimpleNamespace(bucket=lambda _: bucket)
+    construct = Mock(return_value=client)
+    monkeypatch.setattr(local_storage, 'create_storage_client', construct)
+    # Any accidental default construction in either downstream module must count.
+    monkeypatch.setattr(artifact_policy, 'create_storage_client', construct)
+    monkeypatch.setattr(storage, 'create_storage_client', construct)
+    monkeypatch.setattr(storage, 'storage_client', None)
+    composed = Mock(return_value=artifacts)
+    monkeypatch.setattr(artifact_policy, 'create_artifact_store', composed)
+    monkeypatch.setattr(record_seal_repair, 'list_audio_chunks', storage.list_audio_chunks)
+    checkpoints = []
+    result = cluster.row_main(
+        {'path': SCOPE[0], 'mode': 'apply', 'seconds': 240, 'started': time.monotonic() - 0.02},
+        progress=checkpoints.append,
+    )
+    assert result['disposition'] == 'sealed_registered'
+    assert construct.call_count == 1
+    assert composed.call_args.args[1] is client
+    assert list(result['stage_ms']) == list(cluster.record_seal_profile.STAGES)
+    assert result['stage_ms']['startup'] >= 20
+    assert {entry['stage'] for entry in checkpoints} == {'clients', 'proof', 'list', 'walk', 'apply'}
+    assert all(0 <= value <= 3600000 for value in result['stage_ms'].values())
+    assert result['chunks'] == result['bytes'] == 0  # This fixture stubs the decoder only.
+    assert len(json.dumps(result).encode()) < 1024
+
+
+def test_profile_measures_deltas_and_bounds_worst_case_ipc():
+    now = [1.0]
+    profile = cluster.record_seal_profile.RowProfile(0, clock=lambda: now[0])
+    with profile.install():
+        for stage in cluster.record_seal_profile.STAGES[1:]:
+            profile.enter(stage)
+            now[0] += 1
+        cluster.record_seal_profile.received(123)
+    result = profile.snapshot()
+    assert result['stage_ms'] == dict.fromkeys(cluster.record_seal_profile.STAGES, 1000)
+    assert result['chunks'] == 1 and result['bytes'] == 123
+    result.update(
+        disposition='budget_exhausted',
+        blocker='already_closed_job_pending',
+        partial_reason='tail_lost_or_unproven',
+        proof_reason='tail_lagging',
+        tail_gap_bucket='negative_or_unknown',
+        trimmed_divergent_overlaps=4096,
+    )
+    result['stage_ms'] = dict.fromkeys(cluster.record_seal_profile.STAGES, 3600000)
+    result['chunks'] = result['bytes'] = result['metadata_reloads'] = 2**53
+    assert len(json.dumps(result).encode()) < 1024
+
+
+@pytest.mark.parametrize('checkpoint,expected', [(True, 'walk'), (False, 'unknown')])
+def test_killed_child_reports_last_received_stage(checkpoint, expected):
+    children, events = [], []
+    code = (
+        'import os,time\n'
+        + (
+            'os.write(1, b\'{"stage":"walk","stage_ms":{"proof":12},"chunks":2,"bytes":99}\\n\')\n'
+            if checkpoint
+            else ''
+        )
+        + 'time.sleep(30)\n'
+    )
+
+    def launch(*_):
+        child = subprocess.Popen([sys.executable, '-c', code], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        children.append(child)
+        return child
+
+    report = cluster.coordinate(
+        [('private', 100)],
+        workers=1,
+        row_seconds=0.3,
+        run_seconds=5,
+        mode='apply',
+        launch=launch,
+        progress=events.append,
+    )
+    assert report['dispositions'] == {'budget_exhausted': 1}
+    assert events[0]['stage'] == expected
+    assert report['disposition_elapsed_ms']['budget_exhausted'] == events[0]['elapsed_ms']
+    assert children[0].returncode is not None and children[0].stdout.closed
+    if checkpoint:
+        assert events[0]['chunks'] == 2 and events[0]['bytes'] == 99
+
+
+def test_ipc_tolerates_old_partial_oversized_and_untrusted_profiles():
+    process = SimpleNamespace(stdout=io.BytesIO())
+    output = cluster.RowOutput(process)
+    output.accept(b'{"stage":"private@example.invalid","bytes":"private","stage_ms":{"walk":-1}}')
+    assert output.profile == {'stage': 'unknown', 'stage_ms': {}}
+    process.stdout = io.BytesIO(b'x' * 1025 + b'\n{"stage":"proof"}\n{"disposition":"sealed"}')
+    output.drain(True)
+    assert output.result == {'disposition': 'sealed'}
+    assert output.profile['stage'] == 'proof'
+    _, _, _, _, events = scheduling([('old-child', 100)])
+    assert events[0]['stage'] == 'unknown' and events[0]['disposition'] == 'sealed'
+
+
+@pytest.mark.parametrize('event', ['record_seal_repair', 'record_seal_repair_row'])
+def test_parent_row_and_summary_are_warning(event, monkeypatch):
+    import importlib.util
+    import logging
+
+    path = Path(__file__).resolve().parents[2] / 'scripts/record_seal_repair_job.py'
+    spec = importlib.util.spec_from_file_location('seal_job_warning_test', path)
+    module = importlib.util.module_from_spec(spec)
+    # Loading this entrypoint must not replace pytest's logging handlers.
+    import omi_logging
+
+    monkeypatch.setattr(omi_logging, 'configure_logging', lambda *a, **kw: None)
+    spec.loader.exec_module(module)
+    records = []
+    logger = logging.getLogger('record-seal-repair')
+    monkeypatch.setattr(logger, 'handle', records.append)
+    module.emit({'event': event, 'outcome': 'ok', 'stage_ms': {'walk': 12}})
+    assert records[0].levelno == logging.WARNING
+    assert json.loads(records[0].msg)['stage_ms']['walk'] == 12
+
+
+@pytest.mark.parametrize('stage', ['run', 'rebuild'])
+def test_job_failure_logs_exception_type_and_site_never_message(tmp_path, stage):
+    entrypoint = Path(__file__).resolve().parents[2] / 'scripts/record_seal_repair_job.py'
+    script = tmp_path / 'failure_boundary.py'
+    private = 'users/private-uid/conversations/private-cid private@example.invalid'
+    script.write_text(
+        'import runpy, sys, types\n'
+        f'entry = runpy.run_path({str(entrypoint)!r})\n'
+        'def boom(**kwargs):\n'
+        f'    raise RuntimeError({private!r})\n'
+        'def ok(**kwargs):\n'
+        '    return {"event": "record_seal_repair", "outcome": "ok", "rows": 0}\n'
+        f'if {stage!r} == "run":\n'
+        '    entry["repair"].run = boom\n'
+        'else:\n'
+        '    entry["repair"].run = ok\n'
+        '    sys.modules["utils.record_projection_rebuild"] = types.SimpleNamespace(run_job=lambda: boom())\n'
+        '    import utils\n'
+        '    utils.record_projection_rebuild = sys.modules["utils.record_projection_rebuild"]\n'
+        f'sys.argv = [{str(entrypoint)!r}]\n'
+        'raise SystemExit(entry["main"]())\n'
+    )
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parents[2],
+        env={**os.environ, 'OMI_LOG_FORMAT': 'json', 'RECORD_SEAL_REPAIR_ENABLED': 'true'},
+    )
+    assert private not in result.stdout and private not in result.stderr
+    messages = [json.loads(json.loads(line)['message']) for line in result.stdout.splitlines() if line.strip()]
+    event = 'record_seal_repair' if stage == 'run' else 'record_projection_rebuild'
+    failure = next(m for m in messages if m.get('event') == event and m.get('outcome') == 'error')
+    assert failure['exception_type'] == 'RuntimeError'
+    assert re.fullmatch(r'[a-z0-9_]{1,64}\.py:\d+', failure['error_site'])
+    assert set(failure) <= {'event', 'outcome', 'exception_type', 'error_site'}
+    assert result.returncode == (1 if stage == 'run' else 0)
+
+
+def _job_module(monkeypatch):
+    import importlib.util
+
+    import omi_logging
+
+    path = Path(__file__).resolve().parents[2] / 'scripts/record_seal_repair_job.py'
+    spec = importlib.util.spec_from_file_location('seal_job_failure_redaction', path)
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setattr(omi_logging, 'configure_logging', lambda *a, **kw: None)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_failure_redacts_dynamic_exception_class_name(monkeypatch):
+    module = _job_module(monkeypatch)
+    private = type('uid_9f8e7d6c5b4a_conversation', (RuntimeError,), {'__module__': 'private_payload'})
+    try:
+        raise private('users/private/conversations/private')
+    except RuntimeError as error:
+        payload = module.failure('record_seal_repair', error)
+    assert payload['exception_type'] == 'other'
+    assert 'uid_9f8e7d6c5b4a' not in json.dumps(payload)
+
+
+def test_failure_drops_site_from_dynamically_compiled_frame(monkeypatch):
+    module = _job_module(monkeypatch)
+    code = compile('raise RuntimeError("x")', '/tmp/users/private-uid/conversation.py', 'exec')
+    try:
+        exec(code, {})
+    except RuntimeError as error:
+        payload = module.failure('record_seal_repair', error)
+    assert payload['exception_type'] == 'RuntimeError'
+    assert 'private-uid' not in json.dumps(payload)
+    assert 'error_site' not in payload or 'conversation.py' not in payload['error_site']
+
+
+def test_failure_falls_back_when_fields_cannot_be_built(monkeypatch):
+    module = _job_module(monkeypatch)
+    monkeypatch.setattr(module, '_error_site', lambda error: (_ for _ in ()).throw(ImportError('boom')))
+    payload = module.failure('record_seal_repair', RuntimeError('users/private'))
+    assert payload == {'event': 'record_seal_repair', 'outcome': 'error', 'exception_type': 'RuntimeError'}
+
+
+class OrderedJobsClient:
+    """Query fake enforcing numeric range, field existence and compound cursors."""
+
+    def __init__(self, documents, error=None):
+        self.documents, self.error, self.queries = documents, error, []
+
+    def document(self, path):
+        return SimpleNamespace(path=path)
+
+    def collection(self, name):
+        assert name == 'batch_pipeline_prod_jobs'
+        client = self
+
+        class Query:
+            def __init__(self):
+                self.filters, self.order, self.after, self.cap = [], [], None, None
+
+            def where(self, *, filter):
+                self.filters.append((filter.field_path, filter.op_string, filter.value))
+                return self
+
+            def order_by(self, field):
+                self.order.append(field)
+                return self
+
+            def select(self, fields):
+                assert fields == ('owner_id', 'conversation_id', 'enqueued_at', 'record_content_id')
+                return self
+
+            def limit(self, cap):
+                assert 0 < cap <= 128
+                self.cap = cap
+                return self
+
+            def start_after(self, cursor):
+                assert set(cursor) == set(self.order)
+                self.after = cursor
+                return self
+
+            def stream(self, *, timeout, retry):
+                assert 0 < timeout <= 10 and retry is None
+                age_order = self.order == ['enqueued_at', '__name__']
+                assert age_order or self.order == ['__name__']
+                if age_order and client.error:
+                    raise client.error
+                docs = client.documents[:]
+                for field, op, value in self.filters:
+                    if op == '==':
+                        docs = [d for d in docs if d.to_dict().get(field) == value]
+                    else:
+                        assert (field, op) == ('enqueued_at', '<=')
+                        docs = [
+                            d
+                            for d in docs
+                            if type(d.to_dict().get(field)) in (int, float)
+                            and (d.to_dict()[field] <= value or math.isnan(d.to_dict()[field]))
+                        ]
+
+                def key(value, path):
+                    if not age_order:
+                        return (path,)
+                    # Firestore normalizes NaN below all other numbers.
+                    numeric = (0, 0) if math.isnan(value) else (1, value)
+                    return numeric, path
+
+                docs.sort(key=lambda d: key(d.to_dict().get('enqueued_at'), d.reference.path))
+                if self.after:
+                    point = key(self.after.get('enqueued_at'), self.after['__name__'].path)
+                    docs = [d for d in docs if key(d.to_dict().get('enqueued_at'), d.reference.path) > point]
+                return docs[: self.cap]
+
+        query = Query()
+        self.queries.append(query)
+        return query
+
+
+def pending_job(index, enqueued=0, **extra):
+    content, segment = cluster.record_identity('synthetic', f'capture-{index}')
+    data = {
+        'state': 'record_pending',
+        'owner_id': 'synthetic',
+        'conversation_id': f'capture-{index}',
+        'record_content_id': content,
+        'enqueued_at': enqueued,
+        **extra,
+    }
+    return SimpleNamespace(
+        id=segment, reference=SimpleNamespace(path=f'batch_pipeline_prod_jobs/{segment}'), to_dict=lambda: dict(data)
+    )
+
+
+@pytest.mark.parametrize('setting', [None, 'on', 'typo'])
+def test_jobs_oldest_first_ties_resume_encrypted_and_wrap(monkeypatch, setting):
+    from utils.batch_pipeline.record_seal_repair_cursor import RepairCursor
+
+    monkeypatch.delenv('RECORD_SEAL_REPAIR_AGE_ORDER', raising=False)
+    if setting:
+        monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', setting)
+    docs = [pending_job(0, 200), pending_job(1, 100), pending_job(2, 100)]
+    expected = sorted(docs, key=lambda d: (d.to_dict()['enqueued_at'], d.id))
+    client, budget, selected = OrderedJobsClient(docs), SweepBudget(60), {}
+    state = CursorClient()
+    frontier = RepairCursor(
+        SimpleNamespace(collection=lambda _: SimpleNamespace(document=lambda _: state)), b'k' * 32, jobs=True
+    )
+    observed, after = [], None
+    for doc in expected:
+        rows, saturated, after = cluster.discover_jobs(
+            client, budget=budget, after=after, max_rows=1, selected_cursors=selected
+        )
+        assert saturated and rows[0][0].endswith(doc.to_dict()['conversation_id'])
+        assert selected[rows[0][0]] == after
+        observed += rows
+        frontier.write(after, budget)
+        after = frontier.read(budget)
+    assert len(observed) == 3
+    assert cluster.discover_jobs(client, budget=budget, after=after) == ([], False, None)
+    assert cluster.discover_jobs(client, budget=budget, max_rows=1)[0][0] == observed[0]
+    assert b'synthetic' not in state.state['cursor']
+    assert client.queries[0].filters[0] == ('state', '==', 'record_pending')
+    assert client.queries[0].filters[1] == ('enqueued_at', '<=', after['horizon'].timestamp())
+
+
+def test_jobs_frozen_horizon_wraps_despite_new_inflow(monkeypatch):
+    monkeypatch.delenv('RECORD_SEAL_REPAIR_AGE_ORDER', raising=False)
+    client = OrderedJobsClient([pending_job(0), pending_job(1, 100)])
+    first, _, cursor = cluster.discover_jobs(client, budget=SweepBudget(60), max_rows=1)
+    horizon = cursor['horizon']
+    client.documents.extend(pending_job(i, horizon.timestamp() + i) for i in range(2, 42))
+    second, _, cursor = cluster.discover_jobs(client, budget=SweepBudget(60), after=cursor, max_rows=1)
+    assert len(second) == 1 and first != second and cursor['horizon'] == horizon
+    assert cluster.discover_jobs(client, budget=SweepBudget(60), after=cursor) == ([], False, None)
+    assert cluster.discover_jobs(client, budget=SweepBudget(60), max_rows=1)[0] == first
+
+
+@pytest.mark.parametrize('enqueued', [None, 'old', True, float('nan'), float('inf'), -float('inf'), 'missing'])
+def test_jobs_unknown_enqueue_clock_stays_ineligible_in_both_orders(monkeypatch, enqueued):
+    doc = pending_job(0, enqueued)
+    if enqueued == 'missing':
+        data = doc.to_dict()
+        data.pop('enqueued_at')
+        doc.to_dict = lambda: data
+    for mode in ('off', 'on'):
+        monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', mode)
+        rows, _, _ = cluster.discover_jobs(OrderedJobsClient([doc, pending_job(1)]), budget=SweepBudget(60))
+        assert [path for path, _ in rows] == ['users/synthetic/conversations/capture-1']
+
+
+def test_jobs_age_filter_and_page_bounds_remain_local(monkeypatch):
+    monkeypatch.delenv('RECORD_SEAL_REPAIR_AGE_ORDER', raising=False)
+    horizon = datetime.now(timezone.utc)
+    stamp = horizon.timestamp() - config.JOBS_MIN_AGE_SECONDS
+    client = OrderedJobsClient([pending_job(0, stamp), pending_job(1, stamp + 1), pending_job(2, stamp - 1)])
+    cursor = {'path': 'batch_pipeline_prod_jobs/', 'enqueued_at': -1, 'horizon': horizon}
+    rows, saturated, cursor = cluster.discover_jobs(client, budget=SweepBudget(60), after=cursor, max_scan=1)
+    assert [path for path, _ in rows] == ['users/synthetic/conversations/capture-2'] and saturated
+    rows, _, cursor = cluster.discover_jobs(client, budget=SweepBudget(60), after=cursor)
+    assert rows == [('users/synthetic/conversations/capture-0', config.JOBS_MIN_AGE_SECONDS)]
+    assert cursor is None
+    assert all(q.cap <= 128 for q in client.queries)
+
+
+@pytest.mark.parametrize('setting', ['off', 'false', '0'])
+def test_jobs_kill_switch_restores_exact_old_hash_scan(monkeypatch, setting):
+    from tests.unit.test_record_pending_repair import JobsClient, job_doc
+
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', setting)
+    # Ages deliberately oppose hash order. Compare the old adapter's result,
+    # page limits and cursor exactly, including resumption from a legacy cursor.
+    docs = sorted([job_doc(i, i * 100) for i in range(6)], key=lambda d: d.id)
+    horizon = datetime.now(timezone.utc)
+    after = {'path': docs[0].reference.path, 'finished_at': horizon}
+    expected = cluster.discover_jobs(JobsClient(docs), budget=SweepBudget(60), after=after, max_rows=2)
+    for doc in docs:
+        original = doc.to_dict()
+        doc.to_dict = lambda data=original: {**data, 'state': 'record_pending'}
+    client = OrderedJobsClient(docs)
+    actual = cluster.discover_jobs(client, budget=SweepBudget(60), after=after, max_rows=2)
+    assert actual == expected
+    assert client.queries[0].filters == [('state', '==', 'record_pending')]
+    assert client.queries[0].order == ['__name__']
+
+
+def test_jobs_switching_orders_restarts_without_skipping_oldest(monkeypatch):
+    client = OrderedJobsClient([pending_job(0), pending_job(1, 1)])
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', 'off')
+    _, _, old = cluster.discover_jobs(client, budget=SweepBudget(60), max_rows=1)
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', 'on')
+    rows, _, age = cluster.discover_jobs(client, budget=SweepBudget(60), after=old, max_rows=1)
+    assert rows[0][0].endswith('capture-0') and client.queries[-1].after is None
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', 'off')
+    cluster.discover_jobs(client, budget=SweepBudget(60), after=age, max_rows=1)
+    assert client.queries[-1].after is None
+
+
+def test_jobs_missing_index_falls_back_resumes_hash_and_logs_once(monkeypatch):
+    monkeypatch.delenv('RECORD_SEAL_REPAIR_AGE_ORDER', raising=False)
+    monkeypatch.setattr(cluster, '_age_order_index_warned', False)
+    telemetry = Mock()
+    monkeypatch.setattr(cluster, 'record_fallback', telemetry)
+    client = OrderedJobsClient(
+        [pending_job(i) for i in range(3)],
+        cluster.FailedPrecondition('The query requires an index private@example.invalid'),
+    )
+    progress, seen, cursor = [], [], None
+    for _ in range(4):
+        rows, _, cursor = cluster.discover_jobs(
+            client, budget=SweepBudget(60), after=cursor, max_rows=1, progress=progress.append
+        )
+        seen += [path for path, _ in rows]
+    assert len(set(seen)) == len(seen) == 3 and cursor is None
+    telemetry.assert_called_once_with(
+        component='firestore_read',
+        from_mode='record_seal_age_order',
+        to_mode='record_seal_hash_order',
+        reason='other',
+        outcome='degraded',
+    )
+    assert progress == [{'event': 'record_seal_repair_age_order', 'outcome': 'missing_index_hash_order'}]
+    assert 'private' not in json.dumps(progress)
+    # A saved age cursor also falls back from the hash head, never a hash offset.
+    age = {'path': client.documents[-1].reference.path, 'enqueued_at': 0, 'horizon': datetime.now(timezone.utc)}
+    assert cluster.discover_jobs(client, budget=SweepBudget(60), after=age, max_rows=1)[0]
+    assert client.queries[-1].after is None
+
+
+@pytest.mark.parametrize('error', [cluster.FailedPrecondition('unrelated precondition'), RuntimeError('unavailable')])
+def test_jobs_other_read_errors_are_not_hidden(monkeypatch, error):
+    monkeypatch.delenv('RECORD_SEAL_REPAIR_AGE_ORDER', raising=False)
+    client = OrderedJobsClient([], error)
+    with pytest.raises(type(error)):
+        cluster.discover_jobs(client, budget=SweepBudget(60))
+    assert len(client.queries) == 1
+
+
+@pytest.mark.parametrize('enqueued', [1.123456789012345, 2**53 + 1, -float('inf'), float('nan')])
+def test_jobs_numeric_cursor_round_trips_without_datetime_rounding(enqueued):
+    from utils.batch_pipeline.record_seal_repair_cursor import RepairCursor
+
+    state = CursorClient()
+    frontier = RepairCursor(
+        SimpleNamespace(collection=lambda _: SimpleNamespace(document=lambda _: state)), b'k' * 32, jobs=True
+    )
+    cursor = {
+        'path': 'batch_pipeline_prod_jobs/synthetic',
+        'enqueued_at': enqueued,
+        'horizon': datetime.now(timezone.utc),
+    }
+    frontier.write(cursor, SweepBudget(60))
+    actual = frontier.read(SweepBudget(60))
+    if math.isnan(enqueued):
+        assert math.isnan(actual.pop('enqueued_at'))
+        cursor.pop('enqueued_at')
+    assert actual == cursor
+
+
+def test_jobs_age_indexes_are_owned_once_by_batch_registry_in_both_stages():
+    from database.batch_pipeline_indexes import BATCH_PIPELINE_INDEX_REQUIREMENTS
+    from database.firestore_index_registry import INDEX_REQUIREMENTS, firebase_index_manifest
+
+    manifest = firebase_index_manifest()['indexes']
+    for stage in ('prod', 'dev'):
+        requirement = next(
+            r for r in BATCH_PIPELINE_INDEX_REQUIREMENTS if r.identifier == f'batch_pipeline_{stage}_result_ready'
+        )
+        assert requirement.collection_group == f'batch_pipeline_{stage}_jobs'
+        assert requirement.query_scope == 'COLLECTION'
+        assert [(f.field_path, f.order) for f in requirement.fields] == [
+            ('state', 'ASCENDING'),
+            ('enqueued_at', 'ASCENDING'),
+            ('__name__', 'ASCENDING'),
+        ]
+        assert sum(r.signature == requirement.signature for r in INDEX_REQUIREMENTS) == 1
+        assert manifest.count(requirement.to_manifest()) == 1
+
+
+@pytest.mark.parametrize('mode', ['off', 'on'])
+@pytest.mark.parametrize('bad_clock', [0, -100])
+def test_invalid_job_clock_is_repaired_but_excluded_from_age_metrics(monkeypatch, mode, bad_clock):
+    monkeypatch.setenv('RECORD_SEAL_REPAIR_AGE_ORDER', mode)
+    now = 1800000000
+    monkeypatch.setattr(cluster, 'datetime', SimpleNamespace(now=lambda _: datetime.fromtimestamp(now, timezone.utc)))
+    docs = [pending_job(0, bad_clock), pending_job(1, now - 10000)]
+    rows, _, _ = cluster.discover_jobs(OrderedJobsClient(docs), budget=SweepBudget(60))
+    assert dict(rows) == {
+        'users/synthetic/conversations/capture-0': None,
+        'users/synthetic/conversations/capture-1': 10000,
+    }
+    report, children, _, order, progress = scheduling(rows)
+    assert order == [path for path, _ in rows]
+    assert report['dispositions'] == {'sealed': 2}
+    assert all(child.reaped for child in children)
+    assert report['oldest_unsealed_seconds'] == report['oldest_seal_age_seconds'] == 10000
+    assert report['invalid_clock_rows'] == 1
+    assert ['seal_age_seconds' in row for row in progress] == [age is not None for _, age in rows]
+    json.dumps(report, allow_nan=False)
+
+
+def test_all_invalid_clocks_keep_summary_finite_and_count_attempts():
+    report, _, _, order, progress = scheduling([('zero-clock', None)], outcomes={'zero-clock': (2, 'sealed', 0)})
+    assert order == ['zero-clock']
+    assert report['invalid_clock_rows'] == 1
+    assert report['oldest_unsealed_seconds'] == report['oldest_seal_age_seconds'] == 0
+    assert 'seal_age_seconds' not in progress[0]
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize('clock', [0, -1, None, True, 'old', float('nan'), float('inf'), -float('inf')])
+def test_metric_clock_rejects_nonpositive_nonfinite_or_nonnumeric(clock):
+    assert not cluster.valid_metric_clock(clock)
+
+
+@pytest.mark.parametrize('bad_stamp', [0, -100])
+def test_invalid_conversation_finish_clock_preserves_selection(monkeypatch, bad_stamp):
+    now = 1800000000
+    monkeypatch.setattr(cluster.time, 'time', lambda: now)
+    query = Mock()
+    query.where.return_value = query
+    query.order_by.return_value = query
+    query.select.return_value = query
+    query.limit.return_value = query
+    query.stream.return_value = [
+        SimpleNamespace(
+            reference=SimpleNamespace(path=path),
+            to_dict=lambda stamp=stamp: {'finished_at': datetime.fromtimestamp(stamp, timezone.utc)},
+        )
+        for path, stamp in [('invalid', bad_stamp), ('normal', now - 1000)]
+    ]
+    rows, saturated, cursor = cluster.discover(
+        SimpleNamespace(collection_group=lambda _: query), budget=SweepBudget(60)
+    )
+    assert rows == [('invalid', None), ('normal', 1000)]
+    assert saturated is False and cursor is None

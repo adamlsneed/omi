@@ -35,6 +35,7 @@ static void haptic_off_work_handler(struct k_work *work)
     LOG_INF("Haptic turned off by work handler");
 }
 
+// BLE Service definitions
 static ssize_t haptic_write_handler(struct bt_conn *conn,
                                     const struct bt_gatt_attr *attr,
                                     const void *buf,

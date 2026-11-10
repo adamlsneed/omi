@@ -5,7 +5,7 @@ upstream changes are merged in regularly; nothing flows back.
 
 - Never deploy fork-owned backends (Python, Rust, pusher, agent-proxy, GKE). The fork
   runs against BasedHardware's hosted services; `backend/` production code is pulled as an exact mirror
-  and never deployed. The sole approved test-only exception is recorded below. Upstream workflows that deploy on push to `main` live in
+  and never deployed. No backend exceptions remain. Upstream workflows that deploy on push to `main` live in
   `.github/disabled-workflows/` (see its README) or are disabled in the repository's
   Actions settings.
 - Push, merge, and open PRs only against `adamlsneed` remotes, never BasedHardware.
@@ -27,12 +27,11 @@ upstream changes are merged in regularly; nothing flows back.
 
 The pre-commit hook and CI verify backend bytes against the integrated upstream
 revision using `.github/scripts/fork_policy.py`, preserving upstream formatting.
-The current sync rule permits exactly one blob-pinned test-only exception:
-`backend/tests/unit/test_edit_tools_resilience.py`, approved October 25, 2026,
-uses the fixture-scoped `stub_modules` helper; all 15 original test bodies are
-unchanged. Every other backend byte must match upstream. A changed exception
-blob fails verification. Retire it when upstream supplies equivalent behavior;
-do not expand the exception without explicit authorization.
+Every backend byte must match the integrated upstream revision. The November 9
+sync retired the October 25 test-only exception for
+`backend/tests/unit/test_edit_tools_resilience.py`: upstream now scopes its fakes
+with `stub_modules` and `load_module_fresh`. The mirror regression suite rejects
+both arbitrary edits and the formerly approved exception blob.
 
 Backend tests run through `scripts/fork/backend-test-env.sh`, which preloads real
 Jinja2 and registers the Watch task writer from `scripts/fork/watch-task-source.json`
@@ -43,17 +42,19 @@ loads are unchanged. `scripts/fork/test-backend-support.sh` runs the original
 sanitization and contract tests with regressions for missing Watch registration,
 unregistered writers, stale anchors and real template rendering. Local pre-push,
 ratchet checks and backend unit CI use this environment. The fork module-isolation
-adapter runs the unchanged upstream checker with a temporary registration for the
-inherited conditional Jinja2 stub only after verifying its exact upstream blob
-and every fork runner's real-dependency preload. It checks the original legacy
-allowlist's monotonicity separately; new pollution and changed test bytes still fail.
+adapter runs the unchanged upstream checker without an extra allowlist entry.
+The sanitization test now uses upstream's import helper, which replaces Jinja2
+unconditionally. The fork pytest collector restores the preloaded real Jinja2
+after collecting that module; the combined regression suite proves original
+sanitization assertions and real template rendering still pass together.
+
 For a manual full suite:
 
 ```bash
 bash scripts/fork/backend-test-env.sh
 ```
 
-The logging-entrypoint guard runs unchanged against disposable snapshots with
+The logging-entrypoint and runtime-image third-party guards run unchanged against disposable snapshots with
 archived deployment definitions restored locally. Its first adoption uses the
 imported migration inventory when the fork base predates that
 schema; subsequent runs compare with the fork base. Fixtures retain the logging
@@ -71,3 +72,19 @@ registry matches the integrated upstream revision; fork registry edits retain
 the normal review deadline gate. Schema, coverage and rendered-doc checks remain
 mandatory in both cases. CI fetches upstream ancestry to identify the integrated
 revision rather than treating a newer upstream head as the mirror baseline.
+
+Adam approved a one-time November 9, 2026 sync baseline in
+`.github/scripts/fork_sync_acceptance.json`: one existing upstream raw-speaker
+finding and 47 existing oversized-file changes. The checks report accepted debt
+and require exact Git blob bytes, the specific speaker fingerprint, and exact
+size endpoints. Changed or unlisted source receives the normal checks; future
+upstream revisions receive no automatic acceptance. This does not remediate the
+hosted speaker defect or permit backend edits/deployment. Expansion requires
+explicit authorization. Regression coverage: `test_fork_sync_acceptance.py` in
+`.github/scripts/`, registered for both local and CI lanes.
+
+Adam separately approved the 73 exact feature-flag deadline-transition diagnostics
+in the same snapshot manifest. Acceptance requires the pinned registry blob and
+individual diagnostic text, and reports each as upstream-owned debt. Schema,
+source coverage, rendered documentation, overdue-review handling, and unlisted
+errors retain their existing rules. Editing registry bytes disables this acceptance.
