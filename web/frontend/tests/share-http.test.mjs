@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -16,9 +16,9 @@ test(
   'actual share HTTP representations and human rendering, without live meeting data',
   { timeout: 180000 },
   async () => {
-    const generatedFiles = ['tsconfig.json', 'next-env.d.ts'].map((name) => {
+    const generatedFiles = ['tsconfig.json', 'next-env.d.ts', 'AGENTS.md'].map((name) => {
       const path = new URL(`../${name}`, import.meta.url);
-      return [path, readFileSync(path)];
+      return [path, name === 'AGENTS.md' && !existsSync(path) ? null : readFileSync(path)];
     });
     // Reusing a warmed Next dev cache can omit proxy response headers. Each
     // run owns its output, including when a developer has a live .next cache.
@@ -216,7 +216,10 @@ test(
         await once(child, 'exit');
       }
       await new Promise((resolve) => backend.close(resolve));
-      for (const [path, original] of generatedFiles) writeFileSync(path, original);
+      for (const [path, original] of generatedFiles) {
+        if (original === null) rmSync(path, { force: true });
+        else writeFileSync(path, original);
+      }
       rmSync(new URL(`../${distDir}`, import.meta.url), { recursive: true, force: true });
     }
   },
