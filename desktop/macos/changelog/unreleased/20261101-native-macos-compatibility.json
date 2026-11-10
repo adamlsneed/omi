@@ -1,3 +1,0 @@
-{
-  "change": "Fixed bundled native dependencies that prevented the desktop app from running on supported older macOS versions"
-}
