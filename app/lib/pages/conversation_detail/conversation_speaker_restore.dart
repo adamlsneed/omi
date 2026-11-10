@@ -1,3 +1,5 @@
+// Coordinates restoring speaker identities from conversation detail.
+// Fences asynchronous restore results to the current conversation owner.
 part of 'conversation_detail_provider.dart';
 
 extension _ConversationSpeakerRestore on ConversationDetailProvider {

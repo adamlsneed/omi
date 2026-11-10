@@ -1,3 +1,5 @@
+// Tracks bounded work spans for stall diagnostics.
+// Uses code-owned labels so snapshots exclude recording IDs and user content.
 import 'dart:developer' show Timeline;
 
 /// Code-owned labels only; never put recording IDs, paths or user content here.

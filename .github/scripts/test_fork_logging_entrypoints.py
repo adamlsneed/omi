@@ -38,6 +38,17 @@ class ForkLoggingTests(unittest.TestCase):
             self.assertEqual((active / 'existing.yml').read_text(), 'active')
             self.assertEqual((active / 'missing.yml').read_text(), 'restored')
 
+    def test_runtime_closure_uses_disposable_workflows(self):
+        workflows = ROOT / '.github/workflows'
+        before = {p.name: p.read_bytes() for p in workflows.glob('*.yml')}
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/fork/check-logging-entrypoints.py'), '--runtime-third-party'],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('registered images', result.stdout)
+        self.assertEqual(before, {p.name: p.read_bytes() for p in workflows.glob('*.yml')})
+
     def test_upstream_guard_still_rejects_logging_and_missing_workflow(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1202,8 +1202,8 @@ checks:
   # workflows this contract requires to exist. backend-runtime-image-source-closure
   # is removed here.
   - id: backend-runtime-image-third-party-closure
-    command: ["python3", "backend/scripts/runtime_image_contracts.py", "check-third-party"]
-    triggers: ["backend/**/*.py", "backend/**/Dockerfile*", "backend/**/pylock*.toml", "backend/**/requirements*.txt", "backend/runtime_images.json", "backend/scripts/runtime_image_contracts.py", "plugins/**/*.py", "plugins/Dockerfile", "plugins/requirements.txt", ".github/checks-manifest.yaml"]
+    command: ["python3", "scripts/fork/check-logging-entrypoints.py", "--runtime-third-party"]
+    triggers: ["backend/**/*.py", "backend/**/Dockerfile*", "backend/**/pylock*.toml", "backend/**/requirements*.txt", "backend/runtime_images.json", "backend/scripts/runtime_image_contracts.py", "scripts/fork/check-logging-entrypoints.py", "plugins/**/*.py", "plugins/Dockerfile", "plugins/requirements.txt", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "#24490/#24366: the worker image shipped without deepgram-sdk and langdetect because only the full lock was tested; every reachable third-party import must map to a distribution its image's closed lock installs"
   - id: backend-logging-entrypoints
@@ -2072,6 +2072,12 @@ checks:
     triggers: [".github/scripts/fork_sync_acceptance.*", ".github/scripts/test_fork_sync_acceptance.py", ".github/scripts/check_speaker_label_interpolation.py", ".github/scripts/check_product_file_line_count_ratchet.py", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "November 9 sync: approved upstream speaker and size debt must not admit changed blobs, additional findings, or growth outside the approved snapshot"
+
+  - id: fork-deployment-snapshot-tests
+    command: ["python3", ".github/scripts/test_fork_logging_entrypoints.py"]
+    triggers: ["scripts/fork/check-logging-entrypoints.py", ".github/scripts/test_fork_logging_entrypoints.py", "backend/scripts/runtime_image_contracts.py", "backend/scripts/check_logging_entrypoints.py", ".github/disabled-workflows/*.yml", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "November 9 sync: runtime closure and logging checks need inert archived workflows while missing definitions and source regressions must still fail"
 
 exempt:
   - path: ".github/scripts/check-desktop-beta-freshness.py"

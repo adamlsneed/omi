@@ -1,3 +1,5 @@
+// Projects fetched Home pages into the conversation provider.
+// Keeps held episode replacements and the storage cursor consistent.
 part of 'conversation_provider.dart';
 
 /// Home fetch projection keeps its held replacements and storage cursor in one boundary.

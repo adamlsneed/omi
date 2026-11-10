@@ -1,3 +1,5 @@
+// Calls recording-wide speaker transcript and assignment endpoints.
+// Preserves stale, limited and partial assignment outcomes for callers.
 import 'dart:convert';
 
 import 'package:omi/backend/http/api_result.dart';

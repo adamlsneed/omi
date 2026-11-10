@@ -1,3 +1,5 @@
+// Owns recording transcript loading and speaker display identity.
+// Keeps recording-wide state separate from save and summary scheduling.
 import 'package:collection/collection.dart';
 import 'package:omi/backend/http/api_result.dart';
 import 'package:flutter/foundation.dart';

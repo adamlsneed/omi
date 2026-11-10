@@ -1,3 +1,5 @@
+// Serializes speaker assignments while publishing immediate live labels.
+// Retains capture-session ownership across asynchronous persistence.
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:omi/backend/http/api/recording_speakers.dart';

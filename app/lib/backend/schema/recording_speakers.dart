@@ -1,3 +1,5 @@
+// Decodes recording transcripts and speaker assignment outcomes.
+// Keeps scoped voice identity and coverage separate from display labels.
 import 'dart:convert';
 
 import 'package:omi/backend/schema/transcript_segment.dart';

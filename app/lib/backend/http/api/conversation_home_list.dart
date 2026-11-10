@@ -1,3 +1,5 @@
+// Loads the Home conversation page with its storage cursor.
+// Carries acknowledged episode replacements alongside typed API results.
 part of 'conversations.dart';
 
 /// Typed Home list: the storage cursor and acknowledged fallback snapshots travel together.

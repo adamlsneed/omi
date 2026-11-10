@@ -54,7 +54,7 @@ For a manual full suite:
 bash scripts/fork/backend-test-env.sh
 ```
 
-The logging-entrypoint guard runs unchanged against disposable snapshots with
+The logging-entrypoint and runtime-image third-party guards run unchanged against disposable snapshots with
 archived deployment definitions restored locally. Its first adoption uses the
 imported migration inventory when the fork base predates that
 schema; subsequent runs compare with the fork base. Fixtures retain the logging
