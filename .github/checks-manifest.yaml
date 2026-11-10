@@ -61,12 +61,12 @@ checks:
     reason: "#20498 passed unrelated checks while UID-only relinking, default-on private export and destructive upload retries escaped its direct-coroutine tests; exercise real installed HTTP routing, encrypted durable state, backend-issued grants and failure recovery"
   - id: speaker-identity-interpolation-ratchet
     command: ["python3", ".github/scripts/check_speaker_label_interpolation.py", "--changed-files", "{changed_files}", "--base", "{base}"]
-    triggers: ["backend/**/*.py", "app/lib/**/*.dart", ".github/scripts/*speaker_label_interpolation.py", ".github/checks-manifest.yaml"]
+    triggers: ["backend/**/*.py", "app/lib/**/*.dart", ".github/scripts/*speaker_label_interpolation.py", ".github/scripts/fork_sync_acceptance.*", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "#23379 and Speaker 379 live notes: raw diarization interpolation must not re-enter display or prompts"
   - id: speaker-label-interpolation-tests
     command: ["python3", ".github/scripts/test_check_speaker_label_interpolation.py"]
-    triggers: [".github/scripts/*speaker_label_interpolation.py", ".github/checks-manifest.yaml"]
+    triggers: [".github/scripts/*speaker_label_interpolation.py", ".github/scripts/fork_sync_acceptance.*", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "Fingerprint ratchet rejects f-strings, format, percent and Dart raw speaker interpolation without trading away old leaks"
   - id: nightly-main-contract-tests
@@ -490,7 +490,7 @@ checks:
     reason: "the 2026-10-07 sync poll storm (PR #21206) produced sustained edge 429s and duplicate uploads without paging; preserve ratio alignment, dwell and idempotent deploy reconciliation"
   - id: product-file-line-count-ratchet
     command: ["python3", ".github/scripts/check_product_file_line_count_ratchet.py", "--changed-files", "{changed_files}", "--base", "{target_base}", "--head", "{head}", "--pr-body-file", "{pr_body_file}"]
-    triggers: ["backend/**/*.py", "desktop/macos/**/*.swift", "desktop/macos/**/*.rs", "app/lib/**/*.dart", ".github/scripts/check_product_file_line_count_ratchet.py"]
+    triggers: ["backend/**/*.py", "desktop/macos/**/*.swift", "desktop/macos/**/*.rs", "app/lib/**/*.dart", ".github/scripts/check_product_file_line_count_ratchet.py", ".github/scripts/fork_sync_acceptance.*"]
     lanes: ["local", "ci"]
     requires_pr_body: true
     reason: "#9838 freezes oversized product files against the target branch without a shared metadata ledger; exact PR-body exceptions preserve reviewability without unrelated merge conflicts"
@@ -2067,6 +2067,12 @@ checks:
     triggers: ["backend/utils/mcp_server/registry.py", "scripts/generate_mcp_tools_doc.py", "docs/doc/developer/mcp/tools.mdx", ".github/checks-manifest.yaml"]
     lanes: ["local", "ci"]
     reason: "the MCP tools page hand-paraphrased all 26 advertised tools and had already lagged the registry (missing fields/summary_only/cursor/timezone parameters on conversation and screen-activity tools); the tool inventory (name, description, scope) is now generated from TOOL_SPECS so an undocumented new tool fails the drift check"
+  - id: fork-sync-acceptance-tests
+    command: ["python3", ".github/scripts/test_fork_sync_acceptance.py"]
+    triggers: [".github/scripts/fork_sync_acceptance.*", ".github/scripts/test_fork_sync_acceptance.py", ".github/scripts/check_speaker_label_interpolation.py", ".github/scripts/check_product_file_line_count_ratchet.py", ".github/checks-manifest.yaml"]
+    lanes: ["local", "ci"]
+    reason: "November 9 sync: approved upstream speaker and size debt must not admit changed blobs, additional findings, or growth outside the approved snapshot"
+
 exempt:
   - path: ".github/scripts/check-desktop-beta-freshness.py"
     reason: "hourly doctor job hits the public beta appcast; behavioral coverage is desktop-beta-freshness-tests"

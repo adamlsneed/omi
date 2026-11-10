@@ -1,0 +1,249 @@
+{
+  "approval": "Adam approved the exact November 9 snapshot in chat on 2026-11-09 America/Chicago. No automatic future upstream exemptions.",
+  "upstream": "a8f3ad08ebf6c3674000a4a6f1d25d777ce88943",
+  "speaker": {
+    "backend/utils/episodes/incremental.py": {
+      "blob": "f62155eb30611229af58eff81446f0d74e0660b1",
+      "expressions": [
+        "f'{label}: {text}'"
+      ]
+    }
+  },
+  "line_count": {
+    "app/lib/backend/http/api/conversations.dart": {
+      "blob": "d7ce38b86b3aed26b5016e435266c3ae5a4c9a6b",
+      "base_lines": 1472,
+      "candidate_lines": 1503
+    },
+    "app/lib/backend/preferences.dart": {
+      "blob": "aee0859c4493d3f08936c6bc53d6d79b7653972a",
+      "base_lines": 1676,
+      "candidate_lines": 1773
+    },
+    "app/lib/pages/conversation_detail/conversation_detail_provider.dart": {
+      "blob": "a0489542607495b660c7f093b270c2be99f7141c",
+      "base_lines": 1631,
+      "candidate_lines": 1649
+    },
+    "app/lib/providers/action_items_provider.dart": {
+      "blob": "a5d65bfa872af8256cfbe83dd9aceb64f2be8598",
+      "base_lines": 1480,
+      "candidate_lines": 1533
+    },
+    "app/lib/providers/conversation_provider.dart": {
+      "blob": "c6ec9b0b589c0d907a7b5ff6a6b6e98d80b12fc6",
+      "base_lines": 2306,
+      "candidate_lines": 2349
+    },
+    "app/lib/providers/device_provider.dart": {
+      "blob": "58e0015b021ce7b36008ebb0eed6a8ea380e8726",
+      "base_lines": 1663,
+      "candidate_lines": 1734
+    },
+    "app/lib/services/capture/capture_controller.dart": {
+      "blob": "650b9cd03722e8f069642d0a2bbb2ffa613573d8",
+      "base_lines": 4883,
+      "candidate_lines": 5190
+    },
+    "app/lib/services/capture/capture_coordinator.dart": {
+      "blob": "3f98f4a5204be0505fcd6c74fa4227b90d71702e",
+      "base_lines": 2964,
+      "candidate_lines": 3024
+    },
+    "app/lib/services/devices/connectors/omi_connection.dart": {
+      "blob": "806463cfdfc35af049933ca90a7d37854d1a094d",
+      "base_lines": 1511,
+      "candidate_lines": 1544
+    },
+    "app/lib/services/wals/local_wal_sync.dart": {
+      "blob": "ad9bc3ad03ae05aa05584f0fc75f7db9e4c78704",
+      "base_lines": 2692,
+      "candidate_lines": 2714
+    },
+    "app/lib/utils/analytics/analytics_manager.dart": {
+      "blob": "9e2e698f65b742b0b76154ced97d27424c6f528b",
+      "base_lines": 3138,
+      "candidate_lines": 3146
+    },
+    "backend/database/action_items.py": {
+      "blob": "503b8ff51b214b0c2ea7b8fe062380feb2a7104c",
+      "base_lines": 1742,
+      "candidate_lines": 2182
+    },
+    "backend/database/conversation_finalization_jobs.py": {
+      "blob": "62d047ffe728d9a31bf4189c4f834783b19fa3cf",
+      "base_lines": 3138,
+      "candidate_lines": 3630
+    },
+    "backend/database/conversations.py": {
+      "blob": "ab69fa0ded8096ef0af61ef59a86dff46db21b6a",
+      "base_lines": 4649,
+      "candidate_lines": 4950
+    },
+    "backend/database/firestore_index_registry.py": {
+      "blob": "1087992ebeba715222b98abc9e7dca7c236c2a98",
+      "base_lines": 2250,
+      "candidate_lines": 2330
+    },
+    "backend/database/users.py": {
+      "blob": "70389abe9c652b686ff8619fa79a9af2e1287dd1",
+      "base_lines": 2499,
+      "candidate_lines": 2521
+    },
+    "backend/database/workstreams.py": {
+      "blob": "c22e4799e44bb2f48e96564168d833d386cde176",
+      "base_lines": 1443,
+      "candidate_lines": 1964
+    },
+    "backend/routers/apps.py": {
+      "blob": "7f61da5a0f6d30f95522b7b83053acfe94782e37",
+      "base_lines": 2731,
+      "candidate_lines": 2739
+    },
+    "backend/routers/conversations.py": {
+      "blob": "d2dd843ff5e19a66a6e533961740b7268f8efba0",
+      "base_lines": 2487,
+      "candidate_lines": 2592
+    },
+    "backend/routers/desktop_chat.py": {
+      "blob": "b0c27ea62704edc29822d7e5c398b9dd6fbeb845",
+      "base_lines": 2022,
+      "candidate_lines": 2032
+    },
+    "backend/routers/developer.py": {
+      "blob": "ba028789c73db31c192408a2fec6fbce25690d01",
+      "base_lines": 2862,
+      "candidate_lines": 2870
+    },
+    "backend/routers/listen/receiver.py": {
+      "blob": "60966bd913d5dce9c2d9c14756186adefa046380",
+      "base_lines": 2949,
+      "candidate_lines": 2995
+    },
+    "backend/routers/payment.py": {
+      "blob": "24f2985980b721214b679f6eaf68bf08e5c3b883",
+      "base_lines": 1981,
+      "candidate_lines": 1982
+    },
+    "backend/routers/pusher.py": {
+      "blob": "de6a7e8b73238cf33d10565c57d45b7557f99b3d",
+      "base_lines": 1891,
+      "candidate_lines": 2032
+    },
+    "backend/routers/sync.py": {
+      "blob": "0745e6a35e678d5ff597fda7d875deaf1c526d74",
+      "base_lines": 3697,
+      "candidate_lines": 3819
+    },
+    "backend/scripts/check_cloud_run_env_drift.py": {
+      "blob": "9ebd34f4addf3b6617e7ec0f9b9f170dcb02cf1b",
+      "base_lines": 411,
+      "candidate_lines": 2447
+    },
+    "backend/testing/domain_sim/store.py": {
+      "blob": "1f4e9deb50f621235227e870f63d805991cbe59f",
+      "base_lines": 0,
+      "candidate_lines": 1625
+    },
+    "backend/testing/listen_pusher_stack/run.py": {
+      "blob": "1b0e95aa7bc36d6fd214f21387529973af03e930",
+      "base_lines": 1895,
+      "candidate_lines": 1980
+    },
+    "backend/utils/batch_pipeline/projection.py": {
+      "blob": "7caaeb4499902f1ef9ebf79c82b6785f185ceb42",
+      "base_lines": 1717,
+      "candidate_lines": 1722
+    },
+    "backend/utils/conversations/speaker_resolution.py": {
+      "blob": "1c83027ad34b276744e1c720095c9556353aeff4",
+      "base_lines": 1547,
+      "candidate_lines": 1569
+    },
+    "backend/utils/episodes/service.py": {
+      "blob": "8c00159327ec9df16feadea6ccaf167afdc65309",
+      "base_lines": 1931,
+      "candidate_lines": 2222
+    },
+    "backend/utils/memory/memory_service.py": {
+      "blob": "cdd4c65f5a2d36be240dab10a29d43d36f8d9001",
+      "base_lines": 4708,
+      "candidate_lines": 4709
+    },
+    "backend/utils/metrics.py": {
+      "blob": "3251acc2ab3164a4ee3e5c45ee0910ff046b55b3",
+      "base_lines": 1601,
+      "candidate_lines": 1732
+    },
+    "backend/utils/stt/parakeet_window.py": {
+      "blob": "321efa9e76390869e345ae54f8872a89609f0a20",
+      "base_lines": 1511,
+      "candidate_lines": 1545
+    },
+    "backend/utils/stt/streaming.py": {
+      "blob": "457134484fb4893d119264cd6aebb8ef1921bb8e",
+      "base_lines": 2609,
+      "candidate_lines": 2626
+    },
+    "backend/utils/sync/assignment.py": {
+      "blob": "6724b5073bbd1333725c9afcc62eff18b199277d",
+      "base_lines": 1466,
+      "candidate_lines": 1536
+    },
+    "backend/utils/sync/pipeline.py": {
+      "blob": "684a470c6349c0266c2ccc08e29a0ca6067ba919",
+      "base_lines": 3937,
+      "candidate_lines": 4005
+    },
+    "desktop/macos/Desktop/Sources/AppState/AppState+Transcription.swift": {
+      "blob": "61bcd80baff2cb2dda60843b1f6da391b48f6915",
+      "base_lines": 1759,
+      "candidate_lines": 1765
+    },
+    "desktop/macos/Desktop/Sources/DesktopAutomationBridge.swift": {
+      "blob": "1df504e8709cb46a6c6d1cd3511457ac2cc400c1",
+      "base_lines": 5281,
+      "candidate_lines": 5288
+    },
+    "desktop/macos/Desktop/Sources/FloatingControlBar/FloatingControlBarView.swift": {
+      "blob": "0cc66ee3e7edc189db214e2d74be7198502503b3",
+      "base_lines": 3037,
+      "candidate_lines": 3045
+    },
+    "desktop/macos/Desktop/Sources/FloatingControlBar/FloatingControlBarWindow.swift": {
+      "blob": "034dc699d89e02169091ac0324b3ed3480720e9b",
+      "base_lines": 5963,
+      "candidate_lines": 5969
+    },
+    "desktop/macos/Desktop/Sources/MainWindow/Components/ChatBubble.swift": {
+      "blob": "44f23ca69d0e94351e811d9d191e8ad7405147c1",
+      "base_lines": 2162,
+      "candidate_lines": 2169
+    },
+    "desktop/macos/Desktop/Sources/ProactiveAssistants/ProactiveAssistantsPlugin.swift": {
+      "blob": "c80c9b96fa45113cde8f29a726e63c1a8e1e6ebd",
+      "base_lines": 1960,
+      "candidate_lines": 1967
+    },
+    "desktop/macos/Desktop/Sources/Providers/ChatProvider.swift": {
+      "blob": "52d3df2a7d524b61cff12f91afaf129bb580c575",
+      "base_lines": 6864,
+      "candidate_lines": 6871
+    },
+    "desktop/macos/Desktop/Sources/Providers/ChatToolExecutor.swift": {
+      "blob": "28685a84a08f09aa8ccaf596027096e99d5f7d96",
+      "base_lines": 3926,
+      "candidate_lines": 3932
+    },
+    "desktop/macos/Desktop/Sources/Rewind/UI/RewindPage.swift": {
+      "blob": "270bada9797b9bbac9e0bc12451b06362319eb30",
+      "base_lines": 1705,
+      "candidate_lines": 1711
+    },
+    "desktop/macos/Desktop/Sources/Stores/TasksStore.swift": {
+      "blob": "ace86fcbe7cdd4aaa19f27d849b25367d772ef00",
+      "base_lines": 3679,
+      "candidate_lines": 3696
+    }
+  }
+}

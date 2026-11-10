@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import ast
 from collections import Counter
+from fork_sync_acceptance import accepted_entry
 from pathlib import Path
 import re
 import subprocess
@@ -233,10 +234,17 @@ def findings(path: str, source: str) -> list[tuple[str, int]]:
 
 def regressions(path: str, before: str, after: str) -> list[int]:
     old = Counter(fingerprint for fingerprint, _ in findings(path, before))
+    approved = Counter(
+        ast.dump(ast.parse(expression, mode="eval").body, include_attributes=False)
+        for expression in accepted_entry("speaker", path, after.encode()).get("expressions", [])
+    )
     lines = []
     for fingerprint, line in findings(path, after):
         if old[fingerprint]:
             old[fingerprint] -= 1
+        elif approved[fingerprint]:
+            approved[fingerprint] -= 1
+            print(f"WARN: {path}:{line}: approved upstream speaker finding remains unresolved")
         else:
             lines.append(line)
     return lines
@@ -255,7 +263,7 @@ def _main_ratchet(argv: list[str] | None = None) -> int:
         result = subprocess.run(['git', 'show', f'{args.base}:{path}'], text=True, capture_output=True)
         failures.extend(
             f'{path}:{line}: raw speaker interpolation; use display_participants / SpeakerNames'
-            for line in regressions(path, result.stdout if result.returncode == 0 else '', file.read_text())
+            for line in regressions(path, result.stdout if result.returncode == 0 else '', file.read_bytes().decode('utf-8'))
         )
     print('\n'.join(failures) if failures else 'OK: no new raw speaker interpolation')
     return int(bool(failures))

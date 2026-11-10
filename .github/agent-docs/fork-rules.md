@@ -72,3 +72,13 @@ registry matches the integrated upstream revision; fork registry edits retain
 the normal review deadline gate. Schema, coverage and rendered-doc checks remain
 mandatory in both cases. CI fetches upstream ancestry to identify the integrated
 revision rather than treating a newer upstream head as the mirror baseline.
+
+Adam approved a one-time November 9, 2026 sync baseline in
+`.github/scripts/fork_sync_acceptance.json`: one existing upstream raw-speaker
+finding and 47 existing oversized-file changes. The checks report accepted debt
+and require exact Git blob bytes, the specific speaker fingerprint, and exact
+size endpoints. Changed or unlisted source receives the normal checks; future
+upstream revisions receive no automatic acceptance. This does not remediate the
+hosted speaker defect or permit backend edits/deployment. Expansion requires
+explicit authorization. Regression coverage: `test_fork_sync_acceptance.py` in
+`.github/scripts/`, registered for both local and CI lanes.
