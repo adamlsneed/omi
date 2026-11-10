@@ -1,5 +1,5 @@
 // Derived by python3 tool/perf_shell.py from main.dart. Do not hand edit.
-// Extracted shell SHA256 (imports, telemetry field, builder chain): 5a1dfec6461b433457c09ef302a4244a050b139ff051a65a512a156c984ed7db
+// Extracted shell SHA256 (imports, telemetry field, builder chain): 30a52d4df332a0fba5d28a75457623700b0ca0556867f04632ef1dbe4324614e
 // ignore_for_file: unused_import, unnecessary_import
 import 'package:omi/services/watch/watch_capture_runtime.dart';
 import 'package:omi/services/on_device/on_device_background.dart';
@@ -61,7 +61,6 @@ import 'package:omi/pages/apps/providers/add_app_provider.dart';
 import 'package:omi/pages/conversation_detail/conversation_detail_provider.dart';
 import 'package:omi/pages/payments/payment_method_provider.dart';
 import 'package:omi/backend/http/action_items_api_contract.dart';
-import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/announcement_provider.dart';
 import 'package:omi/providers/action_items_provider.dart';
 import 'package:omi/providers/appearance_provider.dart';

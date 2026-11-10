@@ -158,7 +158,9 @@ class _TrialPaywallPageState extends State<TrialPaywallPage> {
         usage.subscription == null ||
         usage.subscription!.subscription.plan.isPaid ||
         !usage.subscription!.trialEligible ||
-        !usage.showSubscriptionUI) return;
+        !usage.showSubscriptionUI) {
+      return;
+    }
     final trial = usage.subscription?.trialEligible == true;
     const TypedEvents().emit(PaywallMonthlyFallbackShown(trial: trial));
     final accepted = await showOmiSurfaceSheet<bool>(

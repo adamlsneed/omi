@@ -627,7 +627,9 @@ class AuthService {
       await runAccountMutation(() async {
         if (_sessionGeneration != generation ||
             _tokenGateway.currentUser?.uid != ownerUid ||
-            !identical(_expirationOwner, owner)) return;
+            !identical(_expirationOwner, owner)) {
+          return;
+        }
         await _tokenGateway.signOut();
       });
     } catch (e) {
