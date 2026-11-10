@@ -2,6 +2,15 @@
   "unreleased": [],
   "releases": [
     {
+      "version": "0.1.22",
+      "date": "2026-11-10",
+      "changes": [
+        "Fixed bundled native dependencies that prevented the desktop app from running on supported older macOS versions",
+        "Added discarded conversation recovery and updated desktop features and fixes through upstream 0.12.560 while preserving Ideas capture and fork settings",
+        "Improved conversation summaries, recording speaker assignments and capture recovery while preserving Ideas capture and fork settings"
+      ]
+    },
+    {
       "version": "0.12.572",
       "date": "2026-11-09",
       "changes": [
@@ -240,6 +249,13 @@
       ]
     },
     {
+      "version": "0.1.21",
+      "date": "2026-10-26",
+      "changes": [
+        "Updated desktop features and fixes from upstream through version 0.12.534 while preserving Ideas capture and fork settings"
+      ]
+    },
+    {
       "version": "0.12.538",
       "date": "2026-10-25",
       "changes": [
@@ -265,13 +281,6 @@
       "date": "2026-10-25",
       "changes": [
         "Bug fixes and improvements"
-      ]
-    },
-    {
-      "version": "0.1.21",
-      "date": "2026-10-26",
-      "changes": [
-        "Updated desktop features and fixes from upstream through version 0.12.534 while preserving Ideas capture and fork settings"
       ]
     },
     {

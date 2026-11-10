@@ -1,0 +1,9 @@
+{
+  "version": "0.1.22",
+  "date": "2026-11-10",
+  "changes": [
+    "Fixed bundled native dependencies that prevented the desktop app from running on supported older macOS versions",
+    "Added discarded conversation recovery and updated desktop features and fixes through upstream 0.12.560 while preserving Ideas capture and fork settings",
+    "Improved conversation summaries, recording speaker assignments and capture recovery while preserving Ideas capture and fork settings"
+  ]
+}
